@@ -30,6 +30,27 @@
   "common": {
     "comingSoon": "準備中"
   },
+  "announcements": {
+    "list": {
+      "title": "お知らせ",
+      "description": "ヘルプデスクからの周知事項を一覧で確認できます。",
+      "empty": "お知らせはありません",
+      "error": "お知らせの取得に失敗しました"
+    },
+    "categories": {
+      "maintenance": "メンテナンス",
+      "policy": "制度変更",
+      "incident": "障害情報",
+      "other": "その他"
+    },
+    "detail": {
+      "publishedAtLabel": "公開日",
+      "categoryLabel": "種別",
+      "notFound": "お知らせが見つかりません",
+      "error": "お知らせの取得に失敗しました",
+      "backToList": "一覧へ戻る"
+    }
+  },
   "inquiryForm": {
     "title": "問い合わせ・申請フォーム",
     "description": "選択式項目と自由記述を入力し、問い合わせ・申請を送信してください。",

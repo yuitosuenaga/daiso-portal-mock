@@ -1,5 +1,15 @@
-import { PlaceholderPage } from "@/components/features/PlaceholderPage";
+import { Suspense } from "react";
+import {
+  AnnouncementList,
+  AnnouncementListSkeleton,
+} from "@/components/features/announcements/AnnouncementList";
 
 export default function AnnouncementsPage() {
-  return <PlaceholderPage titleKey="announcements" />;
+  return (
+    <div className="max-w-3xl">
+      <Suspense fallback={<AnnouncementListSkeleton />}>
+        <AnnouncementList />
+      </Suspense>
+    </div>
+  );
 }
