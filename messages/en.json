@@ -30,6 +30,27 @@
   "common": {
     "comingSoon": "Coming Soon"
   },
+  "announcements": {
+    "list": {
+      "title": "Announcements",
+      "description": "View announcements from the help desk.",
+      "empty": "No announcements",
+      "error": "Failed to load announcements"
+    },
+    "categories": {
+      "maintenance": "Maintenance",
+      "policy": "Policy",
+      "incident": "Incident",
+      "other": "Other"
+    },
+    "detail": {
+      "publishedAtLabel": "Published",
+      "categoryLabel": "Category",
+      "notFound": "Announcement not found",
+      "error": "Failed to load the announcement",
+      "backToList": "Back to list"
+    }
+  },
   "inquiryForm": {
     "title": "Inquiry / Request Form",
     "description": "Fill in the selection fields and free text, then submit your inquiry or request.",
