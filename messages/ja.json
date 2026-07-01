@@ -155,6 +155,31 @@
       "viewInquiryListLink": "問い合わせ一覧を見る"
     }
   },
+  "inquiryList": {
+    "list": {
+      "title": "問い合わせ一覧",
+      "description": "自社が送信した問い合わせ・申請の一覧と対応状況を確認できます。",
+      "empty": "問い合わせはありません",
+      "error": "問い合わせの取得に失敗しました"
+    },
+    "status": {
+      "new": "新規",
+      "in_progress": "対応中",
+      "resolved": "解決済み"
+    },
+    "detail": {
+      "createdAtLabel": "送信日時",
+      "categoryLabel": "案件種別",
+      "urgencyLabel": "緊急度",
+      "storeRegionLabel": "地域",
+      "statusLabel": "対応状況",
+      "originalTextLabel": "自由記述",
+      "submittedByLabel": "申請者情報",
+      "notFound": "問い合わせが見つかりません",
+      "error": "問い合わせの取得に失敗しました",
+      "backToList": "一覧へ戻る"
+    }
+  },
   "links": {
     "list": {
       "title": "リンク集",
