@@ -154,5 +154,22 @@
       "errorDescription": "Please try again later.",
       "viewInquiryListLink": "View my inquiries"
     }
+  },
+  "links": {
+    "list": {
+      "title": "Links",
+      "description": "View links to internal and external sites used for daily operations, organized by category.",
+      "empty": "No links",
+      "error": "Failed to load links"
+    },
+    "categories": {
+      "internal": "Internal Systems",
+      "external": "External Sites",
+      "document": "Documents / Manuals",
+      "other": "Other"
+    },
+    "item": {
+      "opensInNewTab": "(opens in a new tab)"
+    }
   }
 }
