@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/features/PlaceholderPage";
+import { InquiryForm } from "@/components/features/inquiry-form/InquiryForm";
 
 export default function InquiryNewPage() {
-  return <PlaceholderPage titleKey="inquiryForm" />;
+  return <InquiryForm />;
 }
