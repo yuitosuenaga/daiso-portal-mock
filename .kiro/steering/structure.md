@@ -9,6 +9,7 @@ src/
     ui/                    # 汎用UI（shadcn/ui）
     features/
       inquiry-form/        # 問い合わせ・申請フォーム関連
+      inquiry-list/        # 問い合わせ一覧・詳細（自社の問い合わせ確認）
       announcements/       # お知らせ・情報共有
       links/               # リンク集
       faq/                 # FAQ

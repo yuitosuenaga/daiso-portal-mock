@@ -11,6 +11,12 @@ const badgeVariants = cva(
         policy: "bg-secondary text-secondary-foreground",
         incident: "bg-destructive text-destructive-foreground",
         other: "bg-muted text-muted-foreground",
+        "status-new": "bg-secondary text-secondary-foreground",
+        "status-in_progress": "bg-accent text-accent-foreground",
+        "status-resolved": "bg-muted text-muted-foreground",
+        "urgency-high": "bg-destructive text-destructive-foreground",
+        "urgency-medium": "bg-secondary text-secondary-foreground",
+        "urgency-low": "bg-muted text-muted-foreground",
       },
     },
     defaultVariants: {

@@ -155,6 +155,31 @@
       "viewInquiryListLink": "View my inquiries"
     }
   },
+  "inquiryList": {
+    "list": {
+      "title": "Inquiry List",
+      "description": "View the list of inquiries and requests your company has submitted, along with their status.",
+      "empty": "No inquiries",
+      "error": "Failed to load inquiries"
+    },
+    "status": {
+      "new": "New",
+      "in_progress": "In Progress",
+      "resolved": "Resolved"
+    },
+    "detail": {
+      "createdAtLabel": "Submitted",
+      "categoryLabel": "Category",
+      "urgencyLabel": "Urgency",
+      "storeRegionLabel": "Region",
+      "statusLabel": "Status",
+      "originalTextLabel": "Details",
+      "submittedByLabel": "Submitter Information",
+      "notFound": "Inquiry not found",
+      "error": "Failed to load the inquiry",
+      "backToList": "Back to list"
+    }
+  },
   "links": {
     "list": {
       "title": "Links",

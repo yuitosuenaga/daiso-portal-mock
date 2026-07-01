@@ -29,6 +29,7 @@
 
 1. `dashboard`（土台となるレイアウト・ナビゲーション）
 2. `inquiry-form`（最重要機能。フォーム項目・分類軸を型に落とし込む）
-3. `announcements`（お知らせ・情報共有）
-4. `links-page`（リンク集）
-5. `faq`（FAQ）
+3. `inquiry-list`（自社が出した問い合わせの一覧・状況確認。`inquiry-form`が定義した型・モックAPIを参照する）
+4. `announcements`（お知らせ・情報共有）
+5. `links-page`（リンク集）
+6. `faq`（FAQ）

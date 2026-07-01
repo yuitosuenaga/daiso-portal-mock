@@ -1,5 +1,15 @@
-import { PlaceholderPage } from "@/components/features/PlaceholderPage";
+import { Suspense } from "react";
+import {
+  InquiryList,
+  InquiryListSkeleton,
+} from "@/components/features/inquiry-list/InquiryList";
 
 export default function InquiryListPage() {
-  return <PlaceholderPage titleKey="inquiryList" />;
+  return (
+    <div className="max-w-3xl">
+      <Suspense fallback={<InquiryListSkeleton />}>
+        <InquiryList />
+      </Suspense>
+    </div>
+  );
 }
