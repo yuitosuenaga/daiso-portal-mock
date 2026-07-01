@@ -29,5 +29,109 @@
   },
   "common": {
     "comingSoon": "Coming Soon"
+  },
+  "inquiryForm": {
+    "title": "Inquiry / Request Form",
+    "description": "Fill in the selection fields and free text, then submit your inquiry or request.",
+    "requiredMark": "Required",
+    "fields": {
+      "category": {
+        "label": "Category",
+        "placeholder": "Select a category"
+      },
+      "urgency": {
+        "label": "Urgency",
+        "placeholder": "Select an urgency level"
+      },
+      "storeRegion": {
+        "label": "Store / Region",
+        "placeholder": "Enter the store or region"
+      },
+      "originalText": {
+        "label": "Inquiry Details (free text)",
+        "placeholder": "Enter the details of your inquiry or request",
+        "remainingCharacters": "{count} characters remaining"
+      },
+      "originalLanguage": {
+        "label": "Original Language",
+        "placeholder": "Select the language of your text"
+      },
+      "companyName": {
+        "label": "Company Name",
+        "placeholder": "Enter your company name"
+      },
+      "country": {
+        "label": "Country",
+        "placeholder": "Select a country"
+      }
+    },
+    "options": {
+      "category": {
+        "defect": "Defect",
+        "order": "Order-related",
+        "system": "System-related",
+        "other": "Other"
+      },
+      "urgency": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "country": {
+        "JP": "Japan",
+        "US": "United States",
+        "CN": "China",
+        "KR": "South Korea",
+        "TH": "Thailand",
+        "VN": "Vietnam",
+        "ID": "Indonesia",
+        "PH": "Philippines",
+        "MY": "Malaysia",
+        "SG": "Singapore",
+        "IN": "India",
+        "TW": "Taiwan",
+        "HK": "Hong Kong",
+        "GB": "United Kingdom",
+        "FR": "France",
+        "DE": "Germany",
+        "IT": "Italy",
+        "ES": "Spain",
+        "AU": "Australia",
+        "BR": "Brazil",
+        "MX": "Mexico",
+        "CA": "Canada",
+        "AE": "United Arab Emirates"
+      },
+      "originalLanguage": {
+        "ja": "Japanese",
+        "en": "English",
+        "zh": "Chinese",
+        "ko": "Korean",
+        "th": "Thai",
+        "vi": "Vietnamese",
+        "id": "Indonesian",
+        "ms": "Malay",
+        "tl": "Tagalog",
+        "hi": "Hindi",
+        "fr": "French",
+        "de": "German",
+        "es": "Spanish",
+        "pt": "Portuguese",
+        "ar": "Arabic"
+      }
+    },
+    "validation": {
+      "required": "This field is required",
+      "maxLength": "The maximum character limit has been exceeded"
+    },
+    "submit": {
+      "button": "Submit",
+      "submitting": "Submitting...",
+      "successTitle": "Submission complete",
+      "successDescription": "Your inquiry or request has been received.",
+      "errorTitle": "Submission failed",
+      "errorDescription": "Please try again later.",
+      "viewInquiryListLink": "View my inquiries"
+    }
   }
 }
