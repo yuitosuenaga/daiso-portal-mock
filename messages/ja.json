@@ -154,5 +154,22 @@
       "errorDescription": "時間を置いて再度お試しください。",
       "viewInquiryListLink": "問い合わせ一覧を見る"
     }
+  },
+  "links": {
+    "list": {
+      "title": "リンク集",
+      "description": "業務で利用する社内・外部サイトへのリンクをカテゴリ別に確認できます。",
+      "empty": "リンクはありません",
+      "error": "リンクの取得に失敗しました"
+    },
+    "categories": {
+      "internal": "社内システム",
+      "external": "外部サイト",
+      "document": "資料・マニュアル",
+      "other": "その他"
+    },
+    "item": {
+      "opensInNewTab": "（新しいタブで開きます）"
+    }
   }
 }
