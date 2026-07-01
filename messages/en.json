@@ -1,0 +1,33 @@
+{
+  "header": {
+    "title": "Help Desk Portal"
+  },
+  "nav": {
+    "sidebarLabel": "Main Navigation",
+    "dashboard": "Dashboard",
+    "inquiryForm": "New Inquiry",
+    "inquiryList": "My Inquiries",
+    "announcements": "Announcements",
+    "links": "Links",
+    "faq": "FAQ"
+  },
+  "dashboard": {
+    "announcements": {
+      "title": "Announcements",
+      "empty": "No announcements",
+      "error": "Failed to load announcements"
+    },
+    "inquiryStatus": {
+      "title": "Inquiry Status",
+      "new": "New",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "error": "Failed to load data",
+      "unit": ""
+    },
+    "cta": "Submit New Inquiry"
+  },
+  "common": {
+    "comingSoon": "Coming Soon"
+  }
+}

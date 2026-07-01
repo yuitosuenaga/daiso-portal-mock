@@ -1,0 +1,33 @@
+{
+  "header": {
+    "title": "ヘルプデスクポータル"
+  },
+  "nav": {
+    "sidebarLabel": "メインナビゲーション",
+    "dashboard": "ダッシュボード",
+    "inquiryForm": "問い合わせ申請",
+    "inquiryList": "問い合わせ一覧",
+    "announcements": "お知らせ",
+    "links": "リンク集",
+    "faq": "FAQ"
+  },
+  "dashboard": {
+    "announcements": {
+      "title": "お知らせ",
+      "empty": "お知らせはありません",
+      "error": "お知らせの取得に失敗しました"
+    },
+    "inquiryStatus": {
+      "title": "問い合わせ状況",
+      "new": "新規",
+      "inProgress": "対応中",
+      "resolved": "解決済み",
+      "error": "データの取得に失敗しました",
+      "unit": "件"
+    },
+    "cta": "新規問い合わせを申請する"
+  },
+  "common": {
+    "comingSoon": "準備中"
+  }
+}
