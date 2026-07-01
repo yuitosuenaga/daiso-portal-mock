@@ -44,6 +44,16 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 - Default files: `product.md`, `tech.md`, `structure.md`
 - Custom files are supported (managed via `/kiro:steering-custom`)
 
+## ブランチ運用
+
+**作業を開始する前に、必ず `main` から新しいブランチを作成する。`main` に直接コミットしない。**
+
+- ブランチ名は、実行するタスク内容を簡潔に表した kebab-case の英語表現にする（例: `add-inquiry-form`, `fix-header-layout`, `update-gitignore`）
+- 種別プレフィックスを付ける: `feature/`（新規機能）, `fix/`（修正）, `chore/`（設定・運用系）, `spec/`（`.kiro/specs` 関連作業）
+  - 例: `feature/inquiry-form`, `spec/dashboard-tasks`, `chore/setup-gitignore`
+- 1タスク = 1ブランチを基本とする。関連の薄い複数タスクを1ブランチに混在させない
+- 作業完了後は `main` へマージ（またはPR作成）してからブランチを削除する
+
 ## 開発後レビュー（必須）
 
 **`/kiro:spec-impl` による実装が完了したら、必ず `/kiro:review-impl {feature名}` を実行する。**
