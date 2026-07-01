@@ -73,9 +73,15 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                   aria-label={isCollapsed ? t(item.translationKey) : undefined}
                 >
                   <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  {!isCollapsed && (
-                    <span className="truncate">{t(item.translationKey)}</span>
-                  )}
+                  <span
+                    className={cn(
+                      "truncate",
+                      // タブレット幅で折りたたみ中はラベルを隠すが、PC幅（lg以上）では常に表示する
+                      isCollapsed && "hidden lg:inline"
+                    )}
+                  >
+                    {t(item.translationKey)}
+                  </span>
                 </Link>
               </li>
             );
