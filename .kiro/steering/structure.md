@@ -30,7 +30,7 @@ export type Inquiry = {
   storeRegion: string;
   originalText: string;          // 自由記述（原文）
   originalLanguage: string;      // ISO 639-1 言語コード（例: "th", "vi", "en"）
-  translatedText?: string;       // 日本語訳。フェーズ3(Amazon Translate連携)まで未使用
+  translatedText?: string;       // 日本語訳。フェーズ3(Google Cloud Translation API連携)まで未使用
   status: "new" | "in_progress" | "resolved";
   createdAt: string;
   submittedBy: {

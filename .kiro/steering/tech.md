@@ -10,9 +10,13 @@
 | フォームバリデーション | react-hook-form + zod |
 | 状態管理 | React標準機能のみ（グローバル状態管理ライブラリは現時点で不要） |
 
+## GCP環境について
+
+- **使用するGoogle Cloudプロジェクト**: `rvp-ai-proto-camp`
+
 ## ホスティング
 
-- **モックアップ公開**: AWS Amplify Hosting（PRごとのプレビュー環境を想定）
+- **モックアップ公開**: Firebase App Hosting（PRごとのプレビュー環境を想定）
 - **バージョン管理**: GitHub（PRベース開発、main直push禁止）
 - **CI**: GitHub Actions（lint / typecheck / build を将来的に整備。現フェーズでは lint・typecheck・build の確認を優先）
 
@@ -21,14 +25,14 @@
 | 項目 | 技術選定 |
 |---|---|
 | API | Node.js (TypeScript) または FastAPI（要検討、フロント確定後に決定） |
-| DB | Amazon RDS for PostgreSQL |
-| 自由記述の翻訳処理 | Amazon Translate |
+| DB | Cloud SQL for PostgreSQL |
+| 自由記述の翻訳処理 | Google Cloud Translation API |
 
 ## 多言語対応方針
 
 - UIのベース言語は **日本語・英語** から開始。他言語は `messages/` にJSONファイルを追加するだけで拡張できる構成にする
 - 存在しない翻訳キーは英語にフォールバックする設定にする
-- フォームの自由記述欄は「原文のまま送信」を前提とし、翻訳処理（Amazon Translate連携）はフェーズ3で対応する
+- フォームの自由記述欄は「原文のまま送信」を前提とし、翻訳処理（Google Cloud Translation API連携）はフェーズ3で対応する
 - 対象国が20か国以上に及ぶため、フォント表示崩れを防ぐよう `next/font` で多言語対応フォント（Noto Sans系）を必要に応じて追加できる構成にしておく
 - 言語コードは ISO 639-1 で統一し、「国」と「言語」は別フィールドとして持つ
 
