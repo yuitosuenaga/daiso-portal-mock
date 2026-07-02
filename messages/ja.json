@@ -15,7 +15,8 @@
     "announcements": {
       "title": "お知らせ",
       "empty": "お知らせはありません",
-      "error": "お知らせの取得に失敗しました"
+      "error": "お知らせの取得に失敗しました",
+      "viewAll": "お知らせ一覧を見る"
     },
     "inquiryStatus": {
       "title": "問い合わせ状況",
@@ -25,7 +26,25 @@
       "error": "データの取得に失敗しました",
       "unit": "件"
     },
-    "cta": "新規問い合わせを申請する"
+    "cta": "新規問い合わせを申請する",
+    "recentInquiries": {
+      "title": "自社の問い合わせ",
+      "empty": "問い合わせはありません",
+      "error": "問い合わせの取得に失敗しました",
+      "viewAll": "問い合わせ一覧を見る"
+    },
+    "quickLinks": {
+      "title": "よく使うリンク",
+      "empty": "リンクはありません",
+      "error": "リンクの取得に失敗しました",
+      "viewAll": "リンク集を見る"
+    },
+    "faqPick": {
+      "title": "よくある質問",
+      "empty": "FAQはありません",
+      "error": "FAQの取得に失敗しました",
+      "viewAll": "FAQをもっと見る"
+    }
   },
   "common": {
     "comingSoon": "準備中"
