@@ -7,6 +7,7 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
+        default: "bg-primary text-primary-foreground",
         maintenance: "bg-accent text-accent-foreground",
         policy: "bg-secondary text-secondary-foreground",
         incident: "bg-destructive text-destructive-foreground",

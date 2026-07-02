@@ -30,7 +30,7 @@ export function LanguageSwitcher() {
             onClick={() => handleChange(item.value)}
             className={`text-sm px-1 py-0.5 rounded transition-colors ${
               locale === item.value
-                ? "font-semibold text-foreground"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             aria-pressed={locale === item.value}

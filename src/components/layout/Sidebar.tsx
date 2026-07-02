@@ -66,7 +66,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                   className={cn(
                     "flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                     isActive
-                      ? "bg-accent text-accent-foreground font-medium"
+                      ? "bg-primary text-primary-foreground font-medium"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
                   aria-current={isActive ? "page" : undefined}
