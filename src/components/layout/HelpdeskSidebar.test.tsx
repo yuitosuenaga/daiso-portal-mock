@@ -59,6 +59,13 @@ describe("HelpdeskSidebar", () => {
       name: messages.helpdeskNav.templates,
     });
     expect(templatesLink.getAttribute("href")).toBe("/helpdesk/templates");
+
+    const announcementsLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.announcements,
+    });
+    expect(announcementsLink.getAttribute("href")).toBe(
+      "/helpdesk/announcements"
+    );
   });
 
   it("問い合わせ詳細ページ表示中は問い合わせ管理項目がアクティブになる", () => {

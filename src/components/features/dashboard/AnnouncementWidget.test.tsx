@@ -46,6 +46,7 @@ const ANNOUNCEMENT: Announcement = {
   publishedAt: "2026-07-01T09:00:00Z",
   category: "maintenance",
   body: "本文テキスト",
+  targeting: { scope: "all" },
 };
 
 describe("AnnouncementWidget", () => {

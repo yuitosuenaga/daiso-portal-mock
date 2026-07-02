@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createAnnouncement,
+  deleteAnnouncement,
+  getAllAnnouncements,
   getAnnouncementById,
+  getAnnouncementByIdForHelpdesk,
   getAnnouncements,
   getRecentAnnouncements,
+  updateAnnouncement,
 } from "@/lib/api/announcements";
+import type { CreateAnnouncementInput } from "@/types/announcement";
 
 describe("getAnnouncements", () => {
   it("公開日（publishedAt）の降順で全件を返す", async () => {
@@ -66,5 +72,145 @@ describe("getRecentAnnouncements（既存挙動のリグレッション防止）
 
     expect(result).toHaveLength(5);
     expect(result.map((item) => item.id)).toEqual(["1", "2", "3", "4", "5"]);
+  });
+});
+
+// 以下のテストは`createAnnouncement`等でお知らせを追加するため、上記の既存件数
+// 前提のテスト（"モックデータの全件を返す"等）より後ろに配置する。
+describe("自社国スコープフィルタ（配信対象）", () => {
+  it("全体一律のお知らせは自社国スコープの取得結果に含まれる", async () => {
+    const result = await getAnnouncements();
+    expect(result.every((item) => item.targeting.scope === "all")).toBe(true);
+  });
+
+  it("自社国を含まない配信対象のお知らせは自社国スコープの取得結果から除外される", async () => {
+    const input: CreateAnnouncementInput = {
+      title: "他国向けお知らせ",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "countries", countries: ["US"] },
+    };
+    const created = await createAnnouncement(input);
+
+    const scoped = await getAnnouncements();
+    const all = await getAllAnnouncements();
+
+    expect(scoped.some((item) => item.id === created.id)).toBe(false);
+    expect(all.some((item) => item.id === created.id)).toBe(true);
+  });
+
+  it("自社国を含む配信対象のお知らせは自社国スコープの取得結果に含まれる", async () => {
+    const input: CreateAnnouncementInput = {
+      title: "ベトナム向けお知らせ",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "countries", countries: ["VN", "TH"] },
+    };
+    const created = await createAnnouncement(input);
+
+    const scoped = await getAnnouncements();
+    expect(scoped.some((item) => item.id === created.id)).toBe(true);
+  });
+
+  it("配信対象外のIDをgetAnnouncementByIdで取得するとnullになる", async () => {
+    const input: CreateAnnouncementInput = {
+      title: "他国向け詳細テスト",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "countries", countries: ["US"] },
+    };
+    const created = await createAnnouncement(input);
+
+    const scopedResult = await getAnnouncementById(created.id);
+    const unscopedResult = await getAnnouncementByIdForHelpdesk(created.id);
+
+    expect(scopedResult).toBeNull();
+    expect(unscopedResult?.id).toBe(created.id);
+  });
+});
+
+describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
+  it("作成したお知らせがgetAllAnnouncementsに反映される", async () => {
+    const created = await createAnnouncement({
+      title: "新規作成テスト",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+    });
+
+    expect(created.id).toBeTruthy();
+    expect(typeof created.publishedAt).toBe("string");
+
+    const all = await getAllAnnouncements();
+    expect(all.some((item) => item.id === created.id)).toBe(true);
+  });
+
+  it("更新した内容がgetAnnouncementByIdForHelpdeskに反映される", async () => {
+    const created = await createAnnouncement({
+      title: "更新前タイトル",
+      body: "更新前本文",
+      category: "other",
+      targeting: { scope: "all" },
+    });
+
+    await updateAnnouncement(created.id, {
+      title: "更新後タイトル",
+      body: "更新後本文",
+      category: "policy",
+      targeting: { scope: "all" },
+    });
+
+    const result = await getAnnouncementByIdForHelpdesk(created.id);
+    expect(result?.title).toBe("更新後タイトル");
+    expect(result?.category).toBe("policy");
+  });
+
+  it("削除したお知らせはgetAllAnnouncementsから除去される", async () => {
+    const created = await createAnnouncement({
+      title: "削除テスト",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+    });
+
+    await deleteAnnouncement(created.id);
+
+    const all = await getAllAnnouncements();
+    expect(all.some((item) => item.id === created.id)).toBe(false);
+  });
+
+  it("存在しないIDのupdateAnnouncementはエラーになる", async () => {
+    await expect(
+      updateAnnouncement("does-not-exist", {
+        title: "t",
+        body: "b",
+        category: "other",
+        targeting: { scope: "all" },
+      })
+    ).rejects.toThrow();
+  });
+
+  it("存在しないIDのdeleteAnnouncementはエラーになる", async () => {
+    await expect(deleteAnnouncement("does-not-exist")).rejects.toThrow();
+  });
+
+  it("対象以外のお知らせには影響しない", async () => {
+    const before = await getAnnouncementByIdForHelpdesk("1");
+
+    const created = await createAnnouncement({
+      title: "影響確認用",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+    });
+    await updateAnnouncement(created.id, {
+      title: "変更後",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+    });
+
+    const after = await getAnnouncementByIdForHelpdesk("1");
+    expect(after).toEqual(before);
   });
 });

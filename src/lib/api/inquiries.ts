@@ -1,16 +1,7 @@
 import { InquiryStatusSummary } from "@/types/inquiry-summary";
 import { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 import { getGlobalMockStore } from "@/lib/mock-store";
-
-/**
- * 申請者側で「自社」とみなす固定のモック会社。
- * フェーズ1は認証未実装のため暫定的に固定値とし、フェーズ3で認証済みユーザーの
- * 所属会社情報に置き換える。
- */
-const MOCK_CURRENT_COMPANY = {
-  companyName: "Daiso Vietnam Co., Ltd.",
-  country: "VN",
-};
+import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
 
 /**
  * 問い合わせ一覧・詳細表示用の静的モックデータ。
