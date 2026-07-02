@@ -12,13 +12,16 @@
 - next-intl による日本語・英語切り替えをUI全テキストに反映する
 - ダッシュボードトップページでお知らせ概要と問い合わせステータス概要を表示する
 - フェーズ3のバックエンドAPI差し替えに耐えるモック連携インターフェースを確立する
+- （追記）自社の直近の問い合わせ・よく使うリンク・FAQピックアップを追加し、お知らせの表示情報を強化することで、ダッシュボード単体で把握できる情報量を増やす
 
 ### Non-Goals
 
 - モバイル（767px未満）への完全最適化
 - 認証・ログイン機能（フェーズ2以降）
-- 各機能ページの詳細実装（`announcements`・`inquiry-form`・`links-page`・`faq` 仕様が担当）
+- 各機能ページの詳細実装（`announcements`・`inquiry-form`・`inquiry-list`・`links-page`・`faq` 仕様が担当）
 - バックエンドAPIの実装
+- （追記）ログイン中の利用者・会社に関するコンテキスト表示（検討したが対象外と判断）
+- （追記）問い合わせ・お知らせ・リンク・FAQの新規データモデル・モックAPIの追加（既存モックAPIをすべて再利用する）
 
 ---
 
@@ -29,29 +32,32 @@
 - `app/[locale]/layout.tsx`: AppShell配置・next-intl Provider設定
 - `components/layout/`: Header・Sidebar・LanguageSwitcherコンポーネント
 - `app/[locale]/page.tsx`: ダッシュボードトップページ
-- `components/features/dashboard/`: ダッシュボードウィジェット群
-- `lib/api/announcements.ts`, `lib/api/inquiries.ts`: モックAPI関数と型インターフェース
-- `types/announcement.ts`, `types/inquiry-summary.ts`: 共有型定義
-- `messages/ja.json`, `messages/en.json`: 翻訳キー（本仕様が初期スキーマを確立）
+- `components/features/dashboard/`: ダッシュボードウィジェット群（お知らせ・問い合わせステータス・自社の問い合わせ一覧・よく使うリンク・FAQピックアップ）
+- `lib/api/announcements.ts`, `lib/api/inquiries.ts`: モックAPI関数と型インターフェース（初版）
+- `types/announcement.ts`, `types/inquiry-summary.ts`: 共有型定義（初版）
+- `messages/ja.json`, `messages/en.json`: 翻訳キー（本仕様が初期スキーマを確立し、ダッシュボードウィジェット用キーを追加する）
 - `i18n/routing.ts`, `i18n/request.ts`, `middleware.ts`: next-intlルーティング設定
 
 ### Out of Boundary
 
-- 各機能ページの実装（`announcements`・`inquiry-form`・`links-page`・`faq` 仕様が担当）
-- 問い合わせデータの完全な型定義（`inquiry-form` 仕様が担当）
-- お知らせの詳細データ構造（`announcements` 仕様が担当）
-- 認証・認可処理
+- 各機能ページの実装（`announcements`・`inquiry-form`・`inquiry-list`・`links-page`・`faq` 仕様が担当）
+- 問い合わせ・お知らせ・リンク・FAQの型定義およびモックAPIの入出力契約そのもの（各仕様が担当）。本仕様はダッシュボード表示用にそれらを**読み取り専用で参照するのみ**
+- 認証・認可処理、ログイン中ユーザー・会社のコンテキスト情報
 
 ### Allowed Dependencies
 
-- shadcn/ui: `Card`・`Skeleton`・`Button` コンポーネント
+- shadcn/ui: `Card`・`Skeleton`・`Button`・`Badge` コンポーネント
 - next-intl: `useTranslations`・`useRouter`・`usePathname`・`useLocale`・`Link`・`NextIntlClientProvider`
 - Next.js App Router: `layout.tsx`・`page.tsx`・`Suspense`
+- `lib/api/inquiries.ts` の `getInquiries`（`inquiry-form`/`inquiry-list` 仕様が定義）
+- `lib/api/links.ts` の `getLinks`（`links-page` 仕様が定義）
+- `lib/api/faqs.ts` の `getFaqs`（`faq` 仕様が定義）
 
 ### Revalidation Triggers
 
 - `lib/api/announcements.ts` の型インターフェース変更 → `announcements` 仕様との整合性確認が必要
-- `lib/api/inquiries.ts` の型インターフェース変更 → `inquiry-form` 仕様との整合性確認が必要
+- `lib/api/inquiries.ts`（`getInquiryStatusSummary`・`getInquiries`）の型インターフェース変更 → `inquiry-form`・`inquiry-list` 仕様との整合性確認が必要
+- `lib/api/links.ts`・`lib/api/faqs.ts` の型インターフェース変更 → `links-page`・`faq` 仕様との整合性確認が必要
 - サイドバーのナビゲーション項目（パス・ラベル）の変更 → 後続仕様のルーティング設計に影響
 
 ---
@@ -82,11 +88,17 @@ graph TB
         MainContent --> DashboardPage
         DashboardPage --> AnnouncementWidget
         DashboardPage --> InquiryStatusWidget
+        DashboardPage --> RecentInquiriesWidget
+        DashboardPage --> QuickLinksWidget
+        DashboardPage --> FaqPickWidget
     end
 
     subgraph MockAPILayer
         AnnouncementWidget --> AnnouncementsAPI
         InquiryStatusWidget --> InquiriesAPI
+        RecentInquiriesWidget --> InquiriesAPI
+        QuickLinksWidget --> LinksAPI
+        FaqPickWidget --> FaqsAPI
     end
 
     subgraph OtherPages
@@ -130,15 +142,23 @@ src/
 │   │   └── LanguageSwitcher.tsx         # ja/en 言語切り替えUI
 │   └── features/
 │       └── dashboard/
-│           ├── AnnouncementWidget.tsx   # お知らせ概要ウィジェット（async Server Component）
-│           └── InquiryStatusWidget.tsx  # 問い合わせステータス概要ウィジェット（async Server Component）
+│           ├── AnnouncementWidget.tsx      # お知らせ概要ウィジェット（async Server Component。5件・カテゴリバッジ・詳細リンク対応）
+│           ├── InquiryStatusWidget.tsx     # 問い合わせステータス概要ウィジェット（async Server Component）
+│           ├── RecentInquiriesWidget.tsx   # 自社の直近の問い合わせ一覧ウィジェット（async Server Component、新規）
+│           ├── QuickLinksWidget.tsx        # よく使うリンクショートカットウィジェット（async Server Component、新規）
+│           └── FaqPickWidget.tsx           # FAQピックアップウィジェット（async Server Component、新規）
 ├── lib/
 │   └── api/
-│       ├── announcements.ts             # getRecentAnnouncements() モック関数
-│       └── inquiries.ts                 # getInquiryStatusSummary() モック関数
+│       ├── announcements.ts             # getRecentAnnouncements() モック関数（既存、変更なし）
+│       ├── inquiries.ts                 # getInquiryStatusSummary()・getInquiries() モック関数（既存、変更なし）
+│       ├── links.ts                     # getLinks() モック関数（既存、変更なし。`links-page` 仕様が定義）
+│       └── faqs.ts                      # getFaqs() モック関数（既存、変更なし。`faq` 仕様が定義）
 ├── types/
-│   ├── announcement.ts                  # Announcement 型定義
-│   └── inquiry-summary.ts               # InquiryStatusSummary 型定義
+│   ├── announcement.ts                  # Announcement 型定義（既存、変更なし）
+│   ├── inquiry-summary.ts               # InquiryStatusSummary 型定義（既存、変更なし）
+│   ├── inquiry.ts                       # Inquiry 型定義（既存、変更なし。`inquiry-form` 仕様が定義）
+│   ├── link.ts                          # Link 型定義（既存、変更なし。`links-page` 仕様が定義）
+│   └── faq.ts                           # Faq 型定義（既存、変更なし。`faq` 仕様が定義）
 ├── messages/
 │   ├── ja.json                          # 日本語翻訳キー（本仕様で初期スキーマを確立）
 │   └── en.json                          # 英語翻訳キー
@@ -150,7 +170,9 @@ src/
 
 ### Modified Files
 
-既存ファイルなし（グリーンフィールド）。
+- `app/[locale]/page.tsx` — `RecentInquiriesWidget`・`QuickLinksWidget`・`FaqPickWidget` を追加配置し、レイアウトを縦方向に拡張する（`max-w-4xl` → `max-w-6xl`）
+- `components/features/dashboard/AnnouncementWidget.tsx` — 表示件数を3件から5件に変更し、カテゴリバッジ（`Badge`）と詳細ページへの遷移リンクを追加する
+- `messages/ja.json`, `messages/en.json` — `dashboard.recentInquiries`・`dashboard.quickLinks`・`dashboard.faqPick`・`dashboard.announcements.viewAll` 等のキーを追加する（既存キーは変更しない）
 
 ---
 
@@ -217,6 +239,30 @@ sequenceDiagram
 | 6.1 | データはlib/api/から取得 | AnnouncementWidget, InquiryStatusWidget | AnnouncementsAPI, InquiriesAPI | — |
 | 6.2 | モック関数が実APIと同一インターフェース | lib/api/*.ts | AnnouncementsAPI, InquiriesAPI | — |
 | 6.3 | コンポーネントはPromiseを前提に動作 | AnnouncementWidget, InquiryStatusWidget | — | — |
+| 7.1 | 自社の問い合わせを送信日時降順で上位5件表示 | RecentInquiriesWidget | InquiriesAPI | — |
+| 7.2 | 案件種別・緊急度・対応状況・送信日時を表示 | RecentInquiriesWidget | InquiriesAPI | — |
+| 7.3 | 一覧項目クリックで詳細ページへ遷移 | RecentInquiriesWidget | next-intl Link | — |
+| 7.4 | 0件時に空状態メッセージ | RecentInquiriesWidget | messages/*.json | — |
+| 7.5 | 問い合わせ一覧ページへの遷移リンク | RecentInquiriesWidget | next-intl Link | — |
+| 7.6 | 取得失敗時にエラーメッセージ | RecentInquiriesWidget | messages/*.json | — |
+| 8.1 | お知らせ項目にカテゴリバッジ表示 | AnnouncementWidget | Badge | — |
+| 8.2 | 表示件数を5件に増加 | AnnouncementWidget | AnnouncementsAPI | — |
+| 8.3 | お知らせ項目クリックで詳細ページへ遷移 | AnnouncementWidget | next-intl Link | — |
+| 8.4 | お知らせ一覧ページへの遷移リンク | AnnouncementWidget | next-intl Link | — |
+| 8.5 | 0件時に空状態メッセージ（既存動作） | AnnouncementWidget | messages/*.json | — |
+| 9.1 | よく使うリンクショートカットの表示 | QuickLinksWidget | LinksAPI | — |
+| 9.2 | リンク集データから上位4〜6件表示 | QuickLinksWidget | LinksAPI | — |
+| 9.3 | リンククリックで新しいタブで開く | QuickLinksWidget | — | — |
+| 9.4 | リンク集ページへの遷移リンク | QuickLinksWidget | next-intl Link | — |
+| 10.1 | FAQピックアップの表示 | FaqPickWidget | FaqsAPI | — |
+| 10.2 | FAQデータから上位3〜5件表示 | FaqPickWidget | FaqsAPI | — |
+| 10.3 | FAQ項目クリックでFAQページへ遷移 | FaqPickWidget | next-intl Link | — |
+| 10.4 | FAQページ全体への遷移リンク | FaqPickWidget | next-intl Link | — |
+| 11.1 | ウィジェット追加後もレスポンシブ挙動を維持 | app/[locale]/page.tsx | — | — |
+| 11.2 | Suspense・Skeletonパターンで非同期ロード | RecentInquiriesWidget, QuickLinksWidget, FaqPickWidget | — | — |
+| 11.3 | 表示テキストはnext-intl翻訳キー経由 | 全ダッシュボードウィジェット | messages/*.json | — |
+| 11.4 | 既存共通UIコンポーネント・ブランドトークンを使用 | 全ダッシュボードウィジェット | Card, Badge | — |
+| 11.5 | 既存機能のデータ・API・翻訳キーを変更しない | RecentInquiriesWidget, QuickLinksWidget, FaqPickWidget | InquiriesAPI, LinksAPI, FaqsAPI | — |
 
 ---
 
@@ -231,10 +277,15 @@ sequenceDiagram
 | Sidebar | Layout | ナビゲーションリスト | 3.1, 3.2, 3.3, 3.4 | next-intl Link(P0) | Service |
 | LanguageSwitcher | Layout | 言語トグルUI | 2.2, 2.3, 5.1, 5.4 | next-intl useRouter(P0) | Service |
 | app/[locale]/page.tsx | Routing | ダッシュボードページ配置 | 4.1, 4.4 | AnnouncementWidget(P0), InquiryStatusWidget(P0) | — |
-| AnnouncementWidget | Feature/Dashboard | お知らせ概要表示 | 4.2, 4.5, 4.6, 6.1, 6.2, 6.3 | AnnouncementsAPI(P0), Skeleton(P1) | Service |
+| AnnouncementWidget | Feature/Dashboard | お知らせ概要表示（5件・カテゴリバッジ・詳細/一覧リンク） | 4.2, 4.5, 4.6, 6.1, 6.2, 6.3, 8.1, 8.2, 8.3, 8.4, 8.5 | AnnouncementsAPI(P0), Skeleton(P1), Badge(P1) | Service |
 | InquiryStatusWidget | Feature/Dashboard | ステータス集計カード | 4.3, 4.5, 4.6, 6.1, 6.2, 6.3 | InquiriesAPI(P0), Skeleton(P1) | Service |
+| RecentInquiriesWidget | Feature/Dashboard | 自社の直近の問い合わせ一覧表示（上位5件） | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 11.2, 11.3, 11.4 | InquiriesAPI(P0), Skeleton(P1), Badge(P1) | Service |
+| QuickLinksWidget | Feature/Dashboard | よく使うリンクショートカット表示（上位4〜6件） | 9.1, 9.2, 9.3, 9.4, 11.2, 11.3, 11.4 | LinksAPI(P0), Skeleton(P1) | Service |
+| FaqPickWidget | Feature/Dashboard | FAQピックアップ表示（上位3〜5件） | 10.1, 10.2, 10.3, 10.4, 11.2, 11.3, 11.4 | FaqsAPI(P0), Skeleton(P1) | Service |
 | AnnouncementsAPI | Mock API | お知らせモックデータ提供 | 6.1, 6.2, 6.3 | — | Service |
-| InquiriesAPI | Mock API | 問い合わせ集計モックデータ提供 | 6.1, 6.2, 6.3 | — | Service |
+| InquiriesAPI | Mock API | 問い合わせ集計・一覧モックデータ提供（`getInquiryStatusSummary`・`getInquiries`） | 6.1, 6.2, 6.3, 7.1 | — | Service |
+| LinksAPI | Mock API | リンク集モックデータ提供（`getLinks`。`links-page` 仕様が定義） | 9.2 | — | Service |
+| FaqsAPI | Mock API | FAQモックデータ提供（`getFaqs`。`faq` 仕様が定義） | 10.2 | — | Service |
 
 ---
 
@@ -389,13 +440,13 @@ interface LanguageSwitcherProps {
 
 | Field | Detail |
 |---|---|
-| Intent | 最新のお知らせを最大3件取得し、タイトル・日付でリスト表示する。ローディング・エラー状態を処理する |
-| Requirements | 4.2, 4.5, 4.6, 6.1, 6.2, 6.3 |
+| Intent | 最新のお知らせを5件取得し、カテゴリバッジ・タイトル・日付でリスト表示する。項目クリックで詳細ページへ、ウィジェット下部のリンクでお知らせ一覧ページへ遷移できる。ローディング・エラー状態を処理する |
+| Requirements | 4.2, 4.5, 4.6, 6.1, 6.2, 6.3, 8.1, 8.2, 8.3, 8.4, 8.5 |
 
 **Dependencies**
-- Outbound: `lib/api/announcements.ts` `getRecentAnnouncements` — データ取得（P0）
-- External: next-intl `useTranslations` — セクションタイトル・エラーメッセージ翻訳（P0）
-- External: shadcn/ui `Card`, `Skeleton` — UIコンポーネント（P1）
+- Outbound: `lib/api/announcements.ts` `getRecentAnnouncements({ limit: 5 })` — データ取得（P0）
+- External: next-intl `useTranslations`, `Link` — セクションタイトル・エラーメッセージ翻訳・遷移リンク（P0）
+- External: shadcn/ui `Card`, `Skeleton`, `Badge` — UIコンポーネント（P1）
 
 **Contracts**: Service [x]
 
@@ -407,7 +458,7 @@ interface LanguageSwitcherProps {
 ```
 
 **Implementation Notes**
-- Integration: `async` Server Component として実装する。呼び出し元（`page.tsx`）は `<Suspense fallback={<AnnouncementWidgetSkeleton />}>` で囲む
+- Integration: `async` Server Component として実装する。呼び出し元（`page.tsx`）は `<Suspense fallback={<AnnouncementWidgetSkeleton />}>` で囲む。各項目は `Link href={`/announcements/${item.id}`}` でラップし、`Badge variant={item.category}` でカテゴリを表示する（既存の `announcements.categories` 翻訳キーを再利用）
 - Validation: ローディング中はshadcn/ui `Skeleton` を fallback として表示する。エラー時は `try-catch` でキャッチし翻訳キー経由のエラーメッセージを表示する
 - Risks: フェーズ3での実API移行時、`getRecentAnnouncements` の関数シグネチャが変わらない限りこのコンポーネントへの変更は不要
 
@@ -436,6 +487,87 @@ interface LanguageSwitcherProps {
 **Implementation Notes**
 - Integration: AnnouncementWidget と同様に async Server Component + Suspense パターンを使用する
 - Validation: 3枚のカード（新規・対応中・解決済み）のラベルをそれぞれ翻訳キー経由で表示する
+
+---
+
+#### RecentInquiriesWidget（新規）
+
+| Field | Detail |
+|---|---|
+| Intent | 自社の問い合わせを送信日時降順で上位5件取得し、案件種別・緊急度・対応状況・送信日時を一覧表示する。項目クリックで詳細ページへ、ウィジェット下部のリンクで問い合わせ一覧ページへ遷移できる |
+| Requirements | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 11.2, 11.3, 11.4 |
+
+**Dependencies**
+- Outbound: `lib/api/inquiries.ts` `getInquiries` — データ取得（P0）。取得結果は送信日時降順で返るため、先頭5件を `slice(0, 5)` で取得する
+- External: next-intl `useTranslations`, `Link` — ラベル翻訳・遷移リンク（P0）
+- External: shadcn/ui `Card`, `Skeleton`, `Badge` — UIコンポーネント（P1）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+
+```typescript
+// RecentInquiriesWidget は async Server Component のため props なし
+```
+
+**Implementation Notes**
+- Integration: `getInquiries()` の戻り値の先頭5件を表示する。各項目は `Link href={`/inquiry/${item.id}`}` でラップする。案件種別・緊急度は既存の `inquiryForm.options.category.*` / `inquiryForm.options.urgency.*`、対応状況は `inquiryList.status.*` の翻訳キーを再利用する。緊急度・対応状況は既存の `Badge` バリアント（`urgency-*`・`status-*`）をそのまま使う
+- Validation: 0件時は空状態メッセージ、取得失敗時はエラーメッセージを翻訳キー経由で表示する。ウィジェット下部に `/inquiry` への遷移リンクを表示する
+- Risks: `getInquiries()` は全件取得のため、将来件数が増えた場合でも本ウィジェット側で必ず上位5件に絞る（APIの追加パラメータには依存しない）
+
+---
+
+#### QuickLinksWidget（新規）
+
+| Field | Detail |
+|---|---|
+| Intent | リンク集データから上位4〜6件を取得し、ショートカットとして表示する。クリックで新しいタブでリンク先を開く |
+| Requirements | 9.1, 9.2, 9.3, 9.4, 11.2, 11.3, 11.4 |
+
+**Dependencies**
+- Outbound: `lib/api/links.ts` `getLinks` — データ取得（P0）。取得結果の先頭4〜6件を表示する
+- External: next-intl `useTranslations`, `Link` — セクションタイトル・遷移リンク（P0）
+- External: shadcn/ui `Card`, `Skeleton` — UIコンポーネント（P1）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+
+```typescript
+// QuickLinksWidget は async Server Component のため props なし
+```
+
+**Implementation Notes**
+- Integration: `getLinks()` の戻り値の先頭4〜6件を `<a href={item.url} target="_blank" rel="noopener noreferrer">` で表示する（`links-page` 仕様のリンク項目コンポーネントと同じ新規タブ挙動）。ウィジェット下部に `/links` への遷移リンクを表示する
+- Validation: リンクのタイトル・カテゴリラベルは既存の `links.categories` 翻訳キーを再利用する
+- Risks: `getLinks()` にはカテゴリ別の絞り込みパラメータが無いため、取得した全件の先頭N件を表示する（特定カテゴリを優先させる要件が出た場合は本ウィジェット側でフィルタする）
+
+---
+
+#### FaqPickWidget（新規）
+
+| Field | Detail |
+|---|---|
+| Intent | FAQデータから上位3〜5件の質問を取得し、ピックアップ表示する。クリックでFAQページへ遷移する |
+| Requirements | 10.1, 10.2, 10.3, 10.4, 11.2, 11.3, 11.4 |
+
+**Dependencies**
+- Outbound: `lib/api/faqs.ts` `getFaqs` — データ取得（P0）。取得結果の先頭3〜5件を表示する
+- External: next-intl `useTranslations`, `Link` — セクションタイトル・遷移リンク（P0）
+- External: shadcn/ui `Card`, `Skeleton` — UIコンポーネント（P1）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+
+```typescript
+// FaqPickWidget は async Server Component のため props なし
+```
+
+**Implementation Notes**
+- Integration: `getFaqs()` の戻り値の先頭3〜5件の質問文を表示する。各項目・ウィジェット下部のリンクはいずれも `/faq` へ遷移する（フェーズ1ではFAQページ内の特定質問への直接ディープリンクは対象外とする）
+- Validation: 質問文が長い場合は既存の `line-clamp` パターン（`AnnouncementWidget` と同様）で省略表示する
+- Risks: なし（読み取り専用の表示）
 
 ---
 
@@ -499,14 +631,17 @@ InquiryStatusSummary（集計値・ダッシュボード表示用）
   resolved:    number   — 解決済み件数
 ```
 
-詳細な `Inquiry` 型（`category`・`urgency`・`originalText` 等）は `inquiry-form` 仕様が定義する。本仕様では集計結果（`InquiryStatusSummary`）のみを使用する。
+詳細な `Inquiry` 型（`category`・`urgency`・`originalText` 等）は `inquiry-form` 仕様が定義する。`Link` 型は `links-page` 仕様、`Faq` 型は `faq` 仕様が定義する。本仕様（ダッシュボード）はこれらの型を変更せず、表示のために読み取り専用で参照するのみである。問い合わせステータス概要ウィジェットは集計結果（`InquiryStatusSummary`）のみを使用し、新設の `RecentInquiriesWidget` は `Inquiry[]` を（絞り込みなしで）先頭5件表示のために参照する。
 
 ### Data Contracts & Integration
 
-| 関数 | 引数 | 戻り値型 | フェーズ3での差し替え先 |
-|---|---|---|---|
-| `getRecentAnnouncements` | `{ limit?: number }` | `Promise<Announcement[]>` | お知らせ一覧APIエンドポイント |
-| `getInquiryStatusSummary` | なし | `Promise<InquiryStatusSummary>` | 問い合わせ集計APIエンドポイント |
+| 関数 | 引数 | 戻り値型 | 定義元仕様 | フェーズ3での差し替え先 |
+|---|---|---|---|---|
+| `getRecentAnnouncements` | `{ limit?: number }` | `Promise<Announcement[]>` | dashboard（本仕様） | お知らせ一覧APIエンドポイント |
+| `getInquiryStatusSummary` | なし | `Promise<InquiryStatusSummary>` | dashboard（本仕様） | 問い合わせ集計APIエンドポイント |
+| `getInquiries` | なし | `Promise<Inquiry[]>`（送信日時降順） | inquiry-form / inquiry-list | 問い合わせ一覧APIエンドポイント |
+| `getLinks` | なし | `Promise<Link[]>` | links-page | リンク集APIエンドポイント |
+| `getFaqs` | なし | `Promise<Faq[]>` | faq | FAQ一覧APIエンドポイント |
 
 ---
 
@@ -531,11 +666,16 @@ InquiryStatusSummary（集計値・ダッシュボード表示用）
 - `LanguageSwitcher`: ロケール切り替え時に `useRouter().replace()` が正しい引数（locale・pathname）で呼ばれること
 - `getRecentAnnouncements`: `limit` オプションが返り値の件数に反映されること・返り値が `Announcement[]` 型であること
 - `getInquiryStatusSummary`: 返り値が `InquiryStatusSummary` 型であること（`new` / `in_progress` / `resolved` フィールドを持つ）
+- `RecentInquiriesWidget`: `getInquiries()` の戻り値のうち先頭5件のみを表示すること、0件時に空状態メッセージを表示すること
+- `QuickLinksWidget`: `getLinks()` の戻り値の先頭4〜6件を表示すること、リンクが新しいタブで開く属性（`target="_blank"`・`rel="noopener noreferrer"`）を持つこと
+- `FaqPickWidget`: `getFaqs()` の戻り値の先頭3〜5件を表示すること
 
 ### Integration Tests
 
-- `AnnouncementWidget`: モックAPI → ウィジェット表示の結合（最大3件表示・日付フォーマット）
+- `AnnouncementWidget`: モックAPI → ウィジェット表示の結合（5件表示・カテゴリバッジ・日付フォーマット・詳細/一覧リンク）
 - `InquiryStatusWidget`: モックAPI → 3枚カード表示の結合
+- `RecentInquiriesWidget`: モックAPI → 一覧表示の結合（案件種別・緊急度・対応状況バッジ・詳細/一覧リンク）
+- `QuickLinksWidget` / `FaqPickWidget`: モックAPI → ウィジェット表示の結合
 
 ### E2E/UI Tests
 
@@ -543,6 +683,9 @@ InquiryStatusSummary（集計値・ダッシュボード表示用）
 - 言語切り替えUI操作後にURLが `/en` に変わり、UI全テキストが英語に切り替わること
 - サイドバーのナビゲーション項目をクリックして対応ページへ遷移できること
 - 768px 幅でレイアウトが崩れず横スクロールバーが発生しないこと
+- （追記）ダッシュボードの問い合わせ一覧項目・お知らせ項目をクリックすると各詳細ページへ遷移すること
+- （追記）よく使うリンクをクリックすると新しいタブでリンク先が開くこと
+- （追記）各ウィジェットの「一覧を見る」リンクから対応する一覧ページへ遷移できること
 
 ---
 
@@ -568,7 +711,8 @@ InquiryStatusSummary（集計値・ダッシュボード表示用）
     "announcements": {
       "title": "お知らせ",
       "empty": "お知らせはありません",
-      "error": "お知らせの取得に失敗しました"
+      "error": "お知らせの取得に失敗しました",
+      "viewAll": "お知らせ一覧を見る"
     },
     "inquiryStatus": {
       "title": "問い合わせ状況",
@@ -577,7 +721,27 @@ InquiryStatusSummary（集計値・ダッシュボード表示用）
       "resolved": "解決済み",
       "error": "データの取得に失敗しました"
     },
+    "recentInquiries": {
+      "title": "自社の問い合わせ",
+      "empty": "問い合わせはありません",
+      "error": "問い合わせの取得に失敗しました",
+      "viewAll": "問い合わせ一覧を見る"
+    },
+    "quickLinks": {
+      "title": "よく使うリンク",
+      "empty": "リンクはありません",
+      "error": "リンクの取得に失敗しました",
+      "viewAll": "リンク集を見る"
+    },
+    "faqPick": {
+      "title": "よくある質問",
+      "empty": "FAQはありません",
+      "error": "FAQの取得に失敗しました",
+      "viewAll": "FAQをもっと見る"
+    },
     "cta": "新規問い合わせを申請する"
   }
 }
 ```
+
+（追記）ダッシュボードの問い合わせ一覧・お知らせのカテゴリ/緊急度/対応状況ラベルは、それぞれ既存の `inquiryForm.options.category.*`・`inquiryForm.options.urgency.*`・`inquiryList.status.*`・`announcements.categories.*` を再利用し、重複するキーを新設しない。

@@ -1,20 +1,17 @@
-import { getTranslations, getLocale } from "next-intl/server";
-import { getRecentAnnouncements } from "@/lib/api/announcements";
+import { getTranslations } from "next-intl/server";
+import { getFaqs } from "@/lib/api/faqs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
-import { AnnouncementListItem } from "@/components/features/announcements/AnnouncementListItem";
 
-export async function AnnouncementWidget() {
-  const [t, tCategories, locale] = await Promise.all([
-    getTranslations("dashboard.announcements"),
-    getTranslations("announcements.categories"),
-    getLocale(),
-  ]);
+const FAQ_PICK_LIMIT = 5;
 
-  let announcements;
+export async function FaqPickWidget() {
+  const t = await getTranslations("dashboard.faqPick");
+
+  let faqs;
   try {
-    announcements = await getRecentAnnouncements({ limit: 5 });
+    faqs = await getFaqs();
   } catch {
     return (
       <Card>
@@ -28,28 +25,32 @@ export async function AnnouncementWidget() {
     );
   }
 
+  const pickedFaqs = faqs.slice(0, FAQ_PICK_LIMIT);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent>
-        {announcements.length === 0 ? (
+        {pickedFaqs.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
         ) : (
           <ul className="divide-y divide-border">
-            {announcements.map((item) => (
-              <AnnouncementListItem
-                key={item.id}
-                announcement={item}
-                categoryLabel={tCategories(item.category)}
-                locale={locale}
-              />
+            {pickedFaqs.map((faq) => (
+              <li key={faq.id} className="py-2">
+                <Link
+                  href="/faq"
+                  className="line-clamp-2 text-sm hover:underline"
+                >
+                  {faq.question}
+                </Link>
+              </li>
             ))}
           </ul>
         )}
         <Link
-          href="/announcements"
+          href="/faq"
           className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
         >
           {t("viewAll")}
@@ -59,11 +60,11 @@ export async function AnnouncementWidget() {
   );
 }
 
-export function AnnouncementWidgetSkeleton() {
+export function FaqPickWidgetSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-32" />
       </CardHeader>
       <CardContent className="space-y-3">
         <Skeleton className="h-4 w-full" />

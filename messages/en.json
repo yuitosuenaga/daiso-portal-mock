@@ -15,7 +15,8 @@
     "announcements": {
       "title": "Announcements",
       "empty": "No announcements",
-      "error": "Failed to load announcements"
+      "error": "Failed to load announcements",
+      "viewAll": "View all announcements"
     },
     "inquiryStatus": {
       "title": "Inquiry Status",
@@ -25,7 +26,25 @@
       "error": "Failed to load data",
       "unit": ""
     },
-    "cta": "Submit New Inquiry"
+    "cta": "Submit New Inquiry",
+    "recentInquiries": {
+      "title": "Your Inquiries",
+      "empty": "No inquiries",
+      "error": "Failed to load inquiries",
+      "viewAll": "View all inquiries"
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "empty": "No links",
+      "error": "Failed to load links",
+      "viewAll": "View all links"
+    },
+    "faqPick": {
+      "title": "Frequently Asked Questions",
+      "empty": "No FAQs",
+      "error": "Failed to load FAQs",
+      "viewAll": "View more FAQs"
+    }
   },
   "common": {
     "comingSoon": "Coming Soon"

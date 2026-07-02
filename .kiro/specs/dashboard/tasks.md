@@ -157,3 +157,62 @@
 - [ ] * 6.5 LanguageSwitcher のユニットテストを作成する（オプション・後回し可）
   - `useRouter().replace()` のモックを使い、ロケール切り替え時に正しいロケールと現在のパスで呼ばれることをテストする
   - _Requirements: 2.3_
+
+---
+
+- [x] 7. ダッシュボードの情報量強化（お知らせ拡張・新規ウィジェット追加）
+- [x] 7.1 (P) AnnouncementWidget を拡張する
+  - `getRecentAnnouncements({ limit: 5 })` に変更し表示件数を5件に増やす
+  - 各項目に `Badge variant={item.category}` でカテゴリバッジを表示する（既存の `announcements.categories` 翻訳キーを再利用）
+  - 各項目を `Link href={`/announcements/${item.id}`}` でラップし、ウィジェット下部に `/announcements` への遷移リンク（`dashboard.announcements.viewAll`）を追加する
+  - `/ja` を開くとお知らせが5件・カテゴリバッジ付きで表示され、項目クリックで詳細ページへ遷移することで完了とする
+  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 1.3_
+  - _Boundary: AnnouncementWidget_
+
+- [x] 7.2 (P) RecentInquiriesWidget を新規実装する
+  - async Server Component として `getInquiries()` を呼び出し、戻り値の先頭5件を表示する
+  - 各項目に案件種別（`inquiryForm.options.category.*`）・緊急度バッジ（`urgency-*` variant）・対応状況バッジ（`status-*` variant）・送信日時を表示する
+  - 各項目を `Link href={`/inquiry/${item.id}`}` でラップし、ウィジェット下部に `/inquiry` への遷移リンク（`dashboard.recentInquiries.viewAll`）を追加する
+  - 0件時は空状態メッセージ、取得失敗時はエラーメッセージを表示し、Suspense fallback用の Skeleton コンポーネントを用意する
+  - `/ja` を開くと自社の問い合わせが送信日時降順で5件表示され、項目クリックで詳細ページへ遷移することで完了とする
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 11.2, 11.3, 11.4_
+  - _Boundary: RecentInquiriesWidget_
+
+- [x] 7.3 (P) QuickLinksWidget を新規実装する
+  - async Server Component として `getLinks()` を呼び出し、戻り値の先頭4〜6件を表示する
+  - 各項目を `<a target="_blank" rel="noopener noreferrer">` で新しいタブで開けるようにする
+  - ウィジェット下部に `/links` への遷移リンク（`dashboard.quickLinks.viewAll`）を追加する
+  - Suspense fallback用の Skeleton コンポーネントを用意する
+  - `/ja` を開くとリンクショートカットが表示され、クリックすると新しいタブでリンク先が開くことで完了とする
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 11.2, 11.3, 11.4_
+  - _Boundary: QuickLinksWidget_
+
+- [x] 7.4 (P) FaqPickWidget を新規実装する
+  - async Server Component として `getFaqs()` を呼び出し、戻り値の先頭3〜5件の質問を表示する
+  - 各項目・ウィジェット下部の遷移リンク（`dashboard.faqPick.viewAll`）はいずれも `/faq` へ遷移する
+  - Suspense fallback用の Skeleton コンポーネントを用意する
+  - `/ja` を開くとFAQピックアップが表示され、項目クリックでFAQページへ遷移することで完了とする
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 11.2, 11.3, 11.4_
+  - _Boundary: FaqPickWidget_
+
+- [x] 7.5 ダッシュボードページに新規ウィジェットを統合する
+  - `app/[locale]/page.tsx` に `RecentInquiriesWidget`・`QuickLinksWidget`・`FaqPickWidget` を、それぞれ対応する Skeleton を fallback とした `<Suspense>` で囲んで配置する
+  - 既存のレイアウト幅（`max-w-4xl`）を `max-w-6xl` に広げ、新規ウィジェットを縦方向に整理して配置する
+  - 768px幅・1280px以上の両方でレイアウトが崩れず横スクロールが発生しないことを確認する
+  - `/ja` を開くと既存の2ウィジェットに加え、自社の問い合わせ一覧・よく使うリンク・FAQピックアップの3ウィジェットが表示されることで完了とする
+  - _Requirements: 11.1_
+  - _Depends: 7.1, 7.2, 7.3, 7.4_
+
+---
+
+- [x] 8. ダッシュボード情報量強化の検証
+- [x] 8.1 新規ウィジェットの表示・遷移動作を検証する
+  - お知らせ・問い合わせ一覧の項目クリックで各詳細ページへ遷移すること、よく使うリンクのクリックで新しいタブが開くこと、FAQ項目クリックでFAQページへ遷移することを確認する
+  - 各ウィジェット下部の「一覧を見る」リンクから対応する一覧ページへ遷移できることを確認する
+  - _Requirements: 7.3, 7.5, 8.3, 8.4, 9.3, 9.4, 10.3, 10.4_
+
+- [x] 8.2 レスポンシブ・多言語表示を検証する
+  - 768px幅・1280px以上の両方でダッシュボード全体のレイアウトが崩れないことを確認する
+  - `/en` で全ウィジェットの表示テキストが英語に切り替わること、既存の翻訳キー（`inquiryForm.options.*`・`inquiryList.status.*`・`announcements.categories.*`・`links.categories.*`）が新規ウィジェットでも正しく参照されることを確認する
+  - `npm run build` / `npm run lint` / `npx tsc --noEmit` がエラーなく完了することで完了とする
+  - _Requirements: 11.1, 11.3, 11.4, 11.5_

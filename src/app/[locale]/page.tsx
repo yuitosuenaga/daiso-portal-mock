@@ -9,18 +9,43 @@ import {
   InquiryStatusWidget,
   InquiryStatusWidgetSkeleton,
 } from "@/components/features/dashboard/InquiryStatusWidget";
+import {
+  RecentInquiriesWidget,
+  RecentInquiriesWidgetSkeleton,
+} from "@/components/features/dashboard/RecentInquiriesWidget";
+import {
+  QuickLinksWidget,
+  QuickLinksWidgetSkeleton,
+} from "@/components/features/dashboard/QuickLinksWidget";
+import {
+  FaqPickWidget,
+  FaqPickWidgetSkeleton,
+} from "@/components/features/dashboard/FaqPickWidget";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-6xl">
       <div className="grid gap-6 md:grid-cols-2">
         <Suspense fallback={<AnnouncementWidgetSkeleton />}>
           <AnnouncementWidget />
         </Suspense>
         <Suspense fallback={<InquiryStatusWidgetSkeleton />}>
           <InquiryStatusWidget />
+        </Suspense>
+      </div>
+
+      <Suspense fallback={<RecentInquiriesWidgetSkeleton />}>
+        <RecentInquiriesWidget />
+      </Suspense>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Suspense fallback={<QuickLinksWidgetSkeleton />}>
+          <QuickLinksWidget />
+        </Suspense>
+        <Suspense fallback={<FaqPickWidgetSkeleton />}>
+          <FaqPickWidget />
         </Suspense>
       </div>
 
