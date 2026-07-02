@@ -22,7 +22,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* サイドバートグルボタン（タブレット幅のみ表示） */}
       <button
         onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-        className="hidden md:flex lg:hidden fixed top-14 left-0 z-20 w-16 items-center justify-center py-2 text-muted-foreground hover:text-foreground border-r border-border bg-white"
+        className="hidden md:flex lg:hidden fixed top-14 left-0 z-20 w-16 items-center justify-center py-2 text-sidebar-foreground hover:text-white bg-sidebar"
         aria-label={isSidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"}
         aria-expanded={!isSidebarCollapsed}
         aria-controls="sidebar"
