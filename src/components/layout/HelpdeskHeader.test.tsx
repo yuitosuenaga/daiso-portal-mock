@@ -2,12 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
-import { Header } from "@/components/layout/Header";
+import { HelpdeskHeader } from "@/components/layout/HelpdeskHeader";
 import messages from "../../../messages/ja.json";
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
-  usePathname: () => "/",
+  usePathname: () => "/helpdesk",
   Link: ({
     children,
     href,
@@ -22,26 +22,26 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-function renderHeader() {
+function renderHelpdeskHeader() {
   return render(
     <NextIntlClientProvider locale="ja" messages={messages}>
-      <Header />
+      <HelpdeskHeader />
     </NextIntlClientProvider>
   );
 }
 
-describe("Header", () => {
-  it("ロゴとタイトル文言の両方が表示される", () => {
-    renderHeader();
-    expect(screen.getAllByText("DAISO").length).toBeGreaterThan(0);
-    expect(screen.getByText(messages.header.title)).toBeTruthy();
+describe("HelpdeskHeader", () => {
+  it("ヘルプデスクであることを示すバッジとタイトルが表示される", () => {
+    renderHelpdeskHeader();
+    expect(screen.getByText(messages.helpdeskHeader.title)).toBeTruthy();
+    expect(screen.getByText(messages.helpdeskHeader.badge)).toBeTruthy();
   });
 
-  it("ヘルプデスク側画面への切り替えリンクが表示される", () => {
-    renderHeader();
+  it("申請者側画面への切り替えリンクが表示される", () => {
+    renderHelpdeskHeader();
     const link = screen.getByRole("link", {
-      name: messages.header.switchToHelpdesk,
+      name: messages.helpdeskHeader.switchToApplicant,
     });
-    expect(link.getAttribute("href")).toBe("/helpdesk");
+    expect(link.getAttribute("href")).toBe("/");
   });
 });

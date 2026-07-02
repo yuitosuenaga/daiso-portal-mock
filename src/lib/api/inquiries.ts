@@ -1,10 +1,14 @@
 import { InquiryStatusSummary } from "@/types/inquiry-summary";
 import { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 
-const MOCK_INQUIRY_STATUS: InquiryStatusSummary = {
-  new: 3,
-  in_progress: 7,
-  resolved: 42,
+/**
+ * 申請者側で「自社」とみなす固定のモック会社。
+ * フェーズ1は認証未実装のため暫定的に固定値とし、フェーズ3で認証済みユーザーの
+ * 所属会社情報に置き換える。
+ */
+const MOCK_CURRENT_COMPANY = {
+  companyName: "Daiso Vietnam Co., Ltd.",
+  country: "VN",
 };
 
 /**
@@ -130,10 +134,57 @@ const MOCK_INQUIRIES: Inquiry[] = [
       country: "ID",
     },
   },
+  {
+    id: "inquiry-009",
+    category: "order",
+    urgency: "medium",
+    storeRegion: "Da Nang",
+    originalText:
+      "Chúng tôi muốn đặt thêm hàng cho đợt giao tháng sau.",
+    originalLanguage: "vi",
+    status: "in_progress",
+    createdAt: "2026-06-22T09:30:00.000Z",
+    submittedBy: {
+      companyName: "Daiso Vietnam Co., Ltd.",
+      country: "VN",
+    },
+  },
+  {
+    id: "inquiry-010",
+    category: "defect",
+    urgency: "high",
+    storeRegion: "Hanoi",
+    originalText: "Sản phẩm giao đến bị lỗi, đã được đổi trả và xử lý xong.",
+    originalLanguage: "vi",
+    status: "resolved",
+    createdAt: "2026-06-05T02:15:00.000Z",
+    submittedBy: {
+      companyName: "Daiso Vietnam Co., Ltd.",
+      country: "VN",
+    },
+  },
 ];
 
+function sortByCreatedAtDesc(inquiries: Inquiry[]): Inquiry[] {
+  return [...inquiries].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+/**
+ * 自社（`MOCK_CURRENT_COMPANY`）の問い合わせをステータス別に集計するモックAPI関数。
+ * `getInquiries` と同じ絞り込み対象から動的に算出する。
+ */
 export async function getInquiryStatusSummary(): Promise<InquiryStatusSummary> {
-  return Promise.resolve(MOCK_INQUIRY_STATUS);
+  const ownCompanyInquiries = await getInquiries();
+
+  return ownCompanyInquiries.reduce<InquiryStatusSummary>(
+    (summary, inquiry) => {
+      summary[inquiry.status] += 1;
+      return summary;
+    },
+    { new: 0, in_progress: 0, resolved: 0 }
+  );
 }
 
 /**
@@ -151,15 +202,25 @@ export async function createInquiry(input: CreateInquiryInput): Promise<Inquiry>
 }
 
 /**
- * 自社の問い合わせ全件を送信日時（`createdAt`）の降順で取得するモックAPI関数。
- * 実APIへの移行時はこの関数の内部実装のみを差し替える想定。
+ * 自社（`MOCK_CURRENT_COMPANY`）の問い合わせ全件を送信日時（`createdAt`）の降順で
+ * 取得するモックAPI関数。実APIへの移行時は認証済みユーザーの所属会社で絞り込む
+ * 実装に差し替える想定。
  */
 export async function getInquiries(): Promise<Inquiry[]> {
-  const sorted = [...MOCK_INQUIRIES].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const ownCompanyInquiries = MOCK_INQUIRIES.filter(
+    (inquiry) => inquiry.submittedBy.companyName === MOCK_CURRENT_COMPANY.companyName
   );
 
-  return Promise.resolve(sorted);
+  return Promise.resolve(sortByCreatedAtDesc(ownCompanyInquiries));
+}
+
+/**
+ * 全社分の問い合わせ全件を送信日時（`createdAt`）の降順で取得するモックAPI関数。
+ * ヘルプデスク側の後続機能（ヘルプデスク問い合わせ管理）が利用する想定で、
+ * 本specの時点では画面上への一覧表示は行わない。
+ */
+export async function getAllInquiries(): Promise<Inquiry[]> {
+  return Promise.resolve(sortByCreatedAtDesc(MOCK_INQUIRIES));
 }
 
 /**
