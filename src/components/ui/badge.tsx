@@ -18,6 +18,7 @@ const badgeVariants = cva(
         "urgency-high": "bg-destructive text-destructive-foreground",
         "urgency-medium": "bg-secondary text-secondary-foreground",
         "urgency-low": "bg-muted text-muted-foreground",
+        muted: "bg-muted text-muted-foreground",
       },
     },
     defaultVariants: {

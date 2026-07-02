@@ -10,13 +10,11 @@
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",
-    "home": "Home",
+    "home": "Dashboard",
     "inquiries": "Inquiry Management",
-    "templates": "Template Management"
-  },
-  "helpdeskHome": {
-    "title": "Welcome to the Helpdesk Portal",
-    "description": "Features such as inquiry management and announcement management will be added in upcoming specifications."
+    "templates": "Template Management",
+    "links": "Links",
+    "faq": "FAQ"
   },
   "helpdeskInquiries": {
     "list": {
@@ -110,38 +108,55 @@
     "faq": "FAQ"
   },
   "dashboard": {
+    "inquiryForm": {
+      "title": "New Inquiry",
+      "description": "Submit a new inquiry or request."
+    },
+    "inquiryList": {
+      "title": "My Inquiries",
+      "description": "Check the status of inquiries your company has submitted."
+    },
     "announcements": {
       "title": "Announcements",
-      "empty": "No announcements",
-      "error": "Failed to load announcements",
-      "viewAll": "View all announcements"
+      "description": "View announcements from the help desk."
     },
-    "inquiryStatus": {
-      "title": "Inquiry Status",
-      "new": "New",
-      "inProgress": "In Progress",
-      "resolved": "Resolved",
-      "error": "Failed to load data",
-      "unit": ""
+    "links": {
+      "title": "Links",
+      "description": "View links to internal and external sites used for daily operations."
     },
-    "cta": "Submit New Inquiry",
-    "recentInquiries": {
-      "title": "Your Inquiries",
-      "empty": "No inquiries",
-      "error": "Failed to load inquiries",
-      "viewAll": "View all inquiries"
+    "faq": {
+      "title": "FAQ",
+      "description": "View frequently asked questions and answers."
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "Support Tasks",
+      "reference": "Reference"
     },
-    "quickLinks": {
-      "title": "Quick Links",
-      "empty": "No links",
-      "error": "Failed to load links",
-      "viewAll": "View all links"
+    "inquiries": {
+      "title": "Inquiry List",
+      "description": "View in-progress inquiries submitted by all companies."
     },
-    "faqPick": {
-      "title": "Frequently Asked Questions",
-      "empty": "No FAQs",
-      "error": "Failed to load FAQs",
-      "viewAll": "View more FAQs"
+    "templates": {
+      "title": "Template Management",
+      "description": "Manage the reply templates used for responses."
+    },
+    "announcements": {
+      "title": "Announcement Management",
+      "description": "View, create, edit, and delete announcements."
+    },
+    "inquiryForm": {
+      "title": "Inquiry Form",
+      "description": "View the inquiry and request form used by applicants."
+    },
+    "links": {
+      "title": "Links",
+      "description": "View links to internal and external sites used for daily operations."
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "View frequently asked questions and answers."
     }
   },
   "common": {
