@@ -196,5 +196,19 @@
     "item": {
       "opensInNewTab": "（新しいタブで開きます）"
     }
+  },
+  "faq": {
+    "list": {
+      "title": "FAQ",
+      "description": "よくある質問と回答をカテゴリ別に確認できます。",
+      "empty": "FAQはありません",
+      "error": "FAQの取得に失敗しました"
+    },
+    "categories": {
+      "inquiry_method": "問い合わせ方法",
+      "form_input": "フォーム入力",
+      "status": "対応状況",
+      "other": "その他"
+    }
   }
 }

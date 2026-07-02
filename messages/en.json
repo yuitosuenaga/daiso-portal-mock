@@ -196,5 +196,19 @@
     "item": {
       "opensInNewTab": "(opens in a new tab)"
     }
+  },
+  "faq": {
+    "list": {
+      "title": "FAQ",
+      "description": "View frequently asked questions and answers, organized by category.",
+      "empty": "No FAQs",
+      "error": "Failed to load FAQs"
+    },
+    "categories": {
+      "inquiry_method": "Inquiry Method",
+      "form_input": "Form Input",
+      "status": "Status",
+      "other": "Other"
+    }
   }
 }
