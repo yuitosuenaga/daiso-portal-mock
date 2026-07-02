@@ -12,7 +12,45 @@
     "sidebarLabel": "Helpdesk Navigation",
     "home": "Home",
     "inquiries": "Inquiry Management",
-    "templates": "Template Management"
+    "templates": "Template Management",
+    "announcements": "Announcement Management"
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "Announcement Management",
+      "description": "Create, edit, and delete announcements for overseas sales agents.",
+      "empty": "No announcements",
+      "error": "Failed to load announcements",
+      "addButton": "Create new announcement",
+      "editLink": "Edit",
+      "deleteButton": "Delete",
+      "deleteConfirm": "Delete this announcement?",
+      "deleteError": "Failed to delete. Please try again later.",
+      "targetingAllLabel": "All countries",
+      "targetingCountriesLabel": "Target countries"
+    },
+    "form": {
+      "createTitle": "Create Announcement",
+      "editTitle": "Edit Announcement",
+      "notFound": "Announcement not found",
+      "backToList": "Back to list",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter the announcement title",
+      "bodyLabel": "Body",
+      "bodyPlaceholder": "Enter the announcement body",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select a category",
+      "targetingLabel": "Distribution target",
+      "targetingAllOption": "All countries",
+      "targetingCountriesOption": "Specify countries/regions",
+      "countriesLabel": "Countries/regions (multiple allowed)",
+      "submitButton": "Save",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required",
+        "countriesRequired": "Select at least one country or region"
+      }
+    }
   },
   "helpdeskHome": {
     "title": "Welcome to the Helpdesk Portal",
