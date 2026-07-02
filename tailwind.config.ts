@@ -42,6 +42,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
