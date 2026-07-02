@@ -1,6 +1,20 @@
 {
   "header": {
-    "title": "海外販社代理店ポータル"
+    "title": "海外販社代理店ポータル",
+    "switchToHelpdesk": "ヘルプデスク画面へ"
+  },
+  "helpdeskHeader": {
+    "title": "ヘルプデスクポータル",
+    "badge": "ヘルプデスク",
+    "switchToApplicant": "申請者側画面へ"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "ヘルプデスクナビゲーション",
+    "home": "ホーム"
+  },
+  "helpdeskHome": {
+    "title": "ヘルプデスクポータルへようこそ",
+    "description": "問い合わせ管理・お知らせ管理などの機能は、今後の仕様で順次追加されます。"
   },
   "nav": {
     "sidebarLabel": "メインナビゲーション",

@@ -2,11 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
 
-export function Header() {
-  const t = useTranslations("header");
+export function HelpdeskHeader() {
+  const t = useTranslations("helpdeskHeader");
 
   return (
     <header className="h-14 fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 bg-white border-b border-border shadow-sm">
@@ -15,13 +16,14 @@ export function Header() {
         <span className="font-semibold text-base text-foreground">
           {t("title")}
         </span>
+        <Badge>{t("badge")}</Badge>
       </div>
       <div className="flex items-center gap-4">
         <Link
-          href="/helpdesk"
+          href="/"
           className="text-sm text-primary underline-offset-4 hover:underline"
         >
-          {t("switchToHelpdesk")}
+          {t("switchToApplicant")}
         </Link>
         <LanguageSwitcher />
       </div>

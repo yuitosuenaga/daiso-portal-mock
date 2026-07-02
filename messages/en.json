@@ -1,6 +1,20 @@
 {
   "header": {
-    "title": "Overseas Sales Agent Portal"
+    "title": "Overseas Sales Agent Portal",
+    "switchToHelpdesk": "Switch to Helpdesk"
+  },
+  "helpdeskHeader": {
+    "title": "Helpdesk Portal",
+    "badge": "Helpdesk",
+    "switchToApplicant": "Switch to Applicant View"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "Helpdesk Navigation",
+    "home": "Home"
+  },
+  "helpdeskHome": {
+    "title": "Welcome to the Helpdesk Portal",
+    "description": "Features such as inquiry management and announcement management will be added in upcoming specifications."
   },
   "nav": {
     "sidebarLabel": "Main Navigation",
