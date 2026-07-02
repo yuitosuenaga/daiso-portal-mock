@@ -182,6 +182,22 @@ export async function getInquiryStatusSummary(): Promise<InquiryStatusSummary> {
 }
 
 /**
+ * 全社（自社限定なし）の問い合わせをステータス別に集計するモックAPI関数。
+ * `getAllInquiries` と同じ絞り込み対象（絞り込みなし）から動的に算出する。
+ */
+export async function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary> {
+  const allInquiries = await getAllInquiries();
+
+  return allInquiries.reduce<InquiryStatusSummary>(
+    (summary, inquiry) => {
+      summary[inquiry.status] += 1;
+      return summary;
+    },
+    { new: 0, in_progress: 0, resolved: 0 }
+  );
+}
+
+/**
  * 問い合わせ・申請を送信するモックAPI関数。
  * フェーズ1では一意なIDを付与した `Inquiry` を常に解決する。
  * 実APIへの移行時はこの関数の内部実装のみを差し替える想定。

@@ -10,9 +10,11 @@
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",
-    "home": "ホーム",
+    "home": "ダッシュボード",
     "inquiries": "問い合わせ管理",
     "templates": "テンプレート管理",
+    "links": "リンク集",
+    "faq": "FAQ",
     "announcements": "お知らせ管理"
   },
   "helpdeskAnnouncements": {
@@ -51,10 +53,6 @@
         "countriesRequired": "1つ以上の国・地域を選択してください"
       }
     }
-  },
-  "helpdeskHome": {
-    "title": "ヘルプデスクポータルへようこそ",
-    "description": "問い合わせ管理・お知らせ管理などの機能は、今後の仕様で順次追加されます。"
   },
   "helpdeskInquiries": {
     "list": {
@@ -148,38 +146,55 @@
     "faq": "FAQ"
   },
   "dashboard": {
+    "inquiryForm": {
+      "title": "問い合わせ申請",
+      "description": "新しい問い合わせ・申請を送信します。"
+    },
+    "inquiryList": {
+      "title": "問い合わせ一覧",
+      "description": "自社が送信した問い合わせの状況を確認できます。"
+    },
     "announcements": {
       "title": "お知らせ",
-      "empty": "お知らせはありません",
-      "error": "お知らせの取得に失敗しました",
-      "viewAll": "お知らせ一覧を見る"
+      "description": "ヘルプデスクからの周知事項を確認できます。"
     },
-    "inquiryStatus": {
-      "title": "問い合わせ状況",
-      "new": "新規",
-      "inProgress": "対応中",
-      "resolved": "解決済み",
-      "error": "データの取得に失敗しました",
-      "unit": "件"
+    "links": {
+      "title": "リンク",
+      "description": "業務で利用する社内・外部サイトへのリンクを確認できます。"
     },
-    "cta": "新規問い合わせを申請する",
-    "recentInquiries": {
-      "title": "自社の問い合わせ",
-      "empty": "問い合わせはありません",
-      "error": "問い合わせの取得に失敗しました",
-      "viewAll": "問い合わせ一覧を見る"
+    "faq": {
+      "title": "FAQ",
+      "description": "よくある質問と回答を確認できます。"
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "対応業務",
+      "reference": "参考情報"
     },
-    "quickLinks": {
-      "title": "よく使うリンク",
-      "empty": "リンクはありません",
-      "error": "リンクの取得に失敗しました",
-      "viewAll": "リンク集を見る"
+    "inquiries": {
+      "title": "問い合わせ一覧",
+      "description": "全社から寄せられた、現状対応中の問い合わせを確認できます。"
     },
-    "faqPick": {
-      "title": "よくある質問",
-      "empty": "FAQはありません",
-      "error": "FAQの取得に失敗しました",
-      "viewAll": "FAQをもっと見る"
+    "templates": {
+      "title": "テンプレート管理",
+      "description": "返信に使用するテンプレートを管理できます。"
+    },
+    "announcements": {
+      "title": "お知らせ管理",
+      "description": "お知らせの一覧・作成・編集・削除を行えます。"
+    },
+    "inquiryForm": {
+      "title": "問い合わせ申請フォーム",
+      "description": "申請者向けの問い合わせ・申請フォームの内容を確認できます。"
+    },
+    "links": {
+      "title": "リンク",
+      "description": "業務で利用する社内・外部サイトへのリンクを確認できます。"
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "よくある質問と回答を確認できます。"
     }
   },
   "common": {

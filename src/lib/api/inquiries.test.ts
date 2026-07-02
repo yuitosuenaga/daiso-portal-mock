@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createInquiry,
   getAllInquiries,
+  getAllInquiryStatusSummary,
   getInquiries,
   getInquiryById,
   getInquiryStatusSummary,
@@ -184,5 +185,42 @@ describe("getInquiryStatusSummary", () => {
     expect(summary.new + summary.in_progress + summary.resolved).toBe(
       inquiries.length
     );
+  });
+});
+
+describe("getAllInquiryStatusSummary", () => {
+  it("全社の問い合わせからステータス別件数を動的に集計する", async () => {
+    const allInquiries = await getAllInquiries();
+    const summary = await getAllInquiryStatusSummary();
+
+    const expected = {
+      new: allInquiries.filter((item) => item.status === "new").length,
+      in_progress: allInquiries.filter((item) => item.status === "in_progress").length,
+      resolved: allInquiries.filter((item) => item.status === "resolved").length,
+    };
+
+    expect(summary).toEqual(expected);
+    expect(summary.new + summary.in_progress + summary.resolved).toBe(
+      allInquiries.length
+    );
+  });
+
+  it("複数会社・複数ステータスにまたがるモックデータで件数が正しく算出される", async () => {
+    const allInquiries = await getAllInquiries();
+    const companyNames = new Set(allInquiries.map((item) => item.submittedBy.companyName));
+    expect(companyNames.size).toBeGreaterThan(1);
+
+    const summary = await getAllInquiryStatusSummary();
+
+    expect(summary).toEqual({ new: 3, in_progress: 4, resolved: 3 });
+  });
+
+  it("自社スコープの集計（getInquiryStatusSummary）以上の件数を集計する", async () => {
+    const ownSummary = await getInquiryStatusSummary();
+    const allSummary = await getAllInquiryStatusSummary();
+
+    expect(allSummary.new).toBeGreaterThanOrEqual(ownSummary.new);
+    expect(allSummary.in_progress).toBeGreaterThanOrEqual(ownSummary.in_progress);
+    expect(allSummary.resolved).toBeGreaterThanOrEqual(ownSummary.resolved);
   });
 });

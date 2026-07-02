@@ -68,6 +68,20 @@ describe("HelpdeskSidebar", () => {
     );
   });
 
+  it("リンク集・FAQへのナビゲーション項目を表示する", () => {
+    renderHelpdeskSidebar();
+
+    const linksLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.links,
+    });
+    expect(linksLink.getAttribute("href")).toBe("/helpdesk/links");
+
+    const faqLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.faq,
+    });
+    expect(faqLink.getAttribute("href")).toBe("/helpdesk/faq");
+  });
+
   it("問い合わせ詳細ページ表示中は問い合わせ管理項目がアクティブになる", () => {
     vi.mocked(usePathname).mockReturnValue("/helpdesk/inquiries/inquiry-001");
 

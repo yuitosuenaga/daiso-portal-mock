@@ -2,11 +2,19 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
-import { LayoutDashboard, List, FileText, Bell, type LucideIcon } from "lucide-react";
+import {
+  LayoutDashboard,
+  List,
+  FileText,
+  Bell,
+  Link2,
+  HelpCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HelpdeskNavItem {
-  translationKey: "home" | "inquiries" | "templates" | "announcements";
+  translationKey: "home" | "inquiries" | "templates" | "announcements" | "links" | "faq";
   href: string;
   icon: LucideIcon;
 }
@@ -16,6 +24,8 @@ const HELPDESK_NAV_ITEMS: HelpdeskNavItem[] = [
   { translationKey: "inquiries", href: "/helpdesk/inquiries", icon: List },
   { translationKey: "templates", href: "/helpdesk/templates", icon: FileText },
   { translationKey: "announcements", href: "/helpdesk/announcements", icon: Bell },
+  { translationKey: "links", href: "/helpdesk/links", icon: Link2 },
+  { translationKey: "faq", href: "/helpdesk/faq", icon: HelpCircle },
 ];
 
 interface HelpdeskSidebarProps {

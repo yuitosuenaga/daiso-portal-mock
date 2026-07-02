@@ -1,61 +1,50 @@
 import { Suspense } from "react";
+import { FilePlus, HelpCircle, Link2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
-import {
-  AnnouncementWidget,
-  AnnouncementWidgetSkeleton,
-} from "@/components/features/dashboard/AnnouncementWidget";
-import {
-  InquiryStatusWidget,
-  InquiryStatusWidgetSkeleton,
-} from "@/components/features/dashboard/InquiryStatusWidget";
-import {
-  RecentInquiriesWidget,
-  RecentInquiriesWidgetSkeleton,
-} from "@/components/features/dashboard/RecentInquiriesWidget";
-import {
-  QuickLinksWidget,
-  QuickLinksWidgetSkeleton,
-} from "@/components/features/dashboard/QuickLinksWidget";
-import {
-  FaqPickWidget,
-  FaqPickWidgetSkeleton,
-} from "@/components/features/dashboard/FaqPickWidget";
+import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
+import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
+import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
+import { AnnouncementsCard } from "@/components/features/dashboard/AnnouncementsCard";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div className="grid gap-6 md:grid-cols-2">
-        <Suspense fallback={<AnnouncementWidgetSkeleton />}>
-          <AnnouncementWidget />
-        </Suspense>
-        <Suspense fallback={<InquiryStatusWidgetSkeleton />}>
-          <InquiryStatusWidget />
-        </Suspense>
-      </div>
-
-      <Suspense fallback={<RecentInquiriesWidgetSkeleton />}>
-        <RecentInquiriesWidget />
-      </Suspense>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Suspense fallback={<QuickLinksWidgetSkeleton />}>
-          <QuickLinksWidget />
-        </Suspense>
-        <Suspense fallback={<FaqPickWidgetSkeleton />}>
-          <FaqPickWidget />
-        </Suspense>
-      </div>
-
-      <div>
-        <Link
+    <div className="max-w-6xl">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <NavigationCard
+          title={t("inquiryForm.title")}
+          description={t("inquiryForm.description")}
           href="/inquiry/new"
-          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
-        >
-          {t("cta")}
-        </Link>
+          icon={FilePlus}
+        />
+        <Suspense fallback={<NavigationCardSkeleton />}>
+          <InquiryListCard
+            scope="own"
+            href="/inquiry"
+            titleKey="dashboard.inquiryList.title"
+            descriptionKey="dashboard.inquiryList.description"
+          />
+        </Suspense>
+        <Suspense fallback={<NavigationCardSkeleton />}>
+          <AnnouncementsCard
+            href="/announcements"
+            titleKey="dashboard.announcements.title"
+            descriptionKey="dashboard.announcements.description"
+          />
+        </Suspense>
+        <NavigationCard
+          title={t("links.title")}
+          description={t("links.description")}
+          href="/links"
+          icon={Link2}
+        />
+        <NavigationCard
+          title={t("faq.title")}
+          description={t("faq.description")}
+          href="/faq"
+          icon={HelpCircle}
+        />
       </div>
     </div>
   );
