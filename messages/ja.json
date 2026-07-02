@@ -14,7 +14,45 @@
     "inquiries": "問い合わせ管理",
     "templates": "テンプレート管理",
     "links": "リンク集",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "announcements": "お知らせ管理"
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "お知らせ管理",
+      "description": "海外販社向けのお知らせを作成・編集・削除できます。",
+      "empty": "お知らせはありません",
+      "error": "お知らせの取得に失敗しました",
+      "addButton": "新規お知らせを作成",
+      "editLink": "編集",
+      "deleteButton": "削除",
+      "deleteConfirm": "このお知らせを削除しますか？",
+      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。",
+      "targetingAllLabel": "全体一律",
+      "targetingCountriesLabel": "配信対象国"
+    },
+    "form": {
+      "createTitle": "お知らせの新規作成",
+      "editTitle": "お知らせの編集",
+      "notFound": "お知らせが見つかりません",
+      "backToList": "一覧へ戻る",
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "お知らせのタイトルを入力してください",
+      "bodyLabel": "本文",
+      "bodyPlaceholder": "お知らせの本文を入力してください",
+      "categoryLabel": "種別",
+      "categoryPlaceholder": "種別を選択してください",
+      "targetingLabel": "配信対象",
+      "targetingAllOption": "全体一律",
+      "targetingCountriesOption": "特定の国・地域を指定",
+      "countriesLabel": "国・地域（複数選択可）",
+      "submitButton": "保存する",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です",
+        "countriesRequired": "1つ以上の国・地域を選択してください"
+      }
+    }
   },
   "helpdeskInquiries": {
     "list": {

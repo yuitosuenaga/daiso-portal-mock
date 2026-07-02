@@ -45,6 +45,7 @@ const ANNOUNCEMENT: Announcement = {
   publishedAt: "2026-07-01T09:00:00Z",
   category: "incident",
   body: "詳細本文テキスト",
+  targeting: { scope: "all" },
 };
 
 describe("AnnouncementDetail", () => {
