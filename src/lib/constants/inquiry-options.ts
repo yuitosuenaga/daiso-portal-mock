@@ -17,6 +17,13 @@ export const INQUIRY_URGENCY_CODES = [
   "low",
 ] as const satisfies readonly Inquiry["urgency"][];
 
+/** 対応状況（status）のコード一覧。 */
+export const INQUIRY_STATUS_CODES = [
+  "new",
+  "in_progress",
+  "resolved",
+] as const satisfies readonly Inquiry["status"][];
+
 /** 対象国（country）のコード一覧（ISO 3166-1 alpha-2）。 */
 export const INQUIRY_COUNTRY_CODES = [
   "JP",

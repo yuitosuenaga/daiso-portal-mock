@@ -2,17 +2,19 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
-import { LayoutDashboard, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, List, FileText, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HelpdeskNavItem {
-  translationKey: "home";
+  translationKey: "home" | "inquiries" | "templates";
   href: string;
   icon: LucideIcon;
 }
 
 const HELPDESK_NAV_ITEMS: HelpdeskNavItem[] = [
   { translationKey: "home", href: "/helpdesk", icon: LayoutDashboard },
+  { translationKey: "inquiries", href: "/helpdesk/inquiries", icon: List },
+  { translationKey: "templates", href: "/helpdesk/templates", icon: FileText },
 ];
 
 interface HelpdeskSidebarProps {
@@ -36,7 +38,10 @@ export function HelpdeskSidebar({ isCollapsed }: HelpdeskSidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
           {HELPDESK_NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/helpdesk" &&
+                pathname.startsWith(`${item.href}/`));
             const Icon = item.icon;
 
             return (

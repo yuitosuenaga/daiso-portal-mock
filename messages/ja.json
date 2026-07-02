@@ -10,11 +10,95 @@
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",
-    "home": "ホーム"
+    "home": "ホーム",
+    "inquiries": "問い合わせ管理",
+    "templates": "テンプレート管理"
   },
   "helpdeskHome": {
     "title": "ヘルプデスクポータルへようこそ",
     "description": "問い合わせ管理・お知らせ管理などの機能は、今後の仕様で順次追加されます。"
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "問い合わせ管理",
+      "description": "全社分の問い合わせを緊急度順に確認できます。",
+      "empty": "問い合わせはありません",
+      "error": "問い合わせの取得に失敗しました",
+      "noResults": "条件に合致する問い合わせはありません"
+    },
+    "detail": {
+      "notFound": "問い合わせが見つかりません",
+      "error": "問い合わせの取得に失敗しました",
+      "backToList": "一覧へ戻る"
+    },
+    "filter": {
+      "companyLabel": "会社名",
+      "companyPlaceholder": "会社名で絞り込み",
+      "keywordLabel": "キーワード",
+      "keywordPlaceholder": "本文に含まれるキーワードで絞り込み",
+      "countryLabel": "国",
+      "countryAll": "すべての国",
+      "categoryLabel": "案件種別",
+      "categoryAll": "すべての種別",
+      "clearButton": "条件をクリア"
+    },
+    "claim": {
+      "inProgressBadge": "対応中",
+      "claimButton": "対応中にする",
+      "releaseButton": "対応を外す",
+      "claimedByLabel": "対応者",
+      "error": "操作に失敗しました。時間を置いて再度お試しください。"
+    },
+    "status": {
+      "sectionTitle": "対応状況の変更",
+      "label": "対応状況",
+      "error": "対応状況の変更に失敗しました。時間を置いて再度お試しください。"
+    },
+    "reply": {
+      "sectionTitle": "返信",
+      "templateLabel": "テンプレート",
+      "templatePlaceholder": "テンプレートを選択",
+      "noTemplates": "このカテゴリのテンプレートはありません",
+      "bodyLabel": "返信内容",
+      "bodyPlaceholder": "返信内容を入力してください",
+      "submitButton": "送信する",
+      "submitting": "送信中...",
+      "successMessage": "返信を記録しました",
+      "error": "送信に失敗しました。時間を置いて再度お試しください。"
+    },
+    "history": {
+      "sectionTitle": "対応履歴",
+      "empty": "対応履歴はありません",
+      "types": {
+        "claimed": "対応中にしました",
+        "released": "対応を外しました",
+        "status_changed": "対応状況を変更しました",
+        "reply_sent": "返信を送信しました"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "テンプレート管理",
+      "description": "カテゴリ別の返信テンプレートを管理できます。",
+      "addButton": "新規テンプレートを追加",
+      "editLink": "編集",
+      "empty": "テンプレートはありません"
+    },
+    "form": {
+      "createTitle": "テンプレートの新規作成",
+      "editTitle": "テンプレートの編集",
+      "notFound": "テンプレートが見つかりません",
+      "categoryLabel": "案件種別",
+      "categoryPlaceholder": "案件種別を選択してください",
+      "bodyLabel": "本文",
+      "bodyPlaceholder": "テンプレート本文を入力してください",
+      "submitButton": "保存する",
+      "backToList": "一覧へ戻る",
+      "validation": {
+        "required": "この項目は必須です"
+      }
+    }
   },
   "nav": {
     "sidebarLabel": "メインナビゲーション",

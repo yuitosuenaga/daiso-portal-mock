@@ -6,6 +6,8 @@ import {
   getInquiries,
   getInquiryById,
   getInquiryStatusSummary,
+  setInquiryClaim,
+  updateInquiryStatus,
 } from "@/lib/api/inquiries";
 import type { CreateInquiryInput } from "@/types/inquiry";
 
@@ -113,6 +115,57 @@ describe("createInquiry（既存挙動のリグレッション防止）", () => 
     const second = await createInquiry(input);
 
     expect(first.id).not.toBe(second.id);
+  });
+});
+
+describe("setInquiryClaim", () => {
+  it("対象の問い合わせに対応中フラグを設定する", async () => {
+    const result = await setInquiryClaim("inquiry-003", "Test Staff");
+
+    expect(result.claim).not.toBeNull();
+    expect(result.claim?.staffName).toBe("Test Staff");
+    expect(typeof result.claim?.claimedAt).toBe("string");
+  });
+
+  it("nullを渡すと対応中フラグを解除する", async () => {
+    await setInquiryClaim("inquiry-003", "Test Staff");
+    const result = await setInquiryClaim("inquiry-003", null);
+
+    expect(result.claim).toBeNull();
+  });
+
+  it("対象以外の問い合わせには影響しない", async () => {
+    const before = await getInquiryById("inquiry-004");
+    await setInquiryClaim("inquiry-003", "Test Staff");
+    const after = await getInquiryById("inquiry-004");
+
+    expect(after?.claim).toEqual(before?.claim);
+  });
+
+  it("存在しないIDを渡すとエラーになる", async () => {
+    await expect(setInquiryClaim("does-not-exist", "Test Staff")).rejects.toThrow();
+  });
+});
+
+describe("updateInquiryStatus", () => {
+  it("対象の問い合わせのステータスを変更する", async () => {
+    const result = await updateInquiryStatus("inquiry-002", "resolved");
+
+    expect(result.status).toBe("resolved");
+    const refetched = await getInquiryById("inquiry-002");
+    expect(refetched?.status).toBe("resolved");
+  });
+
+  it("対象以外の問い合わせには影響しない", async () => {
+    const before = await getInquiryById("inquiry-005");
+    await updateInquiryStatus("inquiry-002", "in_progress");
+    const after = await getInquiryById("inquiry-005");
+
+    expect(after?.status).toBe(before?.status);
+  });
+
+  it("存在しないIDを渡すとエラーになる", async () => {
+    await expect(updateInquiryStatus("does-not-exist", "resolved")).rejects.toThrow();
   });
 });
 
