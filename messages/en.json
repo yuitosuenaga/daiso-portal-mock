@@ -10,11 +10,95 @@
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",
-    "home": "Home"
+    "home": "Home",
+    "inquiries": "Inquiry Management",
+    "templates": "Template Management"
   },
   "helpdeskHome": {
     "title": "Welcome to the Helpdesk Portal",
     "description": "Features such as inquiry management and announcement management will be added in upcoming specifications."
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "Inquiry Management",
+      "description": "View inquiries from all companies, sorted by urgency.",
+      "empty": "No inquiries",
+      "error": "Failed to load inquiries",
+      "noResults": "No inquiries match the selected filters"
+    },
+    "detail": {
+      "notFound": "Inquiry not found",
+      "error": "Failed to load the inquiry",
+      "backToList": "Back to list"
+    },
+    "filter": {
+      "companyLabel": "Company",
+      "companyPlaceholder": "Filter by company name",
+      "keywordLabel": "Keyword",
+      "keywordPlaceholder": "Filter by keyword in the inquiry text",
+      "countryLabel": "Country",
+      "countryAll": "All countries",
+      "categoryLabel": "Category",
+      "categoryAll": "All categories",
+      "clearButton": "Clear filters"
+    },
+    "claim": {
+      "inProgressBadge": "In Progress",
+      "claimButton": "Start handling",
+      "releaseButton": "Stop handling",
+      "claimedByLabel": "Handled by",
+      "error": "The action failed. Please try again later."
+    },
+    "status": {
+      "sectionTitle": "Change Status",
+      "label": "Status",
+      "error": "Failed to change status. Please try again later."
+    },
+    "reply": {
+      "sectionTitle": "Reply",
+      "templateLabel": "Template",
+      "templatePlaceholder": "Select a template",
+      "noTemplates": "No templates available for this category",
+      "bodyLabel": "Reply content",
+      "bodyPlaceholder": "Enter your reply content",
+      "submitButton": "Send",
+      "submitting": "Sending...",
+      "successMessage": "Reply recorded",
+      "error": "Failed to send the reply. Please try again later."
+    },
+    "history": {
+      "sectionTitle": "History",
+      "empty": "No history yet",
+      "types": {
+        "claimed": "Started handling",
+        "released": "Stopped handling",
+        "status_changed": "Changed status",
+        "reply_sent": "Sent a reply"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "Template Management",
+      "description": "Manage reply templates organized by category.",
+      "addButton": "Add new template",
+      "editLink": "Edit",
+      "empty": "No templates"
+    },
+    "form": {
+      "createTitle": "Create Template",
+      "editTitle": "Edit Template",
+      "notFound": "Template not found",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select a category",
+      "bodyLabel": "Body",
+      "bodyPlaceholder": "Enter the template body",
+      "submitButton": "Save",
+      "backToList": "Back to list",
+      "validation": {
+        "required": "This field is required"
+      }
+    }
   },
   "nav": {
     "sidebarLabel": "Main Navigation",

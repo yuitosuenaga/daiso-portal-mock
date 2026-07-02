@@ -3,10 +3,11 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import { HelpdeskSidebar } from "@/components/layout/HelpdeskSidebar";
+import { usePathname } from "@/i18n/navigation";
 import messages from "../../../messages/ja.json";
 
 vi.mock("@/i18n/navigation", () => ({
-  usePathname: () => "/helpdesk",
+  usePathname: vi.fn(() => "/helpdesk"),
   Link: ({
     children,
     href,
@@ -44,5 +45,35 @@ describe("HelpdeskSidebar", () => {
     expect(
       screen.getByLabelText(messages.helpdeskNav.sidebarLabel)
     ).toBeTruthy();
+  });
+
+  it("問い合わせ管理・テンプレート管理へのナビゲーション項目を表示する", () => {
+    renderHelpdeskSidebar();
+
+    const inquiriesLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.inquiries,
+    });
+    expect(inquiriesLink.getAttribute("href")).toBe("/helpdesk/inquiries");
+
+    const templatesLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.templates,
+    });
+    expect(templatesLink.getAttribute("href")).toBe("/helpdesk/templates");
+  });
+
+  it("問い合わせ詳細ページ表示中は問い合わせ管理項目がアクティブになる", () => {
+    vi.mocked(usePathname).mockReturnValue("/helpdesk/inquiries/inquiry-001");
+
+    renderHelpdeskSidebar();
+
+    const inquiriesLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.inquiries,
+    });
+    expect(inquiriesLink.className).toContain("bg-primary");
+
+    const homeLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.home,
+    });
+    expect(homeLink.className).not.toContain("bg-primary");
   });
 });

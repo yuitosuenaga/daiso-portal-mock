@@ -1,5 +1,6 @@
 import { InquiryStatusSummary } from "@/types/inquiry-summary";
 import { CreateInquiryInput, Inquiry } from "@/types/inquiry";
+import { getGlobalMockStore } from "@/lib/mock-store";
 
 /**
  * 申請者側で「自社」とみなす固定のモック会社。
@@ -14,8 +15,10 @@ const MOCK_CURRENT_COMPANY = {
 /**
  * 問い合わせ一覧・詳細表示用の静的モックデータ。
  * `createInquiry` が返す実行時データとは独立しており、対応状況・緊急度・案件種別が一通り確認できる内容にしている。
+ * Server Actionsからの変更がRSCレンダリングに反映されるよう、`globalThis`上に保持する
+ * （`lib/mock-store.ts`参照）。
  */
-const MOCK_INQUIRIES: Inquiry[] = [
+const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
   {
     id: "inquiry-001",
     category: "defect",
@@ -163,7 +166,7 @@ const MOCK_INQUIRIES: Inquiry[] = [
       country: "VN",
     },
   },
-];
+]);
 
 function sortByCreatedAtDesc(inquiries: Inquiry[]): Inquiry[] {
   return [...inquiries].sort(
@@ -231,4 +234,44 @@ export async function getInquiryById(id: string): Promise<Inquiry | null> {
   const found = MOCK_INQUIRIES.find((inquiry) => inquiry.id === id);
 
   return Promise.resolve(found ?? null);
+}
+
+function findInquiryOrThrow(id: string): Inquiry {
+  const inquiry = MOCK_INQUIRIES.find((item) => item.id === id);
+  if (!inquiry) {
+    throw new Error(`Inquiry not found: ${id}`);
+  }
+  return inquiry;
+}
+
+/**
+ * ヘルプデスク側の対応中フラグ（二重対応防止）を設定・解除するモックAPI関数。
+ * `staffName` に `null` を渡すと解除する。`MOCK_INQUIRIES` の該当要素のみを更新する。
+ */
+export async function setInquiryClaim(
+  id: string,
+  staffName: string | null
+): Promise<Inquiry> {
+  const inquiry = findInquiryOrThrow(id);
+
+  inquiry.claim = staffName
+    ? { staffName, claimedAt: new Date().toISOString() }
+    : null;
+
+  return Promise.resolve(inquiry);
+}
+
+/**
+ * ヘルプデスク側から問い合わせの対応状況（`status`）を変更するモックAPI関数。
+ * `MOCK_INQUIRIES` の該当要素のみを更新するため、申請者側の参照結果にも反映される。
+ */
+export async function updateInquiryStatus(
+  id: string,
+  status: Inquiry["status"]
+): Promise<Inquiry> {
+  const inquiry = findInquiryOrThrow(id);
+
+  inquiry.status = status;
+
+  return Promise.resolve(inquiry);
 }

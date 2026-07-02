@@ -23,6 +23,15 @@ export type Inquiry = {
     /** ISO 3166-1 alpha-2 国コード */
     country: string;
   };
+  /**
+   * ヘルプデスク側の対応中フラグ。二重対応防止のための自己申告制フラグで、
+   * `status` とは独立した概念。対応中でないときは `null`。
+   */
+  claim?: {
+    staffName: string;
+    /** ISO 8601 形式の対応開始時刻 */
+    claimedAt: string;
+  } | null;
 };
 
 /**
