@@ -125,3 +125,43 @@
 - **Rationale**: トースト通知は新規の依存ライブラリ導入とグローバルなProvider配置が必要になり、本機能単体のスコープに対して過剰な複雑性となる。フォーム上部のバナーで要件7を満たせる
 - **Trade-offs**: 画面遷移せずにフォームをリセットする場合、バナーがユーザーの目に入りやすい位置にある必要がある（フォーム最上部に固定表示する）
 - **Follow-up**: 他機能でも成功・失敗フィードバックが必要になった場合、`components/ui/alert.tsx` を共通利用する
+
+---
+
+## 追加ラウンド（2026-07-03）: 添付ファイル対応
+
+### Summary
+- **Discovery Scope**: Extension（新規の外部ライブラリ依存なし。ブラウザ標準のFile API/FileReader APIのみを使用）
+- **Key Findings**:
+  - リポジトリ全体を検索したが、`type="file"`・`FileReader`・`createObjectURL` を使う既存パターンは存在せず、本機能がこのコードベースで初めてのファイル入力実装になる
+  - `components/ui/input.tsx` は `React.InputHTMLAttributes<HTMLInputElement>` をそのまま透過する薄いラッパーで、Tailwindクラスに `file:border-0 file:bg-transparent ...`（shadcn/ui標準の file input 用スタイル）が既に含まれているが未使用のまま存在する。`type="file"` にもそのまま使える
+  - `src/lib/api/inquiries.ts` に `"use server"` ディレクティブはなく、`createInquiry` はクライアントバンドルにそのまま含めて呼び出し可能な素のTS関数（`crypto.randomUUID()`もブラウザで利用可）。つまり本spec（フォーム送信）はNext.jsのServer Action境界を一切通過せず、ペイロードサイズ制限（Server Actionsのデフォルト`bodySizeLimit`）を気にする必要がない。**この前提は返信側（`helpdesk-inquiry-management`）には当てはまらない**点に注意（`sendInquiryReplyAction`は`"use server"`のServer Action）
+- **Requirement-to-Asset Map**: 要件10（添付ファイルの追加）に対応する既存アセットはなし（Missing）。`Input`のfile対応スタイルのみ再利用可能
+
+### Design Decisions
+
+#### Decision: 添付ファイルはBase64データURL（FileReader.readAsDataURL）として保持し、Blob URL（URL.createObjectURL）は採用しない
+- **Context**: 選択したファイルをどう「モックAPIが保持するデータ」として扱うかが未決定だった。フェーズ1はサーバーへの実ファイル永続化を行わない前提のため、詳細画面（`inquiry-list`・`helpdesk-inquiry-management`が別ラウンドで対応）で後から参照・ダウンロードできる形にする必要がある
+- **Alternatives Considered**:
+  1. `URL.createObjectURL(file)` で生成したBlob URLをそのまま保持する
+  2. `FileReader.readAsDataURL(file)` でBase64データURL文字列に変換して保持する
+- **Selected Approach**: 2) データURL文字列として保持する
+- **Rationale**: Blob URLは生成した`Document`（ページ）に紐づき、ハードリロードや別タブ・別ブラウザからのアクセスでは解決できない。データURLはファイルの内容そのものを文字列に埋め込むため、`globalThis`ベースの共有モックストア（`helpdesk-inquiry-management`spec確立のパターン）に格納すればページをまたいで一貫して参照・ダウンロードできる。フェーズ1はDB/実ストレージを持たないため、この制約下では最も確実に「他画面でも見える」を実現できる方式
+- **Trade-offs**: Base64エンコードによりデータサイズが約1.33倍になる。大量・大容量ファイルを扱うと`globalThis`上のメモリ使用量が増えるため、ファイルサイズ・件数の上限設定が必須になる（下記Decision参照）。実運用（フェーズ3）では実ストレージ+署名付きURL方式に置き換える前提
+- **Follow-up**: フェーズ3で実ファイルストレージへ移行する際、`InquiryAttachment.dataUrl`を実URLに置き換える
+
+#### Decision: 添付ファイルの上限は1件5MB・1回の送信で最大5件、許可形式は画像（jpeg/png/gif/webp）とPDFに限定する
+- **Context**: データURL化によるメモリ使用量増加を踏まえ、妥当な上限値を決める必要があった
+- **Alternatives Considered**: 上限なし／厳しめ（1MB・3件）／緩め（10MB・10件）
+- **Selected Approach**: 1件5MB、1送信あたり最大5件、`image/jpeg`・`image/png`・`image/gif`・`image/webp`・`application/pdf`のみ許可
+- **Rationale**: 不具合報告のスクリーンショットや発注書PDFという主要ユースケースを満たしつつ、データURL化後のメモリ使用量を現実的な範囲（最大約33MB相当）に抑える
+- **Trade-offs**: 動画や大容量ファイルには対応できないが、要件上想定されるユースケース外のため許容する
+- **Follow-up**: 上限値は`src/lib/constants/attachment.ts`に定数化し、フェーズ2以降のヒアリング結果に応じて調整可能にする
+
+#### Decision: 添付ファイルの型・上限定数・検証ユーティリティは共有モジュールとして`inquiry-form`が所有し、`helpdesk-inquiry-management`（返信側）が読み取り専用で再利用する
+- **Context**: 返信時の添付ファイル対応（別spec）でも同じ`InquiryAttachment`型・同じ上限・同じ検証ロジックが必要になる。両specで別々に実装すると、上限値の食い違いや検証ロジックの重複保守が発生する
+- **Alternatives Considered**: 1) spec間で完全に独立した実装を持つ、2) 型・定数・検証ロジックを`inquiry-form`（先行実装側）が所有し、後続specが読み取り専用の依存として再利用する。UIコンポーネント（`AttachmentField`）も同様に共有する
+- **Selected Approach**: 2) 共有する。これは`FormField`（`inquiry-form`所有）が`helpdesk-announcements`等の他機能から既に再利用されている、このコードベース既存の前例に倣う
+- **Rationale**: 添付ファイルの制約（上限・許可形式）はアプリ全体で一貫しているべきであり、UIの見た目（選択・プレビュー・削除操作）も申請側・ヘルプデスク側で統一されている方がユーザー体験上望ましい
+- **Trade-offs**: `helpdesk-inquiry-management`は`inquiry-form`が所有するモジュールに依存することになる。将来`inquiry-form`側でこれらのモジュールを破壊的変更する場合は、依存する側への影響確認が必要（Revalidation Triggersに明記）
+- **Follow-up**: `helpdesk-inquiry-management`spec着手時に、`AttachmentField`の翻訳文言をpropsとして受け取る設計（`FormField`と同じ、翻訳解決は呼び出し側の責務とする規約）になっていることを確認する

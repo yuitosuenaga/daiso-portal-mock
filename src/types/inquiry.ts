@@ -1,6 +1,8 @@
 // 問い合わせ・申請フォームのドメイン型定義（フェーズ1の仮定義）。
 // category の選択肢はヘルプデスク担当者へのヒアリング後に変更される前提。
 
+import type { InquiryAttachment } from "@/types/attachment";
+
 /**
  * 問い合わせ・申請1件を表す集約型。
  */
@@ -32,6 +34,8 @@ export type Inquiry = {
     /** ISO 8601 形式の対応開始時刻 */
     claimedAt: string;
   } | null;
+  /** 添付ファイル一覧。任意項目で、0件を許可する */
+  attachments?: InquiryAttachment[];
 };
 
 /**

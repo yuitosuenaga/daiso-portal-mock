@@ -254,6 +254,11 @@
       "country": {
         "label": "Country",
         "placeholder": "Select a country"
+      },
+      "attachments": {
+        "label": "Attachments",
+        "hint": "Images or PDF, up to 5MB each, up to 5 files.",
+        "removeButton": "Remove"
       }
     },
     "options": {
@@ -313,7 +318,13 @@
     },
     "validation": {
       "required": "This field is required",
-      "maxLength": "The maximum character limit has been exceeded"
+      "maxLength": "The maximum character limit has been exceeded",
+      "attachments": {
+        "sizeExceeded": "The file size exceeds the limit (5MB)",
+        "typeNotAllowed": "This file type is not allowed (images or PDF only)",
+        "countExceeded": "The number of attachments exceeds the limit (5 files)",
+        "readFailed": "Failed to read the file. Please try again."
+      }
     },
     "submit": {
       "button": "Submit",

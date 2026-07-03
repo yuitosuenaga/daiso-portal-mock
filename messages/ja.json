@@ -254,6 +254,11 @@
       "country": {
         "label": "国",
         "placeholder": "国を選択してください"
+      },
+      "attachments": {
+        "label": "添付ファイル",
+        "hint": "画像またはPDF、1件5MBまで、最大5件まで添付できます。",
+        "removeButton": "削除"
       }
     },
     "options": {
@@ -313,7 +318,13 @@
     },
     "validation": {
       "required": "この項目は必須です",
-      "maxLength": "文字数の上限を超えています"
+      "maxLength": "文字数の上限を超えています",
+      "attachments": {
+        "sizeExceeded": "ファイルサイズが上限（5MB）を超えています",
+        "typeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",
+        "countExceeded": "添付できるファイル数の上限（5件）を超えています",
+        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
+      }
     },
     "submit": {
       "button": "送信する",
