@@ -43,3 +43,13 @@ export function readFileAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * バイト数を人が読みやすい単位（B/KB/MB）の文字列に変換する。
+ * `helpdesk-inquiry-management`spec（`AttachmentPreviewList`）が読み取り専用で再利用する。
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}

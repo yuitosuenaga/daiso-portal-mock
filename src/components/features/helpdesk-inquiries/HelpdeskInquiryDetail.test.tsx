@@ -110,4 +110,68 @@ describe("HelpdeskInquiryDetail", () => {
     expect(screen.getByLabelText(messages.helpdeskInquiries.reply.bodyLabel)).toBeTruthy();
     expect(screen.getByText(messages.helpdeskInquiries.history.empty)).toBeTruthy();
   });
+
+  it("問い合わせ本文に添付ファイルがある場合、プレビュー・ダウンロードリンクを表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
+      claim: null,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "evidence.png",
+          fileType: "image/png",
+          fileSize: 100,
+          dataUrl: "data:image/png;base64,AAAA",
+        },
+      ],
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-001" });
+    renderWithProvider(jsx);
+
+    // 「添付ファイル」ラベルは返信欄のAttachmentFieldにも表示されるため、
+    // 問い合わせ本文セクション分を含めて2件存在することを確認する
+    expect(
+      screen.getAllByText(messages.helpdeskInquiries.detail.attachmentsLabel)
+    ).toHaveLength(2);
+    const link = screen.getByRole("link", {
+      name: /evidence\.png/,
+    }) as HTMLAnchorElement;
+    expect(link.download).toBe("evidence.png");
+  });
+
+  it("問い合わせ本文に添付ファイルがない場合、添付ファイルセクションを表示しない", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-001" });
+    renderWithProvider(jsx);
+
+    // 添付ファイルがない場合、返信欄のAttachmentFieldラベル分（1件）のみ存在する
+    expect(
+      screen.getAllByText(messages.helpdeskInquiries.detail.attachmentsLabel)
+    ).toHaveLength(1);
+  });
 });

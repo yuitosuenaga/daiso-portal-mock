@@ -10,6 +10,7 @@ import { ClaimToggleButton } from "@/components/features/helpdesk-inquiries/Clai
 import { StatusSelect } from "@/components/features/helpdesk-inquiries/StatusSelect";
 import { ReplyForm } from "@/components/features/helpdesk-inquiries/ReplyForm";
 import { HistoryTimeline } from "@/components/features/helpdesk-inquiries/HistoryTimeline";
+import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
 import type { Inquiry } from "@/types/inquiry";
 
@@ -115,6 +116,14 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {inquiry.originalText}
           </p>
+          {inquiry.attachments && inquiry.attachments.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("detail.attachmentsLabel")}
+              </p>
+              <AttachmentPreviewList attachments={inquiry.attachments} />
+            </div>
+          )}
           <ClaimToggleButton
             inquiryId={inquiry.id}
             claim={inquiry.claim}
@@ -158,6 +167,19 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
             submittingLabel={tReply("submitting")}
             successMessage={tReply("successMessage")}
             errorMessage={tReply("error")}
+            attachmentsLabel={tReply("attachments.label")}
+            attachmentsHint={tReply("attachments.hint")}
+            attachmentsRemoveButtonLabel={tReply("attachments.removeButton")}
+            attachmentsSizeExceededMessage={tReply(
+              "attachments.sizeExceeded"
+            )}
+            attachmentsTypeNotAllowedMessage={tReply(
+              "attachments.typeNotAllowed"
+            )}
+            attachmentsCountExceededMessage={tReply(
+              "attachments.countExceeded"
+            )}
+            attachmentsReadFailedMessage={tReply("attachments.readFailed")}
           />
         </CardContent>
       </Card>

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ReplyForm } from "@/components/features/helpdesk-inquiries/ReplyForm";
 
@@ -9,6 +9,10 @@ vi.mock("@/lib/actions/helpdesk", () => ({
   sendInquiryReplyAction: (...args: unknown[]) =>
     sendInquiryReplyActionMock(...args),
 }));
+
+beforeEach(() => {
+  sendInquiryReplyActionMock.mockClear();
+});
 
 const labels = {
   templateLabel: "テンプレート",
@@ -20,6 +24,16 @@ const labels = {
   submittingLabel: "送信中...",
   successMessage: "返信を記録しました",
   errorMessage: "送信に失敗しました。時間を置いて再度お試しください。",
+  attachmentsLabel: "添付ファイル",
+  attachmentsHint: "画像またはPDF、1件5MBまで、最大5件まで添付できます。",
+  attachmentsRemoveButtonLabel: "削除",
+  attachmentsSizeExceededMessage: "ファイルサイズが上限（5MB）を超えています",
+  attachmentsTypeNotAllowedMessage:
+    "許可されていないファイル形式です（画像またはPDFのみ）",
+  attachmentsCountExceededMessage:
+    "添付できるファイル数の上限（5件）を超えています",
+  attachmentsReadFailedMessage:
+    "ファイルの読み込みに失敗しました。もう一度お試しください。",
 };
 
 describe("ReplyForm", () => {
@@ -82,9 +96,44 @@ describe("ReplyForm", () => {
     await waitFor(() => {
       expect(sendInquiryReplyActionMock).toHaveBeenCalledWith(
         "inquiry-001",
-        "手動入力の返信"
+        "手動入力の返信",
+        []
       );
     });
+  });
+
+  it("添付ファイルを選択して送信すると、sendInquiryReplyActionに添付ファイルが渡される", async () => {
+    render(
+      <ReplyForm
+        inquiryId="inquiry-001"
+        templates={[{ id: "t1", category: "defect", body: "テンプレート本文" }]}
+        {...labels}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("返信内容"), {
+      target: { value: "写真を添付します" },
+    });
+
+    const file = new File([new Uint8Array(100)], "photo.png", {
+      type: "image/png",
+    });
+    const input = screen.getByLabelText("添付ファイル") as HTMLInputElement;
+    Object.defineProperty(input, "files", { value: [file] });
+    fireEvent.change(input);
+
+    await waitFor(() => {
+      expect(screen.getByText(/photo\.png/)).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+
+    await waitFor(() => {
+      expect(sendInquiryReplyActionMock).toHaveBeenCalledTimes(1);
+    });
+    const attachments = sendInquiryReplyActionMock.mock.calls[0][2];
+    expect(attachments).toHaveLength(1);
+    expect(attachments[0].fileName).toBe("photo.png");
   });
 
   it("テンプレートが0件のカテゴリでは選択肢が0件であることを示す", () => {

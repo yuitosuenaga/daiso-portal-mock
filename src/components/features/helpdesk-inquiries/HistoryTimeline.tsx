@@ -1,3 +1,4 @@
+import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import type {
   InquiryHistoryEntry,
   InquiryHistoryEntryType,
@@ -44,6 +45,11 @@ export function HistoryTimeline({
           </span>
           {entry.detail && (
             <p className="text-xs text-muted-foreground">{entry.detail}</p>
+          )}
+          {entry.attachments && entry.attachments.length > 0 && (
+            <div className="mt-1">
+              <AttachmentPreviewList attachments={entry.attachments} />
+            </div>
           )}
         </li>
       ))}

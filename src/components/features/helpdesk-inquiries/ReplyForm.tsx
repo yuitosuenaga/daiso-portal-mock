@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { sendInquiryReplyAction } from "@/lib/actions/helpdesk";
+import type { InquiryAttachment } from "@/types/attachment";
 import type { ReplyTemplate } from "@/types/reply-template";
 
 export interface ReplyFormProps {
@@ -20,10 +22,17 @@ export interface ReplyFormProps {
   submittingLabel: string;
   successMessage: string;
   errorMessage: string;
+  attachmentsLabel: string;
+  attachmentsHint: string;
+  attachmentsRemoveButtonLabel: string;
+  attachmentsSizeExceededMessage: string;
+  attachmentsTypeNotAllowedMessage: string;
+  attachmentsCountExceededMessage: string;
+  attachmentsReadFailedMessage: string;
 }
 
 /**
- * カテゴリ別テンプレートの選択・挿入と、返信本文の入力・送信を行うフォーム。
+ * カテゴリ別テンプレートの選択・挿入、添付ファイルの選択、返信本文の入力・送信を行うフォーム。
  */
 export function ReplyForm({
   inquiryId,
@@ -37,8 +46,16 @@ export function ReplyForm({
   submittingLabel,
   successMessage,
   errorMessage,
+  attachmentsLabel,
+  attachmentsHint,
+  attachmentsRemoveButtonLabel,
+  attachmentsSizeExceededMessage,
+  attachmentsTypeNotAllowedMessage,
+  attachmentsCountExceededMessage,
+  attachmentsReadFailedMessage,
 }: ReplyFormProps) {
   const [body, setBody] = useState("");
+  const [attachments, setAttachments] = useState<InquiryAttachment[]>([]);
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
 
@@ -53,8 +70,9 @@ export function ReplyForm({
     event.preventDefault();
     startTransition(async () => {
       try {
-        await sendInquiryReplyAction(inquiryId, body);
+        await sendInquiryReplyAction(inquiryId, body, attachments);
         setBody("");
+        setAttachments([]);
         setStatus("sent");
       } catch {
         setStatus("error");
@@ -91,6 +109,17 @@ export function ReplyForm({
           rows={4}
         />
       </div>
+      <AttachmentField
+        value={attachments}
+        onChange={setAttachments}
+        label={attachmentsLabel}
+        hint={attachmentsHint}
+        removeButtonLabel={attachmentsRemoveButtonLabel}
+        sizeExceededMessage={attachmentsSizeExceededMessage}
+        typeNotAllowedMessage={attachmentsTypeNotAllowedMessage}
+        countExceededMessage={attachmentsCountExceededMessage}
+        readFailedMessage={attachmentsReadFailedMessage}
+      />
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={isPending || body.trim().length === 0}>
           {isPending ? submittingLabel : submitButtonLabel}

@@ -17,7 +17,9 @@ import {
 import { MOCK_CURRENT_STAFF_NAME } from "@/lib/constants/helpdesk";
 import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
 import { replyTemplateFormSchema } from "@/lib/validation/reply-template";
+import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
 import type { Inquiry } from "@/types/inquiry";
+import type { InquiryAttachment } from "@/types/attachment";
 import type {
   CreateReplyTemplateInput,
   ReplyTemplate,
@@ -102,14 +104,17 @@ export async function changeInquiryStatusAction(
 }
 
 /**
- * 返信送信内容を対応履歴に記録し、詳細ルートを再検証する。
+ * 返信送信内容（添付ファイルを含む）を対応履歴に記録し、詳細ルートを再検証する。
+ * 添付ファイルは`inquiry-form`spec所有の`inquiryAttachmentsArraySchema`（件数上限・サイズ・形式を検証）でサーバー側検証する。
  */
 export async function sendInquiryReplyAction(
   inquiryId: string,
-  replyBody: string
+  replyBody: string,
+  attachments: InquiryAttachment[] = []
 ): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
   const body = replyBodySchema.parse(replyBody);
+  const validatedAttachments = inquiryAttachmentsArraySchema.parse(attachments);
 
   await appendInquiryHistoryEntry({
     inquiryId: id,
@@ -117,6 +122,8 @@ export async function sendInquiryReplyAction(
     actorName: MOCK_CURRENT_STAFF_NAME,
     occurredAt: new Date().toISOString(),
     detail: body,
+    attachments:
+      validatedAttachments.length > 0 ? validatedAttachments : undefined,
   });
   revalidatePath(INQUIRY_DETAIL_PATH, "page");
 }

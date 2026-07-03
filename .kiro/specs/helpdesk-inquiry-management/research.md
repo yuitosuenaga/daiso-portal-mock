@@ -64,3 +64,41 @@
 
 ## References
 - 既存実装: `src/lib/api/inquiries.ts`, `src/types/inquiry.ts`, `.kiro/specs/helpdesk-portal-layout/design.md`
+
+---
+
+## 追加ラウンド（2026-07-03）: 添付ファイル対応
+
+### Summary
+- **Discovery Scope**: Extension（`inquiry-form`specが確立した添付ファイルの型・上限定数・検証ユーティリティ・`AttachmentField`コンポーネントを読み取り専用で再利用する）
+- **Key Findings**:
+  - `src/lib/actions/helpdesk.ts`は全関数に`"use server"`が付与された正真正銘のServer Actionであり、`inquiry-form`の`createInquiry`（Server Actionではない素の関数）とは異なり、Next.jsのServer Action呼び出し境界（HTTPリクエストに相当するペイロード転送）を通過する
+  - Next.js 14のServer Actionsはデフォルトでリクエストボディサイズの上限が**1MB**（`experimental.serverActions.bodySizeLimit`の既定値）。`inquiry-form`specで決定した添付ファイルの上限（1件5MB・最大5件、Base64データURL化で約1.33倍）をそのまま返信の添付にも適用すると、理論上最大約34MBのペイロードになり、デフォルト上限を大きく超えて`sendInquiryReplyAction`が失敗する
+  - `next.config.mjs`には現在`experimental.serverActions`の設定が存在しない（デフォルト適用中）
+
+### Requirement-to-Asset Map
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件12 添付ファイル対応 | `AttachmentField`・`InquiryAttachment`型・上限定数・検証ユーティリティ（`inquiry-form`spec） | Missing（統合のみ） | UI・型・検証ロジックは流用可能。返信フォームへの組み込み、`InquiryHistoryEntry`への添付フィールド追加、詳細画面・履歴タイムラインでの表示、Server Actionのボディサイズ上限緩和が必要 |
+
+### Design Decisions
+
+#### Decision: `next.config.mjs`の`experimental.serverActions.bodySizeLimit`を明示的に引き上げる
+- **Context**: `sendInquiryReplyAction`がServer Actionである以上、デフォルトの1MBボディサイズ上限では`inquiry-form`specで決めた添付ファイル上限（最大約34MB相当）を送信できない
+- **Alternatives Considered**:
+  1. 返信の添付ファイルにより厳しい独自の上限（例: 1件1MB・1件のみ）を設ける
+  2. `next.config.mjs`で`bodySizeLimit`を引き上げ、`inquiry-form`と同一の上限をそのまま適用する
+- **Selected Approach**: 2。`bodySizeLimit`を`"40mb"`に設定する（最大理論値・約34MBに安全マージンを加えた値）
+- **Rationale**: 添付ファイルの制約をアプリ全体で一貫させるという`inquiry-form`spec設計時の方針（`AttachmentField`の共有）と整合する。返信側だけ独自の厳しい上限を設けると、同じコンポーネント・同じヒント文言（「1件5MBまで、最大5件まで」）を使っているのに実際には送信できないという不整合なUXになる
+- **Trade-offs**: サーバー側で受け付け可能なリクエストサイズが全体的に大きくなるが、フェーズ1のモック環境（単一プロセス、認証なし）では実害は限定的。フェーズ3で実バックエンドに移行する際は、実際のインフラ制約に応じて再検討する
+- **Follow-up**: フェーズ3移行時に、CDN・ロードバランサ等のインフラ側のボディサイズ制限も含めて再検討する
+
+#### Decision: 添付ファイルの読み取り専用プレビュー・ダウンロードコンポーネントを本specが新設し、`inquiry-list`spec（次ラウンド）が読み取り専用で再利用する
+- **Context**: 問い合わせ本文の添付ファイル・返信の添付ファイルを「選択・編集」ではなく「一覧表示・ダウンロード」する場面が、ヘルプデスク側詳細画面（本spec）と申請者側詳細画面（`inquiry-list`spec、次ラウンド）の両方で必要になる。`AttachmentField`（`inquiry-form`所有）は選択・削除操作を持つ編集用コンポーネントであり、読み取り専用の表示には過剰かつ不適合（削除ボタンが表示されてしまう等）
+- **Alternatives Considered**:
+  1. `AttachmentField`に読み取り専用モード（`readOnly`prop）を追加する
+  2. 読み取り専用の新規コンポーネント（`AttachmentPreviewList`）を新設する
+- **Selected Approach**: 2。`src/components/features/helpdesk-inquiries/AttachmentPreviewList.tsx`として新設し、`InquiryAttachment[]`を受け取ってサムネイル/ファイル名・サイズとダウンロードリンクを表示する
+- **Rationale**: `AttachmentField`に条件分岐を増やすより、責務が単純な専用コンポーネントを新設する方が見通しが良い。このコードベースでは`FormField`（`inquiry-form`所有）が`helpdesk-announcements`等の他機能から既に再利用されている前例があり、「後続specが必要とするコンポーネントを、最初に必要になったspecが所有し、後続specが読み取り専用で再利用する」という設計パターンは既に確立している
+- **Trade-offs**: `inquiry-list`spec（次ラウンド）は`helpdesk-inquiries`フォルダ配下のコンポーネントに依存することになるが、既存の`FormField`の前例と同じパターンであり許容する
+- **Follow-up**: `inquiry-list`spec着手時に、`AttachmentPreviewList`の翻訳文言がpropsとして受け取る設計（`FormField`と同じ規約）になっていることを確認する

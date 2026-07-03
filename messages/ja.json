@@ -65,7 +65,8 @@
     "detail": {
       "notFound": "問い合わせが見つかりません",
       "error": "問い合わせの取得に失敗しました",
-      "backToList": "一覧へ戻る"
+      "backToList": "一覧へ戻る",
+      "attachmentsLabel": "添付ファイル"
     },
     "filter": {
       "companyLabel": "会社名",
@@ -100,7 +101,16 @@
       "submitButton": "送信する",
       "submitting": "送信中...",
       "successMessage": "返信を記録しました",
-      "error": "送信に失敗しました。時間を置いて再度お試しください。"
+      "error": "送信に失敗しました。時間を置いて再度お試しください。",
+      "attachments": {
+        "label": "添付ファイル",
+        "hint": "画像またはPDF、1件5MBまで、最大5件まで添付できます。",
+        "removeButton": "削除",
+        "sizeExceeded": "ファイルサイズが上限（5MB）を超えています",
+        "typeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",
+        "countExceeded": "添付できるファイル数の上限（5件）を超えています",
+        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
+      }
     },
     "history": {
       "sectionTitle": "対応履歴",
