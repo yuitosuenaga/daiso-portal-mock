@@ -347,7 +347,16 @@
       "submittedByLabel": "申請者情報",
       "notFound": "問い合わせが見つかりません",
       "error": "問い合わせの取得に失敗しました",
-      "backToList": "一覧へ戻る"
+      "backToList": "一覧へ戻る",
+      "inProgressBadge": "対応中"
+    },
+    "history": {
+      "title": "対応履歴",
+      "empty": "まだ対応履歴はありません",
+      "error": "対応履歴の取得に失敗しました",
+      "replyLabel": "返信",
+      "claimedMessage": "対応中になりました",
+      "releasedMessage": "対応中の状態を解除しました"
     }
   },
   "links": {

@@ -97,3 +97,71 @@
 - **Rationale**: 両者は別画面・別関心事であり、フェーズ1のモックとして厳密な整合性を持たせる必要性は要件上ない。少数（5〜10件）で対応状況・緊急度・案件種別が一通り確認できれば十分
 - **Trade-offs**: ダッシュボードの集計数値と一覧の件数が一致しないため、実データ的な違和感を指摘される可能性があるが、フェーズ1のモックである旨は`product.md`で明示されている
 - **Follow-up**: フェーズ3で実APIに移行する際は、集計APIと一覧APIが同一データソースを参照する設計にする
+
+---
+
+## 追加ラウンド（2026-07-03）: 対応履歴・返信内容の表示
+
+### Summary
+
+- **Feature**: `inquiry-list`（既存spec更新。新規spec作成ではなく、要件8・9を追加）
+- **Discovery Scope**: Extension（既存の`helpdesk-inquiry-management`specが提供するデータ・APIを、本specの画面から読み取り専用で消費する）
+- **Key Findings**:
+  - `getInquiryHistory(inquiryId): Promise<InquiryHistoryEntry[]>`（`lib/api/inquiry-history.ts`、`helpdesk-inquiry-management`spec所有）は発生時刻降順で該当問い合わせの全履歴を返す既存関数で、変更不要にそのまま利用できる
+  - `sendInquiryReplyAction`が記録する`reply_sent`エントリの`detail`には返信本文が**そのまま全文**保存されている（要約ではない）。`changeInquiryStatusAction`が記録する`status_changed`エントリの`detail`は`inquiryList.status`翻訳キー経由で**既に localize 済み**の「旧 → 新」文字列（例:「新規 → 解決済み」）になっている。`claimed`/`released`エントリは`detail`を持たない
+  - `HistoryTimeline`（`helpdesk-inquiries`機能配下）は既存コンポーネントだが、常に`actorName`を表示する設計であり、本specの要件（担当者名を一切表示しない）を満たさない。共有せず、本spec専用の新しい表示コンポーネントを追加する
+  - `Inquiry.claim`（`{ staffName, claimedAt } | null`）は`helpdesk-inquiry-management`spec所有のフィールドで、`getInquiryById`が返す`Inquiry`に既に含まれている。担当者名（`staffName`）を除いた「対応中かどうか」の真偽のみを画面側で利用する
+  - `components/ui/badge.tsx`には対応中バッジに転用できる専用variantがないため、既存の`accent`系の見た目（`status-in_progress`と同系統）を流用する
+
+### Requirement-to-Asset Map
+
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件8 対応履歴・返信内容の表示 | `getInquiryHistory`（`helpdesk-inquiry-management`spec） | Missing（表示側のみ） | データ取得APIは既存のまま利用可能。申請者向けの表示コンポーネントが未整備 |
+| 要件9 対応中状態バッジ | `Inquiry.claim`（`helpdesk-inquiry-management`spec） | Missing（表示側のみ） | データは`getInquiryById`から既に取得できている。バッジ表示のみ追加 |
+
+### Implementation Approach Options
+
+#### Option A: 既存の`HistoryTimeline`（helpdesk側）をpropsで制御して共有する
+- `showActorName`のようなフラグを追加し、申請者側・ヘルプデスク側の両方から利用する
+- ❌ `HistoryTimeline`は`helpdesk-inquiry-management`spec所有のコンポーネントであり、本spec都合で改修すると所有specの境界を越える。表示要件（返信ラベルの強調、`claimed`/`released`の文言）も申請者側とヘルプデスク側で異なり、フラグ分岐が増えて複雑化する
+
+#### Option B: 本spec専用の新規表示コンポーネントを追加する（推奨）
+- `src/components/features/inquiry-list/InquiryHistoryList.tsx`を新規追加し、`InquiryHistoryEntry[]`を受け取って申請者向けに整形表示する
+- データ取得関数（`getInquiryHistory`）・型（`InquiryHistoryEntry`）は`helpdesk-inquiry-management`spec所有のまま読み取り専用で利用し、変更しない
+- ✅ 所有権の境界を侵さず、表示ロジックの重複はコンポーネント1つ分に限定される。ヘルプデスク側の表示要件変更が申請者側に波及しない
+- ❌ 履歴の整形ロジック（種別ごとの文言分岐）が2箇所（`HistoryTimeline`と`InquiryHistoryList`）に存在することになるが、両者の表示要件（担当者名の有無等）が本質的に異なるため許容する
+
+**推奨**: Option B。
+
+### Effort & Risk
+
+- **Effort**: **S（1〜2日）** — 新規データ取得・型定義は不要で、既存`InquiryDetail`への表示追加とテストが主な作業
+- **Risk**: **Low** — 新規の外部依存・データモデル変更なし。唯一のリスクは`claimed`/`released`の文言が「対応が完了した」という誤解を招かないよう明確に書き分けること
+
+### Recommendations for Design Phase
+
+- **推奨アプローチ**: Option B
+- **主要な決定事項**: `claimed`/`released`の申請者向け文言（`status`の`resolved`と混同されない表現にする）、対応中バッジのvariant
+
+---
+
+## 設計フェーズでの決定（追加ラウンド）
+
+### Design Decisions
+
+#### Decision: `released`（対応解除）の文言は「対応完了」を連想させない中立的な表現にする
+- **Context**: `released`は担当者が対応中フラグを外した（二重対応防止の解除）だけで、問い合わせが解決したことを意味しない。要件定義時の例示文言「対応が完了しました」をそのまま使うと、既存の`status`（新規/対応中/解決済み）と意味が混同される
+- **Alternatives Considered**: 1) 要件定義の例示通り「対応が完了しました」とする、2) 「対応中の状態を解除しました」という中立的な表現にする
+- **Selected Approach**: 2) 「対応中の状態を解除しました」（`claimed`は「対応中になりました」）
+- **Rationale**: `resolved`ステータスへの変更は`status_changed`エントリが別途担当するため、`released`の文言は状態解除の事実のみを伝えれば十分。「完了」という語を避けることで、対応状況（`status`）バッジとの意味の混同を避ける
+- **Trade-offs**: なし
+- **Follow-up**: なし
+
+#### Decision: 対応中バッジは`status-in_progress`と同系統の見た目（`accent`）を再利用する
+- **Context**: 対応中フラグ用の専用variantは`Badge`にまだ存在しない
+- **Alternatives Considered**: 1) 新規variant（例: `claim-active`）を追加する、2) 既存の`status-in_progress`と同じ見た目を`variant="status-in_progress"`として転用する
+- **Selected Approach**: 2) 既存の`status-in_progress`variantをそのまま転用する
+- **Rationale**: 対応中フラグも対応状況の「進行中」も概念的に近い状態であり、視覚的に同系統の色で表現することは自然。新規variant追加のコストを避けられる
+- **Trade-offs**: `status-in_progress`という名前がやや対応状況（`status`）専用に見えるが、`Badge`のvariant名は見た目のトークンであり意味的な排他性はないため許容する
+- **Follow-up**: なし
