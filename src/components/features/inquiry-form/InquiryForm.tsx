@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { InquiryDetailsSection } from "@/components/features/inquiry-form/InquiryDetailsSection";
 import { InquiryDescriptionSection } from "@/components/features/inquiry-form/InquiryDescriptionSection";
 import { ApplicantInfoSection } from "@/components/features/inquiry-form/ApplicantInfoSection";
+import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { createInquiry } from "@/lib/api/inquiries";
 import { toCreateInquiryInput } from "@/lib/inquiry-form-mapper";
 import {
@@ -28,9 +29,21 @@ export function InquiryForm() {
   const t = useTranslations("inquiryForm");
   const [submissionState, setSubmissionState] =
     useState<SubmissionState>("idle");
+  // 送信成功時にAttachmentFieldを再マウントし、直前の選択に対する
+  // ローカルなエラー表示（サイズ超過等）が残り続けないようにする
+  const [attachmentFieldResetKey, setAttachmentFieldResetKey] = useState(0);
 
   const form = useForm<InquiryFormValues>({
     resolver: zodResolver(inquiryFormSchema),
+    defaultValues: {
+      // 未選択の<select>がブラウザ標準動作で先頭の非活性オプションを自動選択し、
+      // 必須バリデーションを素通りしてしまう不具合を防ぐため、明示的に空値を設定する
+      category: "" as unknown as InquiryFormValues["category"],
+      urgency: "" as unknown as InquiryFormValues["urgency"],
+      originalLanguage: "" as unknown as InquiryFormValues["originalLanguage"],
+      country: "" as unknown as InquiryFormValues["country"],
+      attachments: [],
+    },
   });
 
   const {
@@ -44,6 +57,7 @@ export function InquiryForm() {
       await createInquiry(toCreateInquiryInput(values));
       setSubmissionState("success");
       reset();
+      setAttachmentFieldResetKey((key) => key + 1);
     } catch {
       setSubmissionState("error");
     }
@@ -83,6 +97,29 @@ export function InquiryForm() {
           <InquiryDetailsSection />
           <InquiryDescriptionSection />
           <ApplicantInfoSection />
+
+          <Controller
+            key={attachmentFieldResetKey}
+            name="attachments"
+            control={form.control}
+            render={({ field }) => (
+              <AttachmentField
+                value={field.value ?? []}
+                onChange={field.onChange}
+                label={t("fields.attachments.label")}
+                hint={t("fields.attachments.hint")}
+                removeButtonLabel={t("fields.attachments.removeButton")}
+                sizeExceededMessage={t("validation.attachments.sizeExceeded")}
+                typeNotAllowedMessage={t(
+                  "validation.attachments.typeNotAllowed"
+                )}
+                countExceededMessage={t(
+                  "validation.attachments.countExceeded"
+                )}
+                readFailedMessage={t("validation.attachments.readFailed")}
+              />
+            )}
+          />
 
           <div>
             <Button type="submit" disabled={isSubmitting}>
