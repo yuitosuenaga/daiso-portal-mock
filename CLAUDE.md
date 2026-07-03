@@ -66,3 +66,16 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 - 指摘事項の重要度分類（Critical / High / Medium / Low）と、Critical・High の即時修正
 
 Medium 以下は次のPRサイクルで対応可とする。実装完了後、次の機能開発に進む前に必ず実行すること。
+
+## Spec管理ルール（1画面 = 1spec）
+
+**画面（screen）ごとにspecは1つだけ存在させる。同じ画面に対する変更を、新しいspec名を作って追加してはいけない。**
+
+- 新しい機能・改善に着手する前に、対象となる画面が既存のspecで管理されていないか、必ず `.kiro/specs/` 配下の各spec（特に `requirements.md` の「スコープ境界」「対象」記述）を確認する。`.kiro/steering/product.md` の機能一覧も手がかりにする。
+- 対象画面を所有する既存specが見つかった場合:
+  - `/kiro:spec-init` で新規specディレクトリを作らない
+  - 既存specの `requirements.md` に要件を追記し（変更内容が分かるよう追加日を明記する）、`design.md`・`tasks.md` も同様に更新する
+  - `spec.json` の該当フェーズ以降の `approved` を `false` に戻し、再度承認フローに乗せる（例: 要件追加時は `phase: "requirements-generated"`、`approvals.design`/`approvals.tasks` を `generated: false, approved: false` に戻す）
+  - 既存の実装済み部分は保持したまま、追加要件分だけ設計・タスクを積み増す
+- 新規specを作成してよいのは、既存specが存在しない「まったく新しい画面」を追加する場合のみ
+- 誤って新しいspecディレクトリを作成してしまったことに気づいた場合は、その場で削除し、正しい既存specへ内容を統合する

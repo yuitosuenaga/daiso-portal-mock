@@ -15,9 +15,14 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const getInquiryByIdMock = vi.fn();
+const getInquiryHistoryMock = vi.fn();
 
 vi.mock("@/lib/api/inquiries", () => ({
   getInquiryById: (...args: unknown[]) => getInquiryByIdMock(...args),
+}));
+
+vi.mock("@/lib/api/inquiry-history", () => ({
+  getInquiryHistory: (...args: unknown[]) => getInquiryHistoryMock(...args),
 }));
 
 function resolveMessage(namespace: string, key: string): string {
@@ -107,10 +112,97 @@ describe("InquiryDetail", () => {
         country: "JP",
       },
     });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
 
     const jsx = await InquiryDetail({ id: "inquiry-001" });
     render(jsx);
 
     expect(screen.getByText("一覧へ戻る")).toBeTruthy();
+  });
+
+  it("対応中の問い合わせでは対応中バッジを表示し、担当者名は表示しない", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+      claim: {
+        staffName: "山田 花子",
+        claimedAt: "2026-06-29T00:00:00.000Z",
+      },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.getByText("対応中")).toBeTruthy();
+    expect(screen.queryByText("山田 花子")).toBeNull();
+  });
+
+  it("対応中でない問い合わせでは対応中バッジを表示しない", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.queryByText("対応中")).toBeNull();
+  });
+
+  it("対応履歴セクションを表示し、返信内容を確認できる", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "resolved",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-001",
+        type: "reply_sent",
+        actorName: "田中 太郎",
+        occurredAt: "2026-06-29T00:00:00.000Z",
+        detail: "交換対応いたします。",
+      },
+    ]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.getByText("対応履歴")).toBeTruthy();
+    expect(screen.getByText("交換対応いたします。")).toBeTruthy();
+    expect(screen.queryByText("田中 太郎")).toBeNull();
   });
 });

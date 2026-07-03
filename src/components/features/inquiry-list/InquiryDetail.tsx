@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
+import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHistoryList";
 
 export async function InquiryDetail({ id }: { id: string }) {
   const [t, tStatuses, tCategories, tUrgencies, tCountries, locale] =
@@ -54,6 +55,8 @@ export async function InquiryDetail({ id }: { id: string }) {
     );
   }
 
+  const historySection = await InquiryHistoryList({ inquiryId: inquiry.id });
+
   return (
     <div className="space-y-4">
       <Card>
@@ -71,6 +74,11 @@ export async function InquiryDetail({ id }: { id: string }) {
               <Badge variant={`status-${inquiry.status}`}>
                 {tStatuses(inquiry.status)}
               </Badge>
+              {inquiry.claim && (
+                <Badge variant="status-in_progress">
+                  {t("inProgressBadge")}
+                </Badge>
+              )}
             </span>
             <span>
               {t("storeRegionLabel")}: {inquiry.storeRegion}
@@ -108,6 +116,9 @@ export async function InquiryDetail({ id }: { id: string }) {
             </p>
           </div>
         </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6">{historySection}</CardContent>
       </Card>
       {backToListLink}
     </div>

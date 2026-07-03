@@ -347,7 +347,16 @@
       "submittedByLabel": "Submitter Information",
       "notFound": "Inquiry not found",
       "error": "Failed to load the inquiry",
-      "backToList": "Back to list"
+      "backToList": "Back to list",
+      "inProgressBadge": "In Progress"
+    },
+    "history": {
+      "title": "History",
+      "empty": "No history yet",
+      "error": "Failed to load the history",
+      "replyLabel": "Reply",
+      "claimedMessage": "Marked as in progress",
+      "releasedMessage": "In-progress status was cleared"
     }
   },
   "links": {
