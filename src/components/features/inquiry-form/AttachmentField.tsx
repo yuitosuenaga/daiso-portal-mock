@@ -5,7 +5,11 @@ import * as React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { readFileAsDataUrl, validateAttachmentFile } from "@/lib/attachment-utils";
+import {
+  formatFileSize,
+  readFileAsDataUrl,
+  validateAttachmentFile,
+} from "@/lib/attachment-utils";
 import { ATTACHMENT_ALLOWED_MIME_TYPES } from "@/lib/constants/attachment";
 import type { InquiryAttachment } from "@/types/attachment";
 
@@ -26,12 +30,6 @@ export interface AttachmentFieldProps {
   /** ファイルの読み取り（データURL変換）自体が失敗したときのメッセージ */
   readFailedMessage: string;
   id?: string;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
 /**

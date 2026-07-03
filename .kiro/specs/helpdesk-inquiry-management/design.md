@@ -3,12 +3,15 @@
 ## Overview
 本機能は、`helpdesk-portal-layout`specが確立したヘルプデスク側のルーティング・レイアウト・全社データ取得API（`getAllInquiries`）の上に、ヘルプデスク担当者が実際に問い合わせへ対応するための画面群を実装する。**Purpose**: 緊急度優先の一覧・横断検索、二重対応を防ぐ対応中フラグ、対応履歴の可視化、カテゴリ別テンプレート返信、テンプレート管理という一連の機能により、ヘルプデスクの対応業務を1つのポータルで完結させる。**Users**: 日本側ヘルプデスク担当者（全員が全社分の問い合わせを閲覧する運用、個別アサインなし）。**Impact**: `Inquiry`型に対応中フラグ用の`claim`フィールドを追加（後方互換な追加）し、新規の対応履歴・テンプレートのモックストアとServer Actionsを導入する。`helpdesk-portal-layout`が確立したルート・レイアウト構造自体は変更しない。
 
+**Impact（追加ラウンド・2026-07-03）**: `inquiry-form`specが確立した添付ファイルの型・上限定数・検証ユーティリティ・`AttachmentField`コンポーネントを読み取り専用で再利用し、(1) 問い合わせ詳細画面で問い合わせ本文の添付ファイルを表示、(2) 返信フォームに添付ファイル欄を追加、(3) 返信の添付ファイルを対応履歴に記録・表示する。返信送信がServer Action経由であるため、`next.config.mjs`のServer Actionボディサイズ上限を引き上げる。
+
 ### Goals
 - ヘルプデスク担当者が緊急度優先で並んだ全社分の問い合わせを一覧・検索できる
 - 対応中フラグにより、担当者間の二重対応を防ぐ
 - 対応履歴タイムラインにより、誰が何をしたかを追跡できる
 - カテゴリ別テンプレートにより、返信の初動を早め、文言のばらつきを減らす
 - 上記変更が一覧・詳細画面をまたいで一貫して反映される（画面遷移しても状態が残る）
+- （追加）問い合わせ本文・返信の添付ファイルを確認・ダウンロードでき、返信時にも資料を添付できる
 
 ### Non-Goals
 - 認証・ロールベースアクセス制御、担当者個別アサイン機能
@@ -17,6 +20,7 @@
 - FAQ化候補マーキング、内部コメント欄
 - `helpdesk-portal-layout`が確立したルートセグメント・共通レイアウト構造自体の変更
 - 実バックエンド・DB連携（フェーズ3）
+- （追加）添付ファイルの型・上限定数・検証ロジック・選択UI自体の実装（`inquiry-form`spec所有）、申請者側詳細画面での添付ファイル表示（`inquiry-list`spec）
 
 ## Boundary Commitments
 
@@ -26,28 +30,33 @@
 - 対応履歴（`InquiryHistoryEntry`）・返信テンプレート（`ReplyTemplate`）の型・モックストア・モックAPI
 - 対応中フラグ・ステータス変更・返信送信・テンプレート追加編集を行うServer Actions
 - `HelpdeskSidebar`（`helpdesk-portal-layout`所有）への「問い合わせ管理」「テンプレート管理」ナビゲーション項目の追加
+- （追加）`InquiryHistoryEntry`型への`attachments`フィールドの追加、読み取り専用の添付ファイル表示コンポーネント（`AttachmentPreviewList`）、`next.config.mjs`のServer Actionボディサイズ上限設定
 
 ### Out of Boundary
 - `helpdesk-portal-layout`が所有するルートセグメント構造・`HelpdeskAppShell`・`HelpdeskHeader`自体の変更
 - 申請者側の画面・コンポーネント（`dashboard`・`inquiry-list`・`inquiry-form`spec所有）の変更。`claim`フィールドが追加されても、これらのコンポーネントは変更しないため表示されない
 - お知らせ管理機能（別spec）
 - 認証・ロールベースアクセス制御の実装
+- （追加）`InquiryAttachment`型・添付ファイルの上限定数・検証ユーティリティ・`AttachmentField`コンポーネント自体の実装（`inquiry-form`spec所有）、申請者側詳細画面での添付ファイル表示（`inquiry-list`spec）
 
 ### Allowed Dependencies
 - 既存の`getInquiries`・`getAllInquiries`（`helpdesk-portal-layout`所有、シグネチャ変更なしで利用）
 - 既存の`Inquiry`型（フィールド追加のみ、既存フィールドは変更しない）
 - 既存のUIプリミティブ（`Card`, `Badge`, `Button`, `Select`, `Input`, `Textarea`, `Label`, `Skeleton`, `Alert`）
 - `HelpdeskSidebar`（項目追加のみ、コンポーネント構造自体は変更しない）
+- （追加）`inquiry-form`spec所有の`InquiryAttachment`型、`ATTACHMENT_MAX_FILE_SIZE_BYTES`/`ATTACHMENT_MAX_COUNT`/`ATTACHMENT_ALLOWED_MIME_TYPES`定数、`validateAttachmentFile`/`readFileAsDataUrl`ユーティリティ、`AttachmentField`コンポーネント、`inquiryAttachmentSchema`（zod、返信のサーバー側検証で再利用するためexport済みにする）
 
 ### Revalidation Triggers
 - `Inquiry`型のフィールド追加・変更（`dashboard`・`inquiry-list`・`inquiry-form`specが再確認する必要がある）
 - Server Actionsの導入パターン自体の変更（将来別specが同様の変更系操作を追加する際の参照実装になる）
 - `getInquiries`/`getAllInquiries`のデータ内容変更（`claim`フィールドが混入することを前提にした場合、申請者側コンポーネントが誤って表示していないか要再確認）
+- （追加）`inquiry-form`が所有する添付ファイルの型・定数・`AttachmentField`のprops形状を変更した場合、本specの返信フォーム統合・`AttachmentPreviewList`への影響確認が必要
 
 ## Architecture
 
 ### Existing Architecture Analysis
 `helpdesk-portal-layout`により、`/[locale]/helpdesk`配下は独立したレイアウト（`HelpdeskAppShell`）を持ち、`getAllInquiries()`で全社データを取得できる状態になっている。ただし現時点では`helpdesk/page.tsx`はプレースホルダーのみで、実際の問い合わせ管理機能は存在しない。既存のモック層（`lib/api/inquiries.ts`）は読み取り専用関数のみで、変更を永続化する仕組みを持たない（`research.md`参照）。
+（追加）`src/lib/actions/helpdesk.ts`は全関数が`"use server"`のServer Actionであり、Next.jsのデフォルトのServer Actionボディサイズ上限（1MB）が適用される。`inquiry-form`spec所有の添付ファイル上限（1件5MB・最大5件、データURL化で理論上約34MB）をそのまま返信にも適用するため、`next.config.mjs`で上限を明示的に引き上げる（`research.md`のDesign Decisions参照）。一方`inquiry-form`の`createInquiry`は`"use server"`を持たない素の関数でありこの制約を受けない。
 
 ### Architecture Pattern & Boundary Map
 Server Actionsが可変モックストアを更新し、`revalidatePath`で一覧・詳細ルートを再検証するパターンを採用する（比較検討は`research.md`のArchitecture Pattern Evaluation参照）。
@@ -66,6 +75,10 @@ graph TB
     InquiryDetailPage --> StatusSelect[Status Select]
     InquiryDetailPage --> ReplyForm[Reply Form]
     InquiryDetailPage --> HistoryTimeline[History Timeline]
+    InquiryDetailPage --> AttachmentPreview[Attachment Preview List]
+
+    ReplyForm --> AttachmentField[Attachment Field existing]
+    HistoryTimeline --> AttachmentPreview
 
     ClaimButton --> HelpdeskActions[Helpdesk Server Actions]
     StatusSelect --> HelpdeskActions
@@ -89,6 +102,8 @@ graph TB
 - 既存パターンの維持: ページ構成（一覧→詳細、新規作成フォーム）は申請者側の`inquiry-list`/`inquiry-form`specと同じNext.js App Router構成を踏襲。フォームは`react-hook-form`+`zod`を使用する既存規約に従う
 - 新規コンポーネントの理由: 対応中フラグ・ステータス変更・返信フォームはいずれもServer Actionを呼び出すクライアント状態境界を持つため、独立コンポーネントとして新設する
 - Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由、モックAPIは`lib/api/`に抽象化、フォームは`react-hook-form`+`zod`という既存規約を維持
+- （追加）`ReplyForm`は`inquiry-form`所有の`AttachmentField`を`useState`（`react-hook-form`は使っていないため`Controller`は不要）で接続し、選択済み添付ファイルをローカル状態として保持したまま`sendInquiryReplyAction`に渡す
+- （追加）`AttachmentPreviewList`（本spec新設）は問い合わせ本文添付（`HelpdeskInquiryDetail`から直接）と返信添付（`HistoryTimeline`内の`reply_sent`エントリ）の両方から呼び出される読み取り専用コンポーネント
 
 ### Technology Stack
 
@@ -99,6 +114,7 @@ graph TB
 | Forms | react-hook-form + zod（既存） | テンプレート追加・編集フォームのバリデーション | `inquiryForm`と同じ構成パターンを踏襲 |
 | UI | shadcn/ui（既存） | `Select`（フィルタ・ステータス変更・テンプレート選択）, `Textarea`（返信欄）, `Badge`（対応中表示） | 新規UIプリミティブの追加は不要 |
 | Data / Mock | `lib/api/`配下の可変配列 + Server Actions | 対応中フラグ・ステータス・履歴・テンプレートの状態管理 | フェーズ1限定。開発サーバー再起動でリセットされる |
+| 設定（追加） | `next.config.mjs`の`experimental.serverActions.bodySizeLimit` | 添付ファイル付き返信のServer Actionペイロードを許容する | `"40mb"`に設定。`research.md`参照 |
 
 ## File Structure Plan
 
@@ -122,11 +138,12 @@ src/components/features/helpdesk-inquiries/
 ├── HelpdeskInquiryListClient.tsx    # Client: フィルタ状態を保持し表示件数を絞り込む
 ├── HelpdeskInquiryFilterBar.tsx     # Client: 会社名・キーワード・国・カテゴリの入力
 ├── HelpdeskInquiryListItem.tsx      # 表示専用: 対応中バッジを含む一覧行
-├── HelpdeskInquiryDetail.tsx        # Server: 取得・各セクションの組み立て
+├── HelpdeskInquiryDetail.tsx        # Server: 取得・各セクションの組み立て（変更: 問い合わせ本文添付の表示を追加）
 ├── ClaimToggleButton.tsx            # Client: 対応中フラグのON/OFF
 ├── StatusSelect.tsx                 # Client: ステータス変更
-├── ReplyForm.tsx                    # Client: テンプレート選択+返信入力+送信
-└── HistoryTimeline.tsx              # 表示専用: 対応履歴の時系列表示
+├── ReplyForm.tsx                    # Client: テンプレート選択+返信入力+送信（変更: 添付ファイル欄を追加）
+├── HistoryTimeline.tsx              # 表示専用: 対応履歴の時系列表示（変更: 返信の添付ファイル表示を追加）
+└── AttachmentPreviewList.tsx        # 新規: 添付ファイルの読み取り専用プレビュー・ダウンロードリスト
 
 src/components/features/helpdesk-templates/
 ├── TemplateList.tsx                 # Server: カテゴリ別テンプレート一覧
@@ -148,7 +165,7 @@ src/lib/constants/
 
 src/types/
 ├── inquiry.ts                       # 変更: `claim`フィールドを追加（既存フィールドは変更なし）
-├── inquiry-history.ts               # 新規: InquiryHistoryEntry型
+├── inquiry-history.ts               # 新規: InquiryHistoryEntry型（変更: `attachments`フィールドを追加）
 └── reply-template.ts                # 新規: ReplyTemplate, CreateReplyTemplateInput型
 
 src/components/layout/
@@ -157,6 +174,8 @@ src/components/layout/
 messages/
 ├── ja.json                          # 変更: helpdeskInquiries, helpdeskTemplates名前空間、helpdeskNavへのキー追加
 └── en.json                          # 同上
+
+next.config.mjs                      # 変更（追加）: experimental.serverActions.bodySizeLimit を "40mb" に設定
 ```
 
 ### Modified Files
@@ -164,6 +183,14 @@ messages/
 - `src/lib/api/inquiries.ts` — `setInquiryClaim`・`updateInquiryStatus`のミューテーション関数を追加（`getInquiries`/`getAllInquiries`のシグネチャは変更しない）
 - `src/components/layout/HelpdeskSidebar.tsx` — `HELPDESK_NAV_ITEMS`に2項目追加
 - `messages/ja.json` / `messages/en.json` — 新規名前空間・キーの追加
+- （追加）`src/types/inquiry-history.ts` — `InquiryHistoryEntry`に`attachments?: InquiryAttachment[]`を追加
+- （追加）`src/lib/actions/helpdesk.ts` — `sendInquiryReplyAction`の引数に`attachments: InquiryAttachment[]`を追加し、`inquiry-form`所有の`inquiryAttachmentSchema`（export化）で検証する
+- （追加）`src/lib/validation/inquiry.ts`（`inquiry-form`spec所有） — 内部の`inquiryAttachmentSchema`を`export`する（本specから再利用するため。型・上限値そのものは変更しない）
+- （追加）`src/components/features/helpdesk-inquiries/ReplyForm.tsx` — `AttachmentField`を組み込み、選択済み添付ファイルをローカル状態として保持する
+- （追加）`src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx` — `inquiry.attachments`を`AttachmentPreviewList`で表示する
+- （追加）`src/components/features/helpdesk-inquiries/HistoryTimeline.tsx` — `reply_sent`エントリの`attachments`を`AttachmentPreviewList`で表示する
+- （追加）`next.config.mjs` — `experimental.serverActions.bodySizeLimit: "40mb"`を追加
+- （追加）`messages/ja.json` / `messages/en.json` — `helpdeskInquiries.reply`名前空間に添付ファイル関連のラベル・エラーメッセージを追加
 
 > 申請者側のコンポーネント（`dashboard`・`inquiry-list`・`inquiry-form`所有）は一切変更しない。`claim`フィールドが`Inquiry`に追加されても、これらのコンポーネントは個別フィールドを明示的に参照する既存実装のため表示に影響しない（`research.md`参照）。
 
@@ -190,6 +217,26 @@ sequenceDiagram
 
 - テンプレート返信送信・ステータス変更・テンプレート追加編集も同一の「Server Action → ストア更新 →（該当する場合）履歴記録 → revalidatePath」の型に従う。テンプレート追加編集のみ対応履歴への記録は行わない（履歴は問い合わせ単位の対応記録であり、テンプレート自体の変更履歴は本specの対象外）。
 
+```mermaid
+sequenceDiagram
+    participant User as ヘルプデスク担当者
+    participant Field as AttachmentField（inquiry-form所有）
+    participant Form as ReplyForm
+    participant Action as sendInquiryReplyAction
+    participant History as HistoryStore
+
+    User->>Field: 添付ファイルを選択（選択・検証・データURL変換はAttachmentField内で完結）
+    Field-->>Form: onChangeで選択済み添付ファイル一覧を通知
+    User->>Form: 返信を送信
+    Form->>Action: sendInquiryReplyAction(inquiryId, body, attachments)
+    Action->>Action: inquiryAttachmentSchema（inquiry-form所有）でサーバー側検証
+    Action->>History: reply_sentエントリにattachmentsを含めて記録
+    Action->>Form: revalidatePath(詳細ルート)
+    Form-->>User: 送信完了表示、添付欄をリセット
+```
+
+**Key Decisions（追加ラウンド）**: 添付ファイルの選択・検証・データURL変換は`AttachmentField`内で完結しており、`ReplyForm`は変換済みの`InquiryAttachment[]`をそのまま状態として保持するだけでよい。サーバー側でも`inquiryAttachmentSchema`による形状検証を行い、クライアント側検証のバイパスに備える（`inquiry-form`のクライアント側File API検証と同じく、これはUXのためのフロントエンド検証であり、なりすまされたMIMEタイプそのものへの防御ではない）。
+
 ## Requirements Traceability
 
 | Requirement | Summary | Components | Interfaces | Flows |
@@ -205,6 +252,7 @@ sequenceDiagram
 | 9.1〜9.2 | ナビゲーション統合 | HelpdeskSidebar | — | — |
 | 10.1〜10.2 | 多言語対応 | 全新規コンポーネント | — | — |
 | 11.1 | レスポンシブ対応 | （既存HelpdeskAppShellに依存、新規コンポーネントなし） | — | — |
+| 12.1〜12.6 | 添付ファイル対応 | HelpdeskInquiryDetail, ReplyForm, HistoryTimeline, AttachmentPreviewList, HelpdeskActions | AttachmentField（inquiry-form所有）, inquiryAttachmentSchema | 返信の添付ファイル送信フロー |
 
 ## Components and Interfaces
 
@@ -214,11 +262,12 @@ sequenceDiagram
 | HelpdeskInquiryListClient | UI/Client | フィルタ条件に応じて表示件数を絞り込む | 2.1〜2.5 | HelpdeskInquiryFilterBar (P0) | State |
 | HelpdeskInquiryFilterBar | UI/Client | 会社名・キーワード・国・カテゴリの入力UI | 2.1〜2.4 | なし | State |
 | HelpdeskInquiryListItem | UI | 一覧行の表示（対応中バッジ含む） | 1.3, 4.4 | なし | State |
-| HelpdeskInquiryDetail | UI/Server | 問い合わせ詳細・関連セクションの組み立て | 3.1〜3.4 | InquiriesMockApi (P0), InquiryHistoryMockApi (P0) | State |
+| HelpdeskInquiryDetail | UI/Server | 問い合わせ詳細・関連セクションの組み立て（追加: 問い合わせ本文添付の表示） | 3.1〜3.4, 12.1, 12.2 | InquiriesMockApi (P0), InquiryHistoryMockApi (P0), AttachmentPreviewList (P1) | State |
 | ClaimToggleButton | UI/Client | 対応中フラグのON/OFF操作 | 4.1〜4.5 | HelpdeskActions (P0) | State |
 | StatusSelect | UI/Client | ステータス変更操作 | 6.1〜6.3 | HelpdeskActions (P0) | State |
-| ReplyForm | UI/Client | テンプレート選択・返信入力・送信 | 7.1〜7.5 | HelpdeskActions (P0), ReplyTemplatesMockApi (P1) | State |
-| HistoryTimeline | UI | 対応履歴の時系列表示 | 5.1〜5.4 | なし | State |
+| ReplyForm | UI/Client | テンプレート選択・返信入力・添付・送信 | 7.1〜7.5, 12.3, 12.4, 12.5 | HelpdeskActions (P0), ReplyTemplatesMockApi (P1), AttachmentField (P0, inquiry-form所有) | State |
+| HistoryTimeline | UI | 対応履歴の時系列表示（追加: 返信添付の表示） | 5.1〜5.4, 12.6 | AttachmentPreviewList (P1) | State |
+| AttachmentPreviewList（追加） | UI (Shared) | 添付ファイルの読み取り専用プレビュー・ダウンロード表示 | 12.1, 12.2, 12.6 | なし | - |
 | TemplateList | UI/Server | カテゴリ別テンプレート一覧の表示 | 8.1 | ReplyTemplatesMockApi (P0) | State |
 | TemplateForm | UI/Client | テンプレートの新規作成・編集フォーム | 8.2, 8.3, 8.5 | HelpdeskActions (P0) | State |
 | InquiriesMockApi（拡張） | Data/Mock | 対応中フラグ・ステータスのミューテーション | 4.1〜4.3, 6.1〜6.2 | Inquiry型 (P0) | Service |
@@ -366,7 +415,11 @@ interface HelpdeskActions {
     inquiryId: string,
     status: Inquiry["status"]
   ): Promise<void>;
-  sendInquiryReplyAction(inquiryId: string, replyBody: string): Promise<void>;
+  sendInquiryReplyAction(
+    inquiryId: string,
+    replyBody: string,
+    attachments: InquiryAttachment[]
+  ): Promise<void>;
   createReplyTemplateAction(
     input: CreateReplyTemplateInput
   ): Promise<ReplyTemplate>;
@@ -384,18 +437,42 @@ interface HelpdeskActions {
 - Integration: 対応中フラグ・ステータス変更・返信送信の操作者名はフェーズ1固定の`MOCK_CURRENT_STAFF_NAME`（`lib/constants/helpdesk.ts`）を使用する
 - Validation: 存在しないIDに対する操作はエラーをthrowし、呼び出し元でエラー表示にフォールバックする
 - Risks: `revalidatePath`のパス指定漏れがあると一覧・詳細間で表示が同期しない（`research.md`のRisks参照）
+- （追加）Integration: `sendInquiryReplyAction`の`attachments`引数は`inquiry-form`所有の`inquiryAttachmentSchema`（export化）で検証してから`appendInquiryHistoryEntry`に渡す
+- （追加）Risks: Server Actionのボディサイズ上限（`next.config.mjs`の`bodySizeLimit`）を添付ファイル上限に見合う値へ引き上げていないと、大きめの添付を含む返信が原因不明のエラーで失敗する（`research.md`のDesign Decisions参照）
 
 ### Presentation Components（サマリーのみ）
 
 - **HelpdeskInquiryList / HelpdeskInquiryListClient / HelpdeskInquiryFilterBar / HelpdeskInquiryListItem**: `getAllInquiries()`の結果を緊急度→受付日時の順で並び替えた後、クライアント側でフィルタ条件（会社名・キーワード・国・カテゴリのAND条件）により表示件数を絞り込む。既存`InquiryList`/`InquiryListItem`（申請者側）の構造を参考にしつつ、対応中バッジの表示を追加する。
-- **HelpdeskInquiryDetail / ClaimToggleButton / StatusSelect / ReplyForm / HistoryTimeline**: 既存`InquiryDetail`（申請者側）と同等の情報表示に加え、ヘルプデスク専用のセクション（対応中フラグ・ステータス変更・返信フォーム・履歴タイムライン）を追加する。
+- **HelpdeskInquiryDetail / ClaimToggleButton / StatusSelect / ReplyForm / HistoryTimeline**: 既存`InquiryDetail`（申請者側）と同等の情報表示に加え、ヘルプデスク専用のセクション（対応中フラグ・ステータス変更・返信フォーム・履歴タイムライン）を追加する。（追加）`HelpdeskInquiryDetail`は`inquiry.attachments`を`AttachmentPreviewList`で、`HistoryTimeline`は`reply_sent`エントリの`attachments`を同じく`AttachmentPreviewList`で表示する。
 - **TemplateList / TemplateForm**: `InquiryForm`と同じ`react-hook-form`+`zod`パターンを踏襲したシンプルなCRUD画面。
+
+#### AttachmentPreviewList（追加）
+
+| Field | Detail |
+|-------|--------|
+| Intent | `InquiryAttachment[]`を受け取り、読み取り専用でサムネイル/ファイル名・サイズとダウンロードリンクを表示する。選択・削除機能は持たない |
+| Requirements | 12.1, 12.2, 12.6 |
+
+**Responsibilities & Constraints**
+- `attachments: InquiryAttachment[]`をpropsで受け取る（`inquiryId`等の文脈には依存しない汎用設計とし、`inquiry-list`spec次ラウンドでの再利用に備える）
+- 画像形式（`fileType.startsWith("image/")`）は`dataUrl`をサムネイルとして表示し、それ以外はファイル名・サイズのみを表示する（`AttachmentField`のプレビュー表示ロジックと同等の判定基準）
+- 各添付ファイルを`<a href={dataUrl} download={fileName}>`でラップし、クリックでダウンロードできるようにする
+- `attachments`が空・未指定のときは何も描画しない（呼び出し側で「添付なし」の表示要否を判断する）
+
+**Dependencies**: なし（`InquiryAttachment`型のみに依存）
+
+**Contracts**: Service [ ] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+**Implementation Notes**
+- Integration: `HelpdeskInquiryDetail`からは`inquiry.attachments`を、`HistoryTimeline`からは各`reply_sent`エントリの`attachments`を渡して呼び出す
+- Validation: 該当なし（読み取り専用の表示）
+- Risks: なし
 
 ## Data Models
 
 ### Domain Model
-- `Inquiry`（既存、拡張）: `claim?: { staffName: string; claimedAt: string } | null`を追加。対応中でない場合は`null`または未設定。
-- `InquiryHistoryEntry`（新規）: 1件の対応履歴イベント。`inquiryId`で`Inquiry`と関連付く（1問い合わせ:N履歴）。
+- `Inquiry`（既存、拡張）: `claim?: { staffName: string; claimedAt: string } | null`を追加。対応中でない場合は`null`または未設定。（追加ラウンド: `attachments?: InquiryAttachment[]`は`inquiry-form`spec所有の既存追加であり、本specは読み取り専用で参照する）
+- `InquiryHistoryEntry`（新規）: 1件の対応履歴イベント。`inquiryId`で`Inquiry`と関連付く（1問い合わせ:N履歴）。（追加）`type: "reply_sent"`のエントリは`attachments?: InquiryAttachment[]`を持ちうる
 - `ReplyTemplate`（新規）: カテゴリ別の定型文。`Inquiry["category"]`と対応するが独立したエンティティ。
 
 ### Logical Data Model
@@ -406,8 +483,8 @@ interface HelpdeskActions {
 
 | 型 | 主なフィールド | 備考 |
 |---|---|---|
-| `Inquiry`（拡張） | 既存フィールド + `claim?: { staffName: string; claimedAt: string } \| null` | 既存フィールドは変更なし |
-| `InquiryHistoryEntry` | `id`, `inquiryId`, `type: "claimed" \| "released" \| "status_changed" \| "reply_sent"`, `actorName`, `occurredAt`, `detail?: string` | `detail`はステータス変更前後の値や返信本文の要約 |
+| `Inquiry`（拡張） | 既存フィールド + `claim?: { staffName: string; claimedAt: string } \| null` | 既存フィールドは変更なし。`attachments`は`inquiry-form`が既に追加済み |
+| `InquiryHistoryEntry`（拡張） | `id`, `inquiryId`, `type: "claimed" \| "released" \| "status_changed" \| "reply_sent"`, `actorName`, `occurredAt`, `detail?: string`, `attachments?: InquiryAttachment[]`（追加） | `detail`はステータス変更前後の値や返信本文の要約。`attachments`は`reply_sent`エントリのみ意味を持つ（他の種別では常に未設定） |
 | `ReplyTemplate` | `id`, `category: Inquiry["category"]`, `body: string` | |
 | `CreateReplyTemplateInput` | `category`, `body` | `ReplyTemplate`から`id`を除いたサブセット |
 
@@ -420,6 +497,8 @@ interface HelpdeskActions {
 - **データ取得失敗**（一覧・詳細・テンプレート一覧）: 既存パターンと同様にエラーメッセージを表示
 - **存在しない問い合わせ/テンプレートIDへの操作**: Server Actionがエラーをthrowし、クライアント側でエラー表示にフォールバック
 - **テンプレート入力値不正**（カテゴリ・本文未入力）: クライアント側`zod`バリデーションで送信をブロックし、フィールド単位のエラーメッセージを表示（要件8.5）
+- **添付ファイル選択時のエラー**（追加）: `AttachmentField`（`inquiry-form`所有）が上限超過・形式不許可・読み込み失敗を検出し、ファイル単位のエラーメッセージを表示する（`ReplyForm`側での追加ハンドリングは不要）
+- **返信送信失敗**（追加）: 添付ファイルを含む送信が失敗した場合も、既存の`ReplyForm`のエラー表示（`errorMessage`）にフォールバックする。添付ファイル固有の失敗理由（サーバー側検証エラー等）を個別に区別する表示は行わない
 
 ### Monitoring
 フェーズ1はモックのため、追加のロギング・監視基盤は導入しない。
@@ -440,6 +519,10 @@ interface HelpdeskActions {
 - **E2E/UI Tests**:
   - 日本語・英語両ロケールで一覧・詳細・テンプレート管理画面が表示されること
   - タブレット幅（768px）で新規画面が横スクロールを起こさないこと
+- （追加）**Unit Tests**: `sendInquiryReplyAction`が`attachments`をサーバー側で検証し、`InquiryHistoryEntry`に正しく記録すること
+- （追加）**Integration Tests**: `ReplyForm`で添付ファイルを選択して送信すると`sendInquiryReplyAction`に渡されること、`AttachmentPreviewList`が画像/非画像それぞれを正しく表示すること
+- （追加）**E2E/UI Tests**: 問い合わせ本文の添付ファイルが詳細画面に表示されること、返信に添付したファイルが対応履歴タイムラインに表示・ダウンロードできること、大きめのファイル（数MB）を含む返信がServer Actionのボディサイズ上限に阻まれず送信できること
 
 ## Security Considerations
 `claim`・対応履歴・テンプレートはヘルプデスク内部情報であり、申請者側画面に表示されてはならない。申請者側コンポーネント（`InquiryDetail`・`RecentInquiriesWidget`等）は個別フィールドを明示的に参照する既存実装のままとし、`Inquiry`オブジェクトを丸ごとクライアントに渡す変更を行わない。認証・アクセス制御は本specの対象外であり、`helpdesk-portal-layout`が定めた「フェーズ3で追加」という前提を踏襲する。
+（追加）返信の添付ファイルはヘルプデスク担当者が入力した内容であり、`inquiry-form`と同様に`inquiryAttachmentSchema`によるサーバー側の形状検証を行うが、これはクライアント検証バイパスに対するUX上のフォールバックであり、なりすまされたMIMEタイプ自体への防御ではない（`inquiry-form`specの既存documented limitationを踏襲）。`AttachmentPreviewList`は`dataUrl`を`<img src>`とダウンロード用の`<a href>`としてのみ使用し、`dangerouslySetInnerHTML`は使用しない。Server Actionのボディサイズ上限緩和（`bodySizeLimit: "40mb"`）は、フェーズ1のモック環境（単一プロセス、認証なし、外部公開なし）を前提とした判断であり、フェーズ3で実バックエンドへ移行する際はインフラ全体（CDN・ロードバランサ等）の制約を踏まえて再検討する。
