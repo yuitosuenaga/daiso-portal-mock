@@ -14,7 +14,7 @@
     "inquiries": "問い合わせ管理",
     "templates": "テンプレート管理",
     "links": "リンク集",
-    "faq": "FAQ",
+    "faq": "よくある質問",
     "announcements": "お知らせ管理"
   },
   "helpdeskAnnouncements": {
@@ -152,15 +152,15 @@
   "nav": {
     "sidebarLabel": "メインナビゲーション",
     "dashboard": "ダッシュボード",
-    "inquiryForm": "問い合わせ申請",
+    "inquiryForm": "申請",
     "inquiryList": "問い合わせ一覧",
     "announcements": "お知らせ",
     "links": "リンク集",
-    "faq": "FAQ"
+    "faq": "よくある質問"
   },
   "dashboard": {
     "inquiryForm": {
-      "title": "問い合わせ申請",
+      "title": "申請",
       "description": "新しい問い合わせ・申請を送信します。"
     },
     "inquiryList": {
@@ -176,7 +176,7 @@
       "description": "業務で利用する社内・外部サイトへのリンクを確認できます。"
     },
     "faq": {
-      "title": "FAQ",
+      "title": "よくある質問",
       "description": "よくある質問と回答を確認できます。"
     },
     "announcementsPreview": {
@@ -210,7 +210,7 @@
       "description": "お知らせの一覧・作成・編集・削除を行えます。"
     },
     "inquiryForm": {
-      "title": "問い合わせ申請フォーム",
+      "title": "申請フォーム",
       "description": "申請者向けの問い合わせ・申請フォームの内容を確認できます。"
     },
     "links": {
@@ -218,7 +218,7 @@
       "description": "業務で利用する社内・外部サイトへのリンクを確認できます。"
     },
     "faq": {
-      "title": "FAQ",
+      "title": "よくある質問",
       "description": "よくある質問と回答を確認できます。"
     }
   },
