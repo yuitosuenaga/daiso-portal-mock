@@ -37,3 +37,6 @@ next-env.d.ts
 
 # claude code local settings
 .claude/settings.local.json
+
+# playwright-mcp debug output
+.playwright-mcp/
