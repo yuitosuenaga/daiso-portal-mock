@@ -175,6 +175,18 @@
     "faq": {
       "title": "FAQ",
       "description": "よくある質問と回答を確認できます。"
+    },
+    "announcementsPreview": {
+      "title": "最新のお知らせ",
+      "empty": "表示できるお知らせはありません。",
+      "error": "お知らせの取得に失敗しました。",
+      "viewAll": "お知らせ一覧を見る"
+    },
+    "priorityInquiriesPreview": {
+      "title": "対応が必要な問い合わせ",
+      "empty": "対応が必要な問い合わせはありません。",
+      "error": "問い合わせの取得に失敗しました。",
+      "viewAll": "問い合わせ一覧を見る"
     }
   },
   "helpdeskDashboard": {

@@ -5,6 +5,10 @@ import { getTranslations } from "next-intl/server";
 import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
+import {
+  PriorityInquiriesPreviewPanel,
+  PriorityInquiriesPreviewPanelSkeleton,
+} from "@/components/features/dashboard/PriorityInquiriesPreviewPanel";
 
 export default async function HelpdeskHomePage() {
   const t = await getTranslations("helpdeskDashboard");
@@ -70,6 +74,10 @@ export default async function HelpdeskHomePage() {
           />
         </div>
       </section>
+
+      <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>
+        <PriorityInquiriesPreviewPanel viewAllHref="/helpdesk/inquiries" />
+      </Suspense>
     </div>
   );
 }

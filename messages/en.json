@@ -175,6 +175,18 @@
     "faq": {
       "title": "FAQ",
       "description": "View frequently asked questions and answers."
+    },
+    "announcementsPreview": {
+      "title": "Latest Announcements",
+      "empty": "There are no announcements to show.",
+      "error": "Failed to load announcements.",
+      "viewAll": "View all announcements"
+    },
+    "priorityInquiriesPreview": {
+      "title": "Inquiries Needing Attention",
+      "empty": "There are no inquiries needing attention.",
+      "error": "Failed to load inquiries.",
+      "viewAll": "View all inquiries"
     }
   },
   "helpdeskDashboard": {
