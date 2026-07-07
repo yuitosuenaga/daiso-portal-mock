@@ -334,3 +334,44 @@
   - 複数ファイルを含む返信がServer Actionのボディサイズ上限に阻まれず送信できることを確認する
   - _Requirements: 12.1, 12.2, 12.3, 12.5, 12.6_
   - _Depends: 10.2, 11.1, 11.2_
+
+---
+
+## 追加ラウンド（2026-07-07）: 問い合わせ本文の日本語訳表示
+
+- [x] 13. 基盤: 日本語訳ダミーデータ・翻訳キーの追加
+- [x] 13.1 MOCK_INQUIRIESに日本語訳のダミー値を追加する
+  - `lib/api/inquiries.ts`の`MOCK_INQUIRIES`のうち、`originalLanguage`が`ja`以外の問い合わせ全件に`translatedText`（日本語訳のダミーテキスト）を追加する
+  - `originalLanguage`が`ja`の要素・既存の他フィールドは変更しない
+  - 対象の全問い合わせに`translatedText`が設定されていることで完了とする
+  - _Requirements: 13.5_
+
+- [x] 13.2 (P) 日本語訳・原文ラベルの日本語・英語翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskInquiries.detail`名前空間に、日本語訳ラベル（`translatedTextLabel`）・原文ラベル（`originalTextLabel`）を追加する
+  - `ja.json`で定義したキーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 10.1, 10.2_
+
+---
+
+- [x] 14. HelpdeskInquiryDetailに日本語訳/原文の表示切り替えを実装する
+  - 問い合わせ本文セクションの表示を、`originalLanguage`が`ja`以外かつ`translatedText`が設定されているときは日本語訳をラベル付きでメインに、原文をラベル付きで下に表示する形に変更する
+  - それ以外（`originalLanguage`が`ja`、または`translatedText`未設定）のときは、ラベルなしで原文のみを表示する既存の挙動を維持する
+  - 外国語原文かつ日本語訳が設定された問い合わせを開くと日本語訳が原文より上に表示され、日本語原文の問い合わせでは日本語訳ラベルが表示されないことで完了とする
+  - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.6_
+  - _Boundary: HelpdeskInquiryDetail_
+  - _Depends: 13.1, 13.2_
+
+---
+
+- [x] 15. 検証（日本語訳表示）
+- [x] 15.1 HelpdeskInquiryDetailの日本語訳/原文表示切り替えテストを作成する
+  - `originalLanguage`が`ja`以外かつ`translatedText`設定済みのとき日本語訳がメイン・原文が参照として表示されることを検証する
+  - `originalLanguage`が`ja`のとき日本語訳ラベルが表示されないことを検証する
+  - `originalLanguage`が`ja`以外だが`translatedText`未設定のとき原文のみが表示され、エラー表示にならないことを検証するテストが通ることで完了とする
+  - _Requirements: 13.1, 13.2, 13.3, 13.4_
+  - _Depends: 14_
+
+- [x] 15.2 * 日本語訳表示のE2E確認を行う
+  - 外国語原文を持つ問い合わせの詳細画面で日本語訳が原文より上に表示されること、日本語原文の問い合わせでは日本語訳セクションが表示されないことを日本語・英語の両方で確認する
+  - _Requirements: 13.1, 13.2, 13.3_
+  - _Depends: 15.1_

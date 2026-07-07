@@ -174,4 +174,96 @@ describe("HelpdeskInquiryDetail", () => {
       screen.getAllByText(messages.helpdeskInquiries.detail.attachmentsLabel)
     ).toHaveLength(1);
   });
+
+  it("外国語原文かつ日本語訳が設定されている場合、日本語訳をメインに原文を参照として表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-002",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "West Coast",
+      originalText: "We would like to place an additional order.",
+      originalLanguage: "en",
+      translatedText: "追加発注をお願いしたいです。",
+      status: "in_progress",
+      createdAt: "2026-06-25T14:30:00.000Z",
+      submittedBy: { companyName: "Daiso USA Inc.", country: "US" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-002" });
+    renderWithProvider(jsx);
+
+    expect(
+      screen.getByText(messages.helpdeskInquiries.detail.translatedTextLabel)
+    ).toBeTruthy();
+    expect(screen.getByText("追加発注をお願いしたいです。")).toBeTruthy();
+    expect(
+      screen.getByText(messages.helpdeskInquiries.detail.originalTextLabel)
+    ).toBeTruthy();
+    expect(
+      screen.getByText("We would like to place an additional order.")
+    ).toBeTruthy();
+  });
+
+  it("原文が日本語の場合、日本語訳セクションを表示せず原文のみを表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-001" });
+    renderWithProvider(jsx);
+
+    expect(
+      screen.queryByText(
+        messages.helpdeskInquiries.detail.translatedTextLabel
+      )
+    ).toBeNull();
+    expect(
+      screen.queryByText(messages.helpdeskInquiries.detail.originalTextLabel)
+    ).toBeNull();
+    expect(screen.getByText("テスト本文")).toBeTruthy();
+  });
+
+  it("外国語原文だが日本語訳が未設定の場合、日本語訳セクションを表示せず原文のみを表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-003",
+      category: "system",
+      urgency: "high",
+      storeRegion: "Seoul",
+      originalText: "원문 텍스트",
+      originalLanguage: "ko",
+      status: "new",
+      createdAt: "2026-06-29T02:45:00.000Z",
+      submittedBy: { companyName: "Daiso Korea Co., Ltd.", country: "KR" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-003" });
+    renderWithProvider(jsx);
+
+    expect(
+      screen.queryByText(
+        messages.helpdeskInquiries.detail.translatedTextLabel
+      )
+    ).toBeNull();
+    expect(
+      screen.queryByText(messages.helpdeskInquiries.detail.originalTextLabel)
+    ).toBeNull();
+    expect(screen.getByText("원문 텍스트")).toBeTruthy();
+  });
 });

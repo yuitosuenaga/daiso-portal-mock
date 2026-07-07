@@ -55,6 +55,30 @@ describe("getAllInquiries", () => {
     const allIds = new Set(all.map((item) => item.id));
     expect(scoped.every((item) => allIds.has(item.id))).toBe(true);
   });
+
+  it("originalLanguageがja以外の問い合わせ全件にtranslatedTextが設定されている", async () => {
+    const all = await getAllInquiries();
+    const nonJapaneseInquiries = all.filter(
+      (item) => item.originalLanguage !== "ja"
+    );
+
+    expect(nonJapaneseInquiries.length).toBeGreaterThan(0);
+    nonJapaneseInquiries.forEach((item) => {
+      expect(item.translatedText).toBeTruthy();
+    });
+  });
+
+  it("originalLanguageがjaの問い合わせにはtranslatedTextを設定しない", async () => {
+    const all = await getAllInquiries();
+    const japaneseInquiries = all.filter(
+      (item) => item.originalLanguage === "ja"
+    );
+
+    expect(japaneseInquiries.length).toBeGreaterThan(0);
+    japaneseInquiries.forEach((item) => {
+      expect(item.translatedText).toBeUndefined();
+    });
+  });
 });
 
 describe("getInquiryById", () => {

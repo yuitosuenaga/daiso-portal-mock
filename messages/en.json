@@ -66,7 +66,9 @@
       "notFound": "Inquiry not found",
       "error": "Failed to load the inquiry",
       "backToList": "Back to list",
-      "attachmentsLabel": "Attachments"
+      "attachmentsLabel": "Attachments",
+      "translatedTextLabel": "Japanese Translation",
+      "originalTextLabel": "Original Text"
     },
     "filter": {
       "companyLabel": "Company",

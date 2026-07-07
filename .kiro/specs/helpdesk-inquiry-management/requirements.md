@@ -36,15 +36,31 @@
 - 申請者側の問い合わせ詳細画面での添付ファイル表示（`inquiry-list`spec、別ラウンドで対応）
 - 実際のファイルストレージ・CDN等の永続化基盤（フェーズ3以降）
 
+### 追加要望（2026-07-07）: 問い合わせ本文の日本語訳表示
+現状、ヘルプデスク側の問い合わせ詳細画面（`HelpdeskInquiryDetail`）は問い合わせ本文（`originalText`）を原文のまま表示しており、日本側の担当者が外国語（英語・韓国語・中国語・ベトナム語等）の原文をそのまま読む必要がある状態になっている。`Inquiry`型には`translatedText`（日本語訳）フィールドが`inquiry-form`spec側で既に定義済みだが、コメントに「フェーズ3（翻訳API連携）まで未使用」とある通り、実際の値も画面表示もまだ実装されていない。壁打ちの結果、実際の翻訳API連携はフェーズ3のまま変更しないが、フェーズ1のモックとして日本語訳のダミーデータを用意し、画面表示を先行して実装することが決まった。
+
+要件:
+- ヘルプデスク側の問い合わせ詳細画面で、問い合わせ本文の表示をメインを日本語訳（`translatedText`）、その下に原文（`originalText`）を参照として表示する形に変更する
+- `originalLanguage`が`ja`（日本語）の問い合わせについては、翻訳が不要なため原文のみを表示し、日本語訳セクションは表示しない
+- `translatedText`が未設定（フェーズ1のモックデータ整備漏れ、または将来の実データ移行時に翻訳が未完了の場合）のときは、日本語訳セクションを表示せず原文のみを表示する（原文を「翻訳失敗」等のエラー扱いにしない）
+- フェーズ1のモックデータ（`lib/api/inquiries.ts`の`MOCK_INQUIRIES`）に、`originalLanguage`が`ja`以外の問い合わせ全件分の`translatedText`（日本語訳のダミーテキスト）を追加する
+- 実際の翻訳API連携（`translatedText`の自動生成）は本ラウンドでは対応しない（`tech.md`が示すフェーズ3の前提を変更しない）
+
+スコープ外:
+- 実際の翻訳API（Google Cloud Translation API等）との連携（フェーズ3以降、変更なし）
+- 申請者側の問い合わせ詳細画面・一覧画面への日本語訳表示（申請者は自国語で送信しているため翻訳不要）
+- 返信本文・対応履歴（`reply_sent`等）の翻訳表示（本ラウンドは問い合わせ本文のみを対象とする）
+- `Inquiry`型・`CreateInquiryInput`型自体の変更（`translatedText`フィールドは既存のまま、値の追加のみ）
+
 ## Introduction
 
 本仕様は、`helpdesk-portal-layout`specが確立したヘルプデスク側のルーティング・レイアウト・全社データ取得APIの上に、ヘルプデスク担当者が実際に問い合わせへ対応するための機能（一覧・検索・対応中フラグ・対応履歴・テンプレート返信・テンプレート管理）を実装する。壁打ちにより固まった、緊急度優先のソート・二重対応防止・ナレッジ蓄積という3つの目的を満たすことを狙いとする。
 
 ## Boundary Context
 
-- **In scope**: ヘルプデスク側問い合わせ一覧・検索横断フィルタ・詳細画面・対応中フラグ・対応履歴タイムライン・カテゴリ別テンプレート返信・テンプレート管理画面、これらに必要なモックAPI・型の追加、`HelpdeskSidebar`へのナビゲーション項目追加、詳細画面での問い合わせ本文添付ファイルの表示、返信欄への添付ファイルUI統合、対応履歴での返信添付ファイルの表示・`InquiryHistoryEntry`型への添付ファイルフィールド追加
-- **Out of scope**: お知らせの作成・編集・削除（別spec）、全体傾向の俯瞰グラフ・分析、FAQ化候補マーキング、内部コメント欄、認証・ロールベースアクセス制御、担当者個別アサイン機能、`helpdesk-portal-layout`が確立したルートセグメント・レイアウト構造自体の変更、添付ファイルの型・上限定数・検証ロジック・選択UI自体の実装（`inquiry-form`spec所有）、申請者側詳細画面での添付ファイル表示（`inquiry-list`spec）
-- **Adjacent expectations**: 対応状況（`status`）の変更は`Inquiry`型を介して申請者側の問い合わせ一覧・詳細・ダッシュボードウィジェット（`dashboard`・`inquiry-list`spec所有）にも反映される共有データであることを前提とする。既存の`getAllInquiries`（`helpdesk-portal-layout`specで新設、型変更なし）をそのまま利用する。将来の「announcements拡張」specとは独立して実装できる。`InquiryAttachment`型・添付ファイルの上限定数・検証ユーティリティ・`AttachmentField`コンポーネントは`inquiry-form`spec所有であり、本specはこれらを変更せず読み取り専用の依存として再利用する
+- **In scope**: ヘルプデスク側問い合わせ一覧・検索横断フィルタ・詳細画面・対応中フラグ・対応履歴タイムライン・カテゴリ別テンプレート返信・テンプレート管理画面、これらに必要なモックAPI・型の追加、`HelpdeskSidebar`へのナビゲーション項目追加、詳細画面での問い合わせ本文添付ファイルの表示、返信欄への添付ファイルUI統合、対応履歴での返信添付ファイルの表示・`InquiryHistoryEntry`型への添付ファイルフィールド追加、詳細画面での問い合わせ本文の日本語訳（`translatedText`）表示、モックデータへの日本語訳ダミー値の追加
+- **Out of scope**: お知らせの作成・編集・削除（別spec）、全体傾向の俯瞰グラフ・分析、FAQ化候補マーキング、内部コメント欄、認証・ロールベースアクセス制御、担当者個別アサイン機能、`helpdesk-portal-layout`が確立したルートセグメント・レイアウト構造自体の変更、添付ファイルの型・上限定数・検証ロジック・選択UI自体の実装（`inquiry-form`spec所有）、申請者側詳細画面での添付ファイル表示（`inquiry-list`spec）、実際の翻訳API連携・`translatedText`の自動生成（フェーズ3以降）、申請者側での日本語訳表示
+- **Adjacent expectations**: 対応状況（`status`）の変更は`Inquiry`型を介して申請者側の問い合わせ一覧・詳細・ダッシュボードウィジェット（`dashboard`・`inquiry-list`spec所有）にも反映される共有データであることを前提とする。既存の`getAllInquiries`（`helpdesk-portal-layout`specで新設、型変更なし）をそのまま利用する。将来の「announcements拡張」specとは独立して実装できる。`InquiryAttachment`型・添付ファイルの上限定数・検証ユーティリティ・`AttachmentField`コンポーネントは`inquiry-form`spec所有であり、本specはこれらを変更せず読み取り専用の依存として再利用する。`Inquiry.translatedText`フィールド自体は`inquiry-form`spec所有（型定義済み・値は未設定）であり、本specはフィールドの型を変更せず、フェーズ1モックデータへの値追加と画面表示のみを行う
 
 ## Requirements
 
@@ -155,3 +171,14 @@
 4. The Portal shall 返信への添付ファイルを必須項目として扱わず、0件でも返信の送信を許可する。
 5. When ユーザーが添付ファイル付きで返信を送信したとき、the Portal shall 添付ファイルの内容を対応履歴（`reply_sent`エントリ）に記録する。
 6. The Portal shall 対応履歴タイムラインの返信項目に、添付されたファイルを一覧表示し、確認・ダウンロードできるようにする。
+
+### Requirement 13: 問い合わせ本文の日本語訳表示
+**Objective:** As a ヘルプデスク担当者, I want 問い合わせ本文を日本語訳で確認できる, so that 外国語の原文を読み解く負担なく内容を正確に理解できる
+
+#### Acceptance Criteria
+1. If 問い合わせの`originalLanguage`が`ja`以外であり、かつ`translatedText`が設定されているとき、the Portal shall 問い合わせ詳細画面（ヘルプデスク側）に、日本語訳（`translatedText`）を問い合わせ本文セクションのメインとして表示する。
+2. While 日本語訳が表示されているとき、the Portal shall 原文（`originalText`）を、日本語訳の下に参照情報として表示する。
+3. If 問い合わせの`originalLanguage`が`ja`であるとき、the Portal shall 日本語訳セクションを表示せず、原文のみを表示する。
+4. If 問い合わせの`originalLanguage`が`ja`以外であるが`translatedText`が未設定であるとき、the Portal shall 日本語訳セクションを表示せず、原文のみを表示する（エラー表示は行わない）。
+5. The Portal shall フェーズ1のモックデータにおいて、`originalLanguage`が`ja`以外の問い合わせ全件に日本語訳のダミーテキストを用意する。
+6. The Portal shall 本要件の対応において、実際の翻訳API連携・`translatedText`の自動生成ロジックを追加しない。
