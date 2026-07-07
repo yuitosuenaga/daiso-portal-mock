@@ -381,7 +381,8 @@
       "notFound": "問い合わせが見つかりません",
       "error": "問い合わせの取得に失敗しました",
       "backToList": "一覧へ戻る",
-      "inProgressBadge": "対応中"
+      "inProgressBadge": "対応中",
+      "attachmentsLabel": "添付ファイル"
     },
     "history": {
       "title": "対応履歴",

@@ -1,5 +1,6 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getInquiryHistory } from "@/lib/api/inquiry-history";
+import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import type { InquiryHistoryEntry } from "@/types/inquiry-history";
 
 export interface InquiryHistoryListProps {
@@ -16,6 +17,11 @@ function renderEntryContent(
         <>
           <span className="font-medium">{t("replyLabel")}</span>
           <p className="mt-1 whitespace-pre-wrap">{entry.detail}</p>
+          {entry.attachments && entry.attachments.length > 0 && (
+            <div className="mt-1">
+              <AttachmentPreviewList attachments={entry.attachments} />
+            </div>
+          )}
         </>
       );
     case "status_changed":

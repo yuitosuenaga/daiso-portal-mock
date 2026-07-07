@@ -143,3 +143,37 @@
   - ヘルプデスク側で返信・ステータス変更・対応中フラグ操作を行った直後に、申請者側の問い合わせ詳細画面へ遷移し、対応履歴・対応中バッジに反映されることを日本語・英語の両方で確認する
   - _Requirements: 8.1, 8.2, 8.3, 9.1_
   - _Depends: 9.1_
+
+---
+
+## 追加ラウンド（2026-07-07）: 添付ファイルの表示
+
+- [x] 11. (P) InquiryDetailに問い合わせ本文の添付ファイル表示を統合する
+  - `messages/ja.json`・`messages/en.json`の`inquiryList.detail`名前空間に`attachmentsLabel`（「添付ファイル」、`helpdeskInquiries.detail.attachmentsLabel`と同等のラベル）を追加する
+  - 問い合わせ本文（自由記述）セクションの直後に、`inquiry.attachments`が1件以上存在する場合のみ`attachmentsLabel`ラベルとともに既存の`AttachmentPreviewList`（`helpdesk-inquiry-management`spec所有・既存コンポーネント）へ渡して表示する
+  - ブラウザで添付ファイル付きの問い合わせを開くとファイル名・サイズ（画像はサムネイル）が表示され、ダウンロードできることで完了とする
+  - _Requirements: 10.1, 10.2, 10.3, 10.6_
+  - _Boundary: InquiryDetail_
+  - _Depends: 4_
+
+- [x] 12. (P) InquiryHistoryListに返信添付ファイルの表示を統合する
+  - `reply_sent`種別の分岐（返信本文の直後）で、`entry.attachments ?? []`を`AttachmentPreviewList`へ渡して表示する
+  - 他の種別（`status_changed`/`claimed`/`released`）は変更しない
+  - ブラウザで添付ファイル付きの返信が記録された問い合わせを開くと、対応履歴の返信項目に添付ファイルが表示されダウンロードできることで完了とする
+  - _Requirements: 10.4, 10.5, 10.6_
+  - _Boundary: InquiryHistoryList_
+  - _Depends: 8_
+
+---
+
+- [x] 13. 検証（添付ファイル表示）
+- [x] 13.1 InquiryDetail・InquiryHistoryListの添付ファイル表示テストを作成する
+  - `InquiryDetail`が`inquiry.attachments`の有無（1件以上/未定義/空配列）に応じて添付ファイル欄の表示・非表示を切り替えることを検証する
+  - `InquiryHistoryList`が`reply_sent`項目の`entry.attachments`の有無に応じて添付ファイル欄の表示・非表示を切り替え、他の種別には添付ファイル欄が出力されないことを検証するテストが通ることで完了とする
+  - _Requirements: 10.1, 10.3, 10.4, 10.5_
+  - _Depends: 11, 12_
+
+- [x] 13.2 * 添付ファイル付き問い合わせ・返信のE2E確認を行う
+  - 添付ファイル付きの問い合わせ・添付ファイル付きの返信を持つ問い合わせ詳細画面で、画像サムネイル・ファイル名・サイズが表示されダウンロードリンクが機能することを日本語・英語の両方、タブレット幅で確認する
+  - _Requirements: 10.1, 10.2, 10.4_
+  - _Depends: 13.1_

@@ -381,7 +381,8 @@
       "notFound": "Inquiry not found",
       "error": "Failed to load the inquiry",
       "backToList": "Back to list",
-      "inProgressBadge": "In Progress"
+      "inProgressBadge": "In Progress",
+      "attachmentsLabel": "Attachments"
     },
     "history": {
       "title": "History",

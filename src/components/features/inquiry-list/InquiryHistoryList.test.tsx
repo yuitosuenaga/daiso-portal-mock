@@ -151,4 +151,68 @@ describe("InquiryHistoryList", () => {
     expect(items[0].textContent).toContain("新規 → 対応中");
     expect(items[1].textContent).toContain("対応中になりました");
   });
+
+  it("返信に添付ファイルがあるとき、ダウンロードリンクを表示する", async () => {
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-001",
+        type: "reply_sent",
+        actorName: "田中 太郎",
+        occurredAt: "2026-07-02T00:00:00.000Z",
+        detail: "交換対応いたします。",
+        attachments: [
+          {
+            id: "att-1",
+            fileName: "manual.pdf",
+            fileType: "application/pdf",
+            fileSize: 2048,
+            dataUrl: "data:application/pdf;base64,AAAA",
+          },
+        ],
+      },
+    ]);
+
+    const jsx = await InquiryHistoryList({ inquiryId: "inquiry-001" });
+    render(jsx);
+
+    const link = screen.getByRole("link", { name: /manual\.pdf/ });
+    expect(link.getAttribute("href")).toBe("data:application/pdf;base64,AAAA");
+  });
+
+  it("返信に添付ファイルがないとき、添付ファイルのリンクを表示しない", async () => {
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-001",
+        type: "reply_sent",
+        actorName: "田中 太郎",
+        occurredAt: "2026-07-02T00:00:00.000Z",
+        detail: "交換対応いたします。",
+      },
+    ]);
+
+    const jsx = await InquiryHistoryList({ inquiryId: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("対応状況変更の履歴には添付ファイルフィールドがなくても正常に表示する", async () => {
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-001",
+        type: "status_changed",
+        actorName: "田中 太郎",
+        occurredAt: "2026-07-02T00:00:00.000Z",
+        detail: "新規 → 解決済み",
+      },
+    ]);
+
+    const jsx = await InquiryHistoryList({ inquiryId: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
 });

@@ -20,15 +20,31 @@
 - 添付ファイル対応、FAQ検索（別画面のため別spec）
 - 認証・ロールベースアクセス制御
 
+### 追加要望（2026-07-07）: 添付ファイルの表示
+`inquiry-form`spec・`helpdesk-inquiry-management`specにより、問い合わせ送信時・ヘルプデスクの返信時の両方で添付ファイル（`InquiryAttachment`型）が扱えるようになった。`Inquiry.attachments`（問い合わせ本文の添付）、`InquiryHistoryEntry.attachments`（返信時の添付）ともにデータモデル上は既に存在し、`helpdesk-inquiry-management`specが読み取り専用の`AttachmentPreviewList`コンポーネント（`src/components/features/helpdesk-inquiries/AttachmentPreviewList.tsx`）を汎用設計で実装済みである。しかし本spec（`inquiry-list`）が所有する申請者側の問い合わせ詳細画面（`/inquiry/[id]`）はこれらの添付ファイルを一切表示しておらず、申請者は自分が送信した添付ファイルやヘルプデスクからの返信添付ファイルを確認できない状態になっている。データモデル・検証ロジック・新規コンポーネントの追加は不要で、既存の`AttachmentPreviewList`を再利用した表示配線のみで解決する。
+
+要件:
+- 問い合わせ詳細画面の問い合わせ本文セクションに、当該問い合わせの添付ファイル（`Inquiry.attachments`）を表示する
+- 対応履歴セクションの返信（`reply_sent`）項目に、その返信に添付されたファイル（`InquiryHistoryEntry.attachments`）を表示する
+- 添付ファイルの表示には`helpdesk-inquiry-management`spec所有の`AttachmentPreviewList`コンポーネントを再利用し、新規の表示コンポーネントは作らない
+- 添付ファイルが0件の場合は、添付ファイル欄自体を表示しない
+- 既存の`Inquiry`型・`InquiryHistoryEntry`型・`AttachmentPreviewList`コンポーネント・検証ロジックは変更しない（読み取り専用の表示配線のみ）
+
+スコープ外:
+- 添付ファイルの型・上限定数・検証ロジック・選択UIの実装（`inquiry-form`spec所有、読み取り専用で再利用）
+- `AttachmentPreviewList`コンポーネント自体の新規実装・変更（`helpdesk-inquiry-management`specで完了済み、読み取り専用で再利用）
+- 添付ファイルのアップロード・追加・削除等の編集操作（申請者は送信後に添付内容を変更できない）
+- 実際のファイルストレージ・CDN等の永続化基盤（フェーズ3以降）
+
 ## はじめに
 
 海外販社向けヘルプデスクポータルの「問い合わせ一覧」機能に関する要件定義書です。本機能は、販社担当者が自社の問い合わせ・申請の一覧（`/inquiry`）とその対応状況を確認し、個々の詳細を参照できるようにすることを対象とします。フェーズ1ではモックAPIを介したフロントエンドのみの実装とし、認証機能が未実装であるためモックデータ全件を「自社の問い合わせ」として扱います。ヘルプデスク側からの対応状況の変更・返信機能は対象外とします。
 
 ## スコープ境界
 
-- **対象**: 問い合わせ一覧ページ（`/inquiry`）、問い合わせ詳細画面（対応履歴・返信内容・対応中バッジの表示を含む）、一覧・詳細取得のモックAPI（`lib/api/inquiries.ts`への後方互換な追加）
-- **対象外**: ヘルプデスク担当者向けの対応状況の変更・返信・コメント機能（記録・操作自体は`helpdesk-inquiry-management`spec所有）、他社（自社以外）の問い合わせの参照、問い合わせの検索・絞り込み・並び替えのカスタマイズ（フェーズ1は送信日時降順の固定表示のみ）、認証・ログイン機能（フェーズ1では未実装のため対象外）、新着返信の通知・未読管理、添付ファイル対応
-- **隣接仕様との境界**: `Inquiry`型・`CreateInquiryInput`型・`createInquiry`関数・`getInquiryStatusSummary`関数は`inquiry-form`仕様が所有し、本仕様はこれらを変更せず参照のみ行う。`/inquiry`ルート・サイドバーナビゲーション項目・全体レイアウトは`dashboard`仕様が実装済みであり、本仕様はこれらを変更せず利用するのみとする。`InquiryHistoryEntry`型・`getInquiryHistory`関数・対応中フラグ（`claim`）を記録する操作系ロジックは`helpdesk-inquiry-management`spec所有であり、本仕様はこれらを変更せず読み取りのみ行う
+- **対象**: 問い合わせ一覧ページ（`/inquiry`）、問い合わせ詳細画面（対応履歴・返信内容・対応中バッジ・添付ファイルの表示を含む）、一覧・詳細取得のモックAPI（`lib/api/inquiries.ts`への後方互換な追加）
+- **対象外**: ヘルプデスク担当者向けの対応状況の変更・返信・コメント機能（記録・操作自体は`helpdesk-inquiry-management`spec所有）、他社（自社以外）の問い合わせの参照、問い合わせの検索・絞り込み・並び替えのカスタマイズ（フェーズ1は送信日時降順の固定表示のみ）、認証・ログイン機能（フェーズ1では未実装のため対象外）、新着返信の通知・未読管理、添付ファイルの型・検証ロジック・選択UI・アップロード操作
+- **隣接仕様との境界**: `Inquiry`型・`CreateInquiryInput`型・`createInquiry`関数・`getInquiryStatusSummary`関数・`InquiryAttachment`型は`inquiry-form`仕様が所有し、本仕様はこれらを変更せず参照のみ行う。`/inquiry`ルート・サイドバーナビゲーション項目・全体レイアウトは`dashboard`仕様が実装済みであり、本仕様はこれらを変更せず利用するのみとする。`InquiryHistoryEntry`型・`getInquiryHistory`関数・対応中フラグ（`claim`）を記録する操作系ロジック・`AttachmentPreviewList`コンポーネントは`helpdesk-inquiry-management`spec所有であり、本仕様はこれらを変更せず読み取りのみ行う
 
 ## 要件
 
@@ -139,3 +155,18 @@
 1. While 問い合わせが対応中の状態（`claim`が設定されている状態）のとき、the ヘルプデスクポータル shall 問い合わせ詳細画面の既存の対応状況バッジ付近に対応中であることを示すバッジを表示する。
 2. The ヘルプデスクポータル shall 対応中バッジにおいて、担当者名を表示しない。
 3. While 問い合わせが対応中でない状態のとき、the ヘルプデスクポータル shall 対応中バッジを表示しない。
+
+---
+
+### 要件 10: 添付ファイルの表示
+
+**目的:** 販社担当者として、自分が送信した問い合わせの添付ファイルや、ヘルプデスクからの返信に添付されたファイルを問い合わせ詳細画面で確認したい。そうすることで、テキストだけでは伝わらない内容も正確に把握できる。
+
+#### 受け入れ基準
+
+1. If 問い合わせ本文に添付ファイル（`Inquiry.attachments`）が1件以上存在するとき、the ヘルプデスクポータル shall 問い合わせ詳細画面の問い合わせ本文セクションに、画像はサムネイル、その他はファイル名・サイズで一覧表示する。
+2. The ヘルプデスクポータル shall 問い合わせ本文の添付ファイルを確認・ダウンロードできる操作を提供する。
+3. If 問い合わせ本文に添付ファイルが1件も存在しないとき、the ヘルプデスクポータル shall 添付ファイル欄を表示しない。
+4. If 対応履歴の返信（`reply_sent`）項目に添付ファイル（`InquiryHistoryEntry.attachments`）が1件以上存在するとき、the ヘルプデスクポータル shall 当該履歴項目内に添付ファイルを一覧表示し、確認・ダウンロードできるようにする。
+5. If 対応履歴の返信項目に添付ファイルが1件も存在しないとき、the ヘルプデスクポータル shall その履歴項目に添付ファイル欄を表示しない。
+6. The ヘルプデスクポータル shall 添付ファイルの表示に`helpdesk-inquiry-management`spec所有の`AttachmentPreviewList`コンポーネントを再利用し、新規の表示ロジックを重複実装しない。
