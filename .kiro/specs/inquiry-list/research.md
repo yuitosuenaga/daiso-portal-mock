@@ -165,3 +165,62 @@
 - **Rationale**: 対応中フラグも対応状況の「進行中」も概念的に近い状態であり、視覚的に同系統の色で表現することは自然。新規variant追加のコストを避けられる
 - **Trade-offs**: `status-in_progress`という名前がやや対応状況（`status`）専用に見えるが、`Badge`のvariant名は見た目のトークンであり意味的な排他性はないため許容する
 - **Follow-up**: なし
+
+---
+
+## 追加ラウンド（2026-07-07）: 添付ファイルの表示
+
+### Summary
+
+- **Feature**: `inquiry-list`（既存spec更新。新規spec作成ではなく、要件10を追加）
+- **Discovery Scope**: Extension（`inquiry-form`・`helpdesk-inquiry-management`両specが既に提供する型・コンポーネントを、本specの画面から読み取り専用で消費する）
+- **Key Findings**:
+  - `Inquiry.attachments?: InquiryAttachment[]`（`types/attachment.ts`、`inquiry-form`spec所有）は既にデータモデル上存在し、`getInquiryById`・`getInquiries`が返す`Inquiry`にそのまま含まれている
+  - `InquiryHistoryEntry.attachments?: InquiryAttachment[]`（`types/inquiry-history.ts`、`helpdesk-inquiry-management`spec所有）も同様に既存で、`getInquiryHistory`が返す`reply_sent`エントリに含まれ得る
+  - `AttachmentPreviewList`（`src/components/features/helpdesk-inquiries/AttachmentPreviewList.tsx`、`helpdesk-inquiry-management`spec所有）は`attachments: InquiryAttachment[]`のみを受け取る読み取り専用の汎用コンポーネントで、`inquiryId`等の文脈に依存しない設計。コンポーネント自身のコメントに「`inquiry-list`spec次ラウンドでの再利用に備える」と明記されており、まさに本ラウンドの対応を見越して設計済みであることを確認した
+  - `AttachmentPreviewList`は`attachments.length === 0`の場合に`null`を返す設計のため、呼び出し側（`InquiryDetail`・`InquiryHistoryList`）で「0件なら非表示」の分岐を別途実装する必要がない
+  - `InquiryHistoryList.tsx`の`renderEntryContent`（`reply_sent`分岐）は現状`entry.detail`のみを表示しており、`entry.attachments`を読んでいないことを確認した。他の3種別（`status_changed`/`claimed`/`released`）には`attachments`フィールド自体が存在しないため対象外
+
+### Requirement-to-Asset Map
+
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件10 添付ファイルの表示 | `Inquiry.attachments`・`InquiryHistoryEntry.attachments`・`AttachmentPreviewList`（いずれも既存） | Missing（表示配線のみ） | データ・コンポーネントは既存のまま利用可能。`InquiryDetail`・`InquiryHistoryList`からの呼び出し配線のみ未整備 |
+
+### Implementation Approach Options
+
+#### Option A: `AttachmentPreviewList`を再利用する（推奨）
+- `InquiryDetail`の問い合わせ本文セクション・`InquiryHistoryList`の`reply_sent`分岐から、既存の`AttachmentPreviewList`をそれぞれ呼び出す
+- ✅ 新規コンポーネント不要。`helpdesk-inquiry-management`spec側の表示ロジック変更が本specに波及しない読み取り専用の依存関係のみで済む
+- ❌ なし（既存コンポーネントが汎用設計のため、トレードオフは実質ない）
+
+#### Option B: 本spec専用の添付ファイル表示コンポーネントを新規作成する
+- `InquiryHistoryList`の`HistoryTimeline`との関係と同様に、独自の表示コンポーネントを新規実装する
+- ❌ `AttachmentPreviewList`は既に文脈に依存しない汎用設計であり、`HistoryTimeline`（常に`actorName`を表示し要件に合わない）とは事情が異なる。重複実装の理由がない
+
+**推奨**: Option A。
+
+### Effort & Risk
+
+- **Effort**: **XS（半日〜1日）** — 新規データ取得・型定義・コンポーネント実装が不要で、既存`InquiryDetail`・`InquiryHistoryList`への呼び出し追加とテストのみ
+- **Risk**: **Low** — 新規の外部依存・データモデル変更なし。既存コンポーネントの契約（props）を変更しないため、`helpdesk-inquiry-management`側への影響もない
+
+### Recommendations for Design Phase
+
+- **推奨アプローチ**: Option A
+- **主要な決定事項**: `InquiryDetail`内での添付ファイル欄の表示位置（自由記述の直後）、`InquiryHistoryList`内での添付ファイル欄の表示位置（返信本文の直後）
+- **Research Needed**: 特になし
+
+---
+
+## 設計フェーズでの決定（追加ラウンド・2026-07-07）
+
+### Design Decisions
+
+#### Decision: `AttachmentPreviewList`をそのまま再利用し、新規の表示コンポーネントを作らない
+- **Context**: 添付ファイルの表示が必要な箇所（問い合わせ本文・返信履歴）は2箇所あるが、いずれも表示要件（画像サムネイル・ファイル名・サイズ・ダウンロードリンク）は同一
+- **Alternatives Considered**: 1) `helpdesk-inquiry-management`spec所有の`AttachmentPreviewList`を読み取り専用で再利用する、2) 本spec専用の表示コンポーネントを新規作成する
+- **Selected Approach**: 1) `AttachmentPreviewList`を再利用する
+- **Rationale**: 同コンポーネントは`inquiryId`等の文脈に依存しない汎用設計として既に実装されており、まさにこのような再利用を想定してコメントに明記されている。重複実装を避けることで、将来の表示仕様変更（例: サムネイルサイズの調整）が1箇所で完結する
+- **Trade-offs**: 本specは`AttachmentPreviewList`の実装詳細（`helpdesk-inquiry-management`spec所有）に依存するため、同specがpropsの契約を破壊的に変更した場合は本specの表示にも影響する（`Revalidation Triggers`に明記済み）
+- **Follow-up**: なし

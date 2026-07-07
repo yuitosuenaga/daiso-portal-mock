@@ -205,4 +205,61 @@ describe("InquiryDetail", () => {
     expect(screen.getByText("交換対応いたします。")).toBeTruthy();
     expect(screen.queryByText("田中 太郎")).toBeNull();
   });
+
+  it("問い合わせ本文に添付ファイルがあるとき、添付ファイルラベルとダウンロードリンクを表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "photo.png",
+          fileType: "image/png",
+          fileSize: 1024,
+          dataUrl: "data:image/png;base64,AAAA",
+        },
+      ],
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.getByText("添付ファイル")).toBeTruthy();
+    const link = screen.getByRole("link", { name: /photo\.png/ });
+    expect(link.getAttribute("href")).toBe("data:image/png;base64,AAAA");
+  });
+
+  it("問い合わせ本文に添付ファイルがないとき、添付ファイルラベルを表示しない", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.queryByText("添付ファイル")).toBeNull();
+  });
 });

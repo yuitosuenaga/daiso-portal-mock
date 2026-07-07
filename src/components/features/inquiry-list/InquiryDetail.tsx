@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHistoryList";
+import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 
 export async function InquiryDetail({ id }: { id: string }) {
   const [t, tStatuses, tCategories, tUrgencies, tCountries, locale] =
@@ -106,6 +107,16 @@ export async function InquiryDetail({ id }: { id: string }) {
               {inquiry.originalText}
             </p>
           </div>
+          {inquiry.attachments && inquiry.attachments.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("attachmentsLabel")}
+              </p>
+              <div className="mt-1">
+                <AttachmentPreviewList attachments={inquiry.attachments} />
+              </div>
+            </div>
+          )}
           <div>
             <p className="text-sm font-medium text-muted-foreground">
               {t("submittedByLabel")}
