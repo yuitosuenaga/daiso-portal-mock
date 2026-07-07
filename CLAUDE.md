@@ -17,6 +17,15 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 - Check `.kiro/specs/` for active specifications
 - Use `/kiro:spec-status [feature-name]` to check progress
 
+### Spec の粒度・重複防止（重要）
+
+**1つの画面（1ルート/1トップページ）につき、spec は1つに保つ。同じ画面への追加要望・改修は、新規specを作らず既存specへの要件追記として扱う。**
+
+- 新しいspecを作る前に、`.kiro/specs/` に対象と同じ画面（同じルート・同じ画面）を扱う既存specがないか確認する
+- 既存specが見つかった場合は、そのspecの `requirements.md` に要件を追記し、`spec.json` の `design`/`tasks` の `approved` を追記内容に応じて `false` に戻してから設計・タスクを更新する（新規specは作らない）
+- 既存specが `implementation-complete` であっても、同じ画面への追加要望であれば新規specを作らず、そのspecを再利用・拡張する
+- 例外: 明確に別ルート・別ユーザー種別（申請者側 vs ヘルプデスク側など）を対象とする画面は、同じデータドメインを扱っていても別specとして問題ない（例: `announcements`＝申請者側の閲覧画面と `announcements-management`＝ヘルプデスク側の管理画面は、別画面のため別spec）
+
 ## Development Guidelines
 - Think in English, generate responses in Japanese. All Markdown content written to project files (e.g., requirements.md, design.md, tasks.md, research.md, validation reports) MUST be written in the target language configured for this specification (see spec.json.language).
 

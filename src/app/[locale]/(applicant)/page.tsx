@@ -5,12 +5,16 @@ import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
 import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
 import { AnnouncementsCard } from "@/components/features/dashboard/AnnouncementsCard";
+import {
+  AnnouncementsPreviewPanel,
+  AnnouncementsPreviewPanelSkeleton,
+} from "@/components/features/dashboard/AnnouncementsPreviewPanel";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-6xl space-y-6">
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <NavigationCard
           title={t("inquiryForm.title")}
@@ -46,6 +50,9 @@ export default async function DashboardPage() {
           icon={HelpCircle}
         />
       </div>
+      <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
+        <AnnouncementsPreviewPanel viewAllHref="/announcements" />
+      </Suspense>
     </div>
   );
 }

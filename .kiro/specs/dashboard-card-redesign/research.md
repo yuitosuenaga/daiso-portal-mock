@@ -7,7 +7,9 @@
   - 両ポータルのトップページは既存の shadcn/ui `Card` コンポーネントと next-intl のみで構築可能であり、新規外部ライブラリの追加は不要
   - `src/lib/api/links.ts` / `faqs.ts` は認証・会社スコープを持たない共通データ関数のため、ヘルプデスク側ページからもそのまま再利用できる
   - 申請者側ダッシュボードの既存5ウィジェット（`AnnouncementWidget`等）はダッシュボードページ以外から参照されておらず、カード形式への置き換えに伴い削除対象となる
-  - `announcements-management` spec（別ブランチ、2026-07-02時点で `tasks-approved`）は `/[locale]/helpdesk/announcements` ルートと `HelpdeskSidebar.tsx` へのナビ項目追加を含んでおり、本specとファイル競合の可能性がある
+  - `announcements-management` spec（別ブランチ、2026-07-02時点で `tasks-approved`）は `/[locale]/helpdesk/announcements` ルートと `HelpdeskSidebar.tsx` へのナビ項目追加を含んでおり、本specとファイル競合の可能性がある（2026-07-02、mainマージ後に解消済み）
+  - プレビューパネル追加にあたり、`AnnouncementListItem` / `HelpdeskInquiryListItem` という既存の表示コンポーネントがそのまま再利用可能であり、新規表示ロジックの実装は不要
+  - ヘルプデスク側問い合わせ一覧ページは既に `sortInquiriesForHelpdesk`（緊急度→受付日時の並び替え）を持つが、「未着手（未クレーム）優先」は考慮していないため、プレビューパネル専用の新しい並び替え関数が必要
 
 ## Research Log
 
@@ -41,7 +43,19 @@
 - **Context**: ユーザー指示により、ヘルプデスク側トップページに「お知らせ管理」カードを追加する必要がある
 - **Sources Consulted**: `.kiro/specs/announcements-management/spec.json`, `design.md`
 - **Findings**: 当該specは `tasks-approved` まで進行済み。実装対象ルートは `/[locale]/helpdesk/announcements`（一覧・作成・編集）で確定している。また同specは `HelpdeskSidebar.tsx` に「お知らせ管理」ナビ項目を追加するタスクを持つ
-- **Implications**: 本specは `/[locale]/helpdesk/announcements` への導線カードのみを実装し、当該ルートの内部実装には関与しない。`HelpdeskSidebar.tsx` は両specが変更するため、実装順序またはマージ順の調整が必要（タスクフェーズで明記）
+- **Implications**: 本specは `/[locale]/helpdesk/announcements` への導線カードのみを実装し、当該ルートの内部実装には関与しない。`HelpdeskSidebar.tsx` は両specが変更するため、実装順序またはマージ順の調整が必要（タスクフェーズで明記）（2026-07-02、mainマージにより解消済み）
+
+### プレビューパネルの表示コンポーネント再利用可否
+- **Context**: 「最新のお知らせ」「対応が必要な問い合わせ」プレビューパネルの1行分の表示をどう実装するか
+- **Sources Consulted**: `src/components/features/announcements/AnnouncementListItem.tsx`, `src/components/features/helpdesk-inquiries/HelpdeskInquiryListItem.tsx`
+- **Findings**: `AnnouncementListItem`（お知らせ1件・タイトル/カテゴリ/日付）、`HelpdeskInquiryListItem`（問い合わせ1件・会社名/種別/緊急度/対応状況、対応中フラグ表示込み）は、いずれもpropsのみで完結する既存の表示コンポーネントであり、ダッシュボードのプレビューパネルからもそのまま再利用できる
+- **Implications**: 新規の行表示コンポーネントは実装せず、既存コンポーネントを再利用することで重複実装を避ける
+
+### ヘルプデスク側「未対応」の優先順位付け
+- **Context**: 要件6.3「緊急度が高いもの・誰も対応着手していないものが優先的に表示される順序」をどう実現するか
+- **Sources Consulted**: `src/lib/helpdesk-inquiry-list.ts`（既存の`sortInquiriesForHelpdesk`）, `src/types/inquiry.ts`（`claim`フィールド）
+- **Findings**: 既存の`sortInquiriesForHelpdesk`は緊急度→受付日時の並び替えのみで、`claim`（対応中フラグ・誰が着手しているか）を考慮していない。`Inquiry.claim`は`{ staffName, claimedAt } | null | undefined`の構造を持ち、未着手かどうかを判定できる
+- **Implications**: 既存関数を変更せず、「未着手優先→緊急度→受付日時」の3段階で並び替える新しい純関数`sortInquiriesForPriorityPreview`を新設する。既存の問い合わせ一覧ページの並び順には影響を与えない
 
 ## Architecture Pattern Evaluation
 
@@ -82,9 +96,20 @@
 - **Trade-offs**: なし
 - **Follow-up**: なし
 
+### Decision: プレビューパネルの並び替えロジックを既存ロジックから分離
+- **Context**: ヘルプデスク側プレビューパネルの「対応が必要な問い合わせ」の並び順に、既存の問い合わせ一覧ページが使う`sortInquiriesForHelpdesk`をそのまま使うか、専用ロジックを新設するか
+- **Alternatives Considered**:
+  1. 既存の`sortInquiriesForHelpdesk`に「未着手優先」の考慮を追加する形で改修する
+  2. プレビューパネル専用の新しい並び替え関数を新設する
+- **Selected Approach**: 2を採用（`sortInquiriesForPriorityPreview`を新設）
+- **Rationale**: 既存関数を改修すると、問い合わせ一覧ページ本体（`helpdesk-inquiry-management` specの範囲）の並び順まで変更されてしまい、本spec（`dashboard-card-redesign`）のBoundary Commitments（「各機能ページ自体の内部ロジックの変更」は対象外）に反する
+- **Trade-offs**: 似たロジックが2箇所に存在することになるが、責務分離を優先する
+- **Follow-up**: なし
+
 ## Risks & Mitigations
-- `announcements-management` spec とのマージ順によっては `HelpdeskSidebar.tsx` および「お知らせ管理」カードのリンク先が一時的に不整合になる — タスクフェーズでマージ順を明記し、実装前に相手ブランチの状況を確認する
+- `announcements-management` spec とのマージ順によっては `HelpdeskSidebar.tsx` および「お知らせ管理」カードのリンク先が一時的に不整合になる — 2026-07-02、mainマージにより解消済み
 - お知らせの「新着7日」しきい値はハードコードの仮値であり、実運用の要望と乖離する可能性がある — ヒアリング後（フェーズ2）に調整可能な設計とする
+- `AnnouncementsCard`/`InquiryListCard`（バッジ集計）と`AnnouncementsPreviewPanel`/`PriorityInquiriesPreviewPanel`（内容一覧）が同一データソースに対して重複フェッチを行う — フェーズ1のモックデータ規模では性能影響なし。将来的にキャッシュ層の検討余地あり
 
 ## References
 - `.kiro/specs/announcements-management/design.md` — ヘルプデスク側お知らせ管理のルート・ナビゲーション変更範囲の確認
