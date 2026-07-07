@@ -245,7 +245,8 @@
       "title": "Announcements",
       "description": "View announcements from the help desk.",
       "empty": "No announcements",
-      "error": "Failed to load announcements"
+      "error": "Failed to load announcements",
+      "noResults": "No matching announcements"
     },
     "categories": {
       "maintenance": "Maintenance",
@@ -259,6 +260,17 @@
       "notFound": "Announcement not found",
       "error": "Failed to load the announcement",
       "backToList": "Back to list"
+    },
+    "actionRequiredBadge": "Action required",
+    "filter": {
+      "keywordLabel": "Search title",
+      "keywordPlaceholder": "Words in the title",
+      "categoryLabel": "Category",
+      "categoryAll": "All categories",
+      "actionRequiredLabel": "Action required",
+      "actionRequiredAll": "All",
+      "actionRequiredTrue": "Action required only",
+      "clearButton": "Clear"
     }
   },
   "inquiryForm": {

@@ -7,6 +7,12 @@ export interface AnnouncementListItemProps {
   announcement: Announcement;
   /** 種別（category）の翻訳済み表示ラベル */
   categoryLabel: string;
+  /**
+   * 対応要否バッジの翻訳済み表示ラベル。
+   * 未指定の場合は対応要否バッジを表示しない（ダッシュボードのプレビュー等、
+   * バッジ表示が不要な文脈のため省略可能）。
+   */
+  actionRequiredBadgeLabel?: string;
   /** 公開日のロケール整形に使用する現在のロケール */
   locale: string;
 }
@@ -18,6 +24,7 @@ export interface AnnouncementListItemProps {
 export function AnnouncementListItem({
   announcement,
   categoryLabel,
+  actionRequiredBadgeLabel,
   locale,
 }: AnnouncementListItemProps) {
   return (
@@ -29,8 +36,11 @@ export function AnnouncementListItem({
         >
           {announcement.title}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={announcement.category}>{categoryLabel}</Badge>
+          {announcement.actionRequired && actionRequiredBadgeLabel && (
+            <Badge variant="default">{actionRequiredBadgeLabel}</Badge>
+          )}
           <time
             dateTime={announcement.publishedAt}
             className="text-xs text-muted-foreground"
