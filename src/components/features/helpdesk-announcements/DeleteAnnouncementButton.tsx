@@ -45,7 +45,7 @@ export function DeleteAnnouncementButton({
     <div className="flex items-center gap-3">
       <Button
         type="button"
-        variant="outline"
+        variant="destructive"
         onClick={handleClick}
         disabled={isPending}
       >
