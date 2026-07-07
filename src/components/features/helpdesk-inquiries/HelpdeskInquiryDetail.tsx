@@ -113,9 +113,30 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {inquiry.originalText}
-          </p>
+          {inquiry.originalLanguage !== "ja" && inquiry.translatedText ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t("detail.translatedTextLabel")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                  {inquiry.translatedText}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t("detail.originalTextLabel")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                  {inquiry.originalText}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+              {inquiry.originalText}
+            </p>
+          )}
           {inquiry.attachments && inquiry.attachments.length > 0 && (
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">

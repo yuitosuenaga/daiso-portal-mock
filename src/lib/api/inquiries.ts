@@ -33,6 +33,7 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     originalText:
       "We would like to place an additional order for next month's shipment.",
     originalLanguage: "en",
+    translatedText: "来月分の配送に向けて追加発注をお願いしたいです。",
     status: "in_progress",
     createdAt: "2026-06-25T14:30:00.000Z",
     submittedBy: {
@@ -47,6 +48,7 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     storeRegion: "Seoul",
     originalText: "포털 시스템에 로그인할 수 없는 문제가 발생하고 있습니다.",
     originalLanguage: "ko",
+    translatedText: "ポータルシステムにログインできない問題が発生しています。",
     status: "new",
     createdAt: "2026-06-29T02:45:00.000Z",
     submittedBy: {
@@ -76,6 +78,8 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     storeRegion: "Taipei",
     originalText: "部分商品外包裝有輕微破損，請確認是否需要更換。",
     originalLanguage: "zh",
+    translatedText:
+      "一部商品の外装に軽微な破損が見られます。交換の必要があるかご確認ください。",
     status: "in_progress",
     createdAt: "2026-06-20T11:20:00.000Z",
     submittedBy: {
@@ -91,6 +95,7 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     originalText:
       "Could you confirm the estimated delivery date for order #4821?",
     originalLanguage: "en",
+    translatedText: "注文番号#4821の配送予定日をご確認いただけますでしょうか。",
     status: "resolved",
     createdAt: "2026-05-30T08:10:00.000Z",
     submittedBy: {
@@ -106,6 +111,8 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     originalText:
       "Trang cổng thông tin hiển thị chậm khi tải danh sách đơn hàng.",
     originalLanguage: "vi",
+    translatedText:
+      "ポータルサイトで注文一覧を読み込む際の表示が遅くなっています。",
     status: "new",
     createdAt: "2026-06-27T13:05:00.000Z",
     submittedBy: {
@@ -121,6 +128,7 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     originalText:
       "Kami ingin menanyakan mengenai perpanjangan kontrak distribusi.",
     originalLanguage: "id",
+    translatedText: "販売契約の更新についてお伺いしたいです。",
     status: "in_progress",
     createdAt: "2026-06-15T05:40:00.000Z",
     submittedBy: {
@@ -136,6 +144,7 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     originalText:
       "Chúng tôi muốn đặt thêm hàng cho đợt giao tháng sau.",
     originalLanguage: "vi",
+    translatedText: "来月分の配送に向けて追加発注をお願いしたいです。",
     status: "in_progress",
     createdAt: "2026-06-22T09:30:00.000Z",
     submittedBy: {
@@ -150,6 +159,8 @@ const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
     storeRegion: "Hanoi",
     originalText: "Sản phẩm giao đến bị lỗi, đã được đổi trả và xử lý xong.",
     originalLanguage: "vi",
+    translatedText:
+      "納品された商品に不具合があり、交換・対応は既に完了しております。",
     status: "resolved",
     createdAt: "2026-06-05T02:15:00.000Z",
     submittedBy: {

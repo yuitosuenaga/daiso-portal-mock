@@ -102,3 +102,43 @@
 - **Rationale**: `AttachmentField`に条件分岐を増やすより、責務が単純な専用コンポーネントを新設する方が見通しが良い。このコードベースでは`FormField`（`inquiry-form`所有）が`helpdesk-announcements`等の他機能から既に再利用されている前例があり、「後続specが必要とするコンポーネントを、最初に必要になったspecが所有し、後続specが読み取り専用で再利用する」という設計パターンは既に確立している
 - **Trade-offs**: `inquiry-list`spec（次ラウンド）は`helpdesk-inquiries`フォルダ配下のコンポーネントに依存することになるが、既存の`FormField`の前例と同じパターンであり許容する
 - **Follow-up**: `inquiry-list`spec着手時に、`AttachmentPreviewList`の翻訳文言がpropsとして受け取る設計（`FormField`と同じ規約）になっていることを確認する
+
+---
+
+## 追加ラウンド（2026-07-07）: 問い合わせ本文の日本語訳表示
+
+### Summary
+- **Discovery Scope**: Extension（`inquiry-form`spec側で既に型定義済みだが未使用の`Inquiry.translatedText`フィールドを利用し、表示配線とフェーズ1モックデータの値追加のみを行う）
+- **Key Findings**:
+  - `src/types/inquiry.ts`の`Inquiry.translatedText?: string`は既に存在し、コメントに「日本語訳。フェーズ3（Amazon Translate連携）まで未使用」とある。型定義自体は`inquiry-form`spec側の既存資産であり、本ラウンドで型変更は発生しない
+  - `.kiro/steering/tech.md`は自由記述の翻訳処理について「Google Cloud Translation API連携はフェーズ3で対応する」と明記しており、`inquiry.ts`のコメント（Amazon Translate）と翻訳サービス名の記載がわずかに揺れているが、いずれも「フェーズ3まで実際のAPI連携は行わない」という結論は一致している。本ラウンドはこの前提を変更しない
+  - `CreateInquiryInput`型は`Omit<Inquiry, id | translatedText>`で定義されており、`translatedText`は申請フォーム送信時の入力から既に除外されている（申請者が翻訳結果を入力する余地はない設計）
+  - `src/lib/api/inquiries.ts`の`MOCK_INQUIRIES`（`inquiry-list`spec起源の静的モック配列）には現在`translatedText`の値が1件も設定されていない。`originalLanguage`が`ja`以外の要素（`en`/`ko`/`zh`/`vi`）にダミーの日本語訳を追加する必要がある
+  - `HelpdeskInquiryDetail.tsx`は現在`inquiry.originalText`をそのまま表示するのみで、`translatedText`・`originalLanguage`のいずれも参照していない
+
+### Requirement-to-Asset Map
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件13 日本語訳表示 | `Inquiry.translatedText`（型定義済み・値未設定、`inquiry-form`spec） | Missing（値・表示配線のみ） | 型は既存のまま利用可能。モックデータへの値追加と`HelpdeskInquiryDetail`の表示分岐が必要 |
+
+### Design Decisions
+
+#### Decision: モックデータの日本語訳ダミー値は本spec（`helpdesk-inquiry-management`）側で`MOCK_INQUIRIES`に追加する
+- **Context**: `translatedText`はヘルプデスク側の表示のみで使われるフィールドであり、値を用意する動機・利用者はいずれも本specに属する。一方`MOCK_INQUIRIES`配列自体は`inquiry-list`specが新設したファイル（`src/lib/api/inquiries.ts`）内に存在する
+- **Alternatives Considered**:
+  1. `inquiry-list`specに値追加を依頼し、本specは値追加後の`translatedText`を読むだけにする
+  2. 本specが`MOCK_INQUIRIES`の既存要素に`translatedText`の値のみを直接追加する（フィールドの型・他の値は変更しない）
+- **Selected Approach**: 2。既存の`claim`フィールド追加時と同様、本specが必要とする値をモックデータに直接追加する
+- **Rationale**: `Inquiry`型への`claim`フィールド追加（本spec所有）の前例と同じく、モックデータへの値追加は「型のオーナーシップ」とは別次元の話であり、値を必要とする機能を実装するspecがその都度追加する運用がこのコードベースで既に確立している。他specへの依頼往復はフェーズ1のモック運用としては過剰
+- **Trade-offs**: `inquiry-list`spec側が将来同じ配列に別の値を追加する際、本spec由来の`translatedText`値と衝突しないよう注意が必要だが、フィールドが異なるため実際の衝突リスクは低い
+- **Follow-up**: なし
+
+#### Decision: 日本語訳表示は既存の`HelpdeskInquiryDetail`内に条件分岐として実装し、新規コンポーネントは作らない
+- **Context**: 表示ロジックは「`translatedText`が使えるときはそれをメイン表示し、原文を下に添える。使えないときは原文のみ」という単純な条件分岐であり、状態管理やインタラクションを持たない
+- **Alternatives Considered**:
+  1. 新規の`TranslatedInquiryBody`のような表示コンポーネントを新設する
+  2. `HelpdeskInquiryDetail`内にインラインの条件分岐として実装する
+- **Selected Approach**: 2。既存コンポーネント内に条件分岐を追加する
+- **Rationale**: `AttachmentPreviewList`のように複数箇所（詳細画面・履歴タイムライン）から再利用される見込みがある場合は新規コンポーネント化するが、本ロジックは`HelpdeskInquiryDetail`の問い合わせ本文セクション1箇所のみで使われるため、コンポーネント分割の恩恵がない。過剰な抽象化を避ける
+- **Trade-offs**: なし
+- **Follow-up**: なし

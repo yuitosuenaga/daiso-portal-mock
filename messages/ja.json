@@ -66,7 +66,9 @@
       "notFound": "問い合わせが見つかりません",
       "error": "問い合わせの取得に失敗しました",
       "backToList": "一覧へ戻る",
-      "attachmentsLabel": "添付ファイル"
+      "attachmentsLabel": "添付ファイル",
+      "translatedTextLabel": "日本語訳",
+      "originalTextLabel": "原文"
     },
     "filter": {
       "companyLabel": "会社名",
