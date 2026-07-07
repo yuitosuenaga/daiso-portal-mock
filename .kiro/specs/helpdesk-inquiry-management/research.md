@@ -142,3 +142,29 @@
 - **Rationale**: `AttachmentPreviewList`のように複数箇所（詳細画面・履歴タイムライン）から再利用される見込みがある場合は新規コンポーネント化するが、本ロジックは`HelpdeskInquiryDetail`の問い合わせ本文セクション1箇所のみで使われるため、コンポーネント分割の恩恵がない。過剰な抽象化を避ける
 - **Trade-offs**: なし
 - **Follow-up**: なし
+
+---
+
+## 追加ラウンド（2026-07-07・2）: 対応履歴への申請者メッセージの統合表示
+
+### Summary
+- **Discovery Scope**: Extension（本specが所有する`InquiryHistoryEntryType`に新種別を追加し、既存のヘルプデスク側タイムライン表示ロジックへの影響を最小化する）
+- **Key Findings**:
+  - `HistoryTimeline.tsx`（ヘルプデスク側）は`entry.type`に対する網羅的なswitch文を持たず、呼び出し元（`HelpdeskInquiryDetail`）が渡す`typeLabels: Record<InquiryHistoryEntryType, string>`のルックアップのみで種別ラベルを表示する設計になっている。そのため新種別`requester_message`を追加しても`HistoryTimeline`自体のコード変更は不要で、`HelpdeskInquiryDetail`側で`typeLabels`オブジェクトに1エントリ追加するだけで済む
+  - 一方、`inquiry-list`spec側の`InquiryHistoryList.tsx`（申請者側）は`entry.type`に対する網羅的なswitch文（`never`型による網羅性チェック）を持っているため、`InquiryHistoryEntryType`に新種別を追加すると、`inquiry-list`側は新しい`case`分岐を追加しない限りコンパイルエラーになる。これは意図した安全装置であり、型を拡張する本specは、依存する`inquiry-list`specへの影響を必ず周知する必要がある
+  - `entry.actorName`は全種別で必須フィールドであり、`requester_message`エントリにも値が必要。個人名を持たない申請者側は`Inquiry.submittedBy.companyName`を代わりに格納する方針とした（要件定義時に決定済み）
+
+### Requirement-to-Asset Map
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件14 対応履歴への申請者メッセージの統合表示 | `InquiryHistoryEntryType`・`HistoryTimeline`（本spec所有・既存） | Missing（型追加・表示配線のみ） | 型に1種別追加し、`HelpdeskInquiryDetail`の`typeLabels`に1行追加するだけで対応可能。`HistoryTimeline`自体は変更不要 |
+
+### Design Decisions
+
+#### Decision: `HistoryTimeline`はtypeLabelsルックアップ方式のため変更不要とし、`HelpdeskInquiryDetail`側のみを変更する
+- **Context**: 新種別の追加が既存コンポーネントにどこまで影響するかを確認する必要があった
+- **Alternatives Considered**: 1) `HistoryTimeline`に`requester_message`専用の表示分岐を追加する、2) 既存のtypeLabelsルックアップ方式のまま`HelpdeskInquiryDetail`側でラベルを1行追加するだけにする
+- **Selected Approach**: 2
+- **Rationale**: `HistoryTimeline`の設計は元々「ラベル文字列 + actorName + detail + attachments」という共通フォーマットで全種別を表示する汎用設計であり、`requester_message`もこのフォーマットに自然に収まる。既存コンポーネントへの変更を避けられる
+- **Trade-offs**: なし
+- **Follow-up**: なし

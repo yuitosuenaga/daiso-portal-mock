@@ -25,6 +25,10 @@ vi.mock("@/lib/api/inquiry-history", () => ({
   getInquiryHistory: (...args: unknown[]) => getInquiryHistoryMock(...args),
 }));
 
+vi.mock("@/lib/actions/inquiry", () => ({
+  sendApplicantMessageAction: vi.fn(),
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;
@@ -235,12 +239,14 @@ describe("InquiryDetail", () => {
     const jsx = await InquiryDetail({ id: "inquiry-001" });
     render(jsx);
 
-    expect(screen.getByText("添付ファイル")).toBeTruthy();
+    // 「添付ファイル」ラベルは追加メッセージ送信フォームのAttachmentFieldにも表示されるため、
+    // 問い合わせ本文セクション分を含めて2件存在することを確認する
+    expect(screen.getAllByText("添付ファイル")).toHaveLength(2);
     const link = screen.getByRole("link", { name: /photo\.png/ });
     expect(link.getAttribute("href")).toBe("data:image/png;base64,AAAA");
   });
 
-  it("問い合わせ本文に添付ファイルがないとき、添付ファイルラベルを表示しない", async () => {
+  it("問い合わせ本文に添付ファイルがないとき、本文セクションには添付ファイルラベルを表示しない", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
       category: "defect",
@@ -260,6 +266,40 @@ describe("InquiryDetail", () => {
     const jsx = await InquiryDetail({ id: "inquiry-001" });
     render(jsx);
 
-    expect(screen.queryByText("添付ファイル")).toBeNull();
+    // 「添付ファイル」ラベルは追加メッセージ送信フォームのAttachmentField分のみ（1件）存在する
+    expect(screen.getAllByText("添付ファイル")).toHaveLength(1);
+  });
+
+  it("取得成功時に追加メッセージの送信フォームを表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.getByLabelText("メッセージ内容")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "送信する" })).toBeTruthy();
+  });
+
+  it("見つからない状態では追加メッセージの送信フォームを表示しない", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce(null);
+
+    const jsx = await InquiryDetail({ id: "not-exist" });
+    render(jsx);
+
+    expect(screen.queryByLabelText("メッセージ内容")).toBeNull();
   });
 });

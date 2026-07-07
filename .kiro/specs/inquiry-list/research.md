@@ -224,3 +224,69 @@
 - **Rationale**: 同コンポーネントは`inquiryId`等の文脈に依存しない汎用設計として既に実装されており、まさにこのような再利用を想定してコメントに明記されている。重複実装を避けることで、将来の表示仕様変更（例: サムネイルサイズの調整）が1箇所で完結する
 - **Trade-offs**: 本specは`AttachmentPreviewList`の実装詳細（`helpdesk-inquiry-management`spec所有）に依存するため、同specがpropsの契約を破壊的に変更した場合は本specの表示にも影響する（`Revalidation Triggers`に明記済み）
 - **Follow-up**: なし
+
+---
+
+## 追加ラウンド（2026-07-07・2）: 追加メッセージの送信
+
+### Summary
+
+- **Feature**: `inquiry-list`（既存spec更新。新規spec作成ではなく、要件11を追加）
+- **Discovery Scope**: Extension（本specにとって初めての「書き込み」機能。`helpdesk-inquiry-management`spec所有の`appendInquiryHistoryEntry`という既存の公開関数を、新規Server Actionから呼び出す形で利用する）
+- **Key Findings**:
+  - `appendInquiryHistoryEntry(entry: Omit<InquiryHistoryEntry, "id">): Promise<InquiryHistoryEntry>`（`src/lib/api/inquiry-history.ts`、`helpdesk-inquiry-management`spec所有）は既に汎用的な追記専用関数として実装されており、呼び出し元がどのspecであるかを問わない設計になっている。本specから直接importして呼び出すことができ、`helpdesk-inquiry-management`側の変更は不要（型`InquiryHistoryEntryType`への`requester_message`追加のみが同spec側の対応）
+  - `helpdesk-inquiry-management`spec所有の`sendInquiryReplyAction`（`src/lib/actions/helpdesk.ts`）が、本specが新設する`sendApplicantMessageAction`の直接的な参考実装になる。引数検証（zod）→`appendInquiryHistoryEntry`呼び出し→`revalidatePath`という3段構成をそのまま踏襲できる
+  - `InquiryHistoryList.tsx`（本spec所有）の`renderEntryContent`は`entry.type`に対する網羅的なswitch文（`never`型チェック）を持つため、`InquiryHistoryEntryType`に`requester_message`が追加された時点で、本specは新しい`case`分岐を追加しない限りビルドが失敗する。これは意図した安全装置であり、`helpdesk-inquiry-management`spec側の型追加と、本spec側の表示追加は必ずセットで行う必要がある
+  - 会社名（`actorName`として記録する`Inquiry.submittedBy.companyName`）をどこで解決するかが論点になった。クライアント（`ApplicantMessageForm`）は`inquiry.submittedBy.companyName`を既にpropsとして持っているが、これをそのままServer Actionへ渡すと、改ざんされたリクエストで別会社の名前を偽装できてしまう。サーバー側（`sendApplicantMessageAction`内）で`getInquiryById(inquiryId)`を呼び直し、その結果から会社名を解決する方が安全
+  - `revalidatePath`の対象について、既存の`helpdesk-inquiry-management`側のServer Actionは`/[locale]/helpdesk/inquiries`・`/[locale]/helpdesk/inquiries/[id]`のみを再検証しており、申請者側のルートは再検証していない（データは同一のモックストアを参照するため、別ナビゲーションで開き直せば最新化されるが、同一タブでの即時反映はできていない）。本specの`sendApplicantMessageAction`は、自分自身が今見ている`/[locale]/inquiry/[id]`に加えて、ヘルプデスク側の`/[locale]/helpdesk/inquiries/[id]`も明示的に再検証することで、双方でリアルタイムに近い反映を実現する
+
+### Requirement-to-Asset Map
+
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件11 追加メッセージの送信 | `appendInquiryHistoryEntry`・`sendInquiryReplyAction`（参考実装）・`AttachmentField`・`inquiryAttachmentsArraySchema`（いずれも既存） | Missing（新規Server Action・新規UIコンポーネントが必要） | データ記録関数・検証スキーマ・添付UIは既存のまま利用可能。送信フォーム・Server Action・対応履歴側の新種別表示分岐が新規に必要 |
+
+### Implementation Approach Options
+
+#### Option A: `sendInquiryReplyAction`と同一のパターンで新規Server Actionを実装する（推奨）
+- `src/lib/actions/inquiry.ts`を新設し、`sendApplicantMessageAction`を実装する
+- ✅ 既存パターンの一貫性を保てる。レビュー・保守のコストが低い
+- ❌ なし
+
+#### Option B: `sendInquiryReplyAction`自体を汎用化し、申請者・ヘルプデスクの両方から呼び出せるようにする
+- 引数に「送信者種別」を追加し、`helpdesk-inquiry-management`spec所有の同一関数を両方のspecから呼び出す
+- ❌ `sendInquiryReplyAction`は`helpdesk-inquiry-management`spec所有であり、本specが呼び出し元を拡張する形で改修すると所有権の境界を越える。テンプレート機能等ヘルプデスク固有の関心事と申請者側の関心事が1つの関数に混在し、責務が曖昧になる
+
+**推奨**: Option A。所有権の境界を守りながら、確立済みのパターンを再利用する。
+
+### Effort & Risk
+
+- **Effort**: **M（2〜3日）** — 新規Server Action・新規クライアントコンポーネント・既存コンポーネントへの分岐追加（`InquiryHistoryList`）が必要。データ取得・型定義自体は既存のまま
+- **Risk**: **Low〜Medium** — 新規の外部依存はないが、本specにとって初めての書き込み系機能であり、`helpdesk-inquiry-management`spec側の型変更（`InquiryHistoryEntryType`拡張）との同時進行が必要な点がリスク。両spec間のタイミング調整（型追加が先、表示分岐が後）を明確にしておく
+
+### Recommendations for Design Phase
+
+- **推奨アプローチ**: Option A
+- **主要な決定事項**: `actorName`の解決方法（サーバー側で`getInquiryById`により再解決する）、`revalidatePath`の対象（申請者側・ヘルプデスク側の両方）、`InquiryHistoryList`での表示ラベル（「送信したメッセージ」、`reply_sent`の「返信」と区別する）
+
+---
+
+## 設計フェーズでの決定（追加ラウンド・2026-07-07・2）
+
+### Design Decisions
+
+#### Decision: `actorName`（会社名）はクライアントから受け取らず、サーバー側で解決する
+- **Context**: `ApplicantMessageForm`は`inquiry.submittedBy.companyName`をpropsとして既に持っているが、これをそのままServer Actionの引数として渡すと、リクエストを直接呼び出すことで別会社の名前を偽装できてしまう
+- **Alternatives Considered**: 1) クライアントから会社名を引数として渡す、2) サーバー側（`sendApplicantMessageAction`内）で`getInquiryById(inquiryId)`を呼び直し、会社名を解決する
+- **Selected Approach**: 2
+- **Rationale**: フェーズ1は認証未実装のため`inquiryId`自体の正当性は検証できないが、少なくとも「この`inquiryId`に紐づく会社名」を偽装できないようにすることで、実装の一貫性と将来の認証実装への移行しやすさを確保する
+- **Trade-offs**: サーバー側で`Inquiry`を1回多く取得する（既存の`sendInquiryReplyAction`にはこの追加取得がない点との非対称性が生じるが、`sendInquiryReplyAction`は`actorName`にフェーズ1固定のスタッフ名を使うため会社名解決の必要がなく、事情が異なる）
+- **Follow-up**: なし
+
+#### Decision: `revalidatePath`は申請者側・ヘルプデスク側の両方の詳細ルートを対象にする
+- **Context**: 既存の`helpdesk-inquiry-management`側のServer Actionはヘルプデスク側のルートのみを再検証しており、申請者側は再検証していない
+- **Alternatives Considered**: 1) 既存パターンを踏襲し、自分自身（申請者側）のルートのみ再検証する、2) 申請者側・ヘルプデスク側の両方を再検証する
+- **Selected Approach**: 2
+- **Rationale**: 追加メッセージのやり取りは双方がリアルタイムに近い形で確認できることが要件の趣旨（何度も往復できる）に合致する。ヘルプデスク側が対応履歴タブを開いたままにしている場面を想定すると、両方を再検証しておく方がUXとして自然
+- **Trade-offs**: 既存の`helpdesk-inquiry-management`側のServer Actionとの非対称性が生じる（既存側は申請者側ルートを再検証していない）が、これは既存の設計判断であり本ラウンドで変更する対象ではない
+- **Follow-up**: 将来的に`helpdesk-inquiry-management`側のServer Actionも申請者側ルートを再検証するよう統一するかは、別途検討課題とする

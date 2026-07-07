@@ -30,6 +30,18 @@ function renderEntryContent(
       return <p>{t("claimedMessage")}</p>;
     case "released":
       return <p>{t("releasedMessage")}</p>;
+    case "requester_message":
+      return (
+        <>
+          <span className="font-medium">{t("requesterMessageLabel")}</span>
+          <p className="mt-1 whitespace-pre-wrap">{entry.detail}</p>
+          {entry.attachments && entry.attachments.length > 0 && (
+            <div className="mt-1">
+              <AttachmentPreviewList attachments={entry.attachments} />
+            </div>
+          )}
+        </>
+      );
     default: {
       const exhaustiveCheck: never = entry.type;
       return exhaustiveCheck;

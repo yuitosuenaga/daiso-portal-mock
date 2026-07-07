@@ -215,4 +215,52 @@ describe("InquiryHistoryList", () => {
 
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
+
+  it("送信したメッセージをラベルと本文とともに表示し、会社名は表示しない", async () => {
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-001",
+        type: "requester_message",
+        actorName: "Daiso Vietnam Co., Ltd.",
+        occurredAt: "2026-07-02T00:00:00.000Z",
+        detail: "発送予定日を教えてください。",
+      },
+    ]);
+
+    const jsx = await InquiryHistoryList({ inquiryId: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.getByText("送信したメッセージ")).toBeTruthy();
+    expect(screen.getByText("発送予定日を教えてください。")).toBeTruthy();
+    expect(screen.queryByText("Daiso Vietnam Co., Ltd.")).toBeNull();
+  });
+
+  it("送信したメッセージに添付ファイルがあるとき、ダウンロードリンクを表示する", async () => {
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-001",
+        type: "requester_message",
+        actorName: "Daiso Vietnam Co., Ltd.",
+        occurredAt: "2026-07-02T00:00:00.000Z",
+        detail: "資料を添付します。",
+        attachments: [
+          {
+            id: "att-1",
+            fileName: "memo.pdf",
+            fileType: "application/pdf",
+            fileSize: 200,
+            dataUrl: "data:application/pdf;base64,AAAA",
+          },
+        ],
+      },
+    ]);
+
+    const jsx = await InquiryHistoryList({ inquiryId: "inquiry-001" });
+    render(jsx);
+
+    const link = screen.getByRole("link", { name: /memo\.pdf/ });
+    expect(link.getAttribute("href")).toBe("data:application/pdf;base64,AAAA");
+  });
 });

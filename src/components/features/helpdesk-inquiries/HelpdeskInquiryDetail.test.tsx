@@ -266,4 +266,38 @@ describe("HelpdeskInquiryDetail", () => {
     ).toBeNull();
     expect(screen.getByText("원문 텍스트")).toBeTruthy();
   });
+
+  it("申請者からのメッセージを対応履歴に表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-009",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "Da Nang",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "in_progress",
+      createdAt: "2026-06-22T09:30:00.000Z",
+      submittedBy: { companyName: "Daiso Vietnam Co., Ltd.", country: "VN" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([
+      {
+        id: "h1",
+        inquiryId: "inquiry-009",
+        type: "requester_message",
+        actorName: "Daiso Vietnam Co., Ltd.",
+        occurredAt: "2026-07-02T00:00:00.000Z",
+        detail: "発送予定日を教えてください。",
+      },
+    ]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-009" });
+    renderWithProvider(jsx);
+
+    expect(
+      screen.getByText(messages.helpdeskInquiries.history.types.requester_message)
+    ).toBeTruthy();
+    expect(screen.getByText("発送予定日を教えてください。")).toBeTruthy();
+  });
 });

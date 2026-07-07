@@ -5,16 +5,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHistoryList";
+import { ApplicantMessageForm } from "@/components/features/inquiry-list/ApplicantMessageForm";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 
 export async function InquiryDetail({ id }: { id: string }) {
-  const [t, tStatuses, tCategories, tUrgencies, tCountries, locale] =
+  const [t, tStatuses, tCategories, tUrgencies, tCountries, tMessage, locale] =
     await Promise.all([
       getTranslations("inquiryList.detail"),
       getTranslations("inquiryList.status"),
       getTranslations("inquiryForm.options.category"),
       getTranslations("inquiryForm.options.urgency"),
       getTranslations("inquiryForm.options.country"),
+      getTranslations("inquiryList.message"),
       getLocale(),
     ]);
 
@@ -130,6 +132,35 @@ export async function InquiryDetail({ id }: { id: string }) {
       </Card>
       <Card>
         <CardContent className="pt-6">{historySection}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{tMessage("sectionTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ApplicantMessageForm
+            inquiryId={inquiry.id}
+            bodyLabel={tMessage("bodyLabel")}
+            bodyPlaceholder={tMessage("bodyPlaceholder")}
+            submitButtonLabel={tMessage("submitButton")}
+            submittingLabel={tMessage("submitting")}
+            successMessage={tMessage("successMessage")}
+            errorMessage={tMessage("error")}
+            attachmentsLabel={tMessage("attachments.label")}
+            attachmentsHint={tMessage("attachments.hint")}
+            attachmentsRemoveButtonLabel={tMessage("attachments.removeButton")}
+            attachmentsSizeExceededMessage={tMessage(
+              "attachments.sizeExceeded"
+            )}
+            attachmentsTypeNotAllowedMessage={tMessage(
+              "attachments.typeNotAllowed"
+            )}
+            attachmentsCountExceededMessage={tMessage(
+              "attachments.countExceeded"
+            )}
+            attachmentsReadFailedMessage={tMessage("attachments.readFailed")}
+          />
+        </CardContent>
       </Card>
       {backToListLink}
     </div>
