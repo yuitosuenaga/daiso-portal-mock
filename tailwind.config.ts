@@ -47,6 +47,16 @@ const config: Config = {
           foreground: "hsl(var(--sidebar-foreground))",
         },
       },
+      fontFamily: {
+        sans: [
+          "var(--font-noto-sans-jp)",
+          "var(--font-noto-sans)",
+          "Hiragino Kaku Gothic ProN",
+          "Hiragino Sans",
+          "Meiryo",
+          "sans-serif",
+        ],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

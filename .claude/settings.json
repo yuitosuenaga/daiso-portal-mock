@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit*)",
+      "Bash(npx vitest run*)",
+      "Bash(curl -s -o /dev/null -w *)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(npm run typecheck*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_network_requests"
+    ]
+  }
+}
