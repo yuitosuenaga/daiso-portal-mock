@@ -183,6 +183,21 @@ src/
 | 5.6 | お知らせ0件時の空状態表示 | AnnouncementsPreviewPanel | — | — |
 | 6.1〜6.6, 6.8 | ヘルプデスク側「対応が必要な問い合わせ」プレビュー表示・優先順位・遷移・一覧導線 | PriorityInquiriesPreviewPanel | Service | カード単位エラー分離 |
 | 6.7 | 対応が必要な問い合わせ0件時の空状態表示 | PriorityInquiriesPreviewPanel | — | — |
+| 7.1〜7.5 | カードラベルの分かりやすさ改善（日本語「申請」「よくある質問」「申請フォーム」への変更、英語は据え置き） | messages/ja.json, messages/en.json（NavigationCard/Sidebar/HelpdeskSidebar が参照） | — | — |
+
+## カードラベル文言（2026-07-07 追記）
+
+「問い合わせ申請」「FAQ」という名称では能動的なアクション（申請）と参照情報（よくある質問）の違いが直感的に伝わらないというレビュー指摘を受け、日本語ラベルのみ以下のとおり変更する（英語ロケールは既存表記で区別が明確なため据え置き）。翻訳キー自体は変更せず、`next-intl` の翻訳値のみを差し替えるため、参照側コンポーネント（`NavigationCard.tsx` / `Sidebar.tsx` / `HelpdeskSidebar.tsx`）およびダッシュボードページのコード変更は不要。
+
+| 翻訳キー | 変更前（ja） | 変更後（ja） | en（据え置き） |
+|----------|--------------|--------------|----------------|
+| `nav.inquiryForm` | 問い合わせ申請 | 申請 | New Inquiry |
+| `dashboard.inquiryForm.title` | 問い合わせ申請 | 申請 | New Inquiry |
+| `nav.faq` | FAQ | よくある質問 | FAQ |
+| `dashboard.faq.title` | FAQ | よくある質問 | FAQ |
+| `helpdeskNav.faq` | FAQ | よくある質問 | FAQ |
+| `helpdeskDashboard.faq.title` | FAQ | よくある質問 | FAQ |
+| `helpdeskDashboard.inquiryForm.title` | 問い合わせ申請フォーム | 申請フォーム | Inquiry Form |
 
 ## Components and Interfaces
 

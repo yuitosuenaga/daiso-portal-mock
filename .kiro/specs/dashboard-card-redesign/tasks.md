@@ -132,3 +132,10 @@
   - 既存の問い合わせ一覧ページ（`/helpdesk/inquiries`）の表示順序が変更されていないことを確認する
   - 観測可能な完了条件: 上記3項目の確認結果に問題がない、または発見した問題が修正済みであることが記録される
   - _Requirements: 4.6, 5.6, 6.7_
+
+- [x] 11. カードラベルの分かりやすさ改善（2026-07-07 追記）
+  - `messages/ja.json` の `nav.inquiryForm`・`dashboard.inquiryForm.title` を「申請」、`nav.faq`・`dashboard.faq.title`・`helpdeskNav.faq`・`helpdeskDashboard.faq.title` を「よくある質問」、`helpdeskDashboard.inquiryForm.title` を「申請フォーム」に変更する
+  - 英語ロケール（`messages/en.json`）は既存ラベル（New Inquiry / FAQ / Inquiry Form）で区別が明確なため変更しない
+  - 観測可能な完了条件: 申請者側・ヘルプデスク側の両ダッシュボードと両サイドバーで、日本語表示が「申請」「よくある質問」「申請フォーム」に変わり、英語表示は従来通りで、コンソールエラーがないこと（playwright実機確認済み）
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+  - _Boundary: messages/ja.json, messages/en.json_
