@@ -7,6 +7,8 @@
 
 **Impact（追加ラウンド・2026-07-07）**: `Inquiry`型に`inquiry-form`spec側で既に定義済みだが未使用の`translatedText`（日本語訳）フィールドを利用し、ヘルプデスク側詳細画面の問い合わせ本文表示を「日本語訳をメイン、原文を参照として下に表示」する形に変更する。実際の翻訳API連携（フェーズ3）は行わず、フェーズ1のモックデータ（`MOCK_INQUIRIES`）に日本語訳のダミー値を追加するのみとする。`Inquiry`型自体のフィールド追加・変更は発生しない（既存フィールドへの値追加のみ）。
 
+**Impact（追加ラウンド・2026-07-07・2）**: 申請元とヘルプデスクが1件の問い合わせの中で何度もメッセージを往復できるようにする機能の一部として、本specが所有する`InquiryHistoryEntryType`に申請者からのメッセージを表す新種別（`requester_message`）を追加し、ヘルプデスク側の対応履歴タイムラインに他の履歴種別と時系列で混在表示する。送信フォーム・Server Action自体は`inquiry-list`spec側が新設し、本spec所有の`appendInquiryHistoryEntry`（既存の公開関数）を呼び出す。本specは型の追加とヘルプデスク側の表示のみを担当し、送信経路には関与しない。
+
 ### Goals
 - ヘルプデスク担当者が緊急度優先で並んだ全社分の問い合わせを一覧・検索できる
 - 対応中フラグにより、担当者間の二重対応を防ぐ
@@ -15,6 +17,7 @@
 - 上記変更が一覧・詳細画面をまたいで一貫して反映される（画面遷移しても状態が残る）
 - （追加）問い合わせ本文・返信の添付ファイルを確認・ダウンロードでき、返信時にも資料を添付できる
 - （追加）ヘルプデスク担当者が問い合わせ本文を日本語訳で確認できる（原文は参照として併記）
+- （追加）ヘルプデスク担当者が、申請者から送信された追加メッセージを対応履歴の中で時系列に確認できる
 
 ### Non-Goals
 - 認証・ロールベースアクセス制御、担当者個別アサイン機能
@@ -25,6 +28,7 @@
 - 実バックエンド・DB連携（フェーズ3）
 - （追加）添付ファイルの型・上限定数・検証ロジック・選択UI自体の実装（`inquiry-form`spec所有）、申請者側詳細画面での添付ファイル表示（`inquiry-list`spec）
 - （追加）実際の翻訳API連携・`translatedText`の自動生成ロジック（フェーズ3以降）、申請者側での日本語訳表示、返信本文・対応履歴の翻訳表示
+- （追加）申請者からのメッセージ送信フォーム・Server Action自体の実装（`inquiry-list`spec所有）、新着メッセージの通知・未読管理、メッセージ受信によるステータス・対応中フラグの自動変更
 
 ## Boundary Commitments
 
@@ -36,6 +40,7 @@
 - `HelpdeskSidebar`（`helpdesk-portal-layout`所有）への「問い合わせ管理」「テンプレート管理」ナビゲーション項目の追加
 - （追加）`InquiryHistoryEntry`型への`attachments`フィールドの追加、読み取り専用の添付ファイル表示コンポーネント（`AttachmentPreviewList`）、`next.config.mjs`のServer Actionボディサイズ上限設定
 - （追加・2026-07-07）ヘルプデスク側詳細画面での日本語訳（`translatedText`）表示ロジック、フェーズ1モックデータ（`MOCK_INQUIRIES`）への日本語訳ダミー値の追加
+- （追加・2026-07-07・2）`InquiryHistoryEntryType`への`requester_message`種別の追加、ヘルプデスク側対応履歴タイムラインでの申請者メッセージ表示（typeLabel・操作者表示に会社名を用いる表示ロジック）
 
 ### Out of Boundary
 - `helpdesk-portal-layout`が所有するルートセグメント構造・`HelpdeskAppShell`・`HelpdeskHeader`自体の変更
@@ -44,6 +49,7 @@
 - 認証・ロールベースアクセス制御の実装
 - （追加）`InquiryAttachment`型・添付ファイルの上限定数・検証ユーティリティ・`AttachmentField`コンポーネント自体の実装（`inquiry-form`spec所有）、申請者側詳細画面での添付ファイル表示（`inquiry-list`spec）
 - （追加・2026-07-07）`Inquiry.translatedText`フィールドの型定義自体（`inquiry-form`spec所有、既存のまま）、実際の翻訳API連携（フェーズ3以降）
+- （追加・2026-07-07・2）申請者からのメッセージ送信フォーム・Server Action自体の実装（`inquiry-list`spec所有）、申請者側での対応履歴表示（`inquiry-list`spec所有）
 
 ### Allowed Dependencies
 - 既存の`getInquiries`・`getAllInquiries`（`helpdesk-portal-layout`所有、シグネチャ変更なしで利用）
@@ -52,6 +58,7 @@
 - `HelpdeskSidebar`（項目追加のみ、コンポーネント構造自体は変更しない）
 - （追加）`inquiry-form`spec所有の`InquiryAttachment`型、`ATTACHMENT_MAX_FILE_SIZE_BYTES`/`ATTACHMENT_MAX_COUNT`/`ATTACHMENT_ALLOWED_MIME_TYPES`定数、`validateAttachmentFile`/`readFileAsDataUrl`ユーティリティ、`AttachmentField`コンポーネント、`inquiryAttachmentSchema`（zod、返信のサーバー側検証で再利用するためexport済みにする）
 - （追加・2026-07-07）`Inquiry.translatedText`フィールド（`inquiry-form`spec所有・既存の型定義、値のみを追加する）
+- （追加・2026-07-07・2）本ラウンドで新規の外部依存は発生しない（`inquiry-list`spec側が本specの`appendInquiryHistoryEntry`を利用する側であり、本specから`inquiry-list`への依存は発生しない）
 
 ### Revalidation Triggers
 - `Inquiry`型のフィールド追加・変更（`dashboard`・`inquiry-list`・`inquiry-form`specが再確認する必要がある）
@@ -59,6 +66,7 @@
 - `getInquiries`/`getAllInquiries`のデータ内容変更（`claim`フィールドが混入することを前提にした場合、申請者側コンポーネントが誤って表示していないか要再確認）
 - （追加）`inquiry-form`が所有する添付ファイルの型・定数・`AttachmentField`のprops形状を変更した場合、本specの返信フォーム統合・`AttachmentPreviewList`への影響確認が必要
 - （追加・2026-07-07）`inquiry-form`が`Inquiry.translatedText`のフィールド形状・意味（例: 空文字列と未設定の区別）を変更した場合、本specの表示分岐ロジックへの影響を再確認する
+- （追加・2026-07-07・2）本specが`InquiryHistoryEntryType`に種別を追加・変更する場合、`inquiry-list`spec側の対応履歴表示（`InquiryHistoryList`の網羅的switch文）が追随の必要があることを常に確認する
 
 ## Architecture
 
@@ -202,6 +210,9 @@ next.config.mjs                      # 変更（追加）: experimental.serverAc
 - （追加・2026-07-07）`src/lib/api/inquiries.ts` — `MOCK_INQUIRIES`のうち`originalLanguage`が`ja`以外の要素（現行データでは`en`/`ko`/`zh`/`vi`各言語の複数件）に`translatedText`（日本語訳のダミーテキスト）を追加する。`originalLanguage`が`ja`の要素・既存フィールドは変更しない
 - （追加・2026-07-07）`src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx` — 問い合わせ本文セクションの表示を変更する。`inquiry.originalLanguage !== "ja" && inquiry.translatedText`が真のとき、`translatedTextLabel`（「日本語訳」）ラベル付きで`translatedText`をメインに表示し、その下に`originalTextLabel`（「原文」）ラベル付きで`originalText`を表示する。それ以外（`ja`原文、または`translatedText`未設定）のときは、ラベルなしで原文のみを表示する既存の挙動を維持する
 - （追加・2026-07-07）`messages/ja.json` / `messages/en.json` — `helpdeskInquiries.detail`名前空間に`translatedTextLabel`（「日本語訳」/"Japanese Translation"）・`originalTextLabel`（「原文」/"Original Text"）を追加
+- （追加・2026-07-07・2）`src/types/inquiry-history.ts` — `InquiryHistoryEntryType`に`"requester_message"`を追加する（既存の4種別は変更しない）
+- （追加・2026-07-07・2）`src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx` — `HistoryTimeline`へ渡す`typeLabels`に`requester_message: tHistory("types.requester_message")`を追加する（`HistoryTimeline`自体は`typeLabels`ルックアップ方式のため変更不要）
+- （追加・2026-07-07・2）`messages/ja.json` / `messages/en.json` — `helpdeskInquiries.history.types`に`requester_message`（「申請者からのメッセージ」/"Message from requester"）を追加する
 
 > 申請者側のコンポーネント（`dashboard`・`inquiry-list`・`inquiry-form`所有）は一切変更しない。`claim`フィールドが`Inquiry`に追加されても、これらのコンポーネントは個別フィールドを明示的に参照する既存実装のため表示に影響しない（`research.md`参照）。
 
@@ -265,6 +276,7 @@ sequenceDiagram
 | 11.1 | レスポンシブ対応 | （既存HelpdeskAppShellに依存、新規コンポーネントなし） | — | — |
 | 12.1〜12.6 | 添付ファイル対応 | HelpdeskInquiryDetail, ReplyForm, HistoryTimeline, AttachmentPreviewList, HelpdeskActions | AttachmentField（inquiry-form所有）, inquiryAttachmentSchema | 返信の添付ファイル送信フロー |
 | 13.1〜13.6 | 問い合わせ本文の日本語訳表示 | HelpdeskInquiryDetail | InquiriesMockApi (Service、`translatedText`を読み取るのみ) | — |
+| 14.1〜14.5 | 対応履歴への申請者メッセージの統合表示 | HelpdeskInquiryDetail, HistoryTimeline | InquiryHistoryMockApi (Service、`requester_message`種別を読み取るのみ) | — |
 
 ## Components and Interfaces
 
@@ -274,11 +286,11 @@ sequenceDiagram
 | HelpdeskInquiryListClient | UI/Client | フィルタ条件に応じて表示件数を絞り込む | 2.1〜2.5 | HelpdeskInquiryFilterBar (P0) | State |
 | HelpdeskInquiryFilterBar | UI/Client | 会社名・キーワード・国・カテゴリの入力UI | 2.1〜2.4 | なし | State |
 | HelpdeskInquiryListItem | UI | 一覧行の表示（対応中バッジ含む） | 1.3, 4.4 | なし | State |
-| HelpdeskInquiryDetail | UI/Server | 問い合わせ詳細・関連セクションの組み立て（追加: 問い合わせ本文添付の表示、日本語訳/原文の表示切り替え） | 3.1〜3.4, 12.1, 12.2, 13.1〜13.4 | InquiriesMockApi (P0), InquiryHistoryMockApi (P0), AttachmentPreviewList (P1) | State |
+| HelpdeskInquiryDetail | UI/Server | 問い合わせ詳細・関連セクションの組み立て（追加: 問い合わせ本文添付の表示、日本語訳/原文の表示切り替え、申請者メッセージ用typeLabelの追加） | 3.1〜3.4, 12.1, 12.2, 13.1〜13.4, 14.2, 14.3 | InquiriesMockApi (P0), InquiryHistoryMockApi (P0), AttachmentPreviewList (P1) | State |
 | ClaimToggleButton | UI/Client | 対応中フラグのON/OFF操作 | 4.1〜4.5 | HelpdeskActions (P0) | State |
 | StatusSelect | UI/Client | ステータス変更操作 | 6.1〜6.3 | HelpdeskActions (P0) | State |
 | ReplyForm | UI/Client | テンプレート選択・返信入力・添付・送信 | 7.1〜7.5, 12.3, 12.4, 12.5 | HelpdeskActions (P0), ReplyTemplatesMockApi (P1), AttachmentField (P0, inquiry-form所有) | State |
-| HistoryTimeline | UI | 対応履歴の時系列表示（追加: 返信添付の表示） | 5.1〜5.4, 12.6 | AttachmentPreviewList (P1) | State |
+| HistoryTimeline | UI | 対応履歴の時系列表示（追加: 返信添付の表示。追加: 申請者メッセージも既存のtypeLabelルックアップ方式でそのまま表示、コード変更不要） | 5.1〜5.4, 12.6, 14.2, 14.3, 14.4 | AttachmentPreviewList (P1) | State |
 | AttachmentPreviewList（追加） | UI (Shared) | 添付ファイルの読み取り専用プレビュー・ダウンロード表示 | 12.1, 12.2, 12.6 | なし | - |
 | TemplateList | UI/Server | カテゴリ別テンプレート一覧の表示 | 8.1 | ReplyTemplatesMockApi (P0) | State |
 | TemplateForm | UI/Client | テンプレートの新規作成・編集フォーム | 8.2, 8.3, 8.5 | HelpdeskActions (P0) | State |
@@ -484,7 +496,7 @@ interface HelpdeskActions {
 
 ### Domain Model
 - `Inquiry`（既存、拡張）: `claim?: { staffName: string; claimedAt: string } | null`を追加。対応中でない場合は`null`または未設定。（追加ラウンド: `attachments?: InquiryAttachment[]`は`inquiry-form`spec所有の既存追加であり、本specは読み取り専用で参照する）（追加・2026-07-07: `translatedText?: string`も`inquiry-form`spec所有の既存追加であり、本specはフェーズ1モックデータへの値追加と読み取り専用の表示のみを行う。型自体は変更しない）
-- `InquiryHistoryEntry`（新規）: 1件の対応履歴イベント。`inquiryId`で`Inquiry`と関連付く（1問い合わせ:N履歴）。（追加）`type: "reply_sent"`のエントリは`attachments?: InquiryAttachment[]`を持ちうる
+- `InquiryHistoryEntry`（新規）: 1件の対応履歴イベント。`inquiryId`で`Inquiry`と関連付く（1問い合わせ:N履歴）。（追加）`type: "reply_sent"`のエントリは`attachments?: InquiryAttachment[]`を持ちうる（追加・2026-07-07・2）`type`に`"requester_message"`を追加する。この種別のエントリも`detail`（メッセージ本文）・`attachments?: InquiryAttachment[]`を持ちうる。`actorName`には送信元の会社名（`Inquiry.submittedBy.companyName`）を格納する（フェーズ1は個人名を持たない申請者の識別に用いる）
 - `ReplyTemplate`（新規）: カテゴリ別の定型文。`Inquiry["category"]`と対応するが独立したエンティティ。
 
 ### Logical Data Model
@@ -496,7 +508,7 @@ interface HelpdeskActions {
 | 型 | 主なフィールド | 備考 |
 |---|---|---|
 | `Inquiry`（拡張） | 既存フィールド + `claim?: { staffName: string; claimedAt: string } \| null` | 既存フィールドは変更なし。`attachments`は`inquiry-form`が既に追加済み |
-| `InquiryHistoryEntry`（拡張） | `id`, `inquiryId`, `type: "claimed" \| "released" \| "status_changed" \| "reply_sent"`, `actorName`, `occurredAt`, `detail?: string`, `attachments?: InquiryAttachment[]`（追加） | `detail`はステータス変更前後の値や返信本文の要約。`attachments`は`reply_sent`エントリのみ意味を持つ（他の種別では常に未設定） |
+| `InquiryHistoryEntry`（拡張） | `id`, `inquiryId`, `type: "claimed" \| "released" \| "status_changed" \| "reply_sent" \| "requester_message"`（追加）, `actorName`, `occurredAt`, `detail?: string`, `attachments?: InquiryAttachment[]`（追加） | `detail`はステータス変更前後の値や返信本文・申請者メッセージ本文。`attachments`は`reply_sent`・`requester_message`エントリのみ意味を持つ（他の種別では常に未設定）。`requester_message`の`actorName`には送信元会社名を格納する |
 | `ReplyTemplate` | `id`, `category: Inquiry["category"]`, `body: string` | |
 | `CreateReplyTemplateInput` | `category`, `body` | `ReplyTemplate`から`id`を除いたサブセット |
 
@@ -512,6 +524,7 @@ interface HelpdeskActions {
 - **添付ファイル選択時のエラー**（追加）: `AttachmentField`（`inquiry-form`所有）が上限超過・形式不許可・読み込み失敗を検出し、ファイル単位のエラーメッセージを表示する（`ReplyForm`側での追加ハンドリングは不要）
 - **返信送信失敗**（追加）: 添付ファイルを含む送信が失敗した場合も、既存の`ReplyForm`のエラー表示（`errorMessage`）にフォールバックする。添付ファイル固有の失敗理由（サーバー側検証エラー等）を個別に区別する表示は行わない
 - **日本語訳が未設定**（追加・2026-07-07）: `translatedText`が未設定（フェーズ1のモックデータ整備漏れ、または将来の実データ移行時に翻訳が未完了）の場合、エラー表示は行わず、原文のみを表示する既存の挙動にフォールバックする（要件13.4）
+- **申請者メッセージの記録失敗**（追加・2026-07-07・2）: `appendInquiryHistoryEntry`の呼び出し元（`inquiry-list`spec所有のServer Action）が例外を投げた場合の表示は`inquiry-list`spec側の責務であり、本specはヘルプデスク側の表示に関するエラーハンドリングを追加しない（本specは記録済みの`requester_message`エントリを読み取り表示するのみ）
 
 ### Monitoring
 フェーズ1はモックのため、追加のロギング・監視基盤は導入しない。
@@ -535,9 +548,12 @@ interface HelpdeskActions {
 - （追加）**Unit Tests**: `sendInquiryReplyAction`が`attachments`をサーバー側で検証し、`InquiryHistoryEntry`に正しく記録すること
 - （追加）**Integration Tests**: `ReplyForm`で添付ファイルを選択して送信すると`sendInquiryReplyAction`に渡されること、`AttachmentPreviewList`が画像/非画像それぞれを正しく表示すること
 - （追加）**E2E/UI Tests**: 問い合わせ本文の添付ファイルが詳細画面に表示されること、返信に添付したファイルが対応履歴タイムラインに表示・ダウンロードできること、大きめのファイル（数MB）を含む返信がServer Actionのボディサイズ上限に阻まれず送信できること
+- （追加・2026-07-07・2）**Unit/Integration Tests**: `requester_message`種別のエントリが`HelpdeskInquiryDetail`の`typeLabels`に含まれ、`HistoryTimeline`で他の種別と時系列に混在表示されること、`actorName`（送信元会社名）・添付ファイルが正しく表示されること
+- （追加・2026-07-07・2）**E2E/UI Tests**: `inquiry-list`spec側から送信された申請者メッセージが、ヘルプデスク側の対応履歴タイムラインに反映されることを日本語・英語の両方で確認する（`inquiry-list`spec側のE2Eタスクと合わせて実施）
 - （追加・2026-07-07）**Unit/Integration Tests**: `HelpdeskInquiryDetail`が次の3パターンを正しく切り替えること — (1) `originalLanguage`が`ja`以外かつ`translatedText`設定済みのとき日本語訳をメイン・原文を参照として表示、(2) `originalLanguage`が`ja`のとき原文のみ表示（日本語訳セクションなし）、(3) `originalLanguage`が`ja`以外だが`translatedText`未設定のとき原文のみ表示（エラー表示なし）
 - （追加・2026-07-07）**E2E/UI Tests**: 外国語原文を持つ問い合わせの詳細画面で日本語訳が原文より上に表示されること、日本語原文の問い合わせでは日本語訳セクションが表示されないこと、日英両ロケールでラベルが正しく切り替わること
 
 ## Security Considerations
 `claim`・対応履歴・テンプレートはヘルプデスク内部情報であり、申請者側画面に表示されてはならない。申請者側コンポーネント（`InquiryDetail`・`RecentInquiriesWidget`等）は個別フィールドを明示的に参照する既存実装のままとし、`Inquiry`オブジェクトを丸ごとクライアントに渡す変更を行わない。認証・アクセス制御は本specの対象外であり、`helpdesk-portal-layout`が定めた「フェーズ3で追加」という前提を踏襲する。
 （追加）返信の添付ファイルはヘルプデスク担当者が入力した内容であり、`inquiry-form`と同様に`inquiryAttachmentSchema`によるサーバー側の形状検証を行うが、これはクライアント検証バイパスに対するUX上のフォールバックであり、なりすまされたMIMEタイプ自体への防御ではない（`inquiry-form`specの既存documented limitationを踏襲）。`AttachmentPreviewList`は`dataUrl`を`<img src>`とダウンロード用の`<a href>`としてのみ使用し、`dangerouslySetInnerHTML`は使用しない。Server Actionのボディサイズ上限緩和（`bodySizeLimit: "40mb"`）は、フェーズ1のモック環境（単一プロセス、認証なし、外部公開なし）を前提とした判断であり、フェーズ3で実バックエンドへ移行する際はインフラ全体（CDN・ロードバランサ等）の制約を踏まえて再検討する。
+（追加・2026-07-07・2）`requester_message`エントリの`actorName`（送信元会社名）は、既にヘルプデスク側の一覧・詳細画面に常時表示されている情報（`Inquiry.submittedBy.companyName`）であり、新たな情報漏洩には当たらない。本specはこのエントリの表示のみを担当し、送信内容自体の検証・サニタイズは呼び出し元（`inquiry-list`spec所有のServer Action）の責務とする。

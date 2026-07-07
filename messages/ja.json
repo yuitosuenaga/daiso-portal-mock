@@ -121,7 +121,8 @@
         "claimed": "対応中にしました",
         "released": "対応を外しました",
         "status_changed": "対応状況を変更しました",
-        "reply_sent": "返信を送信しました"
+        "reply_sent": "返信を送信しました",
+        "requester_message": "申請者からのメッセージ"
       }
     }
   },
@@ -392,7 +393,26 @@
       "error": "対応履歴の取得に失敗しました",
       "replyLabel": "返信",
       "claimedMessage": "対応中になりました",
-      "releasedMessage": "対応中の状態を解除しました"
+      "releasedMessage": "対応中の状態を解除しました",
+      "requesterMessageLabel": "送信したメッセージ"
+    },
+    "message": {
+      "sectionTitle": "追加メッセージの送信",
+      "bodyLabel": "メッセージ内容",
+      "bodyPlaceholder": "メッセージを入力してください",
+      "submitButton": "送信する",
+      "submitting": "送信中...",
+      "successMessage": "メッセージを送信しました",
+      "error": "送信に失敗しました。時間を置いて再度お試しください。",
+      "attachments": {
+        "label": "添付ファイル",
+        "hint": "画像またはPDF、1件5MBまで、最大5件まで添付できます。",
+        "removeButton": "削除",
+        "sizeExceeded": "ファイルサイズが上限（5MB）を超えています",
+        "typeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",
+        "countExceeded": "添付できるファイル数の上限（5件）を超えています",
+        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
+      }
     }
   },
   "links": {

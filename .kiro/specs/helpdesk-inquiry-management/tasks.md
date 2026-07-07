@@ -375,3 +375,45 @@
   - 外国語原文を持つ問い合わせの詳細画面で日本語訳が原文より上に表示されること、日本語原文の問い合わせでは日本語訳セクションが表示されないことを日本語・英語の両方で確認する
   - _Requirements: 13.1, 13.2, 13.3_
   - _Depends: 15.1_
+
+---
+
+## 追加ラウンド（2026-07-07・2）: 対応履歴への申請者メッセージの統合表示
+
+> 本ラウンドは`inquiry-list`spec側の「追加メッセージの送信」機能と対になっている。本specは型の追加とヘルプデスク側の表示のみを担当し、送信フォーム・Server Action自体は`inquiry-list`spec側のタスクで実装される。
+
+- [x] 16. 基盤: InquiryHistoryEntryTypeへの種別追加・翻訳キー
+- [x] 16.1 InquiryHistoryEntryTypeに"requester_message"を追加する
+  - `src/types/inquiry-history.ts`の`InquiryHistoryEntryType`に`"requester_message"`を追加する。既存の4種別（`claimed`/`released`/`status_changed`/`reply_sent`）は変更しない
+  - 型を追加した時点で、本spec側の`HelpdeskInquiryDetail`（`typeLabels`の網羅性）に影響がないことを確認する（`HistoryTimeline`はルックアップ方式のため影響なし）
+  - `npx tsc --noEmit`が通ることで完了とする
+  - _Requirements: 14.1_
+
+- [x] 16.2 (P) 申請者メッセージ種別ラベルの日本語・英語翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskInquiries.history.types`に`requester_message`（「申請者からのメッセージ」/"Message from requester"）を追加する
+  - `ja.json`で定義したキーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 10.1, 10.2_
+
+---
+
+- [x] 17. HelpdeskInquiryDetailのtypeLabelsに申請者メッセージ種別を追加する
+  - `HistoryTimeline`へ渡す`typeLabels`オブジェクトに`requester_message: tHistory("types.requester_message")`を追加する
+  - `HistoryTimeline`自体（本spec既存コンポーネント）は変更しない
+  - `requester_message`種別のエントリを持つ問い合わせを開くと、他の履歴種別と時系列で混在してラベル付きで表示されることで完了とする
+  - _Requirements: 14.2, 14.3, 14.4_
+  - _Boundary: HelpdeskInquiryDetail_
+  - _Depends: 16.1, 16.2_
+
+---
+
+- [x] 18. 検証（対応履歴への申請者メッセージの統合表示）
+- [x] 18.1 HelpdeskInquiryDetail・HistoryTimelineの申請者メッセージ表示テストを作成する
+  - `requester_message`種別のエントリが`typeLabels`に含まれ、`HistoryTimeline`で他の種別と時系列に混在表示されることを検証する
+  - `actorName`（送信元会社名）・添付ファイルが正しく表示されることを検証するテストが通ることで完了とする
+  - _Requirements: 14.2, 14.3, 14.4_
+  - _Depends: 17_
+
+- [x] 18.2 * ヘルプデスク側での申請者メッセージ表示のE2E確認を行う
+  - `inquiry-list`spec側の送信機能実装後、申請者側から送信した追加メッセージがヘルプデスク側の対応履歴タイムラインに反映されることを日本語・英語の両方で確認する
+  - _Requirements: 14.2, 14.3, 14.4, 14.5_
+  - _Depends: 18.1_

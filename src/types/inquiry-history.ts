@@ -7,7 +7,8 @@ export type InquiryHistoryEntryType =
   | "claimed"
   | "released"
   | "status_changed"
-  | "reply_sent";
+  | "reply_sent"
+  | "requester_message";
 
 /**
  * 1件の問い合わせに対する対応履歴イベント。
@@ -21,6 +22,6 @@ export type InquiryHistoryEntry = {
   occurredAt: string;
   /** 変更前後の値や返信本文の要約など、イベントの補足情報 */
   detail?: string;
-  /** 返信（`reply_sent`）に添付されたファイル一覧。他の種別では常に未設定 */
+  /** 返信（`reply_sent`）・申請者メッセージ（`requester_message`）に添付されたファイル一覧。他の種別では常に未設定 */
   attachments?: InquiryAttachment[];
 };

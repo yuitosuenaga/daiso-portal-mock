@@ -14,6 +14,7 @@ describe("HistoryTimeline", () => {
           released: "対応を外しました",
           status_changed: "対応状況を変更しました",
           reply_sent: "返信を送信しました",
+          requester_message: "申請者からのメッセージ",
         }}
         locale="ja"
       />
@@ -48,6 +49,7 @@ describe("HistoryTimeline", () => {
           released: "対応を外しました",
           status_changed: "対応状況を変更しました",
           reply_sent: "返信を送信しました",
+          requester_message: "申請者からのメッセージ",
         }}
         locale="ja"
       />
@@ -88,6 +90,7 @@ describe("HistoryTimeline", () => {
           released: "対応を外しました",
           status_changed: "対応状況を変更しました",
           reply_sent: "返信を送信しました",
+          requester_message: "申請者からのメッセージ",
         }}
         locale="ja"
       />
@@ -97,5 +100,83 @@ describe("HistoryTimeline", () => {
     expect(link.download).toBe("photo.png");
     // サムネイルは装飾扱い（alt=""）のためrole="img"ではなくCSSセレクタで取得する
     expect(container.querySelector("img")).toBeTruthy();
+  });
+
+  it("申請者からのメッセージを他の履歴種別と時系列で混在させて表示する", () => {
+    render(
+      <HistoryTimeline
+        entries={[
+          {
+            id: "h2",
+            inquiryId: "inquiry-001",
+            type: "requester_message",
+            actorName: "Daiso Vietnam Co., Ltd.",
+            occurredAt: "2026-07-02T00:00:00.000Z",
+            detail: "発送予定日を教えてください。",
+          },
+          {
+            id: "h1",
+            inquiryId: "inquiry-001",
+            type: "claimed",
+            actorName: "田中 太郎",
+            occurredAt: "2026-07-01T00:00:00.000Z",
+          },
+        ]}
+        emptyMessage="対応履歴はありません"
+        typeLabels={{
+          claimed: "対応中にしました",
+          released: "対応を外しました",
+          status_changed: "対応状況を変更しました",
+          reply_sent: "返信を送信しました",
+          requester_message: "申請者からのメッセージ",
+        }}
+        locale="ja"
+      />
+    );
+
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toContain("申請者からのメッセージ");
+    expect(items[0].textContent).toContain("Daiso Vietnam Co., Ltd.");
+    expect(items[0].textContent).toContain("発送予定日を教えてください。");
+    expect(items[1].textContent).toContain("対応中にしました");
+  });
+
+  it("申請者からのメッセージに添付ファイルがあるとき、プレビュー・ダウンロードリンクを表示する", () => {
+    render(
+      <HistoryTimeline
+        entries={[
+          {
+            id: "h1",
+            inquiryId: "inquiry-001",
+            type: "requester_message",
+            actorName: "Daiso Vietnam Co., Ltd.",
+            occurredAt: "2026-07-01T00:00:00.000Z",
+            detail: "資料を添付します。",
+            attachments: [
+              {
+                id: "att-1",
+                fileName: "memo.pdf",
+                fileType: "application/pdf",
+                fileSize: 200,
+                dataUrl: "data:application/pdf;base64,AAAA",
+              },
+            ],
+          },
+        ]}
+        emptyMessage="対応履歴はありません"
+        typeLabels={{
+          claimed: "対応中にしました",
+          released: "対応を外しました",
+          status_changed: "対応状況を変更しました",
+          reply_sent: "返信を送信しました",
+          requester_message: "申請者からのメッセージ",
+        }}
+        locale="ja"
+      />
+    );
+
+    const link = screen.getByRole("link", { name: /memo\.pdf/ }) as HTMLAnchorElement;
+    expect(link.download).toBe("memo.pdf");
   });
 });

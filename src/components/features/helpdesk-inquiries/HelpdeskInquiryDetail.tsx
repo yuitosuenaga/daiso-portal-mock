@@ -220,6 +220,7 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
               released: tHistory("types.released"),
               status_changed: tHistory("types.status_changed"),
               reply_sent: tHistory("types.reply_sent"),
+              requester_message: tHistory("types.requester_message"),
             }}
             locale={locale}
           />

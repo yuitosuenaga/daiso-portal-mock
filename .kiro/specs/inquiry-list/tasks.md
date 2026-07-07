@@ -176,4 +176,79 @@
 - [x] 13.2 * 添付ファイル付き問い合わせ・返信のE2E確認を行う
   - 添付ファイル付きの問い合わせ・添付ファイル付きの返信を持つ問い合わせ詳細画面で、画像サムネイル・ファイル名・サイズが表示されダウンロードリンクが機能することを日本語・英語の両方、タブレット幅で確認する
   - _Requirements: 10.1, 10.2, 10.4_
+
+---
+
+## 追加ラウンド（2026-07-07・2）: 追加メッセージの送信
+
+> 本ラウンドは`helpdesk-inquiry-management`spec側のタスク16（`InquiryHistoryEntryType`への`requester_message`追加）と対になっている。タスク15・18は同spec側のタスク16.1完了後に着手すること。
+
+- [x] 14. 基盤: 追加メッセージ送信用の翻訳キー
+- [x] 14.1 追加メッセージ送信フォーム・対応履歴ラベルの日本語・英語翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`に`inquiryList.message`名前空間（`sectionTitle`/`bodyLabel`/`bodyPlaceholder`/`submitButton`/`submitting`/`successMessage`/`error`/`attachments.*`、`helpdeskInquiries.reply`と同じキー構造）を追加する
+  - `inquiryList.history`名前空間に`requesterMessageLabel`（「送信したメッセージ」/"Your Message"）を追加する
+  - `ja.json`で定義した全キーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 6.1, 6.2_
+
+---
+
+- [x] 15. (P) sendApplicantMessageActionを実装する
+  - `src/lib/actions/inquiry.ts`を新規作成し、`"use server"`の`sendApplicantMessageAction(inquiryId, body, attachments)`を実装する
+  - 本文の空文字列チェック（zod）、添付ファイルの`inquiryAttachmentsArraySchema`（`inquiry-form`spec所有）によるサーバー側検証を行う
+  - `getInquiryById(inquiryId)`で対象問い合わせを取得し、`submittedBy.companyName`を`actorName`として`appendInquiryHistoryEntry`（`helpdesk-inquiry-management`spec所有）を`type: "requester_message"`で呼び出す
+  - `/[locale]/inquiry/[id]`・`/[locale]/helpdesk/inquiries/[id]`の両ルートを`revalidatePath`する
+  - `Inquiry`の`status`・`claim`を変更しないことで完了とする
+  - _Requirements: 11.4, 11.8_
+  - _Boundary: SendApplicantMessageAction_
+  - _Depends: 14.1_
+
+- [x] 16. (P) ApplicantMessageFormコンポーネントを実装する
+  - `src/components/features/inquiry-list/ApplicantMessageForm.tsx`を新規作成する（`"use client"`）
+  - 本文入力欄（`Textarea`）・`AttachmentField`（`inquiry-form`spec所有）・送信ボタンを配置し、本文が空文字列（トリム後）のときは送信ボタンを無効化する
+  - `useTransition`で`sendApplicantMessageAction`を呼び出し、送信成功時は入力欄をリセット、失敗時はエラーメッセージを表示し入力内容を保持する
+  - `helpdesk-inquiry-management`spec所有の`ReplyForm`と同じ状態管理パターンに従うことで完了とする
+  - _Requirements: 11.1, 11.2, 11.3, 11.7_
+  - _Boundary: ApplicantMessageForm_
+  - _Depends: 14.1_
+
+---
+
+- [x] 17. InquiryDetailにApplicantMessageFormを組み込む
+  - 対応履歴セクションの下に、`ApplicantMessageForm`を`inquiry.id`とともに追加描画する
+  - 問い合わせが見つからない・取得エラーの状態では表示しない
+  - ブラウザで問い合わせ詳細画面を開くと追加メッセージの送信フォームが表示されることで完了とする
+  - _Requirements: 11.1_
+  - _Boundary: InquiryDetail_
+  - _Depends: 15, 16_
+
+- [x] 18. InquiryHistoryListにrequester_message種別の表示を統合する
+  - `renderEntryContent`のswitch文に`case "requester_message":`を追加する（`helpdesk-inquiry-management`spec側でのInquiryHistoryEntryTypeへの追加が前提）
+  - `requesterMessageLabel`（「送信したメッセージ」）ラベルとともに`entry.detail`を表示し、`entry.attachments ?? []`を`AttachmentPreviewList`へ渡してレンダリングする
+  - `entry.actorName`（会社名）は他の種別と同様に表示しない
+  - 送信した自分自身のメッセージが対応履歴セクションに他の履歴種別と時系列で混在して表示されることで完了とする
+  - _Requirements: 11.5, 11.6_
+  - _Boundary: InquiryHistoryList_
+  - _Depends: 14.1_
+
+---
+
+- [x] 19. 検証（追加メッセージの送信）
+- [x] 19.1 sendApplicantMessageActionのユニットテストを作成する
+  - 本文未入力を拒否すること、添付ファイルをサーバー側で検証すること、`appendInquiryHistoryEntry`を`type: "requester_message"`・会社名の`actorName`で正しく呼び出すことを検証する
+  - `Inquiry`の`status`・`claim`が変更されないことを検証するテストが通ることで完了とする
+  - _Requirements: 11.3, 11.4, 11.8_
+  - _Depends: 15_
+
+- [x] 19.2 ApplicantMessageForm・InquiryHistoryListの統合テストを作成する
+  - 本文未入力のとき送信ボタンが無効化されること、添付ファイルを選択して送信すると`sendApplicantMessageAction`に渡されることを検証する
+  - 送信成功時に入力欄がリセットされ、送信失敗時に入力内容が保持されることを検証する
+  - `InquiryHistoryList`が`requester_message`エントリを`reply_sent`と区別可能なラベルで表示し、添付ファイルを表示することを検証するテストが通ることで完了とする
+  - _Requirements: 11.2, 11.3, 11.5, 11.6, 11.7_
+  - _Depends: 16, 17, 18_
+
+- [x] 19.3 * 追加メッセージ送受信のE2E確認を行う
+  - 申請者側詳細画面から添付ファイル付きの追加メッセージを送信すると、ページ全体を再読み込みせずに対応履歴セクションへ反映されることを確認する
+  - 同じ問い合わせをヘルプデスク側で開くと、同じメッセージが対応履歴タイムラインに表示されることを日本語・英語の両方で確認する（`helpdesk-inquiry-management`spec側のタスク18と合わせて実施）
+  - _Requirements: 11.4, 11.5, 11.6_
+  - _Depends: 19.2_
   - _Depends: 13.1_
