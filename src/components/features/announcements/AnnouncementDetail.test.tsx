@@ -46,6 +46,7 @@ const ANNOUNCEMENT: Announcement = {
   category: "incident",
   body: "詳細本文テキスト",
   targeting: { scope: "all" },
+  actionRequired: false,
 };
 
 describe("AnnouncementDetail", () => {

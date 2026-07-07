@@ -39,6 +39,9 @@ export default async function HelpdeskAnnouncementNewPage() {
         bodyPlaceholder={t("bodyPlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
+        actionRequiredLabel={t("actionRequiredLabel")}
+        actionRequiredTrueOption={t("actionRequiredTrueOption")}
+        actionRequiredFalseOption={t("actionRequiredFalseOption")}
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}

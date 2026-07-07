@@ -20,6 +20,8 @@ export interface Announcement {
   /** 本文（フェーズ1はプレーンテキスト） */
   body: string;
   targeting: AnnouncementTargeting;
+  /** 販社担当者側の対応要否。真のとき「対応が必要」バッジを表示する。 */
+  actionRequired: boolean;
 }
 
 /**

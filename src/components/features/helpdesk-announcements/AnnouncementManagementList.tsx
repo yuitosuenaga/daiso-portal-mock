@@ -3,8 +3,10 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAllAnnouncements } from "@/lib/api/announcements";
-import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
-import type { Announcement } from "@/types/announcement";
+import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
+import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
+import { AnnouncementManagementListClient } from "@/components/features/helpdesk-announcements/AnnouncementManagementListClient";
+import type { Announcement, AnnouncementCategory } from "@/types/announcement";
 
 export async function AnnouncementManagementList() {
   const [t, tCategories, tCountries, locale] = await Promise.all([
@@ -62,14 +64,26 @@ export async function AnnouncementManagementList() {
     );
   }
 
-  function targetingLabel(announcement: Announcement): string {
-    if (announcement.targeting.scope === "all") {
-      return t("targetingAllLabel");
-    }
-    return `${t("targetingCountriesLabel")}: ${announcement.targeting.countries
-      .map((code) => tCountries(code))
-      .join(", ")}`;
-  }
+  const categoryLabels = ANNOUNCEMENT_CATEGORY_CODES.reduce(
+    (labels, code) => {
+      labels[code] = tCategories(code);
+      return labels;
+    },
+    {} as Record<AnnouncementCategory, string>
+  );
+
+  const countryLabels = INQUIRY_COUNTRY_CODES.reduce(
+    (labels, code) => {
+      labels[code] = tCountries(code);
+      return labels;
+    },
+    {} as Record<string, string>
+  );
+
+  const categoryOptions = ANNOUNCEMENT_CATEGORY_CODES.map((code) => ({
+    value: code,
+    label: tCategories(code),
+  }));
 
   return (
     <div>
@@ -79,42 +93,20 @@ export async function AnnouncementManagementList() {
           <CardTitle className="text-base">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="divide-y divide-border">
-            {announcements.map((announcement) => (
-              <li
-                key={announcement.id}
-                className="flex items-start justify-between gap-4 py-3"
-              >
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium">{announcement.title}</p>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span>{tCategories(announcement.category)}</span>
-                    <time dateTime={announcement.publishedAt}>
-                      {new Date(announcement.publishedAt).toLocaleDateString(
-                        locale,
-                        { year: "numeric", month: "short", day: "numeric" }
-                      )}
-                    </time>
-                    <span>{targetingLabel(announcement)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/helpdesk/announcements/${announcement.id}/edit`}
-                    className="text-sm text-primary underline-offset-4 hover:underline"
-                  >
-                    {t("editLink")}
-                  </Link>
-                  <DeleteAnnouncementButton
-                    announcementId={announcement.id}
-                    deleteButtonLabel={t("deleteButton")}
-                    confirmMessage={t("deleteConfirm")}
-                    errorMessage={t("deleteError")}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <AnnouncementManagementListClient
+            announcements={announcements}
+            categoryLabels={categoryLabels}
+            countryLabels={countryLabels}
+            categoryOptions={categoryOptions}
+            locale={locale}
+            targetingAllLabel={t("targetingAllLabel")}
+            targetingCountriesLabel={t("targetingCountriesLabel")}
+            actionRequiredBadgeLabel={t("actionRequiredBadge")}
+            editLinkLabel={t("editLink")}
+            deleteButtonLabel={t("deleteButton")}
+            deleteConfirmMessage={t("deleteConfirm")}
+            deleteErrorMessage={t("deleteError")}
+          />
         </CardContent>
       </Card>
     </div>

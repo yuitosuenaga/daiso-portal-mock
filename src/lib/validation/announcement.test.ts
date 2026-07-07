@@ -9,6 +9,7 @@ describe("announcementFormSchema", () => {
       body: "テスト本文",
       category: "maintenance",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     expect(result.success).toBe(true);
@@ -20,9 +21,22 @@ describe("announcementFormSchema", () => {
       body: "テスト本文",
       category: "maintenance",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
+      actionRequired: true,
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("対応要否(actionRequired)が真偽値でない場合はエラーになる", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      targeting: { scope: "all" },
+      actionRequired: "yes",
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("タイトルが空文字列の場合はエラーになる", () => {

@@ -47,6 +47,7 @@ function makeAnnouncement(
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
+    actionRequired: false,
   };
 }
 

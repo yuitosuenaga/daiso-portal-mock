@@ -62,3 +62,72 @@
 
 ## References
 - 既存実装: `src/lib/api/inquiries.ts`, `src/types/announcement.ts`, `src/lib/actions/helpdesk.ts`, `.kiro/specs/helpdesk-inquiry-management/design.md`
+
+---
+
+## 追加ラウンド（2026-07-07）: タイトル・種別・対応要否による検索、対応要否フィールドの追加
+
+### Summary（追加分）
+- **Discovery Scope**: Extension（既存の実装済み機能への追加）
+- **Key Findings**:
+  - `helpdesk-inquiry-management`specが確立した「サーバー側で全件取得 → クライアントコンポーネントでフィルタ状態を保持しリアルタイムに絞り込む」パターン（`HelpdeskInquiryListClient` + `HelpdeskInquiryFilterBar` + `lib/helpdesk-inquiry-list.ts`）がそのまま転用できる
+  - UIキット（`src/components/ui/`）にはCheckbox/Switchコンポーネントが存在しない。真偽値の入力は既存の`targeting.scope`と同様に`Select`（2択）で表現するのが既存パターンとの一貫性が高い
+  - `Announcement`型・バリデーションスキーマ・作成/更新API関数はいずれも本spec所有（`targeting`フィールド追加時の実績）のため、`actionRequired`フィールドの追加も本spec側で完結できる
+
+### Research Log（追加分）
+
+#### 既存フィルタパターンの確認（`helpdesk-inquiry-management`）
+- **Context**: お知らせ管理一覧に検索・絞り込みを追加するにあたり、既存のヘルプデスク側一覧（問い合わせ管理）にある実装パターンを踏襲する方針が要件11.5で明記されている
+- **Sources Consulted**: `src/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar.tsx`、`HelpdeskInquiryListClient.tsx`、`src/lib/helpdesk-inquiry-list.ts`
+- **Findings**:
+  - サーバーコンポーネントが`getAllAnnouncements()`相当で全件取得し、クライアントコンポーネント（`"use client"`）に渡す
+  - クライアントコンポーネントは`useState`でフィルタ条件を保持し、`useMemo`でフィルタ済み配列を算出。フィルタ関数は純粋関数として`lib/`配下に切り出されている
+  - フィルタバーは`onChange`で親に差分オブジェクトを通知するだけで状態自体は持たない（Controlled）。「クリア」ボタンで空のフィルタ状態に戻す
+  - URLクエリパラメータは使用しない（ページ再読み込み・ブックマーク共有は対象外）
+- **Implications**: お知らせ管理一覧も同一パターンで実装する。新規ファイル`src/lib/helpdesk-announcement-list.ts`（フィルタ型・フィルタ関数）、`AnnouncementFilterBar.tsx`、`AnnouncementManagementListClient.tsx`を追加し、既存`AnnouncementManagementList.tsx`はデータ取得のみを担うサーバーコンポーネントに整理する
+
+#### 対応要否の入力UI
+- **Context**: `Announcement`に真偽値フィールド`actionRequired`を追加し、作成・編集フォームで設定できるようにする必要がある
+- **Sources Consulted**: `src/components/ui/`配下のコンポーネント一覧、既存フォーム（`AnnouncementForm.tsx`の`targeting.scope`実装）
+- **Findings**: Checkbox/Switchに相当する汎用UIコンポーネントは未実装。一方、`targeting.scope`（`"all" | "countries"`という2値分岐）は既存の`Select`コンポーネントで表現されている
+- **Implications**: 新規UIプリミティブ（Checkbox等）を追加せず、`actionRequired`も`Select`（「対応が必要」「対応不要」の2択）で表現する
+
+#### バッジ表現の確認
+- **Context**: 対応要否「要対応」を一覧上でどう視覚的に強調するか
+- **Sources Consulted**: `src/components/ui/badge.tsx`、`HelpdeskInquiryListItem.tsx`の「対応中」バッジ実装
+- **Findings**: 「対応中」バッジは`Badge variant="default"`（DAISOピンク塗り）を使い、条件を満たす場合のみ表示・満たさない場合は要素ごと非表示にする実装になっている
+- **Implications**: 「対応が必要」バッジも同じ`variant="default"`を再利用し、新規バリアント追加は行わない
+
+### Architecture Pattern Evaluation（追加分）
+
+| Option | Description | Strengths | Risks / Limitations | Notes |
+|--------|-------------|-----------|---------------------|-------|
+| A. クライアント側リアルタイムフィルタ（採用） | 全件をサーバーで取得し、クライアントコンポーネントで絞り込む | 既存パターンと完全に一致、実装コストが低い、ページ遷移なしで即時反映 | データ件数が将来大きく増えるとクライアント転送量が増える（フェーズ1のモック規模では問題なし） | `helpdesk-inquiry-management`spec実績あり |
+| B. URLクエリパラメータ＋サーバーフィルタ | フィルタ条件をURLに保持しサーバー側で絞り込む | ブックマーク・共有が可能 | 既存の問い合わせ管理一覧と実装方針が異なり一貫性を損なう、フェーズ1要件にはオーバースペック | 不採用 |
+
+### Design Decisions（追加分）
+
+#### Decision: 対応要否フィールドの入力方式
+- **Context**: `actionRequired`（真偽値）をフォームでどう入力させるか
+- **Alternatives Considered**: 1. 新規Checkbox/Switchコンポーネントを追加する 2. 既存の`Select`コンポーネントで2択として表現する
+- **Selected Approach**: 2
+- **Rationale**: 既存の`targeting.scope`と同じ表現方法にすることで実装・レビューコストを抑え、UIキットへの新規プリミティブ追加という本spec範囲外の変更を避ける
+- **Trade-offs**: チェックボックスに比べると一手間多い操作になるが、フェーズ1のモックアップとしては許容範囲
+- **Follow-up**: 将来Checkbox/Switchが他specで追加された場合、置き換えを検討してもよい
+
+#### Decision: フィルタ状態の保持方法
+- **Context**: タイトル・種別・対応要否のフィルタ状態をどこで保持するか
+- **Alternatives Considered**: 1. `helpdesk-inquiry-management`と同じ、クライアントコンポーネントの`useState`（Option A） 2. URLクエリパラメータ（Option B）
+- **Selected Approach**: Option A
+- **Rationale**: 要件11.5が既存パターンの踏襲を明記している。一覧規模もモック数件〜数十件想定でパフォーマンス上の懸念がない
+- **Trade-offs**: リロードでフィルタ状態が失われるが、既存の問い合わせ管理一覧と同じ挙動のため許容
+- **Follow-up**: なし
+
+### Risks & Mitigations（追加分）
+- `Announcement`型への`actionRequired`追加により、型を参照する`announcements`spec側の表示コードが未対応のままだとビルドエラーになる — `actionRequired`を必須フィールドとして追加し、モックデータ全件に値を設定した上で、`announcements`spec側の対応も同一タイミングで完了させる
+- 既存の`AnnouncementManagementList`をサーバー/クライアントに分割する際、既存のローディング・エラー・空状態のUIを壊す — 既存のCard/Skeleton構造をそのままサーバーコンポーネント側に残し、フィルタ機能のみクライアント側に切り出す
+
+### References（追加分）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar.tsx` — フィルタバーの実装パターン
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryListClient.tsx` — クライアント側フィルタ結線パターン
+- `src/lib/helpdesk-inquiry-list.ts` — フィルタ型・フィルタ関数のパターン
