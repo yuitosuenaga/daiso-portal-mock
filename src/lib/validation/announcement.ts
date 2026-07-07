@@ -21,6 +21,7 @@ export const announcementFormSchema = z.object({
   body: z.string().trim().min(1),
   category: z.enum(ANNOUNCEMENT_CATEGORY_CODES),
   targeting: announcementTargetingSchema,
+  actionRequired: z.boolean(),
 });
 
 /**

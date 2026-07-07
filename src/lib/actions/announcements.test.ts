@@ -19,6 +19,7 @@ describe("createAnnouncementAction", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     expect(created.id).toBeTruthy();
@@ -32,6 +33,7 @@ describe("createAnnouncementAction", () => {
         body: "本文",
         category: "other",
         targeting: { scope: "all" },
+        actionRequired: false,
       })
     ).rejects.toThrow();
   });
@@ -43,6 +45,7 @@ describe("createAnnouncementAction", () => {
         body: "本文",
         category: "other",
         targeting: { scope: "countries", countries: [] },
+        actionRequired: false,
       })
     ).rejects.toThrow();
   });
@@ -55,6 +58,7 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     await updateAnnouncementAction(created.id, {
@@ -62,6 +66,7 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       body: "本文",
       category: "policy",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     const result = await getAnnouncementByIdForHelpdesk(created.id);
@@ -74,6 +79,7 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     await deleteAnnouncementAction(created.id);

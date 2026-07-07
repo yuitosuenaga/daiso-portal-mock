@@ -319,3 +319,138 @@ function getAnnouncementById(id: string): Promise<Announcement | null>;
 
 ## Security Considerations
 - お知らせの本文（`body`）はヘルプデスク側が入力する運用データであり、フェーズ1ではモックデータのみを扱う。表示時はReactの標準エスケープに依拠し、`dangerouslySetInnerHTML` を使用しない
+
+---
+
+## 追加ラウンド（2026-07-07）: タイトル・種別による検索、対応要否の表示
+
+### Overview（追加分）
+お知らせ一覧にタイトル・種別による検索・絞り込みを追加し、`announcements-management`specが追加する`Announcement.actionRequired`フィールドを一覧・詳細画面にバッジ表示する。**Purpose**: 件数増加に伴う目的のお知らせの探しにくさを解消し、対応の要否をひと目で判断できるようにする。**Impact**: `AnnouncementList`をサーバー取得専用コンポーネントとクライアント側フィルタコンポーネントに分割する。既存のCard/Skeleton構成・レイアウトは変更しない。
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- お知らせ一覧の検索・絞り込みUI（`AnnouncementFilterBar`、`AnnouncementListClient`、`src/lib/announcement-list.ts`）
+- 一覧・詳細画面での対応要否（`actionRequired`）バッジの表示ロジック（読み取りのみ）
+
+**Out of Boundary（追加）**
+- `Announcement.actionRequired`フィールド自体の追加、作成・編集フォームでの設定操作（`announcements-management`spec側で実装、本specは読み取り専用で参照する）
+- ダッシュボードの「お知らせ概要ウィジェット」への対応要否バッジ・検索機能の反映（`dashboard`/`dashboard-card-redesign`spec）
+
+**Allowed Dependencies（追加）**
+- `announcements-management`specが追加する`Announcement.actionRequired: boolean`フィールド（読み取り専用）
+
+**Revalidation Triggers（追加）**
+- `Announcement.actionRequired`の型・意味の変更（`announcements-management`specの変更に追従する必要がある）
+
+### Architecture（追加分）
+
+`announcements-management`specが確立する「サーバーで全件取得 → クライアントコンポーネントでフィルタ」パターンを、申請者側の`AnnouncementList`にも適用する。フィルタ型・フィルタ関数は画面・spec境界に沿って申請者側専用に実装し、ヘルプデスク側とは共有しない（`research.md`の設計判断参照）。
+
+```mermaid
+graph TB
+    AnnouncementList[Announcement List Server]
+    AnnouncementListClient[Announcement List Client]
+    AnnouncementFilterBar[Announcement Filter Bar]
+    FilterLib[announcement-list filter fn]
+
+    AnnouncementList --> AnnouncementListClient
+    AnnouncementListClient --> AnnouncementFilterBar
+    AnnouncementListClient --> FilterLib
+    AnnouncementFilterBar --> AnnouncementListClient
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: `announcements-management`の`AnnouncementManagementListClient`/`AnnouncementFilterBar`と同型（比較検討・境界分離の理由は`research.md`参照）
+- 新規コンポーネントの理由: フィルタ状態はクライアント側の一時状態であり、既存のサーバーコンポーネント（`AnnouncementList`）とは責務が異なるため分離する
+- Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由という既存規約を維持
+
+### File Structure Plan（追加分）
+
+```
+src/components/features/announcements/
+├── AnnouncementList.tsx        # 変更: データ取得のみを担うサーバーコンポーネントに整理
+├── AnnouncementListClient.tsx  # 新規: フィルタ状態を保持し一覧を描画するクライアントコンポーネント
+├── AnnouncementFilterBar.tsx   # 新規: キーワード・種別・対応要否の絞り込み入力（申請者側専用）
+├── AnnouncementListItem.tsx    # 変更: actionRequiredバッジを追加
+└── AnnouncementDetail.tsx      # 変更: actionRequiredバッジを追加
+
+src/lib/
+└── announcement-list.ts        # 新規: AnnouncementFilters型・filterAnnouncements関数（申請者側専用）
+
+messages/
+├── ja.json                     # 変更: announcements.list.filter, .actionRequiredBadgeキーを追加
+└── en.json                     # 同上
+```
+
+### Modified Files（追加分）
+- `src/components/features/announcements/AnnouncementList.tsx` — `getAnnouncements()`取得とエラー/空状態表示のみを担い、一覧描画を`AnnouncementListClient`に委譲
+- `src/components/features/announcements/AnnouncementListItem.tsx` — `announcement.actionRequired`が真のときのみ「対応が必要」バッジを種別バッジの隣に表示
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 同上のバッジを種別表示の隣に表示
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 8.1〜8.8 | タイトル・種別による検索・絞り込み | AnnouncementFilterBar, AnnouncementListClient, filterAnnouncements | State | — |
+| 9.1〜9.5 | 対応要否の表示 | AnnouncementListItem, AnnouncementDetail, AnnouncementListClient | — | — |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| AnnouncementListClient | UI/Client | フィルタ状態を保持し、絞り込み済み一覧を描画 | 8.1〜8.8, 9.4 | filterAnnouncements (P0), AnnouncementFilterBar (P0) | State |
+| AnnouncementFilterBar | UI/Client | キーワード・種別・対応要否の入力を受け付け、変更を通知 | 8.1〜8.4, 8.6, 9.4 | — | State |
+| filterAnnouncements | Lib/Pure Function | キーワード・種別・対応要否のAND条件でお知らせを絞り込む | 8.2〜8.4, 8.8, 9.4 | — | Service |
+
+#### filterAnnouncements
+
+| Field | Detail |
+|-------|--------|
+| Intent | お知らせ配列をキーワード（タイトル部分一致）・種別・対応要否のAND条件で絞り込む純粋関数 |
+| Requirements | 8.2, 8.3, 8.4, 8.8, 9.4 |
+
+**Responsibilities & Constraints**
+- タイトルの部分一致判定は大文字・小文字を区別しない
+- 各フィルタ条件が未指定（空文字列）のときはその条件による絞り込みを行わない
+- 入力配列の順序（公開日降順）を変更しない
+
+**Contracts**: State [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementFilters {
+  keyword: string;
+  category: string;
+  actionRequired: "" | "true";
+}
+
+function filterAnnouncements(
+  announcements: Announcement[],
+  filters: AnnouncementFilters
+): Announcement[];
+```
+- Preconditions: `announcements`は`getAnnouncements()`の戻り値（公開日降順、自社配信対象でフィルタ済み）
+- Postconditions: 戻り値は入力配列の部分集合であり、順序を維持する
+- Invariants: `filters`が全て空文字列のとき、戻り値は入力配列と等しい
+
+**Implementation Notes**
+- Integration: `AnnouncementListClient`が`useMemo`で本関数を呼び出す。`announcements-management`spec所有の`filterAnnouncementsForHelpdesk`とは実装を共有しない（`research.md`の境界分離判断を参照）。`actionRequired`は申請者側では「対応が必要なもののみ表示」の単一トグルのため`"" | "true"`の2値とし、ヘルプデスク側の3値（`"" | "true" | "false"`）とは型を分ける
+- Validation: 該当なし（読み取り専用フィルタ）
+- Risks: なし（純粋関数、副作用なし）
+
+### Data Models（追加分）
+
+- `Announcement`（`announcements-management`spec側で拡張済みの型を読み取り専用で参照）: `actionRequired: boolean`が追加される。本specはこのフィールドの型定義・初期値・設定ロジックを一切変更しない
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `filterAnnouncements`がキーワード（部分一致・大小文字無視）・種別・対応要否のAND条件で絞り込むこと、全条件が空のとき全件を返すこと
+- **Integration Tests**:
+  - `AnnouncementListClient`でキーワード・種別・対応要否を入力すると一覧が絞り込まれ、「クリア」で全件表示に戻ること
+  - 絞り込み結果が0件のとき「該当するお知らせがありません」が表示されること
+  - `actionRequired`が`true`のお知らせにのみ一覧・詳細でバッジが表示されること
+- **E2E/UI Tests**:
+  - 日本語・英語両方でフィルタバーのラベル・バッジ文言が翻訳されること
+  - タブレット幅（768px）でフィルタバーが横スクロールを発生させないこと

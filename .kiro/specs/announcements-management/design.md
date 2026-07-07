@@ -330,3 +330,153 @@ interface AnnouncementActions {
 
 ## Security Considerations
 配信対象フィルタは表示範囲の制御であり、認証・認可の代替ではない。フェーズ1は認証未実装のため、ヘルプデスク側の作成・編集・削除画面は`helpdesk-portal-layout`の前提通り制限なくアクセス可能である。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御を追加できることを設計上の前提とする。
+
+---
+
+## 追加ラウンド（2026-07-07）: タイトル・種別・対応要否による検索、対応要否フィールドの追加
+
+### Overview（追加分）
+お知らせ管理一覧にタイトル・種別・対応要否による検索・絞り込みを追加し、`Announcement`型に対応要否（`actionRequired`）フィールドを新設して作成・編集フォームで設定できるようにする。**Purpose**: ヘルプデスク担当者が登録件数の増加に対しても目的のお知らせを素早く見つけられるようにし、あわせて販社担当者への「対応要否」の伝達を可能にする。**Impact**: `Announcement`型へのフィールド追加（後方互換）と、`AnnouncementManagementList`のサーバー/クライアント分割。既存の一覧・作成・編集画面のレイアウト・操作性は維持する。
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `Announcement.actionRequired: boolean`フィールドの追加、および作成・編集フォームでの設定
+- お知らせ管理一覧の検索・絞り込みUI（`AnnouncementFilterBar`、`AnnouncementManagementListClient`、`lib/helpdesk-announcement-list.ts`）
+
+**Out of Boundary（追加）**
+- 対応要否バッジの申請者側での表示ロジック（`announcements`spec側で実装、本specは`actionRequired`フィールドの提供のみを担う）
+- ダッシュボードの「お知らせ概要ウィジェット」への対応要否バッジの反映（`dashboard`/`dashboard-card-redesign`spec）
+
+**Revalidation Triggers（追加）**
+- `Announcement.actionRequired`の型・意味の変更（`announcements`specが再確認する必要がある）
+
+### Architecture（追加分）
+
+既存の「サーバーで全件取得 → クライアントコンポーネントでフィルタ」パターン（`helpdesk-inquiry-management`実績、`research.md`参照）を`AnnouncementManagementList`にも適用する。現状のサーバーコンポーネント1個構成を、データ取得のみを担うサーバーコンポーネントと、フィルタ状態を保持するクライアントコンポーネントに分割する。
+
+```mermaid
+graph TB
+    AnnouncementManagementList[Announcement Management List Server]
+    AnnouncementManagementListClient[Announcement Management List Client]
+    AnnouncementFilterBar[Announcement Filter Bar]
+    FilterLib[helpdesk-announcement-list filter fn]
+
+    AnnouncementManagementList --> AnnouncementManagementListClient
+    AnnouncementManagementListClient --> AnnouncementFilterBar
+    AnnouncementManagementListClient --> FilterLib
+    AnnouncementFilterBar --> AnnouncementManagementListClient
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: `helpdesk-inquiry-management`の`HelpdeskInquiryListClient`/`HelpdeskInquiryFilterBar`と同一パターン（比較検討は`research.md`参照）
+- 新規コンポーネントの理由: フィルタ状態はクライアント側の一時状態であり、既存のサーバーコンポーネント（`AnnouncementManagementList`）とは責務が異なるため分離する
+- Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由という既存規約を維持
+
+### Technology Stack（追加分・差分のみ）
+
+| Layer | Choice / Version | Role in Feature | Notes |
+|-------|------------------|-----------------|-------|
+| UI | 既存`Select`（新規プリミティブなし） | `actionRequired`の2択入力・絞り込み | Checkbox/Switchは未導入のため`Select`で表現（`research.md`参照） |
+
+### File Structure Plan（追加分）
+
+```
+src/components/features/helpdesk-announcements/
+├── AnnouncementManagementList.tsx        # 変更: データ取得のみを担うサーバーコンポーネントに整理
+├── AnnouncementManagementListClient.tsx  # 新規: フィルタ状態を保持し一覧を描画するクライアントコンポーネント
+├── AnnouncementFilterBar.tsx             # 新規: キーワード・種別・対応要否の絞り込み入力
+└── AnnouncementForm.tsx                  # 変更: 対応要否（actionRequired）のSelectフィールドを追加
+
+src/lib/
+└── helpdesk-announcement-list.ts         # 新規: HelpdeskAnnouncementFilters型・filterAnnouncementsForHelpdesk関数
+
+src/types/
+└── announcement.ts                       # 変更: Announcement.actionRequired: booleanを追加
+
+src/lib/validation/
+└── announcement.ts                       # 変更: announcementFormSchemaにactionRequired: z.boolean()を追加
+
+src/lib/api/
+└── announcements.ts                      # 変更: シードデータ全件にactionRequiredを付与
+
+messages/
+├── ja.json                               # 変更: helpdeskAnnouncements.list.filter, .actionRequiredBadge, .form.actionRequiredフィールドを追加
+└── en.json                               # 同上
+```
+
+### Modified Files（追加分）
+- `src/types/announcement.ts` — `Announcement`に`actionRequired: boolean`を追加（既存フィールドは変更しない）
+- `src/lib/validation/announcement.ts` — `announcementFormSchema`に`actionRequired: z.boolean()`を追加
+- `src/lib/api/announcements.ts` — `MOCK_ANNOUNCEMENTS`の全シードデータに`actionRequired`（既存データの内容に応じて`true`/`false`）を付与
+- `src/components/features/helpdesk-announcements/AnnouncementForm.tsx` — 種別フィールドの直後に対応要否の`Select`（2択）を追加、初期値は新規作成時`false`
+- `src/components/features/helpdesk-announcements/AnnouncementManagementList.tsx` — `getAllAnnouncements()`取得とエラー/空状態表示のみを担い、フィルタ済み一覧の描画を`AnnouncementManagementListClient`に委譲
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 10.1〜10.5 | 対応要否フィールドの追加と設定 | AnnouncementForm, Announcement型, AnnouncementManagementListClient | Service | — |
+| 11.1〜11.8 | タイトル・種別・対応要否による検索・絞り込み | AnnouncementFilterBar, AnnouncementManagementListClient, filterAnnouncementsForHelpdesk | State | — |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| AnnouncementManagementListClient | UI/Client | フィルタ状態を保持し、絞り込み済み一覧を描画 | 11.1〜11.8, 10.4 | filterAnnouncementsForHelpdesk (P0), AnnouncementFilterBar (P0) | State |
+| AnnouncementFilterBar | UI/Client | キーワード・種別・対応要否の入力を受け付け、変更を通知 | 11.1〜11.4, 11.6 | — | State |
+| filterAnnouncementsForHelpdesk | Lib/Pure Function | キーワード・種別・対応要否のAND条件でお知らせを絞り込む | 11.2〜11.4, 11.8 | — | Service |
+
+#### filterAnnouncementsForHelpdesk
+
+| Field | Detail |
+|-------|--------|
+| Intent | お知らせ配列をキーワード（タイトル部分一致）・種別・対応要否のAND条件で絞り込む純粋関数 |
+| Requirements | 11.2, 11.3, 11.4, 11.8 |
+
+**Responsibilities & Constraints**
+- タイトルの部分一致判定は大文字・小文字を区別しない
+- 各フィルタ条件が未指定（空文字列 or `undefined`）のときはその条件による絞り込みを行わない
+- 入力配列の順序を変更しない（呼び出し側が公開日降順に整列済みであることを前提とする）
+
+**Contracts**: State [x]
+
+##### Service Interface
+```typescript
+interface HelpdeskAnnouncementFilters {
+  keyword: string;
+  category: string;
+  actionRequired: "" | "true" | "false";
+}
+
+function filterAnnouncementsForHelpdesk(
+  announcements: Announcement[],
+  filters: HelpdeskAnnouncementFilters
+): Announcement[];
+```
+- Preconditions: `announcements`は`getAllAnnouncements()`の戻り値（公開日降順）
+- Postconditions: 戻り値は入力配列の部分集合であり、順序を維持する
+- Invariants: `filters`が全て空文字列のとき、戻り値は入力配列と等しい
+
+**Implementation Notes**
+- Integration: `AnnouncementManagementListClient`が`useMemo`で本関数を呼び出す（`helpdesk-inquiry-management`の`filterInquiriesForHelpdesk`と同型）
+- Validation: 型レベルで不正な`actionRequired`値を排除する（`"" | "true" | "false"`のUnion）
+- Risks: なし（純粋関数、副作用なし）
+
+### Data Models（追加分）
+
+- `Announcement`（既存、再拡張）: `actionRequired: boolean`を追加。新規作成時の初期値は`false`（要件10.3）
+- `CreateAnnouncementInput`は`Announcement`から`id`・`publishedAt`を除いたサブセットのため、`actionRequired`は自動的に含まれる（型定義の変更不要）
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `filterAnnouncementsForHelpdesk`がキーワード（部分一致・大小文字無視）・種別・対応要否のAND条件で絞り込むこと、全条件が空のとき全件を返すこと
+  - `announcementFormSchema`が`actionRequired`を`boolean`として要求すること
+- **Integration Tests**:
+  - `AnnouncementManagementListClient`でキーワード・種別・対応要否を入力すると一覧が絞り込まれ、「クリア」で全件表示に戻ること
+  - 絞り込み結果が0件のとき「該当するお知らせがありません」が表示されること
+  - `AnnouncementForm`で対応要否を「対応が必要」に設定して保存すると、一覧にバッジが表示されること
+- **E2E/UI Tests**:
+  - 日本語・英語両方でフィルタバーのラベル・バッジ文言が翻訳されること
+  - タブレット幅（768px）でフィルタバーが横スクロールを発生させないこと

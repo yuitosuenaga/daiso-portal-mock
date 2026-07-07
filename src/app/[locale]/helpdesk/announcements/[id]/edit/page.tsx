@@ -84,6 +84,7 @@ export default async function HelpdeskAnnouncementEditPage({
           // 保存済みデータは常に`announcementFormSchema`で検証済みのため、
           // フォームの厳密な国コード型へ安全に絞り込める。
           targeting: announcement.targeting as AnnouncementFormValues["targeting"],
+          actionRequired: announcement.actionRequired,
         }}
         categoryOptions={categoryOptions}
         countryOptions={countryOptions}
@@ -93,6 +94,9 @@ export default async function HelpdeskAnnouncementEditPage({
         bodyPlaceholder={t("bodyPlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
+        actionRequiredLabel={t("actionRequiredLabel")}
+        actionRequiredTrueOption={t("actionRequiredTrueOption")}
+        actionRequiredFalseOption={t("actionRequiredFalseOption")}
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}

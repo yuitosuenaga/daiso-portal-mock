@@ -38,6 +38,19 @@ function resolveMessage(namespace: string, key: string): string {
       deleteConfirm: "このお知らせを削除しますか？",
       targetingAllLabel: "全体一律",
       targetingCountriesLabel: "配信対象国",
+      actionRequiredBadge: "要対応",
+    },
+    "helpdeskAnnouncements.list.filter": {
+      keywordLabel: "タイトル検索",
+      keywordPlaceholder: "タイトルに含まれる語句",
+      categoryLabel: "種別",
+      categoryAll: "すべての種別",
+      actionRequiredLabel: "対応要否",
+      actionRequiredAll: "すべて",
+      actionRequiredTrue: "要対応のみ",
+      actionRequiredFalse: "対応不要のみ",
+      clearButton: "クリア",
+      noResults: "該当するお知らせがありません",
     },
     "announcements.categories": {
       maintenance: "メンテナンス",
@@ -59,6 +72,11 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) =>
+    (key: string) => resolveMessage(namespace, key),
+}));
+
 function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
   return {
     id: "1",
@@ -67,6 +85,7 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
     category: "maintenance",
     body: "本文",
     targeting: { scope: "all" },
+    actionRequired: false,
     ...overrides,
   };
 }

@@ -3,7 +3,7 @@ import { getAnnouncements } from "@/lib/api/announcements";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
-import { AnnouncementListItem } from "@/components/features/announcements/AnnouncementListItem";
+import { AnnouncementListClient } from "@/components/features/announcements/AnnouncementListClient";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
 
 export async function AnnouncementList() {
@@ -36,6 +36,11 @@ export async function AnnouncementList() {
     {} as Record<AnnouncementCategory, string>
   );
 
+  const categoryOptions = ANNOUNCEMENT_CATEGORY_CODES.map((code) => ({
+    value: code,
+    label: t(`categories.${code}`),
+  }));
+
   return (
     <Card>
       <CardHeader>
@@ -45,16 +50,13 @@ export async function AnnouncementList() {
         {announcements.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("list.empty")}</p>
         ) : (
-          <ul className="divide-y divide-border">
-            {announcements.map((item) => (
-              <AnnouncementListItem
-                key={item.id}
-                announcement={item}
-                categoryLabel={categoryLabels[item.category]}
-                locale={locale}
-              />
-            ))}
-          </ul>
+          <AnnouncementListClient
+            announcements={announcements}
+            categoryLabels={categoryLabels}
+            categoryOptions={categoryOptions}
+            actionRequiredBadgeLabel={t("actionRequiredBadge")}
+            locale={locale}
+          />
         )}
       </CardContent>
     </Card>

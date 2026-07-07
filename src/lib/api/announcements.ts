@@ -20,6 +20,7 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       category: "maintenance",
       body: "2026年7月15日 2:00〜4:00の間、システムメンテナンスを実施いたします。メンテナンス中はポータルサイトにアクセスできませんのでご注意ください。ご不便をおかけしますが、何卒ご理解のほどよろしくお願いいたします。",
       targeting: { scope: "all" },
+      actionRequired: true,
     },
     {
       id: "2",
@@ -28,6 +29,7 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       category: "other",
       body: "よくあるお問い合わせをまとめたFAQページを新設しました。お問い合わせの前にぜひご活用ください。今後も内容を随時更新してまいります。",
       targeting: { scope: "all" },
+      actionRequired: false,
     },
     {
       id: "3",
@@ -36,6 +38,7 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       category: "policy",
       body: "問い合わせ・申請フォームの入力項目を一部更新しました。案件種別・緊急度の選択肢が変更されておりますので、ご利用の際はご確認ください。",
       targeting: { scope: "all" },
+      actionRequired: true,
     },
     {
       id: "4",
@@ -44,6 +47,7 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       category: "other",
       body: "誠に恐れ入りますが、8月13日〜16日は夏季休業期間とさせていただきます。休業期間中に受け付けた問い合わせは、休業明けに順次対応いたします。",
       targeting: { scope: "all" },
+      actionRequired: false,
     },
     {
       id: "5",
@@ -52,6 +56,7 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       category: "incident",
       body: "本日未明、決済システムに障害が発生し、一部の処理が正常に完了しない事象が確認されました。現在は復旧しておりますが、影響を受けた処理については別途ご案内いたします。",
       targeting: { scope: "all" },
+      actionRequired: true,
     },
   ]
 );

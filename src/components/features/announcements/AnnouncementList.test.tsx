@@ -39,6 +39,11 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) =>
+    (key: string) => resolveMessage(namespace, key),
+}));
+
 const ANNOUNCEMENT: Announcement = {
   id: "1",
   title: "テストお知らせ",
@@ -46,6 +51,7 @@ const ANNOUNCEMENT: Announcement = {
   category: "maintenance",
   body: "本文テキスト",
   targeting: { scope: "all" },
+  actionRequired: false,
 };
 
 describe("AnnouncementList", () => {

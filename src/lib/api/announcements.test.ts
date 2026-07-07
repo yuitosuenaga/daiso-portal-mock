@@ -89,6 +89,7 @@ describe("自社国スコープフィルタ（配信対象）", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "countries", countries: ["US"] },
+      actionRequired: false,
     };
     const created = await createAnnouncement(input);
 
@@ -105,6 +106,7 @@ describe("自社国スコープフィルタ（配信対象）", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
+      actionRequired: false,
     };
     const created = await createAnnouncement(input);
 
@@ -118,6 +120,7 @@ describe("自社国スコープフィルタ（配信対象）", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "countries", countries: ["US"] },
+      actionRequired: false,
     };
     const created = await createAnnouncement(input);
 
@@ -136,6 +139,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     expect(created.id).toBeTruthy();
@@ -151,6 +155,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
       body: "更新前本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     await updateAnnouncement(created.id, {
@@ -158,6 +163,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
       body: "更新後本文",
       category: "policy",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     const result = await getAnnouncementByIdForHelpdesk(created.id);
@@ -171,6 +177,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     await deleteAnnouncement(created.id);
@@ -186,6 +193,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
         body: "b",
         category: "other",
         targeting: { scope: "all" },
+        actionRequired: false,
       })
     ).rejects.toThrow();
   });
@@ -202,12 +210,14 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
     await updateAnnouncement(created.id, {
       title: "変更後",
       body: "本文",
       category: "other",
       targeting: { scope: "all" },
+      actionRequired: false,
     });
 
     const after = await getAnnouncementByIdForHelpdesk("1");

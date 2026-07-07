@@ -29,7 +29,20 @@
       "deleteConfirm": "Delete this announcement?",
       "deleteError": "Failed to delete. Please try again later.",
       "targetingAllLabel": "All countries",
-      "targetingCountriesLabel": "Target countries"
+      "targetingCountriesLabel": "Target countries",
+      "actionRequiredBadge": "Action required",
+      "filter": {
+        "keywordLabel": "Search title",
+        "keywordPlaceholder": "Words in the title",
+        "categoryLabel": "Category",
+        "categoryAll": "All categories",
+        "actionRequiredLabel": "Action required",
+        "actionRequiredAll": "All",
+        "actionRequiredTrue": "Action required only",
+        "actionRequiredFalse": "No action required only",
+        "clearButton": "Clear",
+        "noResults": "No matching announcements"
+      }
     },
     "form": {
       "createTitle": "Create Announcement",
@@ -51,7 +64,10 @@
       "validation": {
         "required": "This field is required",
         "countriesRequired": "Select at least one country or region"
-      }
+      },
+      "actionRequiredLabel": "Action required",
+      "actionRequiredTrueOption": "Action required",
+      "actionRequiredFalseOption": "No action required"
     }
   },
   "helpdeskInquiries": {
@@ -230,7 +246,8 @@
       "title": "Announcements",
       "description": "View announcements from the help desk.",
       "empty": "No announcements",
-      "error": "Failed to load announcements"
+      "error": "Failed to load announcements",
+      "noResults": "No matching announcements"
     },
     "categories": {
       "maintenance": "Maintenance",
@@ -244,6 +261,17 @@
       "notFound": "Announcement not found",
       "error": "Failed to load the announcement",
       "backToList": "Back to list"
+    },
+    "actionRequiredBadge": "Action required",
+    "filter": {
+      "keywordLabel": "Search title",
+      "keywordPlaceholder": "Words in the title",
+      "categoryLabel": "Category",
+      "categoryAll": "All categories",
+      "actionRequiredLabel": "Action required",
+      "actionRequiredAll": "All",
+      "actionRequiredTrue": "Action required only",
+      "clearButton": "Clear"
     }
   },
   "inquiryForm": {

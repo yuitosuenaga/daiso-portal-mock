@@ -1,0 +1,80 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e6]
+          - generic [ref=e10]: DAISO
+        - generic [ref=e11]: ヘルプデスクポータル
+        - generic [ref=e12]: ヘルプデスク
+      - generic [ref=e13]:
+        - link "申請者側画面へ" [ref=e14] [cursor=pointer]:
+          - /url: /ja
+        - generic [ref=e15]:
+          - button "日本語" [pressed] [ref=e17] [cursor=pointer]
+          - generic [ref=e18]:
+            - generic [ref=e19]: "|"
+            - button "English" [ref=e20] [cursor=pointer]
+    - complementary "ヘルプデスクナビゲーション" [ref=e21]:
+      - navigation [ref=e22]:
+        - list [ref=e23]:
+          - listitem [ref=e24]:
+            - link "ダッシュボード" [ref=e25] [cursor=pointer]:
+              - /url: /ja/helpdesk
+              - img [ref=e26]
+          - listitem [ref=e31]:
+            - link "問い合わせ管理" [ref=e32] [cursor=pointer]:
+              - /url: /ja/helpdesk/inquiries
+              - img [ref=e33]
+          - listitem [ref=e34]:
+            - link "テンプレート管理" [ref=e35] [cursor=pointer]:
+              - /url: /ja/helpdesk/templates
+              - img [ref=e36]
+          - listitem [ref=e39]:
+            - link "お知らせ管理" [ref=e40] [cursor=pointer]:
+              - /url: /ja/helpdesk/announcements
+              - img [ref=e41]
+          - listitem [ref=e44]:
+            - link "リンク集" [ref=e45] [cursor=pointer]:
+              - /url: /ja/helpdesk/links
+              - img [ref=e46]
+          - listitem [ref=e49]:
+            - link "FAQ" [ref=e50] [cursor=pointer]:
+              - /url: /ja/helpdesk/faq
+              - img [ref=e51]
+    - button "サイドバーを展開" [ref=e54] [cursor=pointer]:
+      - img [ref=e55]
+    - main [ref=e57]:
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - heading "お知らせ管理" [level=1] [ref=e63]
+            - paragraph [ref=e64]: 海外販社向けのお知らせを作成・編集・削除できます。
+          - link "新規お知らせを作成" [ref=e65] [cursor=pointer]:
+            - /url: /ja/helpdesk/announcements/new
+        - generic [ref=e66]:
+          - heading "お知らせ管理" [level=3] [ref=e68]
+          - generic [ref=e70]:
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - text: タイトル検索
+                - textbox "タイトル検索" [active] [ref=e73]:
+                  - /placeholder: タイトルに含まれる語句
+                  - text: システム
+              - generic [ref=e74]:
+                - text: 種別
+                - combobox "種別" [ref=e75]:
+                  - option "すべての種別" [selected]
+                  - option "メンテナンス"
+                  - option "制度変更"
+                  - option "障害情報"
+                  - option "その他"
+              - generic [ref=e76]:
+                - text: 対応要否
+                - combobox "対応要否" [ref=e77]:
+                  - option "すべて"
+                  - option "要対応のみ"
+                  - option "対応不要のみ" [selected]
+              - button "クリア" [ref=e79] [cursor=pointer]
+            - paragraph [ref=e145]: 該当するお知らせがありません
+  - alert [ref=e144]

@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
-  const [t, tCategories, locale] = await Promise.all([
+  const [t, tCategories, tAnnouncements, locale] = await Promise.all([
     getTranslations("announcements.detail"),
     getTranslations("announcements.categories"),
+    getTranslations("announcements"),
     getLocale(),
   ]);
 
@@ -72,6 +73,11 @@ export async function AnnouncementDetail({ id }: { id: string }) {
                 {tCategories(announcement.category)}
               </Badge>
             </span>
+            {announcement.actionRequired && (
+              <Badge variant="default">
+                {tAnnouncements("actionRequiredBadge")}
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>

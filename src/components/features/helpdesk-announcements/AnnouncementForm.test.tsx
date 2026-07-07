@@ -31,6 +31,9 @@ const labels = {
   bodyPlaceholder: "本文を入力してください",
   categoryLabel: "種別",
   categoryPlaceholder: "種別を選択してください",
+  actionRequiredLabel: "対応要否",
+  actionRequiredTrueOption: "対応が必要",
+  actionRequiredFalseOption: "対応不要",
   targetingLabel: "配信対象",
   targetingAllOption: "全体一律",
   targetingCountriesOption: "特定の国・地域を指定",
@@ -85,6 +88,7 @@ describe("AnnouncementForm", () => {
         body: "本文テキスト",
         category: "maintenance",
         targeting: { scope: "all" },
+        actionRequired: false,
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
@@ -152,6 +156,7 @@ describe("AnnouncementForm", () => {
         body: "本文テキスト",
         category: "maintenance",
         targeting: { scope: "countries", countries: ["JP", "VN"] },
+        actionRequired: false,
       });
     });
   });
@@ -166,6 +171,7 @@ describe("AnnouncementForm", () => {
           body: "既存本文",
           category: "policy",
           targeting: { scope: "all" },
+          actionRequired: false,
         }}
         {...labels}
       />
@@ -188,6 +194,7 @@ describe("AnnouncementForm", () => {
           body: "既存本文",
           category: "policy",
           targeting: { scope: "all" },
+          actionRequired: false,
         }
       );
     });

@@ -31,6 +31,9 @@ export interface AnnouncementFormProps {
   bodyPlaceholder: string;
   categoryLabel: string;
   categoryPlaceholder: string;
+  actionRequiredLabel: string;
+  actionRequiredTrueOption: string;
+  actionRequiredFalseOption: string;
   targetingLabel: string;
   targetingAllOption: string;
   targetingCountriesOption: string;
@@ -57,6 +60,9 @@ export function AnnouncementForm({
   bodyPlaceholder,
   categoryLabel,
   categoryPlaceholder,
+  actionRequiredLabel,
+  actionRequiredTrueOption,
+  actionRequiredFalseOption,
   targetingLabel,
   targetingAllOption,
   targetingCountriesOption,
@@ -82,8 +88,14 @@ export function AnnouncementForm({
       body: "",
       category: "" as unknown as AnnouncementFormValues["category"],
       targeting: { scope: "all" },
+      actionRequired: false,
     },
   });
+
+  const actionRequiredOptions: SelectOption[] = [
+    { value: "false", label: actionRequiredFalseOption },
+    { value: "true", label: actionRequiredTrueOption },
+  ];
 
   const scopeOptions: SelectOption[] = [
     { value: "all", label: targetingAllOption },
@@ -151,6 +163,24 @@ export function AnnouncementForm({
           placeholder={categoryPlaceholder}
           aria-invalid={errors.category ? true : undefined}
           {...register("category")}
+        />
+      </FormField>
+
+      <FormField
+        label={actionRequiredLabel}
+        htmlFor="announcement-action-required"
+      >
+        <Controller
+          control={control}
+          name="actionRequired"
+          render={({ field }) => (
+            <Select
+              id="announcement-action-required"
+              options={actionRequiredOptions}
+              value={field.value ? "true" : "false"}
+              onChange={(event) => field.onChange(event.target.value === "true")}
+            />
+          )}
         />
       </FormField>
 

@@ -29,7 +29,20 @@
       "deleteConfirm": "このお知らせを削除しますか？",
       "deleteError": "削除に失敗しました。時間を置いて再度お試しください。",
       "targetingAllLabel": "全体一律",
-      "targetingCountriesLabel": "配信対象国"
+      "targetingCountriesLabel": "配信対象国",
+      "actionRequiredBadge": "要対応",
+      "filter": {
+        "keywordLabel": "タイトル検索",
+        "keywordPlaceholder": "タイトルに含まれる語句",
+        "categoryLabel": "種別",
+        "categoryAll": "すべての種別",
+        "actionRequiredLabel": "対応要否",
+        "actionRequiredAll": "すべて",
+        "actionRequiredTrue": "要対応のみ",
+        "actionRequiredFalse": "対応不要のみ",
+        "clearButton": "クリア",
+        "noResults": "該当するお知らせがありません"
+      }
     },
     "form": {
       "createTitle": "お知らせの新規作成",
@@ -51,7 +64,10 @@
       "validation": {
         "required": "この項目は必須です",
         "countriesRequired": "1つ以上の国・地域を選択してください"
-      }
+      },
+      "actionRequiredLabel": "対応要否",
+      "actionRequiredTrueOption": "対応が必要",
+      "actionRequiredFalseOption": "対応不要"
     }
   },
   "helpdeskInquiries": {
@@ -230,7 +246,8 @@
       "title": "お知らせ",
       "description": "ヘルプデスクからの周知事項を一覧で確認できます。",
       "empty": "お知らせはありません",
-      "error": "お知らせの取得に失敗しました"
+      "error": "お知らせの取得に失敗しました",
+      "noResults": "該当するお知らせがありません"
     },
     "categories": {
       "maintenance": "メンテナンス",
@@ -244,6 +261,17 @@
       "notFound": "お知らせが見つかりません",
       "error": "お知らせの取得に失敗しました",
       "backToList": "一覧へ戻る"
+    },
+    "actionRequiredBadge": "要対応",
+    "filter": {
+      "keywordLabel": "タイトル検索",
+      "keywordPlaceholder": "タイトルに含まれる語句",
+      "categoryLabel": "種別",
+      "categoryAll": "すべての種別",
+      "actionRequiredLabel": "対応要否",
+      "actionRequiredAll": "すべて",
+      "actionRequiredTrue": "要対応のみ",
+      "clearButton": "クリア"
     }
   },
   "inquiryForm": {
