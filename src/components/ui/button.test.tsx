@@ -19,4 +19,13 @@ describe("Button", () => {
     expect(button.className).toContain("hover:bg-primary");
     expect(button.className).toContain("hover:text-primary-foreground");
   });
+
+  it("destructiveバリアントは警告色の枠線・文字色を持ち、hoverで塗りに反転する", () => {
+    render(<Button variant="destructive">削除</Button>);
+    const button = screen.getByRole("button", { name: "削除" });
+    expect(button.className).toContain("border-destructive");
+    expect(button.className).toContain("text-destructive");
+    expect(button.className).toContain("hover:bg-destructive");
+    expect(button.className).toContain("hover:text-destructive-foreground");
+  });
 });
