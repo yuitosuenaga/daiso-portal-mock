@@ -480,3 +480,267 @@ function filterAnnouncementsForHelpdesk(
 - **E2E/UI Tests**:
   - 日本語・英語両方でフィルタバーのラベル・バッジ文言が翻訳されること
   - タブレット幅（768px）でフィルタバーが横スクロールを発生させないこと
+
+---
+
+## 追加ラウンド（2026-07-08）: 確認済み・実施済み人数の可視化と未対応者へのリマインド
+
+### Overview（追加分）
+アカウント機能未実装のフェーズ1では実測できないため、モックの「担当者」マスタ（既存`DOCUMENT_COMPANY_OPTIONS`の各社に2名ずつ、計16名）を新設し、お知らせごとに担当者単位の確認済み・実施済み状態をモックデータとして保持する。お知らせ管理一覧に確認済み／実施済み人数を表示し、クリックで未対応者一覧をダイアログ表示、個別・一括でリマインド送信（モック、実配信なし）できるようにする。**Purpose**: ヘルプデスク担当者が周知の浸透状況を人単位で把握し、対応漏れのある担当者にリマインドできるようにする。**Impact**: 新規の担当者マスタ・確認済み/実施済み/リマインド送信状態のモックストア、およびモーダル表示のための`Dialog`UIプリミティブ（本プロジェクト初導入）を追加する。既存のお知らせ作成・編集・削除・検索機能への変更はない。
+
+### Goals（追加分）
+- お知らせごとに確認済み人数・実施済み人数（対応要否ありのお知らせのみ）を一覧上で可視化する
+- 未確認・未対応の担当者を一覧で確認できる
+- 未対応の担当者へリマインドを送信できる（モック、実際の通知配信は行わない）
+
+### Non-Goals（追加分）
+- 実際のログイン・アカウント機能に基づくユーザー個人の識別
+- メール・プッシュ通知等、実際の通知配信
+- 海外販社側での確認済み・実施済み人数や未対応者一覧の表示（`announcements`spec側では、リマインド受信表示のみを対象とする。詳細は`announcements/design.md`参照）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- 担当者マスタ（`AnnouncementRecipient`）のモックデータおよび型定義
+- 担当者ごとの確認済み・実施済み・リマインド送信状態（`AnnouncementRecipientStatus`）のモックストアと読み取り・更新API
+- お知らせ管理一覧の確認済み・実施済み人数表示、未対応者一覧ダイアログ、個別・一括リマインド送信のUI・Server Actions
+- `Dialog`UIプリミティブ（`src/components/ui/dialog.tsx`、Radix UIベース、本プロジェクト初導入）
+
+**Out of Boundary（追加）**
+- 海外販社側でのリマインド受信表示ロジック（`announcements`specが実装。本specは参照可能な読み取り関数を提供するのみ）
+- 実際のメール・プッシュ通知配信、送信履歴の恒久保存（プロセス再起動でリセットされるモックの範囲に留める）
+
+**Allowed Dependencies（追加）**
+- 既存の`DOCUMENT_COMPANY_OPTIONS`/`DOCUMENT_COMPANY_CODES`（`lib/constants/document-company-options.ts`、担当者の所属会社・国として再利用）
+- 既存の`getGlobalMockStore`パターン（`lib/mock-store.ts`）
+- 既存の`Announcement.targeting`/`Announcement.actionRequired`（集計対象の判定に使用、読み取りのみ）
+
+**Revalidation Triggers（追加）**
+- `AnnouncementRecipient`/`AnnouncementRecipientStatus`の型・意味の変更（`announcements`specが再確認する必要がある）
+- 担当者マスタの会社紐付けロジック変更（`DOCUMENT_COMPANY_OPTIONS`に依存するため、その変更時も再確認する）
+
+### Architecture（追加分）
+
+お知らせ管理一覧（`AnnouncementManagementList`Server）が、お知らせ本体に加えて担当者別ステータス（`AnnouncementRecipientStatusView[]`）をお知らせごとに取得し、`AnnouncementManagementListClient`経由で各行に渡す。人数表示のクリックで開く`AnnouncementRecipientDialog`は、渡された配列から未対応者を算出して表示し、リマインド送信はServer Action経由でモックストアを更新後`revalidatePath`する（`helpdesk-inquiry-management`と同型のCRUDパターン）。
+
+```mermaid
+graph TB
+    AnnouncementManagementList[Announcement Management List Server]
+    AnnouncementManagementListClient[Announcement Management List Client]
+    AnnouncementTrackingBadge[Announcement Tracking Badge]
+    AnnouncementRecipientDialog[Announcement Recipient Dialog]
+    TrackingApi[Announcement Tracking Mock Api]
+    TrackingActions[Announcement Tracking Server Actions]
+    TrackingStore[Announcement Recipient Status Store]
+    RecipientMaster[Announcement Recipient Master]
+
+    AnnouncementManagementList --> TrackingApi
+    TrackingApi --> TrackingStore
+    TrackingApi --> RecipientMaster
+    AnnouncementManagementList --> AnnouncementManagementListClient
+    AnnouncementManagementListClient --> AnnouncementTrackingBadge
+    AnnouncementTrackingBadge --> AnnouncementRecipientDialog
+    AnnouncementRecipientDialog --> TrackingActions
+    TrackingActions --> TrackingStore
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 既存と同じ「サーバーで取得 → クライアントで表示・操作」+ Server Actions更新パターン
+- ドメイン境界: 担当者マスタ・ステータスは新設の`TrackingApi`（`lib/api/announcement-tracking.ts`）に集約し、`Announcement`本体のデータ（`lib/api/announcements.ts`）とは別ストアとして分離する（`announcementId`で疎結合に参照）
+- 新規コンポーネントの理由: 人数表示・未対応者ダイアログはお知らせ本体の一覧表示とは異なる操作境界（クリックでの状態取得・リマインド送信）を持つため独立コンポーネントとする
+- Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由、モックAPIは`lib/api/`に抽象化という既存規約を維持
+
+### Technology Stack（追加分・差分のみ）
+
+| Layer | Choice / Version | Role in Feature | Notes |
+|-------|------------------|-----------------|-------|
+| UI | `@radix-ui/react-dialog`（新規導入） + shadcn/uiパターンの`Dialog`ラッパー | 未対応者一覧のモーダル表示 | 本プロジェクトに`Dialog`系プリミティブが存在しないため新規追加。既存の`@radix-ui/react-accordion`と同じ導入パターン（Radix Primitive + `class-variance-authority`不要のシンプルラップ）に揃える |
+| Data / Mock | `lib/api/announcement-tracking.ts`の可変配列 + `getGlobalMockStore` | 担当者ごとの確認済み・実施済み・リマインド送信状態の管理 | フェーズ1限定。開発サーバー再起動でリセットされる |
+
+### File Structure Plan（追加分）
+
+```
+src/components/ui/
+└── dialog.tsx                              # 新規: Radix UI Dialogのshadcn/uiスタイルラッパー
+
+src/lib/constants/
+└── announcement-recipients.ts              # 新規: 担当者マスタ（DOCUMENT_COMPANY_OPTIONS各社2名、計16名）
+
+src/types/
+└── announcement-recipient.ts               # 新規: AnnouncementRecipient, AnnouncementRecipientStatus, AnnouncementRecipientStatusView型
+
+src/lib/api/
+└── announcement-tracking.ts                # 新規: 集計・未対応者取得・リマインド送信・自社宛リマインド有無判定のモックAPI
+
+src/lib/actions/
+└── announcement-tracking.ts                # 新規: "use server" リマインド送信Server Actions
+
+src/components/features/helpdesk-announcements/
+├── AnnouncementTrackingBadge.tsx           # 新規Client: 確認済み/実施済み人数を表示し、クリックでダイアログを開く
+├── AnnouncementRecipientDialog.tsx         # 新規Client: 未対応者一覧・個別/一括リマインド送信・送信完了メッセージ表示
+└── AnnouncementManagementList.tsx          # 変更: お知らせ本体に加え担当者別ステータスを取得し、Clientへ渡す
+
+messages/
+├── ja.json                                 # 変更: helpdeskAnnouncements.tracking名前空間を追加
+└── en.json                                 # 同上
+```
+
+### Modified Files（追加分）
+- `src/components/features/helpdesk-announcements/AnnouncementManagementList.tsx` — `getAllAnnouncements()`に加え`getAnnouncementRecipientStatuses(announcement.id)`を各お知らせについて取得し、`AnnouncementManagementListClient`へ`recipientStatuses`を追加のpropsとして渡す
+
+### System Flows（追加分）
+
+```mermaid
+sequenceDiagram
+    participant User as ヘルプデスク担当者
+    participant Badge as AnnouncementTrackingBadge
+    participant Dialog as AnnouncementRecipientDialog
+    participant Action as sendAnnouncementRemindersAction
+    participant Store as AnnouncementRecipientStatusStore
+
+    User->>Badge: 確認済み/実施済み人数をクリック
+    Badge->>Dialog: ダイアログを開く（未対応者一覧を表示）
+    User->>Dialog: 個別または一括でリマインドを選択
+    Dialog->>Action: sendAnnouncementRemindersAction(announcementId, recipientIds)
+    Action->>Store: 対象担当者のreminderSentAtを記録
+    Action-->>Dialog: revalidatePath後の最新状態
+    Dialog-->>User: 送信完了メッセージ・送信済み表示を更新
+```
+
+- リマインド送信は実際の通知配信を行わず、`reminderSentAt`の記録と`revalidatePath`によるヘルプデスク側一覧・申請者側一覧/詳細の再検証のみを行う（申請者側のリマインド受信表示に反映するため）。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 12.1〜12.4 | 担当者マスタのモックデータ | AnnouncementRecipient定数, AnnouncementTrackingMockApi | Service | — |
+| 13.1〜13.5 | 確認済み・実施済み人数の表示 | AnnouncementTrackingBadge, AnnouncementManagementList | Service | — |
+| 14.1〜14.6 | 未対応者一覧とリマインド | AnnouncementRecipientDialog, AnnouncementTrackingActions | Service | リマインド送信フロー |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| AnnouncementTrackingMockApi | Data/Mock | 担当者マスタ・確認済み/実施済み/リマインド状態の読み取りと算出 | 12.1〜12.4, 13.1〜13.4 | AnnouncementRecipient定数 (P0), Announcement.targeting/actionRequired (P0) | Service |
+| AnnouncementTrackingActions | Server Actions | リマインド送信を受け、モックストアを更新し関連ルートを再検証する | 14.4〜14.5 | AnnouncementTrackingMockApi (P0) | Service |
+| AnnouncementTrackingBadge | UI/Client | 確認済み/実施済み人数を表示し、クリックでダイアログを開く | 13.1〜13.5 | AnnouncementRecipientDialog (P0) | State |
+| AnnouncementRecipientDialog | UI/Client | 未対応者一覧の表示、個別/一括リマインド送信、送信完了表示 | 14.1〜14.6 | AnnouncementTrackingActions (P0) | State |
+
+#### AnnouncementTrackingMockApi
+
+| Field | Detail |
+|-------|--------|
+| Intent | お知らせごとの対象担当者（配信対象でスコープ）を算出し、確認済み・実施済み件数、未対応者一覧、自社宛リマインド有無を提供する |
+| Requirements | 12.1, 12.2, 12.3, 12.4, 13.1, 13.2, 13.3, 13.4 |
+
+**Responsibilities & Constraints**
+- `targeting.scope === "all"`のときは全16担当者、`targeting.scope === "countries"`のときは対象国に属する担当者のみを集計対象とする
+- 実施済み件数は`actionRequired === true`のお知らせについてのみ意味を持つ値として提供する（`actionRequired === false`のときは`null`を返し、呼び出し側が非表示にする）
+- モックデータは`getGlobalMockStore`で保持し、プロセス内で状態を維持する
+
+**Dependencies**
+- Inbound: `AnnouncementManagementList`（P0）, `AnnouncementTrackingActions`（P0）, `announcements`spec側の一覧・詳細コンポーネント（P1、自社宛リマインド有無の参照のみ）
+- Outbound: `lib/constants/announcement-recipients.ts`（P0）, `lib/constants/document-company-options.ts`（P0）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementRecipientStatusView {
+  recipientId: string;
+  companyCode: string;
+  companyName: string;
+  country: string;
+  contactName: string;
+  confirmedAt: string | null;
+  completedAt: string | null;
+  reminderSentAt: string | null;
+}
+
+interface AnnouncementTrackingSummary {
+  totalRecipients: number;
+  confirmedCount: number;
+  completedCount: number | null;
+}
+
+interface AnnouncementTrackingMockApi {
+  getAnnouncementRecipientStatuses(
+    announcementId: string
+  ): Promise<AnnouncementRecipientStatusView[]>;
+  getAnnouncementTrackingSummary(
+    announcementId: string
+  ): Promise<AnnouncementTrackingSummary>;
+  isReminderPendingForCompany(
+    announcementId: string,
+    companyCode: string
+  ): Promise<boolean>;
+}
+```
+- Preconditions: `announcementId`は存在するお知らせのIDであること
+- Postconditions: `getAnnouncementRecipientStatuses`が返す配列の長さは、当該お知らせの配信対象に含まれる担当者数と一致する
+- Invariants: `completedCount`は`actionRequired === false`のとき常に`null`。`isReminderPendingForCompany`は、対象担当者のいずれかが`reminderSentAt !== null && completedAt === null`のときのみ`true`を返す
+
+**Implementation Notes**
+- Integration: `announcements`spec（`AnnouncementList`/`AnnouncementDetail`）は`isReminderPendingForCompany(announcementId, MOCK_CURRENT_COMPANY.companyCode)`を読み取り専用で呼び出す
+- Validation: 存在しない`announcementId`に対しては空集計（`totalRecipients: 0`等）を返す
+- Risks: プロセス再起動でリセットされる（フェーズ1のモック制約）
+
+#### AnnouncementTrackingActions
+
+| Field | Detail |
+|-------|--------|
+| Intent | クライアントからのリマインド送信操作を受け、モックストアを更新し関連ルートを再検証する |
+| Requirements | 14.4, 14.5 |
+
+**Responsibilities & Constraints**
+- `"use server"`を付与する
+- 実際の通知配信は行わず、対象担当者の`reminderSentAt`に現在時刻を記録するのみ
+- 処理後、ヘルプデスク側お知らせ一覧・申請者側一覧・詳細ルートを`revalidatePath`で再検証する（申請者側のリマインド受信表示への反映のため）
+
+**Dependencies**
+- Inbound: `AnnouncementRecipientDialog`（P0）
+- Outbound: `AnnouncementTrackingMockApi`（P0）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementTrackingActions {
+  sendAnnouncementRemindersAction(
+    announcementId: string,
+    recipientIds: string[]
+  ): Promise<void>;
+}
+```
+- Preconditions: `recipientIds`は当該お知らせの対象担当者に含まれるIDであること
+- Postconditions: 対象担当者全員の`reminderSentAt`が更新される
+- Invariants: 既に`completedAt`が設定されている担当者へは送信対象から除外する（呼び出し元のダイアログが未対応者のみを渡す前提）
+
+**Implementation Notes**
+- Integration: 個別送信・一括送信のいずれも同一アクションを`recipientIds`の要素数のみを変えて呼び出す
+- Validation: `recipientIds`が空配列のときは何もせず正常終了する
+- Risks: なし（`revalidatePath`漏れ以外の副作用はない。対象ルートは既存の`AnnouncementActions`と同一集合を再利用する）
+
+#### Presentation Components（サマリーのみ）
+
+- **AnnouncementTrackingBadge**: お知らせ本体・`AnnouncementRecipientStatusView[]`を受け取り、「確認済み X/Y人」（`actionRequired`が真の場合は「実施済み X/Y人」も併記）を表示する。クリックで対象状態（確認済み or 実施済み）を指定して`AnnouncementRecipientDialog`を開く。
+- **AnnouncementRecipientDialog**: 新設の`Dialog`プリミティブを用い、未対応の担当者（氏名・所属会社・国・送信済み状態）を一覧表示する。各行に個別リマインドボタン、一覧上部に一括リマインドボタンを配置し、送信後は`Alert`（`variant="success"`）で完了メッセージを表示する。
+
+### Data Models（追加分）
+
+- `AnnouncementRecipient`（新規）: `{ id, companyCode, companyName, country, contactName }`。`DOCUMENT_COMPANY_OPTIONS`の各社について2名、計16件をモックデータとして保持する
+- `AnnouncementRecipientStatus`（新規）: `{ announcementId, recipientId, confirmedAt: string | null, completedAt: string | null, reminderSentAt: string | null }`。お知らせ×担当者の組ごとに保持する
+- 初期シードデータには、`MOCK_CURRENT_COMPANY`（VN）に属する担当者について、`actionRequired: true`の既存お知らせの1件に対し`reminderSentAt`が設定済み・`completedAt`が`null`の状態を含める（`announcements`spec側のリマインド受信表示をアプリ起動直後から確認できるようにするため）
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `getAnnouncementTrackingSummary`が`targeting.scope`に応じて対象担当者数を正しく算出すること、`actionRequired === false`のとき`completedCount`が`null`になること
+  - `isReminderPendingForCompany`が、対象担当者に`reminderSentAt`があり`completedAt`が`null`のときのみ`true`を返すこと
+  - `sendAnnouncementRemindersAction`が対象担当者のみの`reminderSentAt`を更新し、他の担当者・他のお知らせに影響しないこと
+- **Integration Tests**:
+  - お知らせ管理一覧で確認済み人数をクリックすると、未確認の担当者のみがダイアログに表示されること
+  - 一括リマインド送信後、ダイアログ内の対象者が「送信済み」表示に切り替わること
+- **E2E/UI Tests**:
+  - 日本語・英語両方で人数表示・ダイアログ内文言が翻訳されること
+  - タブレット幅（768px）でダイアログが横スクロールを発生させずに表示されること

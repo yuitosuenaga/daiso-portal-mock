@@ -1,5 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncements } from "@/lib/api/announcements";
+import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
+import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
@@ -48,6 +50,21 @@ export async function AnnouncementList() {
     label: t(`categories.${code}`),
   }));
 
+  const reminderPendingEntries = await Promise.all(
+    announcements.map(
+      async (announcement) =>
+        [
+          announcement.id,
+          await isReminderPendingForCompany(
+            announcement.id,
+            MOCK_CURRENT_COMPANY.companyCode
+          ),
+        ] as const
+    )
+  );
+  const reminderPendingByAnnouncementId: Record<string, boolean> =
+    Object.fromEntries(reminderPendingEntries);
+
   return (
     <div>
       {heading}
@@ -61,6 +78,7 @@ export async function AnnouncementList() {
               categoryLabels={categoryLabels}
               categoryOptions={categoryOptions}
               actionRequiredBadgeLabel={t("actionRequiredBadge")}
+              reminderPendingByAnnouncementId={reminderPendingByAnnouncementId}
               locale={locale}
             />
           )}

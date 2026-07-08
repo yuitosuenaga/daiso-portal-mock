@@ -21,6 +21,10 @@ vi.mock("@/lib/api/announcements", () => ({
   getAnnouncementById: (...args: unknown[]) => getAnnouncementByIdMock(...args),
 }));
 
+vi.mock("@/lib/api/announcement-tracking", () => ({
+  isReminderPendingForCompany: async () => false,
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;

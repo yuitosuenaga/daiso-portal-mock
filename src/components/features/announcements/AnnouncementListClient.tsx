@@ -17,6 +17,8 @@ export interface AnnouncementListClientProps {
   categoryLabels: Record<AnnouncementCategory, string>;
   categoryOptions: SelectOption[];
   actionRequiredBadgeLabel: string;
+  /** お知らせIDごとの、自社宛リマインド受信有無 */
+  reminderPendingByAnnouncementId: Record<string, boolean>;
   locale: string;
 }
 
@@ -29,6 +31,7 @@ export function AnnouncementListClient({
   categoryLabels,
   categoryOptions,
   actionRequiredBadgeLabel,
+  reminderPendingByAnnouncementId,
   locale,
 }: AnnouncementListClientProps) {
   const t = useTranslations("announcements.list");
@@ -57,6 +60,7 @@ export function AnnouncementListClient({
               announcement={item}
               categoryLabel={categoryLabels[item.category]}
               actionRequiredBadgeLabel={actionRequiredBadgeLabel}
+              isReminderPending={reminderPendingByAnnouncementId[item.id] ?? false}
               locale={locale}
             />
           ))}

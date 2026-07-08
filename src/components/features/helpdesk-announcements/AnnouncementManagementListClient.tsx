@@ -11,7 +11,9 @@ import {
 } from "@/lib/helpdesk-announcement-list";
 import { AnnouncementFilterBar } from "@/components/features/helpdesk-announcements/AnnouncementFilterBar";
 import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
+import { AnnouncementTrackingBadge } from "@/components/features/helpdesk-announcements/AnnouncementTrackingBadge";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
 
 export interface AnnouncementManagementListClientProps {
   /** 公開日降順で整列済みの全お知らせ */
@@ -27,6 +29,8 @@ export interface AnnouncementManagementListClientProps {
   deleteButtonLabel: string;
   deleteConfirmMessage: string;
   deleteErrorMessage: string;
+  /** お知らせIDごとの担当者別確認済み・実施済み・リマインド送信状態 */
+  recipientStatusesByAnnouncementId: Record<string, AnnouncementRecipientStatusView[]>;
 }
 
 /**
@@ -46,6 +50,7 @@ export function AnnouncementManagementListClient({
   deleteButtonLabel,
   deleteConfirmMessage,
   deleteErrorMessage,
+  recipientStatusesByAnnouncementId,
 }: AnnouncementManagementListClientProps) {
   const t = useTranslations("helpdeskAnnouncements.list.filter");
   const [filters, setFilters] = useState(EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS);
@@ -98,6 +103,13 @@ export function AnnouncementManagementListClient({
                   </time>
                   <span>{targetingLabel(announcement)}</span>
                 </div>
+                <AnnouncementTrackingBadge
+                  announcementId={announcement.id}
+                  actionRequired={announcement.actionRequired}
+                  recipientStatuses={
+                    recipientStatusesByAnnouncementId[announcement.id] ?? []
+                  }
+                />
               </div>
               <div className="flex items-center gap-2">
                 <Link

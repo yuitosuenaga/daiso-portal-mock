@@ -1,8 +1,11 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncementById } from "@/lib/api/announcements";
+import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
+import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
 import { Link } from "@/i18n/navigation";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
@@ -51,6 +54,11 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     );
   }
 
+  const isReminderPending = await isReminderPendingForCompany(
+    announcement.id,
+    MOCK_CURRENT_COMPANY.companyCode
+  );
+
   return (
     <div className="space-y-4">
       <Card>
@@ -78,6 +86,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
                 {tAnnouncements("actionRequiredBadge")}
               </Badge>
             )}
+            {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
           </div>
         </CardHeader>
         <CardContent>

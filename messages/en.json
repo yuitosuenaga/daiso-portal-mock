@@ -118,6 +118,21 @@
       "actionRequiredLabel": "Action required",
       "actionRequiredTrueOption": "Action required",
       "actionRequiredFalseOption": "No action required"
+    },
+    "tracking": {
+      "confirmedCount": "Confirmed {confirmed}/{total}",
+      "completedCount": "Completed {completed}/{total}",
+      "dialogTitleConfirmed": "Unconfirmed recipients",
+      "dialogTitleCompleted": "Recipients with pending action",
+      "columnContact": "Contact",
+      "columnCompany": "Company",
+      "columnCountry": "Country/Region",
+      "remindButton": "Remind",
+      "remindAllButton": "Remind all",
+      "remindSuccessMessage": "Reminder sent",
+      "remindErrorMessage": "Failed to send. Please try again later.",
+      "alreadyRemindedLabel": "Sent",
+      "allRespondedMessage": "Everyone has responded"
     }
   },
   "helpdeskInquiries": {
@@ -326,6 +341,7 @@
       "backToList": "Back to list"
     },
     "actionRequiredBadge": "Action required",
+    "reminderBadge": "A reminder has been sent",
     "filter": {
       "keywordLabel": "Search title",
       "keywordPlaceholder": "Words in the title",
