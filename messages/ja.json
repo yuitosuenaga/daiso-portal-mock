@@ -238,6 +238,10 @@
       "title": "お知らせ",
       "description": "ヘルプデスクからの周知事項を確認できます。"
     },
+    "documents": {
+      "title": "ドキュメント",
+      "description": "ヘルプデスクが公開している業務ドキュメントを確認できます。"
+    },
     "links": {
       "title": "リンク",
       "description": "業務で利用する社内・外部サイトへのリンクを確認できます。"
@@ -275,6 +279,10 @@
     "announcements": {
       "title": "お知らせ管理",
       "description": "お知らせの一覧・作成・編集・削除を行えます。"
+    },
+    "documents": {
+      "title": "ドキュメント管理",
+      "description": "ドキュメントの一覧・作成・編集・削除を行えます。"
     },
     "inquiryForm": {
       "title": "申請フォーム",

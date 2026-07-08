@@ -238,3 +238,16 @@ interface DocumentsReadOnlyApi {
 
 ## Security Considerations
 本specは読み取り専用であり、認証・認可の代替とはならない表示範囲制御（`documents-management`spec所有）に依存する。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御を追加できることを設計上の前提とする。
+
+## 追加ラウンド（2026-07-08）: 見出し（h1 + 説明文）の統一
+
+### Overview（追加分）
+ドキュメント一覧ページに、`links`/`faq` specが既に採用している`h1`＋説明文の見出しパターンを適用する。新規翻訳キーは追加せず、既存の`documents.list.title`/`documents.list.description`をそのまま使用する。
+
+### Modified Files（追加分）
+- `src/components/features/documents/DocumentList.tsx` — `LinkList.tsx`/`FaqList.tsx`と同じ`heading`要素（`<div className="mb-6"><h1 className="text-2xl font-semibold text-foreground">...</h1><p className="mt-1 text-sm text-muted-foreground">...</p></div>`）を定義し、既存の`Card`の外側・上部に配置する。エラー時・空データ時の各早期returnにも同じ`heading`を含める
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 9.1〜9.4 | h1＋説明文の見出し統一 | DocumentList |

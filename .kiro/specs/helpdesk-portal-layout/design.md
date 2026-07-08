@@ -300,3 +300,36 @@ interface InquiriesMockApi {
 
 ## Security Considerations
 本フェーズはルーティング・レイアウトの分離のみを行い、アクセス制御は実装しない。`helpdesk`セグメントは`(applicant)`と同様に認証なしで到達可能である。フェーズ3で認証が導入される際は、本specが確立したルートセグメント境界（`(applicant)` / `helpdesk`）を変更せずにアクセス制御を追加できることを設計上の前提とする（Revalidation Triggers参照）。
+
+## サイドバーのアクティブ判定統一・ヘッダーロゴのダッシュボード導線化（2026-07-08 追記）
+
+### 対象ファイル
+- `src/components/layout/Sidebar.tsx`（変更）
+- `src/components/layout/Header.tsx`（変更）
+- `src/components/layout/HelpdeskHeader.tsx`（変更）
+- `src/components/layout/HelpdeskSidebar.tsx`（変更なし・参照実装）
+
+### サイドバーのアクティブ判定（Requirement 11）
+`Sidebar.tsx`の`isActive`算出を、`HelpdeskSidebar.tsx`が既に採用している方式に統一する。
+
+変更前:
+```typescript
+const isActive = pathname === item.href;
+```
+
+変更後（`HelpdeskSidebar.tsx`の`item.href !== "/helpdesk"`判定をルートパス`"/"`向けに置き換えたもの）:
+```typescript
+const isActive =
+  pathname === item.href ||
+  (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+```
+
+この変更により、`/documents/123`は`documents`項目を、`/inquiry/456`は`inquiryList`項目をアクティブ表示する。`href="/"`（ダッシュボード）は完全一致のみでアクティブとし、他の全パスに対して常時アクティブ化する問題を避ける。
+
+### ヘッダーロゴのダッシュボードリンク化（Requirement 12）
+`Header.tsx` / `HelpdeskHeader.tsx`の左上ロゴ・タイトル領域（`<div className="flex items-center gap-3 min-w-0">...</div>`）を、`@/i18n/navigation`の`Link`でラップする。`Logo`コンポーネント自体（`src/components/layout/Logo.tsx`）は変更しない。
+
+- `Header.tsx`: ラップ先を`href="/"`とする
+- `HelpdeskHeader.tsx`: ラップ先を`href="/helpdesk"`とする（`Badge`要素もリンク内に含める）
+
+いずれも既存のロゴ・タイトル・（ヘルプデスク側は）バッジの表示・スタイルはそのまま維持し、クリック可能領域を追加するのみとする。フォーカス可能なリンク要素になるため、追加の`tabIndex`やARIA属性は不要（ネイティブ`<a>`要素のデフォルト挙動に従う）。

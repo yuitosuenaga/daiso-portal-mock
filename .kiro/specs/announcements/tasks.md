@@ -164,3 +164,12 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 8.1, 9.5_
   - _Depends: 8.2, 8.3_
+
+---
+
+- [x] 10. 見出し（h1 + 説明文）の統一（2026-07-08 追記）
+  - `AnnouncementList.tsx`に、`LinkList.tsx`/`FaqList.tsx`と同一の`h1`＋説明文の`heading`要素を追加し、`Card`の外側・上部に配置する（既存の`announcements.list.title`/`.description`翻訳キーをそのまま使用）
+  - エラー時・空データ時の早期returnにも同じ`heading`を含める
+  - 観測可能な完了条件: `/announcements`を開くと、リンク集・FAQページと同じスタイルの`h1`タイトルと説明文がカードの上部に表示される
+  - _Requirements: 10.1, 10.2, 10.3, 10.4_
+  - _Boundary: AnnouncementList_
