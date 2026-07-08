@@ -42,8 +42,8 @@ describe("ReplyForm", () => {
       <ReplyForm
         inquiryId="inquiry-001"
         templates={[
-          { id: "t1", category: "defect", body: "テンプレート本文1" },
-          { id: "t2", category: "defect", body: "テンプレート本文2" },
+          { id: "t1", category: "defect", name: "テンプレート名1", body: "テンプレート本文1" },
+          { id: "t2", category: "defect", name: "テンプレート名2", body: "テンプレート本文2" },
         ]}
         {...labels}
       />
@@ -58,11 +58,39 @@ describe("ReplyForm", () => {
     ).toBe("テンプレート本文2");
   });
 
+  it("テンプレート選択肢のラベルには本文ではなくテンプレート名が表示される", () => {
+    render(
+      <ReplyForm
+        inquiryId="inquiry-001"
+        templates={[
+          { id: "t1", category: "defect", name: "テンプレート名1", body: "テンプレート本文1" },
+          { id: "t2", category: "defect", name: "テンプレート名2", body: "テンプレート本文2" },
+        ]}
+        {...labels}
+      />
+    );
+
+    expect(
+      screen.getByRole("option", { name: "テンプレート名1" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("option", { name: "テンプレート名2" })
+    ).toBeTruthy();
+    expect(screen.queryByText("テンプレート本文1")).toBeNull();
+  });
+
   it("挿入後の本文を自由に編集できる", () => {
     render(
       <ReplyForm
         inquiryId="inquiry-001"
-        templates={[{ id: "t1", category: "defect", body: "テンプレート本文" }]}
+        templates={[
+          {
+            id: "t1",
+            category: "defect",
+            name: "テンプレート名1",
+            body: "テンプレート本文",
+          },
+        ]}
         {...labels}
       />
     );
@@ -83,7 +111,14 @@ describe("ReplyForm", () => {
     render(
       <ReplyForm
         inquiryId="inquiry-001"
-        templates={[{ id: "t1", category: "defect", body: "テンプレート本文" }]}
+        templates={[
+          {
+            id: "t1",
+            category: "defect",
+            name: "テンプレート名1",
+            body: "テンプレート本文",
+          },
+        ]}
         {...labels}
       />
     );
@@ -106,7 +141,14 @@ describe("ReplyForm", () => {
     render(
       <ReplyForm
         inquiryId="inquiry-001"
-        templates={[{ id: "t1", category: "defect", body: "テンプレート本文" }]}
+        templates={[
+          {
+            id: "t1",
+            category: "defect",
+            name: "テンプレート名1",
+            body: "テンプレート本文",
+          },
+        ]}
         {...labels}
       />
     );
@@ -150,7 +192,14 @@ describe("ReplyForm", () => {
     render(
       <ReplyForm
         inquiryId="inquiry-001"
-        templates={[{ id: "t1", category: "defect", body: "テンプレート本文" }]}
+        templates={[
+          {
+            id: "t1",
+            category: "defect",
+            name: "テンプレート名1",
+            body: "テンプレート本文",
+          },
+        ]}
         {...labels}
       />
     );

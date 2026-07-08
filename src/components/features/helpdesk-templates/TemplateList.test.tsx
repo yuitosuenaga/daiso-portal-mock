@@ -42,14 +42,26 @@ vi.mock("next-intl/server", async () => {
 describe("TemplateList", () => {
   it("カテゴリ別にグループ化して一覧表示し、各テンプレートに編集リンクを表示する", async () => {
     getReplyTemplatesMock.mockResolvedValueOnce([
-      { id: "t1", category: "defect", body: "不良品テンプレート" },
-      { id: "t2", category: "order", body: "発注テンプレート" },
+      {
+        id: "t1",
+        category: "defect",
+        name: "不良品テンプレート名",
+        body: "不良品テンプレート",
+      },
+      {
+        id: "t2",
+        category: "order",
+        name: "発注テンプレート名",
+        body: "発注テンプレート",
+      },
     ]);
 
     const jsx = await TemplateList();
     render(jsx);
 
+    expect(screen.getByText("不良品テンプレート名")).toBeTruthy();
     expect(screen.getByText("不良品テンプレート")).toBeTruthy();
+    expect(screen.getByText("発注テンプレート名")).toBeTruthy();
     expect(screen.getByText("発注テンプレート")).toBeTruthy();
 
     const editLinks = screen
@@ -64,6 +76,29 @@ describe("TemplateList", () => {
       .getAllByRole("link")
       .find((link) => link.getAttribute("href") === "/helpdesk/templates/new");
     expect(newLink).toBeTruthy();
+  });
+
+  it("同一カテゴリに複数テンプレートがある場合、それぞれが名前で区別されて表示される", async () => {
+    getReplyTemplatesMock.mockResolvedValueOnce([
+      {
+        id: "t1",
+        category: "defect",
+        name: "不良品対応（交換・返金案内）",
+        body: "本文1",
+      },
+      {
+        id: "t2",
+        category: "defect",
+        name: "不良品対応（詳細確認依頼）",
+        body: "本文2",
+      },
+    ]);
+
+    const jsx = await TemplateList();
+    render(jsx);
+
+    expect(screen.getByText("不良品対応（交換・返金案内）")).toBeTruthy();
+    expect(screen.getByText("不良品対応（詳細確認依頼）")).toBeTruthy();
   });
 
   it("テンプレートが0件のとき空状態メッセージを表示する", async () => {

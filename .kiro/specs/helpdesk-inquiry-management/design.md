@@ -277,6 +277,8 @@ sequenceDiagram
 | 12.1〜12.6 | 添付ファイル対応 | HelpdeskInquiryDetail, ReplyForm, HistoryTimeline, AttachmentPreviewList, HelpdeskActions | AttachmentField（inquiry-form所有）, inquiryAttachmentSchema | 返信の添付ファイル送信フロー |
 | 13.1〜13.6 | 問い合わせ本文の日本語訳表示 | HelpdeskInquiryDetail | InquiriesMockApi (Service、`translatedText`を読み取るのみ) | — |
 | 14.1〜14.5 | 対応履歴への申請者メッセージの統合表示 | HelpdeskInquiryDetail, HistoryTimeline | InquiryHistoryMockApi (Service、`requester_message`種別を読み取るのみ) | — |
+| 7.6 | テンプレート選択肢に名前をラベル表示 | ReplyForm | ReplyTemplatesMockApi (Service) | 対応中フラグの切り替えフローと同型 |
+| 8.6 | `ReplyTemplate`型への`name`フィールド追加 | TemplateList, TemplateForm | ReplyTemplatesMockApi (Service) | — |
 
 ## Components and Interfaces
 
@@ -289,11 +291,11 @@ sequenceDiagram
 | HelpdeskInquiryDetail | UI/Server | 問い合わせ詳細・関連セクションの組み立て（追加: 問い合わせ本文添付の表示、日本語訳/原文の表示切り替え、申請者メッセージ用typeLabelの追加） | 3.1〜3.4, 12.1, 12.2, 13.1〜13.4, 14.2, 14.3 | InquiriesMockApi (P0), InquiryHistoryMockApi (P0), AttachmentPreviewList (P1) | State |
 | ClaimToggleButton | UI/Client | 対応中フラグのON/OFF操作 | 4.1〜4.5 | HelpdeskActions (P0) | State |
 | StatusSelect | UI/Client | ステータス変更操作 | 6.1〜6.3 | HelpdeskActions (P0) | State |
-| ReplyForm | UI/Client | テンプレート選択・返信入力・添付・送信 | 7.1〜7.5, 12.3, 12.4, 12.5 | HelpdeskActions (P0), ReplyTemplatesMockApi (P1), AttachmentField (P0, inquiry-form所有) | State |
+| ReplyForm | UI/Client | テンプレート選択（選択肢は`name`をラベル表示）・返信入力・添付・送信 | 7.1〜7.6, 12.3, 12.4, 12.5 | HelpdeskActions (P0), ReplyTemplatesMockApi (P1), AttachmentField (P0, inquiry-form所有) | State |
 | HistoryTimeline | UI | 対応履歴の時系列表示（追加: 返信添付の表示。追加: 申請者メッセージも既存のtypeLabelルックアップ方式でそのまま表示、コード変更不要） | 5.1〜5.4, 12.6, 14.2, 14.3, 14.4 | AttachmentPreviewList (P1) | State |
 | AttachmentPreviewList（追加） | UI (Shared) | 添付ファイルの読み取り専用プレビュー・ダウンロード表示 | 12.1, 12.2, 12.6 | なし | - |
-| TemplateList | UI/Server | カテゴリ別テンプレート一覧の表示 | 8.1 | ReplyTemplatesMockApi (P0) | State |
-| TemplateForm | UI/Client | テンプレートの新規作成・編集フォーム | 8.2, 8.3, 8.5 | HelpdeskActions (P0) | State |
+| TemplateList | UI/Server | カテゴリ別テンプレート一覧の表示（各テンプレートを`name`で識別、`body`はプレビュー表示） | 8.1, 8.6 | ReplyTemplatesMockApi (P0) | State |
+| TemplateForm | UI/Client | テンプレートの新規作成・編集フォーム（`name`/`category`/`body`の3項目） | 8.2, 8.3, 8.5, 8.6 | HelpdeskActions (P0) | State |
 | InquiriesMockApi（拡張） | Data/Mock | 対応中フラグ・ステータスのミューテーション | 4.1〜4.3, 6.1〜6.2 | Inquiry型 (P0) | Service |
 | InquiryHistoryMockApi | Data/Mock | 対応履歴の取得・追記 | 5.1〜5.3 | なし | Service |
 | ReplyTemplatesMockApi | Data/Mock | テンプレートのCRUD | 7.1, 8.1〜8.4 | Inquiry["category"] (P1) | Service |
@@ -374,11 +376,11 @@ interface InquiryHistoryMockApi {
 | Field | Detail |
 |-------|--------|
 | Intent | カテゴリ別テンプレートのCRUDを提供する |
-| Requirements | 7.1, 8.1, 8.2, 8.3, 8.4, 8.5 |
+| Requirements | 7.1, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6 |
 
 **Responsibilities & Constraints**
-- テンプレートはカテゴリ（`Inquiry["category"]`）ごとに0件以上存在しうる
-- カテゴリまたは本文が空のテンプレートは作成できない（要件8.5、`lib/validation/reply-template.ts`のzodスキーマで検証）
+- テンプレートはカテゴリ（`Inquiry["category"]`）ごとに0件以上存在しうる（複数件を想定）
+- カテゴリ・テンプレート名（`name`）・本文が空のテンプレートは作成できない（要件8.5、`lib/validation/reply-template.ts`のzodスキーマで検証）。`name`は`TEMPLATE_NAME_MAX_LENGTH`（40文字）以内であること
 
 **Dependencies**
 - Inbound: `HelpdeskActions`（P0）, `ReplyForm`（P1, カテゴリ別取得）, `TemplateList`（P0）
@@ -468,7 +470,7 @@ interface HelpdeskActions {
 
 - **HelpdeskInquiryList / HelpdeskInquiryListClient / HelpdeskInquiryFilterBar / HelpdeskInquiryListItem**: `getAllInquiries()`の結果を緊急度→受付日時の順で並び替えた後、クライアント側でフィルタ条件（会社名・キーワード・国・カテゴリのAND条件）により表示件数を絞り込む。既存`InquiryList`/`InquiryListItem`（申請者側）の構造を参考にしつつ、対応中バッジの表示を追加する。
 - **HelpdeskInquiryDetail / ClaimToggleButton / StatusSelect / ReplyForm / HistoryTimeline**: 既存`InquiryDetail`（申請者側）と同等の情報表示に加え、ヘルプデスク専用のセクション（対応中フラグ・ステータス変更・返信フォーム・履歴タイムライン）を追加する。（追加）`HelpdeskInquiryDetail`は`inquiry.attachments`を`AttachmentPreviewList`で、`HistoryTimeline`は`reply_sent`エントリの`attachments`を同じく`AttachmentPreviewList`で表示する。（追加・2026-07-07）`HelpdeskInquiryDetail`は問い合わせ本文の表示を、条件に応じて「日本語訳（メイン）+ 原文（参照）」または「原文のみ」に切り替える。
-- **TemplateList / TemplateForm**: `InquiryForm`と同じ`react-hook-form`+`zod`パターンを踏襲したシンプルなCRUD画面。
+- **TemplateList / TemplateForm**: `InquiryForm`と同じ`react-hook-form`+`zod`パターンを踏襲したシンプルなCRUD画面。（追加・2026-07-08）`TemplateList`はカテゴリ見出しを`Badge`で明示し、各テンプレートを`name`（見出し）+`body`（`line-clamp-2`によるプレビュー）の2段組で表示する。`TemplateForm`は`name`/`category`/`body`の3項目を扱う。
 
 #### AttachmentPreviewList（追加）
 
@@ -497,7 +499,7 @@ interface HelpdeskActions {
 ### Domain Model
 - `Inquiry`（既存、拡張）: `claim?: { staffName: string; claimedAt: string } | null`を追加。対応中でない場合は`null`または未設定。（追加ラウンド: `attachments?: InquiryAttachment[]`は`inquiry-form`spec所有の既存追加であり、本specは読み取り専用で参照する）（追加・2026-07-07: `translatedText?: string`も`inquiry-form`spec所有の既存追加であり、本specはフェーズ1モックデータへの値追加と読み取り専用の表示のみを行う。型自体は変更しない）
 - `InquiryHistoryEntry`（新規）: 1件の対応履歴イベント。`inquiryId`で`Inquiry`と関連付く（1問い合わせ:N履歴）。（追加）`type: "reply_sent"`のエントリは`attachments?: InquiryAttachment[]`を持ちうる（追加・2026-07-07・2）`type`に`"requester_message"`を追加する。この種別のエントリも`detail`（メッセージ本文）・`attachments?: InquiryAttachment[]`を持ちうる。`actorName`には送信元の会社名（`Inquiry.submittedBy.companyName`）を格納する（フェーズ1は個人名を持たない申請者の識別に用いる）
-- `ReplyTemplate`（新規）: カテゴリ別の定型文。`Inquiry["category"]`と対応するが独立したエンティティ。
+- `ReplyTemplate`（新規、追加・2026-07-08: `name`フィールド追加）: カテゴリ別の定型文。`Inquiry["category"]`と対応するが独立したエンティティ。`name`（テンプレート名、上限40文字）で個々のテンプレートを識別する。
 
 ### Logical Data Model
 - `Inquiry` 1 --- N `InquiryHistoryEntry`（`inquiryId`で関連付け、外部キー相当）
@@ -509,8 +511,8 @@ interface HelpdeskActions {
 |---|---|---|
 | `Inquiry`（拡張） | 既存フィールド + `claim?: { staffName: string; claimedAt: string } \| null` | 既存フィールドは変更なし。`attachments`は`inquiry-form`が既に追加済み |
 | `InquiryHistoryEntry`（拡張） | `id`, `inquiryId`, `type: "claimed" \| "released" \| "status_changed" \| "reply_sent" \| "requester_message"`（追加）, `actorName`, `occurredAt`, `detail?: string`, `attachments?: InquiryAttachment[]`（追加） | `detail`はステータス変更前後の値や返信本文・申請者メッセージ本文。`attachments`は`reply_sent`・`requester_message`エントリのみ意味を持つ（他の種別では常に未設定）。`requester_message`の`actorName`には送信元会社名を格納する |
-| `ReplyTemplate` | `id`, `category: Inquiry["category"]`, `body: string` | |
-| `CreateReplyTemplateInput` | `category`, `body` | `ReplyTemplate`から`id`を除いたサブセット |
+| `ReplyTemplate`（拡張・2026-07-08） | `id`, `category: Inquiry["category"]`, `name: string`（追加、上限40文字）, `body: string` | `name`はテンプレート選択肢・一覧見出しのラベルとして使用 |
+| `CreateReplyTemplateInput` | `category`, `name`, `body` | `ReplyTemplate`から`id`を除いたサブセット |
 
 ## Error Handling
 

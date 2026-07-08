@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -22,12 +23,15 @@ export interface TemplateFormProps {
   mode: "create" | "edit";
   templateId?: string;
   defaultValues?: ReplyTemplateFormValues;
+  nameLabel: string;
+  namePlaceholder: string;
   categoryLabel: string;
   categoryPlaceholder: string;
   bodyLabel: string;
   bodyPlaceholder: string;
   submitButtonLabel: string;
   requiredErrorMessage: string;
+  nameTooLongErrorMessage: string;
   categoryOptions?: { value: string; label: string }[];
 }
 
@@ -39,12 +43,15 @@ export function TemplateForm({
   mode,
   templateId,
   defaultValues,
+  nameLabel,
+  namePlaceholder,
   categoryLabel,
   categoryPlaceholder,
   bodyLabel,
   bodyPlaceholder,
   submitButtonLabel,
   requiredErrorMessage,
+  nameTooLongErrorMessage,
   categoryOptions,
 }: TemplateFormProps) {
   const router = useRouter();
@@ -60,6 +67,7 @@ export function TemplateForm({
     // 機能しなくなる。
     defaultValues: defaultValues ?? {
       category: "" as unknown as ReplyTemplateFormValues["category"],
+      name: "",
       body: "",
     },
   });
@@ -79,6 +87,25 @@ export function TemplateForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <FormField
+        label={nameLabel}
+        htmlFor="template-name"
+        error={
+          errors.name?.type === "too_big"
+            ? nameTooLongErrorMessage
+            : errors.name
+              ? requiredErrorMessage
+              : undefined
+        }
+      >
+        <Input
+          id="template-name"
+          placeholder={namePlaceholder}
+          aria-invalid={errors.name ? true : undefined}
+          {...register("name")}
+        />
+      </FormField>
+
       <FormField
         label={categoryLabel}
         htmlFor="template-category"

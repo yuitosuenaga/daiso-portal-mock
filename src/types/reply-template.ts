@@ -6,6 +6,7 @@ import type { Inquiry } from "@/types/inquiry";
 export type ReplyTemplate = {
   id: string;
   category: Inquiry["category"];
+  name: string;
   body: string;
 };
 

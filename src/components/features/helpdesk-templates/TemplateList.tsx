@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getReplyTemplates } from "@/lib/api/reply-templates";
 import { INQUIRY_CATEGORY_CODES } from "@/lib/constants/inquiry-options";
@@ -60,8 +61,11 @@ export async function TemplateList() {
         {templatesByCategory.map(({ category, templates: categoryTemplates }) => (
           <Card key={category}>
             <CardHeader>
-              <CardTitle className="text-base">
-                {tCategories(category)}
+              <CardTitle className="flex items-center gap-2 text-base font-normal">
+                <Badge variant="other">{tCategories(category)}</Badge>
+                <span className="text-sm text-muted-foreground">
+                  {t("templateCount", { count: categoryTemplates.length })}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -74,10 +78,17 @@ export async function TemplateList() {
                       key={template.id}
                       className="flex items-start justify-between gap-4 py-3"
                     >
-                      <p className="flex-1 text-sm">{template.body}</p>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium text-foreground">
+                          {template.name}
+                        </p>
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                          {template.body}
+                        </p>
+                      </div>
                       <Link
                         href={`/helpdesk/templates/${template.id}/edit`}
-                        className="text-sm text-primary underline-offset-4 hover:underline"
+                        className="shrink-0 text-sm text-primary underline-offset-4 hover:underline"
                       >
                         {t("editLink")}
                       </Link>

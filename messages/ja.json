@@ -195,15 +195,18 @@
   "helpdeskTemplates": {
     "list": {
       "title": "テンプレート管理",
-      "description": "カテゴリ別の返信テンプレートを管理できます。",
+      "description": "カテゴリ別に複数の返信テンプレートを登録・管理できます。",
       "addButton": "新規テンプレートを追加",
       "editLink": "編集",
-      "empty": "テンプレートはありません"
+      "empty": "テンプレートはありません",
+      "templateCount": "{count}件"
     },
     "form": {
       "createTitle": "テンプレートの新規作成",
       "editTitle": "テンプレートの編集",
       "notFound": "テンプレートが見つかりません",
+      "nameLabel": "テンプレート名",
+      "namePlaceholder": "テンプレート名を入力してください",
       "categoryLabel": "案件種別",
       "categoryPlaceholder": "案件種別を選択してください",
       "bodyLabel": "本文",
@@ -211,7 +214,8 @@
       "submitButton": "保存する",
       "backToList": "一覧へ戻る",
       "validation": {
-        "required": "この項目は必須です"
+        "required": "この項目は必須です",
+        "nameTooLong": "テンプレート名は40文字以内で入力してください"
       }
     }
   },
