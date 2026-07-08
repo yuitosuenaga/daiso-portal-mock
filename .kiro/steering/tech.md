@@ -16,7 +16,10 @@
 
 ## ホスティング
 
-- **モックアップ公開**: Firebase App Hosting（PRごとのプレビュー環境を想定）
+- **モックアップ公開**: Cloud Run（`gcloud run deploy --source .` による手動デプロイ）
+  - Firebase App Hostingはバックエンド作成時に必ずGitHubリポジトリ連携（Cloud Build GitHub Appのブラウザ認可）が必要になるため、GitHub連携なしで最小コスト・最小手順を優先し、Cloud Runへの直接デプロイを採用（2026-07-08変更）
+  - リージョン: `asia-northeast1`、`min-instances=0`（アイドル時ゼロスケール）でコストを最小化
+  - 更新時はmainマージ後に `gcloud run deploy` を再実行する運用（自動デプロイ・PRプレビューはなし）
 - **バージョン管理**: GitHub（PRベース開発、main直push禁止）
 - **CI**: GitHub Actions（lint / typecheck / build を将来的に整備。現フェーズでは lint・typecheck・build の確認を優先）
 
