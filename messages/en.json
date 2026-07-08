@@ -15,7 +15,57 @@
     "templates": "Template Management",
     "links": "Links",
     "faq": "FAQ",
-    "announcements": "Announcement Management"
+    "announcements": "Announcement Management",
+    "documents": "Document Management"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "Document Management",
+      "description": "Upload, edit, and delete business documents (PDF) for overseas sales agents.",
+      "empty": "No documents",
+      "error": "Failed to load documents",
+      "addButton": "Add new document",
+      "editLink": "Edit",
+      "deleteButton": "Delete",
+      "deleteConfirm": "Delete this document?",
+      "deleteError": "Failed to delete. Please try again later.",
+      "targetingAllLabel": "Public to all",
+      "targetingCountriesLabel": "Target countries",
+      "targetingCompaniesLabel": "Target companies",
+      "fileSizeLabel": "File size",
+      "uploadedAtLabel": "Uploaded"
+    },
+    "form": {
+      "createTitle": "Create Document",
+      "editTitle": "Edit Document",
+      "notFound": "Document not found",
+      "backToList": "Back to list",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter the document title",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter a supplementary description (optional)",
+      "targetingLabel": "Visibility",
+      "targetingAllOption": "Public to all",
+      "targetingCountriesOption": "Specify countries/regions",
+      "targetingCompaniesOption": "Specify companies",
+      "countriesLabel": "Countries/regions (multiple allowed)",
+      "companiesLabel": "Companies (multiple allowed)",
+      "fileLabel": "PDF file",
+      "fileHint": "PDF only, up to 20MB.",
+      "currentFileLabel": "Current file",
+      "removeButtonLabel": "Remove",
+      "submitButton": "Save",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required",
+        "countriesRequired": "Select at least one country or region",
+        "companiesRequired": "Select at least one company",
+        "fileRequired": "Please select a PDF file",
+        "sizeExceeded": "The file size exceeds the limit (20MB)",
+        "typeNotAllowed": "This file type is not allowed (PDF only)",
+        "readFailed": "Failed to read the file. Please try again."
+      }
+    }
   },
   "helpdeskAnnouncements": {
     "list": {
@@ -172,7 +222,8 @@
     "inquiryList": "My Inquiries",
     "announcements": "Announcements",
     "links": "Links",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "documents": "Documents"
   },
   "dashboard": {
     "inquiryForm": {
@@ -272,6 +323,26 @@
       "actionRequiredAll": "All",
       "actionRequiredTrue": "Action required only",
       "clearButton": "Clear"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "Documents",
+      "description": "View business documents published by the help desk.",
+      "empty": "No documents",
+      "error": "Failed to load documents",
+      "viewLink": "View",
+      "downloadLink": "Download",
+      "fileSizeLabel": "File size",
+      "uploadedAtLabel": "Uploaded"
+    },
+    "detail": {
+      "notFound": "Document not found",
+      "error": "Failed to load the document",
+      "backToList": "Back to list",
+      "uploadedAtLabel": "Uploaded",
+      "fileSizeLabel": "File size",
+      "downloadLink": "Download"
     }
   },
   "inquiryForm": {

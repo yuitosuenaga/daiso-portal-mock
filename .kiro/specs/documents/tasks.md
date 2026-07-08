@@ -1,0 +1,88 @@
+# 実装タスク: documents
+
+## 実装計画
+
+> 前提: `documents-management`spec が所有する`Document`/`DocumentTargeting`型、および`lib/api/documents.ts`の`getDocuments`/`getDocumentById`が実装済みであること（実装順序は`documents-management`を先行させる）。
+
+- [x] 1. 基盤: 翻訳キーの追加
+- [x] 1.1 ドキュメント一覧・詳細の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`に一覧・詳細画面用の翻訳キーを新規名前空間（`documents`）として追加する
+  - `nav`名前空間に「ドキュメント」のキーを追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 7.1, 7.2_
+  - _Boundary: i18n messages_
+
+---
+
+- [x] 2. コア: ドキュメント一覧・詳細画面
+- [x] 2.1 DocumentList・DocumentListItemを実装する
+  - `getDocuments()`を呼び出し、アップロード日降順で一覧表示する`DocumentList`（+スケルトン）を実装する
+  - `DocumentListItem`にタイトル・説明・`formatFileSize(fileSize)`・アップロード日、詳細ページへの「表示」リンク、`<a href={dataUrl} download={fileName}>`の「ダウンロード」リンクを実装する
+  - ローディング中はスケルトンUI、取得失敗時はエラーメッセージ、0件時は空状態メッセージを表示することで完了とする
+  - _Requirements: 1.1, 1.2, 1.3, 3.1, 3.2, 3.3, 3.4, 5.1, 5.3_
+  - _Boundary: DocumentList_
+
+- [x] 2.2 (P) PdfViewerを実装する
+  - `<iframe src={dataUrl} title={title}>`をビューポート高さに応じたコンテナ（`h-[70vh] lg:h-[80vh]`程度）に配置し、iframeの外側に独立したダウンロードリンク（`<a href={dataUrl} download={fileName}>`）を常設する
+  - `title`属性にドキュメントのタイトルを設定する
+  - iframe内にPDFが表示され、ダウンロードリンクが独立して機能することで完了とする
+  - _Requirements: 4.3, 4.4, 5.2, 5.3, 8.2_
+  - _Boundary: PdfViewer_
+
+- [x] 2.3 DocumentDetailを実装する
+  - `getDocumentById(id)`を呼び出し、見つからない/エラー/成功の3状態を管理する（+スケルトン）
+  - 成功時はタイトル・説明・ファイルサイズ・アップロード日を表示し、`PdfViewer`にドキュメント情報を渡す
+  - 一覧ページへ戻るリンクを表示する
+  - 存在しない、または自社に非公開のIDに対して「見つからない」旨のメッセージを表示することで完了とする
+  - _Requirements: 2.5, 4.1, 4.2, 4.5, 4.6_
+  - _Boundary: DocumentDetail_
+  - _Depends: 2.2_
+
+- [x] 2.4 ドキュメント一覧ルートを実装し画面を結線する
+  - `app/[locale]/(applicant)/documents/page.tsx`を新設し、`DocumentList`を結線する
+  - `/[locale]/documents`にアクセスすると自社に公開されたドキュメント一覧が表示されることで完了とする
+  - _Requirements: 1.1, 8.1_
+  - _Boundary: DocumentList_
+  - _Depends: 2.1_
+
+- [x] 2.5 (P) ドキュメント詳細ルートを実装し画面を結線する
+  - `app/[locale]/(applicant)/documents/[id]/page.tsx`を新設し、`DocumentDetail`を結線する
+  - 一覧の「表示」リンクから遷移すると詳細ページでPDFが閲覧できることで完了とする
+  - _Requirements: 4.1, 8.1, 8.2_
+  - _Boundary: DocumentDetail_
+  - _Depends: 2.3_
+
+---
+
+- [x] 3. 統合: ナビゲーションへの統合
+- [x] 3.1 Sidebarへナビゲーション項目を追加する
+  - `NavItem`の`translationKey`Unionに`"documents"`を追加し、`NAV_ITEMS`に「ドキュメント」（`/documents`）の項目を追加する
+  - 既存項目と同様に、現在表示中のページに対応する項目がアクティブ状態で強調表示されることで完了とする
+  - _Requirements: 1.1_
+  - _Boundary: Sidebar_
+  - _Depends: 2.4_
+
+---
+
+- [x] 4. 検証: 単体テスト・統合確認・多言語/レスポンシブ確認
+- [x] 4.1 (P) DocumentListItem・PdfViewerの単体テストを実装する
+  - `DocumentListItem`がタイトル・説明・ファイルサイズ・日付・表示/ダウンロードリンクを正しく描画することを検証するテストを実装する
+  - `PdfViewer`が`<iframe>`に`src`/`title`を正しく設定し、ダウンロードリンクを併設することを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 1.2, 4.3, 4.4, 5.1, 5.2_
+  - _Depends: 2.1, 2.2_
+
+- [x] 4.2 (P) 公開範囲による可視性制御を確認する
+  - `documents-management`側で異なる公開範囲（全体公開／国単位／販社単位）のドキュメントを用意し、自社に公開されるものだけが一覧・詳細に表示されることを確認する
+  - 自社に非公開のドキュメントIDへ直接アクセスすると「見つからない」旨が表示されることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - _Depends: 2.4, 2.5_
+
+- [x] 4.3 (P) 多言語表示・レスポンシブ表示を確認する
+  - 日本語・英語両ロケールで一覧・詳細画面の文言が正しく切り替わることを確認する
+  - タブレット幅（768px）で一覧・詳細画面が横スクロールを起こさないことを確認する
+  - 詳細ページのPDF表示領域がビューポート高さに応じて十分な縦幅を確保していることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 7.1, 7.2, 8.1, 8.2_
+  - _Depends: 2.4, 2.5_

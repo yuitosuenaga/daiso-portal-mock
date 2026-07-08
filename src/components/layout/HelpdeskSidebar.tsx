@@ -9,12 +9,20 @@ import {
   Bell,
   Link2,
   HelpCircle,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HelpdeskNavItem {
-  translationKey: "home" | "inquiries" | "templates" | "announcements" | "links" | "faq";
+  translationKey:
+    | "home"
+    | "inquiries"
+    | "templates"
+    | "announcements"
+    | "links"
+    | "faq"
+    | "documents";
   href: string;
   icon: LucideIcon;
 }
@@ -24,6 +32,7 @@ const HELPDESK_NAV_ITEMS: HelpdeskNavItem[] = [
   { translationKey: "inquiries", href: "/helpdesk/inquiries", icon: List },
   { translationKey: "templates", href: "/helpdesk/templates", icon: FileText },
   { translationKey: "announcements", href: "/helpdesk/announcements", icon: Bell },
+  { translationKey: "documents", href: "/helpdesk/documents", icon: FolderOpen },
   { translationKey: "links", href: "/helpdesk/links", icon: Link2 },
   { translationKey: "faq", href: "/helpdesk/faq", icon: HelpCircle },
 ];

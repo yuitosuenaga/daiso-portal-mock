@@ -15,7 +15,57 @@
     "templates": "テンプレート管理",
     "links": "リンク集",
     "faq": "よくある質問",
-    "announcements": "お知らせ管理"
+    "announcements": "お知らせ管理",
+    "documents": "ドキュメント管理"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "ドキュメント管理",
+      "description": "海外販社向けの業務ドキュメント（PDF）をアップロード・編集・削除できます。",
+      "empty": "ドキュメントはありません",
+      "error": "ドキュメントの取得に失敗しました",
+      "addButton": "新規ドキュメントを追加",
+      "editLink": "編集",
+      "deleteButton": "削除",
+      "deleteConfirm": "このドキュメントを削除しますか？",
+      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。",
+      "targetingAllLabel": "全体公開",
+      "targetingCountriesLabel": "対象国・地域",
+      "targetingCompaniesLabel": "対象販社",
+      "fileSizeLabel": "ファイルサイズ",
+      "uploadedAtLabel": "アップロード日"
+    },
+    "form": {
+      "createTitle": "ドキュメントの新規作成",
+      "editTitle": "ドキュメントの編集",
+      "notFound": "ドキュメントが見つかりません",
+      "backToList": "一覧へ戻る",
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "ドキュメントのタイトルを入力してください",
+      "descriptionLabel": "説明",
+      "descriptionPlaceholder": "補足説明を入力してください（任意）",
+      "targetingLabel": "公開範囲",
+      "targetingAllOption": "全体公開",
+      "targetingCountriesOption": "特定の国・地域を指定",
+      "targetingCompaniesOption": "特定の販社を指定",
+      "countriesLabel": "国・地域（複数選択可）",
+      "companiesLabel": "販社（複数選択可）",
+      "fileLabel": "PDFファイル",
+      "fileHint": "PDFのみ、20MBまでアップロードできます。",
+      "currentFileLabel": "登録済みファイル",
+      "removeButtonLabel": "削除",
+      "submitButton": "保存する",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です",
+        "countriesRequired": "1つ以上の国・地域を選択してください",
+        "companiesRequired": "1つ以上の販社を選択してください",
+        "fileRequired": "PDFファイルを選択してください",
+        "sizeExceeded": "ファイルサイズが上限（20MB）を超えています",
+        "typeNotAllowed": "許可されていないファイル形式です（PDFのみ）",
+        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
+      }
+    }
   },
   "helpdeskAnnouncements": {
     "list": {
@@ -172,7 +222,8 @@
     "inquiryList": "問い合わせ一覧",
     "announcements": "お知らせ",
     "links": "リンク集",
-    "faq": "よくある質問"
+    "faq": "よくある質問",
+    "documents": "ドキュメント"
   },
   "dashboard": {
     "inquiryForm": {
@@ -272,6 +323,26 @@
       "actionRequiredAll": "すべて",
       "actionRequiredTrue": "要対応のみ",
       "clearButton": "クリア"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "ドキュメント",
+      "description": "ヘルプデスクが公開している業務ドキュメントを確認できます。",
+      "empty": "ドキュメントはありません",
+      "error": "ドキュメントの取得に失敗しました",
+      "viewLink": "表示",
+      "downloadLink": "ダウンロード",
+      "fileSizeLabel": "ファイルサイズ",
+      "uploadedAtLabel": "アップロード日"
+    },
+    "detail": {
+      "notFound": "ドキュメントが見つかりません",
+      "error": "ドキュメントの取得に失敗しました",
+      "backToList": "一覧へ戻る",
+      "uploadedAtLabel": "アップロード日",
+      "fileSizeLabel": "ファイルサイズ",
+      "downloadLink": "ダウンロード"
     }
   },
   "inquiryForm": {
