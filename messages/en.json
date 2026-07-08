@@ -4,13 +4,13 @@
     "switchToHelpdesk": "Switch to Japan Admin View"
   },
   "helpdeskHeader": {
-    "title": "Helpdesk Portal",
-    "badge": "Helpdesk",
+    "title": "Japan Admin Portal",
     "switchToApplicant": "Switch to Overseas Sales Agent View"
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",
     "home": "Dashboard",
+    "inquiryForm": "Application",
     "inquiries": "Inquiry Management",
     "templates": "Template Management",
     "links": "Links",
@@ -255,11 +255,11 @@
     },
     "announcements": {
       "title": "Announcements",
-      "description": "View announcements from the help desk."
+      "description": "View announcements from head office."
     },
     "documents": {
       "title": "Documents",
-      "description": "View business documents published by the help desk."
+      "description": "View business documents published by head office."
     },
     "links": {
       "title": "Links",
@@ -307,8 +307,8 @@
       "description": "View, create, edit, and delete documents."
     },
     "inquiryForm": {
-      "title": "Inquiry Form",
-      "description": "View the inquiry and request form used by applicants."
+      "title": "Application",
+      "description": "Create a new inquiry or request."
     },
     "links": {
       "title": "Links",
@@ -325,7 +325,7 @@
   "announcements": {
     "list": {
       "title": "Announcements",
-      "description": "View announcements from the help desk.",
+      "description": "View announcements from head office.",
       "empty": "No announcements",
       "error": "Failed to load announcements",
       "noResults": "No matching announcements"
@@ -359,7 +359,7 @@
   "documents": {
     "list": {
       "title": "Documents",
-      "description": "View business documents published by the help desk.",
+      "description": "View business documents published by head office.",
       "empty": "No documents",
       "error": "Failed to load documents",
       "viewLink": "View",
