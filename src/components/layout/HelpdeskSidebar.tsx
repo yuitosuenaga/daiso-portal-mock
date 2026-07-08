@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import {
   LayoutDashboard,
+  FilePlus,
   List,
   FileText,
   Bell,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 interface HelpdeskNavItem {
   translationKey:
     | "home"
+    | "inquiryForm"
     | "inquiries"
     | "templates"
     | "announcements"
@@ -29,6 +31,7 @@ interface HelpdeskNavItem {
 
 const HELPDESK_NAV_ITEMS: HelpdeskNavItem[] = [
   { translationKey: "home", href: "/helpdesk", icon: LayoutDashboard },
+  { translationKey: "inquiryForm", href: "/helpdesk/inquiry/new", icon: FilePlus },
   { translationKey: "inquiries", href: "/helpdesk/inquiries", icon: List },
   { translationKey: "templates", href: "/helpdesk/templates", icon: FileText },
   { translationKey: "announcements", href: "/helpdesk/announcements", icon: Bell },

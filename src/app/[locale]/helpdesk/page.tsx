@@ -19,6 +19,7 @@ import {
 
 export default async function HelpdeskHomePage() {
   const t = await getTranslations("helpdeskDashboard");
+  const nav = await getTranslations("helpdeskNav");
 
   return (
     <div className="max-w-6xl space-y-8">
@@ -34,27 +35,33 @@ export default async function HelpdeskHomePage() {
             <InquiryListCard
               scope="all"
               href="/helpdesk/inquiries"
-              titleKey="helpdeskDashboard.inquiries.title"
+              titleKey="helpdeskNav.inquiries"
               descriptionKey="helpdeskDashboard.inquiries.description"
             />
           </Suspense>
           <NavigationCard
-            title={t("templates.title")}
+            title={nav("templates")}
             description={t("templates.description")}
             href="/helpdesk/templates"
             icon={FileText}
           />
           <NavigationCard
-            title={t("announcements.title")}
+            title={nav("announcements")}
             description={t("announcements.description")}
             href="/helpdesk/announcements"
             icon={Bell}
           />
           <NavigationCard
-            title={t("documents.title")}
+            title={nav("documents")}
             description={t("documents.description")}
             href="/helpdesk/documents"
             icon={FolderOpen}
+          />
+          <NavigationCard
+            title={nav("inquiryForm")}
+            description={t("inquiryForm.description")}
+            href="/helpdesk/inquiry/new"
+            icon={FilePlus}
           />
         </div>
       </section>
@@ -68,19 +75,13 @@ export default async function HelpdeskHomePage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <NavigationCard
-            title={t("inquiryForm.title")}
-            description={t("inquiryForm.description")}
-            href="/inquiry/new"
-            icon={FilePlus}
-          />
-          <NavigationCard
-            title={t("links.title")}
+            title={nav("links")}
             description={t("links.description")}
             href="/helpdesk/links"
             icon={Link2}
           />
           <NavigationCard
-            title={t("faq.title")}
+            title={nav("faq")}
             description={t("faq.description")}
             href="/helpdesk/faq"
             icon={HelpCircle}

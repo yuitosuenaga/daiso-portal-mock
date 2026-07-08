@@ -3,7 +3,6 @@
 import { ArrowLeftRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
 
@@ -17,7 +16,6 @@ export function HelpdeskHeader() {
         <span className="hidden sm:inline truncate font-semibold text-base text-foreground">
           {t("title")}
         </span>
-        <Badge className="hidden sm:inline-flex">{t("badge")}</Badge>
       </Link>
       <div className="flex items-center gap-4 shrink-0">
         <Link
