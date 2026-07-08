@@ -1,0 +1,97 @@
+import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { ReminderAnnouncementsPanel } from "@/components/features/dashboard/ReminderAnnouncementsPanel";
+import type { Announcement } from "@/types/announcement";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+const getAnnouncementsMock = vi.fn();
+const isReminderPendingForCompanyMock = vi.fn();
+
+vi.mock("@/lib/api/announcements", () => ({
+  getAnnouncements: (...args: unknown[]) => getAnnouncementsMock(...args),
+}));
+
+vi.mock("@/lib/api/announcement-tracking", () => ({
+  isReminderPendingForCompany: (...args: unknown[]) =>
+    isReminderPendingForCompanyMock(...args),
+}));
+
+vi.mock("next-intl/server", () => ({
+  getTranslations: async (namespace: string) => (key: string) =>
+    `${namespace}.${key}`,
+  getLocale: async () => "ja",
+}));
+
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
+}));
+
+function makeAnnouncement(id: string, title: string): Announcement {
+  return {
+    id,
+    title,
+    publishedAt: "2026-07-01T09:00:00Z",
+    category: "other",
+    body: "本文",
+    targeting: { scope: "all" },
+    actionRequired: true,
+  };
+}
+
+describe("ReminderAnnouncementsPanel", () => {
+  afterEach(() => {
+    getAnnouncementsMock.mockReset();
+    isReminderPendingForCompanyMock.mockReset();
+  });
+
+  it("リマインド対象のお知らせのみを一覧表示する", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([
+      makeAnnouncement("1", "リマインド対象のお知らせ"),
+      makeAnnouncement("2", "通常のお知らせ"),
+    ]);
+    isReminderPendingForCompanyMock.mockImplementation(
+      async (announcementId: string) => announcementId === "1"
+    );
+
+    const jsx = await ReminderAnnouncementsPanel();
+    expect(jsx).not.toBeNull();
+    render(jsx);
+
+    expect(screen.getByText("リマインド対象のお知らせ")).toBeTruthy();
+    expect(screen.queryByText("通常のお知らせ")).toBeNull();
+  });
+
+  it("リマインド対象が0件の場合は何も描画しない", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([
+      makeAnnouncement("1", "通常のお知らせ"),
+    ]);
+    isReminderPendingForCompanyMock.mockResolvedValue(false);
+
+    const jsx = await ReminderAnnouncementsPanel();
+
+    expect(jsx).toBeNull();
+  });
+
+  it("データ取得が失敗した場合は何も描画せず、例外をスローしない", async () => {
+    getAnnouncementsMock.mockRejectedValueOnce(new Error("network error"));
+
+    const jsx = await ReminderAnnouncementsPanel();
+
+    expect(jsx).toBeNull();
+  });
+});
