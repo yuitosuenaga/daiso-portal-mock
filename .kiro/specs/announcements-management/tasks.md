@@ -229,3 +229,95 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 11.1, 10.4_
   - _Depends: 7.2, 7.3_
+
+---
+
+## 追加ラウンド（2026-07-08）: 確認済み・実施済み人数の可視化と未対応者へのリマインド
+
+- [ ] 9. 基盤: 担当者マスタ・型・Dialogプリミティブ・翻訳キー
+- [ ] 9.1 担当者マスタの型定義・モックデータを追加する
+  - `AnnouncementRecipient`（`id`・`companyCode`・`companyName`・`country`・`contactName`）・`AnnouncementRecipientStatus`（`announcementId`・`recipientId`・`confirmedAt`・`completedAt`・`reminderSentAt`）型を定義する
+  - `DOCUMENT_COMPANY_OPTIONS`の各社について担当者を2名ずつ、計16名のモックデータを定数として追加する
+  - 型チェックがパスし、担当者マスタが16件（各社2名）であることで完了とする
+  - _Requirements: 12.1, 12.2_
+  - _Boundary: AnnouncementRecipient型, 担当者マスタ定数_
+
+- [ ] 9.2 (P) `Dialog`UIプリミティブを追加する
+  - `@radix-ui/react-dialog`を依存に追加し、既存の`accordion.tsx`と同様のパターンでshadcn/uiスタイルの`Dialog`ラッパー（`Dialog`・`DialogContent`・`DialogHeader`・`DialogTitle`）を実装する
+  - ダイアログを開閉でき、内容が正しく表示されることで完了とする
+  - _Boundary: components/ui/dialog.tsx_
+
+- [ ] 9.3 (P) 確認済み・実施済み表示、未対応者一覧、リマインド関連の翻訳キーを追加する
+  - `helpdeskAnnouncements.tracking`名前空間に、確認済み/実施済み人数表示・ダイアログのタイトル・個別/一括リマインドボタン・送信完了メッセージ・送信済み表示のラベルを追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 13.5, 14.6_
+  - _Boundary: i18n messages_
+
+---
+
+- [ ] 10. コア: 確認済み・実施済み集計とリマインド送信のモックAPI
+- [ ] 10.1 確認済み・実施済み集計、未対応者一覧、自社宛リマインド有無判定のモックAPIを実装する
+  - お知らせの`targeting`（全体一律 or 特定国）に応じて対象担当者を算出し、確認済み・実施済み（`actionRequired`が偽のときは`null`）の件数を返す関数を実装する
+  - お知らせIDから、担当者情報とステータスを結合した一覧を返す関数を実装する
+  - 指定した会社コードについて、未対応（`completedAt`が`null`）のまま`reminderSentAt`が設定されている担当者が存在するかを判定する関数を実装する
+  - 初期シードデータとして、`MOCK_CURRENT_COMPANY`（VN）に属する担当者について、`actionRequired: true`の既存お知らせ1件に対し`reminderSentAt`設定済み・`completedAt`が`null`の状態を含める
+  - 集計値が対象担当者数と一致し、自社宛リマインド有無判定が期待どおりの真偽値を返すことで完了とする
+  - _Requirements: 12.3, 12.4, 13.1, 13.2, 13.3, 13.4_
+  - _Boundary: AnnouncementTrackingMockApi_
+  - _Depends: 9.1_
+
+- [ ] 10.2 リマインド送信のServer Actionsを実装する
+  - `"use server"`を付与し、指定した担当者ID配列について`reminderSentAt`を現在時刻で更新するアクションを実装する
+  - 処理後、ヘルプデスク側お知らせ一覧・申請者側一覧・詳細ルートを`revalidatePath`で再検証する
+  - 空配列を渡した場合は何もせず正常終了することで完了とする
+  - _Requirements: 14.4, 14.5_
+  - _Boundary: AnnouncementTrackingActions_
+  - _Depends: 10.1_
+
+---
+
+- [ ] 11. コア: 人数表示・未対応者ダイアログ・一覧統合
+- [ ] 11.1 確認済み・実施済み人数バッジを実装する
+  - お知らせと担当者ステータス一覧を受け取り、「確認済み X/Y人」を表示し、`actionRequired`が真のときのみ「実施済み X/Y人」を併記するコンポーネントを実装する
+  - クリックすると対象状態（確認済み or 実施済み）を指定してダイアログを開くことで完了とする
+  - _Requirements: 13.1, 13.2, 13.3_
+  - _Boundary: AnnouncementTrackingBadge_
+  - _Depends: 9.3_
+
+- [ ] 11.2 未対応者一覧ダイアログと個別・一括リマインド送信を実装する
+  - `Dialog`プリミティブを用い、未対応の担当者（氏名・所属会社・国・送信済み状態）を一覧表示する
+  - 各行に個別リマインドボタン、一覧上部に一括リマインドボタンを配置し、送信後は成功メッセージ（`Alert`の`success`バリアント）を表示し、送信済みの担当者には送信済みである旨を表示する
+  - ブラウザでダイアログを開き、個別・一括それぞれでリマインドを送信すると完了メッセージと送信済み表示が更新されることで完了とする
+  - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
+  - _Boundary: AnnouncementRecipientDialog_
+  - _Depends: 10.2, 9.2, 9.3_
+
+- [ ] 11.3 お知らせ管理一覧に人数表示を結線する
+  - `AnnouncementManagementList`（サーバー）が各お知らせについて担当者ステータス一覧を取得し、`AnnouncementManagementListClient`経由で各行に`AnnouncementTrackingBadge`を表示する
+  - ブラウザで管理一覧を開くと各行に確認済み・実施済み人数が表示され、クリックで未対応者一覧が確認できることで完了とする
+  - _Requirements: 13.1, 13.4_
+  - _Boundary: AnnouncementManagementList, AnnouncementManagementListClient_
+  - _Depends: 11.1, 11.2, 10.1_
+
+---
+
+- [ ] 12. 検証: 単体テスト・統合/多言語/レスポンシブ確認
+- [ ] 12.1 (P) 集計・自社宛リマインド有無判定の単体テストを実装する
+  - `targeting.scope`に応じた対象担当者数の算出、`actionRequired`が偽のときに実施済み件数が`null`になること、自社宛リマインド有無判定が期待どおりの真偽値を返すことを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 12.3, 12.4, 13.2, 13.3_
+  - _Depends: 10.1_
+
+- [ ]* 12.2 (P) リマインド送信・ダイアログ表示の統合テストを実装する
+  - リマインド送信後に対象担当者のみ状態が更新され、他の担当者・他のお知らせに影響しないことを検証するテストを実装する
+  - 確認済み人数クリックで未確認の担当者のみがダイアログに表示されることを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 14.1, 14.4, 14.5_
+  - _Depends: 11.2, 11.3_
+
+- [ ] 12.3 (P) 多言語表示・レスポンシブ表示を確認する
+  - 日本語・英語両ロケールで人数表示・ダイアログ内文言が正しく切り替わることを確認する
+  - タブレット幅（768px）でダイアログが横スクロールを起こさずに表示されることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 13.5, 14.6_
+  - _Depends: 11.2, 11.3_
