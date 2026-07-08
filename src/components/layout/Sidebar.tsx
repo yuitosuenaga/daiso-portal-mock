@@ -9,6 +9,7 @@ import {
   Bell,
   Link2,
   HelpCircle,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ interface NavItem {
     | "inquiryList"
     | "announcements"
     | "links"
-    | "faq";
+    | "faq"
+    | "documents";
   href: string;
   icon: LucideIcon;
 }
@@ -30,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { translationKey: "inquiryForm", href: "/inquiry/new", icon: FilePlus },
   { translationKey: "inquiryList", href: "/inquiry", icon: List },
   { translationKey: "announcements", href: "/announcements", icon: Bell },
+  { translationKey: "documents", href: "/documents", icon: FolderOpen },
   { translationKey: "links", href: "/links", icon: Link2 },
   { translationKey: "faq", href: "/faq", icon: HelpCircle },
 ];
