@@ -1,12 +1,12 @@
 {
   "header": {
     "title": "海外販社代理店ポータル",
-    "switchToHelpdesk": "ヘルプデスク画面へ"
+    "switchToHelpdesk": "日本管理者側画面へ"
   },
   "helpdeskHeader": {
     "title": "ヘルプデスクポータル",
     "badge": "ヘルプデスク",
-    "switchToApplicant": "申請者側画面へ"
+    "switchToApplicant": "海外販社側画面へ"
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",

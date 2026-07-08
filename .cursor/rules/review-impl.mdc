@@ -1,0 +1,56 @@
+---
+description: Post-implementation review for cc-sdd (Kiro-style) spec features — run after spec-impl or when asked. Covers correctness, security, performance, accessibility, i18n, plus live browser verification via cursor-ide-browser MCP.
+alwaysApply: false
+---
+
+# Post-Implementation Review (handed off from Claude Code)
+
+Claude Code implements via `/kiro:spec-impl` but does **not** run review — Cursor owns this step (`CLAUDE.md` → 「開発後レビュー」). Invoked via skill `.cursor/skills/review-impl/SKILL.md` or user request.
+
+## Step 1: Determine review target
+
+- Read `.kiro/specs/{feature}/spec.json` (`language` → report language) and `tasks.md`.
+- No feature name: use `git diff --name-only HEAD` / `git status --porcelain`.
+- Target only app source (`.ts`/`.tsx`/`.js`/`.jsx`); skip spec docs, config, lockfiles.
+
+## Step 2: Static review — 5 perspectives
+
+1. **正確性**: 型整合性、`any`、Server/Client 誤用、非同期・エラーハンドリング
+2. **セキュリティ**: XSS、バリデーション、シークレット露出、オープンリダイレクト
+3. **パフォーマンス**: 不要な `"use client"`、再レンダリング、バンドル
+4. **アクセシビリティ**: `aria-*`/`role`、キーボード・フォーカス、`alt`
+5. **i18n**: ハードコード文言、`ja.json`/`en.json` キー網羅、ロケール依存処理
+
+Record findings with file:line. Tag origin `[static]`.
+
+## Step 3: Live browser verification (mandatory)
+
+Start dev server if needed: `npm run dev` → `http://localhost:3000`.
+
+Use **cursor-ide-browser MCP** (not Playwright):
+
+1. `browser_tabs` list → `browser_navigate` to each touched route
+2. Both locales: `/ja/...` and `/en/...` (`src/app/[locale]/`)
+3. `browser_lock` → interact → `browser_lock` unlock
+4. `browser_snapshot` — DOM, aria, focus order
+5. `browser_take_screenshot` — desktop then mobile width
+6. `browser_click` / `browser_type` / `browser_press_key` — interactions + keyboard
+7. `browser_cdp` — console errors if needed
+8. Compare locales for missing keys / layout breakage
+
+Tag findings `[browser]`. If dev server fails, report explicitly — never silently skip.
+
+## Step 4: Merge, classify, fix
+
+- Sort Critical → High → Medium → Low; note static/browser origin
+- Fix Critical/High immediately, re-verify failed checks
+- Medium/Low → list for next PR cycle
+
+## Output (spec.json.language, fallback Japanese)
+
+1. 対象 2. 指摘一覧（重要度・file:line・観点・起源） 3. 対応結果 4. 未検証事項
+
+## Reference
+
+- Skill: `.cursor/skills/review-impl/SKILL.md`
+- Claude fallback: `.claude/commands/kiro/review-impl.md`

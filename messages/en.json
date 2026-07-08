@@ -1,12 +1,12 @@
 {
   "header": {
     "title": "Overseas Sales Agent Portal",
-    "switchToHelpdesk": "Switch to Helpdesk"
+    "switchToHelpdesk": "Switch to Japan Admin View"
   },
   "helpdeskHeader": {
     "title": "Helpdesk Portal",
     "badge": "Helpdesk",
-    "switchToApplicant": "Switch to Applicant View"
+    "switchToApplicant": "Switch to Overseas Sales Agent View"
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",

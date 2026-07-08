@@ -63,18 +63,17 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 - 1タスク = 1ブランチを基本とする。関連の薄い複数タスクを1ブランチに混在させない
 - 作業完了後は `main` へマージ（またはPR作成）してからブランチを削除する
 
-## 開発後レビュー（必須）
+## 開発後レビュー（Cursorに委譲）
 
-**`/kiro:spec-impl` による実装が完了したら、必ず `/kiro:review-impl {feature名}` を実行する。**
+**`/kiro:spec-impl` による実装が完了しても、Claude Code は `/kiro:review-impl` を自動実行しない。実装後レビューは Cursor 側の担当とする。**
 
-`/kiro:review-impl` は以下を1コマンドで実施する（詳細は `.claude/commands/kiro/review-impl.md` 参照）:
+- 実装完了後、Claude Code は以下のみ行って完了報告する（静的レビュー・playwright実機検証は行わない）:
+  - `spec.json` の該当タスク/フェーズの状態を更新する
+  - 実装したファイル一覧と変更内容を簡潔に報告する
+- レビューは Cursor 側が `.cursor/rules/review-impl.mdc` のルールに従い、実装完了直後に実施する（観点は変更なし: 正確性・セキュリティ・パフォーマンス・アクセシビリティ・i18n準拠の静的レビュー＋ブラウザでの実機検証、Critical/High は即時修正）
+- Cursorでのレビューが行えない状況（Cursorが使えない、緊急対応など）で、ユーザーから明示的に依頼された場合に限り、Claude Codeが `/kiro:review-impl {feature名}` を実行してよい（詳細は `.claude/commands/kiro/review-impl.md` 参照）
 
-- 対象ファイルの自動検出（spec.json/tasks.md または `git diff` から）
-- レビューエージェントによる静的レビュー（5観点: 正確性・セキュリティ・パフォーマンス・アクセシビリティ・i18n準拠）
-- **`playwright-mcp` による実機検証（必須・スキップ不可）**: dev サーバー起動 → `browser_navigate`/`browser_snapshot`/`browser_take_screenshot`/操作系ツールでの動作確認 → `browser_console_messages`/`browser_network_requests` → 日英切り替え確認
-- 指摘事項の重要度分類（Critical / High / Medium / Low）と、Critical・High の即時修正
-
-Medium 以下は次のPRサイクルで対応可とする。実装完了後、次の機能開発に進む前に必ず実行すること。
+実装完了後、次の機能開発に進む前に「Cursorでのレビューを依頼してください」とユーザーに伝えること。
 
 ## Spec管理ルール（1画面 = 1spec）
 

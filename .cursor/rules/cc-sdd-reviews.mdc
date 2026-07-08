@@ -1,0 +1,25 @@
+---
+description: cc-sdd/Kiro review commands available in Cursor — maps Claude Code /kiro:review-* and /kiro:validate-* to Cursor skills after spec-impl handoff.
+alwaysApply: true
+---
+
+# cc-sdd レビュー（Cursor 担当）
+
+Claude Code は `spec-impl` 後のレビューを Cursor に委譲する（`CLAUDE.md` 参照）。ユーザーがレビューを依頼したら、対応する **プロジェクトスキル** を読んで実行する。
+
+| 依頼例 | スキル |
+|---|---|
+| `review-impl announcements` / 実装後レビュー | `.cursor/skills/review-impl/SKILL.md` |
+| `validate-impl announcements` / 実装検証 | `.cursor/skills/validate-impl/SKILL.md` |
+| `validate-design announcements` / 設計レビュー | `.cursor/skills/validate-design/SKILL.md` |
+
+## 運用
+
+- **実装後（必須）**: `review-impl` — 静的5観点 + ブラウザ実機検証。Critical/High は即修正。
+- **実装後（推奨）**: `validate-impl` — spec との整合 GO/NO-GO。
+- **設計承認前（任意）**: `validate-design` — 設計品質 GO/NO-GO。
+
+## テスト実行
+
+- レビュー中: 関連テストのみ（`npx vitest related <file>`）
+- レビュー完了時: `npm run test`（全件）
