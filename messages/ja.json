@@ -1,4 +1,19 @@
 {
+  "login": {
+    "applicantTitle": "販社担当者ログイン",
+    "helpdeskTitle": "ヘルプデスク担当者ログイン",
+    "emailLabel": "メールアドレス",
+    "emailPlaceholder": "メールアドレスを入力してください",
+    "passwordLabel": "パスワード",
+    "passwordPlaceholder": "パスワードを入力してください",
+    "submit": "ログイン",
+    "submitting": "ログイン中…",
+    "errorInvalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+    "validation": {
+      "emailRequired": "メールアドレスを入力してください",
+      "passwordRequired": "パスワードを入力してください"
+    }
+  },
   "header": {
     "title": "海外販社代理店ポータル",
     "switchToHelpdesk": "日本管理者側画面へ"

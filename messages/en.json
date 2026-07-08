@@ -1,4 +1,19 @@
 {
+  "login": {
+    "applicantTitle": "Applicant Login",
+    "helpdeskTitle": "Helpdesk Staff Login",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email address",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Log In",
+    "submitting": "Logging in...",
+    "errorInvalidCredentials": "The email address or password is incorrect.",
+    "validation": {
+      "emailRequired": "Please enter your email address",
+      "passwordRequired": "Please enter your password"
+    }
+  },
   "header": {
     "title": "Overseas Sales Agent Portal",
     "switchToHelpdesk": "Switch to Japan Admin View"

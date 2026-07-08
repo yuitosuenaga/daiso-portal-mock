@@ -18,8 +18,8 @@ vi.mock("@/i18n/navigation", () => ({
 
 const createInquiryMock = vi.fn();
 
-vi.mock("@/lib/api/inquiries", () => ({
-  createInquiry: (...args: unknown[]) => createInquiryMock(...args),
+vi.mock("@/lib/actions/inquiry", () => ({
+  createInquiryAction: (...args: unknown[]) => createInquiryMock(...args),
 }));
 
 beforeEach(() => {

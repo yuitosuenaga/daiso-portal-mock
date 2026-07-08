@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InquiryCategory {
+  defect
+  order
+  system
+  other
+}
+
+enum InquiryUrgency {
+  high
+  medium
+  low
+}
+
+enum InquiryStatus {
+  new
+  in_progress
+  resolved
+}
+
+enum InquiryHistoryEntryType {
+  claimed
+  released
+  status_changed
+  reply_sent
+  requester_message
+}
+
+model Company {
+  id            String          @id @default(cuid())
+  name          String
+  country       String
+  companyCode   String          @unique
+  createdAt     DateTime        @default(now())
+  applicantUsers ApplicantUser[]
+  inquiries     Inquiry[]
+}
+
+model ApplicantUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model HelpdeskStaff {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime  @default(now())
+  claimedInquiries Inquiry[]
+}
+
+model Inquiry {
+  id                      String                 @id @default(cuid())
+  category                InquiryCategory
+  urgency                 InquiryUrgency
+  storeRegion             String
+  originalText            String
+  originalLanguage        String
+  translatedText          String?
+  status                  InquiryStatus          @default(new)
+  createdAt               DateTime               @default(now())
+  companyId               String
+  company                 Company                @relation(fields: [companyId], references: [id])
+  submittedByCompanyName  String
+  submittedByCountry      String
+  claimedByStaffId        String?
+  claimedByStaff          HelpdeskStaff?         @relation(fields: [claimedByStaffId], references: [id])
+  claimedAt               DateTime?
+  attachments             InquiryAttachment[]
+  history                 InquiryHistoryEntry[]
+
+  @@index([companyId])
+}
+
+model InquiryHistoryEntry {
+  id          String                   @id @default(cuid())
+  inquiryId   String
+  inquiry     Inquiry                  @relation(fields: [inquiryId], references: [id])
+  type        InquiryHistoryEntryType
+  actorName   String
+  occurredAt  DateTime
+  detail      String?
+  attachments InquiryAttachment[]
+
+  @@index([inquiryId])
+}
+
+model InquiryAttachment {
+  id            String               @id @default(cuid())
+  fileName      String
+  fileType      String
+  fileSize      Int
+  dataUrl       String
+  inquiryId     String?
+  inquiry       Inquiry?             @relation(fields: [inquiryId], references: [id])
+  historyEntryId String?
+  historyEntry  InquiryHistoryEntry? @relation(fields: [historyEntryId], references: [id])
+}

@@ -1,40 +1,147 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/server/inquiry-service", () => ({
+  createInquiryRecord: vi.fn(),
+  findInquiryForCompany: vi.fn(),
+  appendHistoryEntry: vi.fn(),
+}));
 
 import { revalidatePath } from "next/cache";
-import { sendApplicantMessageAction } from "@/lib/actions/inquiry";
-import { getInquiryById } from "@/lib/api/inquiries";
-import { getInquiryHistory } from "@/lib/api/inquiry-history";
+import { getSession } from "@/lib/server/get-session";
+import {
+  appendHistoryEntry,
+  createInquiryRecord,
+  findInquiryForCompany,
+} from "@/lib/server/inquiry-service";
+import {
+  createInquiryAction,
+  sendApplicantMessageAction,
+} from "@/lib/actions/inquiry";
+import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
+
+const applicantSession = {
+  claims: {
+    id: "applicant-1",
+    role: "applicant" as const,
+    applicantUserId: "applicant-1",
+    companyId: "company-1",
+    companyName: "Test Co.",
+  },
+};
+
+function inquiry(overrides: Partial<Inquiry> = {}): Inquiry {
+  return {
+    id: "inquiry-1",
+    category: "defect",
+    urgency: "high",
+    storeRegion: "Kanto",
+    originalText: "text",
+    originalLanguage: "ja",
+    status: "new",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    submittedBy: { companyName: "Test Co.", country: "JP" },
+    claim: null,
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("createInquiryAction", () => {
+  it("createInquiryRecordへ委譲し、セッションのcompanyIdを付与する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(createInquiryRecord).mockResolvedValue(inquiry());
+
+    const input: CreateInquiryInput = {
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-07-01T00:00:00.000Z",
+      submittedBy: { companyName: "Test Company", country: "JP" },
+    };
+
+    const result = await createInquiryAction(input);
+
+    expect(createInquiryRecord).toHaveBeenCalledWith({
+      data: input,
+      companyId: "company-1",
+    });
+    expect(result.id).toBe("inquiry-1");
+  });
+});
 
 describe("sendApplicantMessageAction", () => {
-  it("メッセージ本文を対応履歴にrequester_messageとして記録する", async () => {
-    const inquiry = await getInquiryById("inquiry-009");
+  it("自社の問い合わせにメッセージを対応履歴として記録する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue(
+      inquiry({ submittedBy: { companyName: "Test Co.", country: "JP" } })
+    );
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-1",
+      type: "requester_message",
+      actorName: "Test Co.",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+      detail: "発送予定日を教えてください。",
+    });
 
     await sendApplicantMessageAction(
-      "inquiry-009",
+      "inquiry-1",
       "発送予定日を教えてください。"
     );
 
-    const history = await getInquiryHistory("inquiry-009");
-    expect(history[0].type).toBe("requester_message");
-    expect(history[0].detail).toBe("発送予定日を教えてください。");
-    expect(history[0].actorName).toBe(inquiry?.submittedBy.companyName);
+    expect(findInquiryForCompany).toHaveBeenCalledWith("inquiry-1", "company-1");
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inquiryId: "inquiry-1",
+        type: "requester_message",
+        actorName: "Test Co.",
+        detail: "発送予定日を教えてください。",
+      })
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
+  it("他社の問い合わせ（所有権なし）には例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue(null);
+
+    await expect(
+      sendApplicantMessageAction("inquiry-other", "本文")
+    ).rejects.toThrow();
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+  });
+
   it("空文字・空白のみのメッセージ本文は例外になり、履歴に記録されない", async () => {
-    const before = await getInquiryHistory("inquiry-002");
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    await expect(sendApplicantMessageAction("inquiry-002", "   ")).rejects.toThrow();
+    await expect(sendApplicantMessageAction("inquiry-1", "   ")).rejects.toThrow();
 
-    const after = await getInquiryHistory("inquiry-002");
-    expect(after).toEqual(before);
+    expect(findInquiryForCompany).not.toHaveBeenCalled();
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("添付ファイル付きでメッセージを送信すると、対応履歴に添付ファイルが記録される", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue(inquiry());
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-1",
+      type: "requester_message",
+      actorName: "Test Co.",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
     const attachment = {
       id: "att-1",
       fileName: "memo.pdf",
@@ -43,28 +150,12 @@ describe("sendApplicantMessageAction", () => {
       dataUrl: "data:application/pdf;base64,AAAA",
     };
 
-    await sendApplicantMessageAction("inquiry-007", "資料を添付します。", [
+    await sendApplicantMessageAction("inquiry-1", "資料を添付します。", [
       attachment,
     ]);
 
-    const history = await getInquiryHistory("inquiry-007");
-    expect(history[0].type).toBe("requester_message");
-    expect(history[0].attachments).toEqual([attachment]);
-  });
-
-  it("存在しない問い合わせIDを渡すと例外になる", async () => {
-    await expect(
-      sendApplicantMessageAction("not-exist", "本文")
-    ).rejects.toThrow();
-  });
-
-  it("メッセージ送信によってstatus・claimを変更しない", async () => {
-    const before = await getInquiryById("inquiry-006");
-
-    await sendApplicantMessageAction("inquiry-006", "追加のご連絡です。");
-
-    const after = await getInquiryById("inquiry-006");
-    expect(after?.status).toBe(before?.status);
-    expect(after?.claim ?? null).toEqual(before?.claim ?? null);
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [attachment] })
+    );
   });
 });

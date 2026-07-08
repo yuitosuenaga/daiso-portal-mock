@@ -1,7 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+}));
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/server/inquiry-service", () => ({
+  findInquiryById: vi.fn(),
+  setClaim: vi.fn(),
+  updateStatus: vi.fn(),
+  appendHistoryEntry: vi.fn(),
 }));
 
 vi.mock("next-intl/server", async () => {
@@ -20,6 +28,13 @@ vi.mock("next-intl/server", async () => {
 });
 
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/server/get-session";
+import {
+  appendHistoryEntry,
+  findInquiryById as findInquiryByIdService,
+  setClaim,
+  updateStatus,
+} from "@/lib/server/inquiry-service";
 import {
   claimInquiryAction,
   releaseInquiryClaimAction,
@@ -28,56 +43,113 @@ import {
   createReplyTemplateAction,
   updateReplyTemplateAction,
 } from "@/lib/actions/helpdesk";
-import { getInquiryById } from "@/lib/api/inquiries";
-import { getInquiryHistory } from "@/lib/api/inquiry-history";
 import { getReplyTemplateById } from "@/lib/api/reply-templates";
-import { MOCK_CURRENT_STAFF_NAME } from "@/lib/constants/helpdesk";
 import {
   ATTACHMENT_MAX_COUNT,
   ATTACHMENT_MAX_FILE_SIZE_BYTES,
 } from "@/lib/constants/attachment";
+import type { Inquiry } from "@/types/inquiry";
+
+const helpdeskSession = {
+  claims: {
+    id: "staff-1",
+    role: "helpdesk" as const,
+    staffId: "staff-1",
+    displayName: "鈴木 花子",
+  },
+};
+
+function inquiry(overrides: Partial<Inquiry> = {}): Inquiry {
+  return {
+    id: "inquiry-1",
+    category: "defect",
+    urgency: "high",
+    storeRegion: "Kanto",
+    originalText: "text",
+    originalLanguage: "ja",
+    status: "new",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    submittedBy: { companyName: "Test Co.", country: "JP" },
+    claim: null,
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+});
 
 describe("claimInquiryAction / releaseInquiryClaimAction", () => {
-  it("対応中にすると claim が設定され、履歴に記録され、ルートが再検証される", async () => {
+  it("対応中にすると、ログイン中の担当者情報でclaimが設定され履歴に記録される", async () => {
+    vi.mocked(setClaim).mockResolvedValue(inquiry());
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-004",
+      type: "claimed",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
     await claimInquiryAction("inquiry-004");
 
-    const inquiry = await getInquiryById("inquiry-004");
-    expect(inquiry?.claim?.staffName).toBe(MOCK_CURRENT_STAFF_NAME);
-
-    const history = await getInquiryHistory("inquiry-004");
-    expect(history[0].type).toBe("claimed");
-    expect(history[0].actorName).toBe(MOCK_CURRENT_STAFF_NAME);
-
+    expect(setClaim).toHaveBeenCalledWith("inquiry-004", {
+      staffId: "staff-1",
+      displayName: "鈴木 花子",
+    });
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "claimed", actorName: "鈴木 花子" })
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
-  it("対応を外すと claim が解除され、履歴に記録される", async () => {
-    await claimInquiryAction("inquiry-004");
+  it("対応を外すと、claimが解除され履歴に記録される", async () => {
+    vi.mocked(setClaim).mockResolvedValue(inquiry());
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-2",
+      inquiryId: "inquiry-004",
+      type: "released",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
     await releaseInquiryClaimAction("inquiry-004");
 
-    const inquiry = await getInquiryById("inquiry-004");
-    expect(inquiry?.claim).toBeNull();
-
-    const history = await getInquiryHistory("inquiry-004");
-    expect(history[0].type).toBe("released");
+    expect(setClaim).toHaveBeenCalledWith("inquiry-004", null);
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "released", actorName: "鈴木 花子" })
+    );
   });
 });
 
 describe("changeInquiryStatusAction", () => {
-  it("ステータスを変更し、変更前後の値を翻訳済みラベルで履歴に記録する", async () => {
+  it("ステータスを変更し、変更前後の値を翻訳済みラベルでログイン中担当者名の履歴に記録する", async () => {
+    vi.mocked(findInquiryByIdService).mockResolvedValue(
+      inquiry({ status: "resolved" })
+    );
+    vi.mocked(updateStatus).mockResolvedValue(inquiry({ status: "in_progress" }));
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-006",
+      type: "status_changed",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+      detail: "解決済み → 対応中",
+    });
+
     await changeInquiryStatusAction("inquiry-006", "in_progress");
 
-    const inquiry = await getInquiryById("inquiry-006");
-    expect(inquiry?.status).toBe("in_progress");
-
-    const history = await getInquiryHistory("inquiry-006");
-    expect(history[0].type).toBe("status_changed");
-    expect(history[0].detail).toBe("解決済み → 対応中");
+    expect(updateStatus).toHaveBeenCalledWith("inquiry-006", "in_progress");
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "status_changed",
+        actorName: "鈴木 花子",
+        detail: "解決済み → 対応中",
+      })
+    );
   });
 
-  it("不正なステータス値を渡すと例外になり、データが変更されない", async () => {
-    const before = await getInquiryById("inquiry-006");
-
+  it("不正なステータス値を渡すと例外になり、更新処理を呼ばない", async () => {
     await expect(
       changeInquiryStatusAction(
         "inquiry-006",
@@ -85,30 +157,47 @@ describe("changeInquiryStatusAction", () => {
       )
     ).rejects.toThrow();
 
-    const after = await getInquiryById("inquiry-006");
-    expect(after?.status).toBe(before?.status);
+    expect(updateStatus).not.toHaveBeenCalled();
   });
 });
 
 describe("sendInquiryReplyAction", () => {
-  it("返信内容を履歴に記録する", async () => {
+  it("ログイン中の担当者名で返信内容を履歴に記録する", async () => {
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-008",
+      type: "reply_sent",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+      detail: "ご返信ありがとうございます。",
+    });
+
     await sendInquiryReplyAction("inquiry-008", "ご返信ありがとうございます。");
 
-    const history = await getInquiryHistory("inquiry-008");
-    expect(history[0].type).toBe("reply_sent");
-    expect(history[0].detail).toContain("ご返信ありがとうございます。");
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "reply_sent",
+        actorName: "鈴木 花子",
+        detail: "ご返信ありがとうございます。",
+      })
+    );
   });
 
   it("空文字・空白のみの返信内容は例外になり、履歴に記録されない", async () => {
-    const before = await getInquiryHistory("inquiry-002");
-
     await expect(sendInquiryReplyAction("inquiry-002", "   ")).rejects.toThrow();
 
-    const after = await getInquiryHistory("inquiry-002");
-    expect(after).toEqual(before);
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("添付ファイル付きで返信すると、対応履歴に添付ファイルが記録される", async () => {
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-009",
+      type: "reply_sent",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
     const attachment = {
       id: "att-1",
       fileName: "photo.png",
@@ -121,34 +210,38 @@ describe("sendInquiryReplyAction", () => {
       attachment,
     ]);
 
-    const history = await getInquiryHistory("inquiry-009");
-    expect(history[0].type).toBe("reply_sent");
-    expect(history[0].attachments).toEqual([attachment]);
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [attachment] })
+    );
   });
 
-  it("添付ファイルを指定しない場合、履歴のattachmentsは未設定になる", async () => {
+  it("添付ファイルを指定しない場合、attachmentsは未設定になる", async () => {
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-010",
+      type: "reply_sent",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
     await sendInquiryReplyAction("inquiry-010", "添付なしの返信です。");
 
-    const history = await getInquiryHistory("inquiry-010");
-    expect(history[0].attachments).toBeUndefined();
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: undefined })
+    );
   });
 
   it("不正な形状の添付ファイルを渡すと例外になり、履歴に記録されない", async () => {
-    const before = await getInquiryHistory("inquiry-002");
-
     await expect(
       sendInquiryReplyAction("inquiry-002", "返信本文", [
         { fileName: "missing-required-fields.png" } as never,
       ])
     ).rejects.toThrow();
 
-    const after = await getInquiryHistory("inquiry-002");
-    expect(after).toEqual(before);
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("上限を超えるサイズの添付ファイルを渡すと例外になり、履歴に記録されない", async () => {
-    const before = await getInquiryHistory("inquiry-002");
-
     await expect(
       sendInquiryReplyAction("inquiry-002", "返信本文", [
         {
@@ -161,8 +254,7 @@ describe("sendInquiryReplyAction", () => {
       ])
     ).rejects.toThrow();
 
-    const after = await getInquiryHistory("inquiry-002");
-    expect(after).toEqual(before);
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("許可されていないMIMEタイプの添付ファイルを渡すと例外になる", async () => {
