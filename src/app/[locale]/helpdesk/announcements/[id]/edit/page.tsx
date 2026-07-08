@@ -85,6 +85,9 @@ export default async function HelpdeskAnnouncementEditPage({
           // フォームの厳密な国コード型へ安全に絞り込める。
           targeting: announcement.targeting as AnnouncementFormValues["targeting"],
           actionRequired: announcement.actionRequired,
+          publishStartDate: announcement.publishStartDate ?? "",
+          publishEndDate: announcement.publishEndDate ?? "",
+          dueDate: announcement.dueDate ?? "",
         }}
         categoryOptions={categoryOptions}
         countryOptions={countryOptions}
@@ -101,6 +104,12 @@ export default async function HelpdeskAnnouncementEditPage({
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
         countriesLabel={t("countriesLabel")}
+        publishStartDateLabel={t("publishStartDateLabel")}
+        publishEndDateLabel={t("publishEndDateLabel")}
+        publishPeriodHint={t("publishPeriodHint")}
+        publishEndDateBeforeStartErrorMessage={t("validation.publishEndDateBeforeStart")}
+        dueDateLabel={t("dueDateLabel")}
+        dueDateRequiredErrorMessage={t("validation.dueDateRequired")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         countriesRequiredErrorMessage={t("validation.countriesRequired")}

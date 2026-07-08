@@ -321,3 +321,89 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 13.5, 14.6_
   - _Depends: 11.2, 11.3_
+
+---
+
+## 追加ラウンド（2026-07-08）: 公開期間・対応期限の設定
+
+- [x] 13. 基盤: 型・バリデーション・翻訳キーの追加
+- [x] 13.1 `Announcement`型に公開期間・対応期限フィールドを追加する
+  - `Announcement`に`publishStartDate: string | null`, `publishEndDate: string | null`, `dueDate: string | null`（いずれもISO日付文字列）を追加する
+  - 既存シードデータ（`MOCK_ANNOUNCEMENTS`）の各件に、`null`または動作確認用の具体値（公開期間設定済み1件、対応期限設定済み1件を含める）を設定する
+  - 型チェックがパスすることで完了とする
+  - _Requirements: 15.4, 17.1_
+  - _Boundary: Announcement型_
+
+- [x] 13.2 (P) バリデーションスキーマに公開期間・対応期限の検証を追加する
+  - `announcementFormSchema`に`publishStartDate`/`publishEndDate`/`dueDate`（空文字は`null`に変換）を追加する
+  - `superRefine`で「終了日が開始日より前のとき`publishEndDate`にエラー」「`actionRequired`が真かつ`dueDate`未入力のとき`dueDate`にエラー」を検証する
+  - 上記2条件のバリデーションが期待どおりエラーを返すことで完了とする
+  - _Requirements: 15.3, 17.2, 17.3_
+  - _Boundary: announcementFormSchema_
+  - _Depends: 13.1_
+
+- [x] 13.3 (P) 公開期間・対応期限の翻訳キーを追加する
+  - `helpdeskAnnouncements`名前空間に、公開期間（開始日・終了日）・対応期限の入力ラベル・バリデーションメッセージ・一覧表示ラベル・常時公開である旨のラベルを追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 15.1, 16.4, 17.2, 17.6_
+  - _Boundary: i18n messages_
+
+---
+
+- [x] 14. コア: モックAPI・フォーム・一覧表示
+- [x] 14.1 モックAPIに公開期間による可視性判定を実装し、更新処理の欠落フィールドを修正する
+  - `isVisibleToCurrentCompany`相当の判定に、公開期間（未設定なら常に`true`、設定時は現在日時が範囲内かどうか）を合成する`isWithinPublishPeriod`を実装し、`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`に適用する
+  - `getAllAnnouncements`/`getAnnouncementByIdForHelpdesk`は公開期間に関わらず全件を返すことを確認する（変更不要）
+  - `updateAnnouncement`が`publishStartDate`/`publishEndDate`/`dueDate`に加え、既存の`actionRequired`（現状更新されていない）も含め、渡された全フィールドを更新するよう修正する
+  - `createAnnouncement`が新規3フィールドを保存することを確認する
+  - 公開期間外のお知らせが申請者側取得関数から除外され、ヘルプデスク向け取得関数では除外されないことで完了とする
+  - _Requirements: 16.1, 16.2, 16.3_
+  - _Boundary: AnnouncementsMockApi_
+  - _Depends: 13.1_
+
+- [x] 14.2 (P) AnnouncementFormに公開期間・対応期限の入力欄を追加する
+  - 公開期間の開始日・終了日（`<input type="date">`、任意入力）を追加する
+  - 対応期限（`<input type="date">`）を追加し、`actionRequired`を`watch`して真のときのみ活性化・必須表示にする
+  - `actionRequired`が偽に変更されたとき、対応期限の値をクリアする
+  - ブラウザで対応要否を切り替えると対応期限欄の活性化・必須表示・クリアが期待どおり動作することで完了とする
+  - _Requirements: 15.1, 15.2, 17.2, 17.4, 17.5_
+  - _Boundary: AnnouncementForm_
+  - _Depends: 13.2, 13.3_
+
+- [x] 14.3 AnnouncementManagementListClientに公開期間・対応期限の表示を追加する
+  - 各行のメタ情報に、公開期間が設定されている場合はその期間を、未設定の場合は常時公開である旨を表示する
+  - `actionRequired`が真の行にのみ対応期限を表示する
+  - ブラウザで管理一覧を開き、公開期間・対応期限が期待どおり表示されることで完了とする
+  - _Requirements: 15.5, 16.4, 17.6_
+  - _Boundary: AnnouncementManagementListClient_
+  - _Depends: 13.1, 13.3_
+
+---
+
+- [ ] 15. 検証: 単体テスト・統合/多言語確認
+- [x] 15.1 (P) 公開期間判定・バリデーションの単体テストを実装する
+  - 開始前・終了後・期間内・未設定の4パターンで可視性判定が正しく判定されることを検証するテストを実装する
+  - `announcementFormSchema`が終了日<開始日、および`actionRequired: true`かつ`dueDate`未入力のケースをそれぞれ拒否することを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 15.3, 16.1, 16.2, 17.2, 17.3_
+  - _Depends: 13.2, 14.1_
+
+- [x] 15.2 (P) 更新処理・全件取得の単体テストを実装する
+  - `updateAnnouncement`が`actionRequired`・公開期間・対応期限を含む全フィールドを更新し、他のお知らせに影響しないことを検証するテストを実装する
+  - `getAllAnnouncements`/`getAnnouncementByIdForHelpdesk`が公開期間に関わらず全件・該当データを返すことを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 16.3_
+  - _Depends: 14.1_
+
+- [ ]* 15.3 (P) フォームの必須化・クリア動作の統合テストを実装する
+  - 対応要否を「対応が必要」にした状態で対応期限未入力のまま保存しようとすると保存がブロックされることを検証するテストを実装する
+  - 対応要否を「対応不要」に変更すると対応期限欄がクリアされることを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 17.3, 17.5_
+  - _Depends: 14.2_
+
+- [ ] 15.4 (P) 多言語表示を確認する
+  - 日本語・英語両ロケールで公開期間・対応期限の入力欄・一覧表示・バリデーションメッセージが正しく切り替わることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 15.1, 17.6_
+  - _Depends: 14.2, 14.3_

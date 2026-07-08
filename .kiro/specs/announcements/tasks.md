@@ -213,3 +213,43 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 11.5_
   - _Depends: 11.3_
+
+---
+
+## 追加ラウンド（2026-07-08）: 対応期限の表示・公開期間による表示制御
+
+- [ ] 13. コア: 対応期限表示の実装と一覧・詳細への結線
+- [x] 13.1 対応期限の翻訳キーを追加する
+  - `announcements`名前空間に対応期限のラベル（`dueDateLabel`）を追加する
+  - `ja.json`で定義したキーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 12.4_
+  - _Boundary: i18n messages_
+
+- [x] 13.2 一覧・詳細画面に対応期限表示を結線する
+  - `AnnouncementListItem`・`AnnouncementDetail`が、`actionRequired`が真かつ`dueDate`が設定されているお知らせについてのみ対応期限を表示する
+  - ブラウザで`/announcements`・詳細画面を開き、対応期限が設定された「対応が必要」なお知らせにのみ期限が表示されることで完了とする
+  - _Requirements: 12.1, 12.2, 12.3_
+  - _Boundary: AnnouncementListItem, AnnouncementDetail_
+  - _Depends: 13.1, announcements-management#13.1_
+
+- [ ] 13.3 公開期間による表示制御が反映されていることを確認する
+  - `announcements-management`spec側の`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`の変更（公開期間フィルタ）により、本spec側のコード変更なしに期間外のお知らせが一覧・詳細・ダッシュボードウィジェットから除外されることをブラウザで確認する
+  - 公開期間外のお知らせIDを直接URLで指定すると「見つかりません」表示になることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 13.1, 13.2, 13.3, 13.4_
+  - _Depends: announcements-management#14.1_
+
+---
+
+- [ ] 14. 検証: 単体テスト・多言語確認
+- [x] 14.1 (P) 対応期限表示の単体テストを実装する
+  - `actionRequired: true`かつ`dueDate`設定時のみ対応期限を表示し、`actionRequired: false`または`dueDate`が`null`のとき表示しないことを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 12.1, 12.2, 12.3_
+  - _Depends: 13.2_
+
+- [ ] 14.2 (P) 多言語表示を確認する
+  - 日本語・英語両ロケールで対応期限ラベルが正しく切り替わることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 12.4_
+  - _Depends: 13.2_

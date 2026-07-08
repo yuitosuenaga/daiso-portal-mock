@@ -15,6 +15,11 @@ export interface AnnouncementListItemProps {
    */
   actionRequiredBadgeLabel?: string;
   /**
+   * 対応期限のラベル文言。未指定の場合は対応期限を表示しない（ダッシュボードのプレビュー等、
+   * 表示が不要な文脈のため省略可能）。
+   */
+  dueDateLabel?: string;
+  /**
    * 自社宛に未対応のままリマインドが送信されているかどうか。
    * 未指定の場合はリマインド受信バッジを表示しない（ダッシュボードのプレビュー等、
    * バッジ表示が不要な文脈のため省略可能）。
@@ -32,6 +37,7 @@ export function AnnouncementListItem({
   announcement,
   categoryLabel,
   actionRequiredBadgeLabel,
+  dueDateLabel,
   isReminderPending,
   locale,
 }: AnnouncementListItemProps) {
@@ -50,6 +56,16 @@ export function AnnouncementListItem({
             <Badge variant="default">{actionRequiredBadgeLabel}</Badge>
           )}
           {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
+          {announcement.actionRequired && announcement.dueDate && dueDateLabel && (
+            <span className="text-xs text-muted-foreground">
+              {dueDateLabel}:{" "}
+              {new Date(announcement.dueDate).toLocaleDateString(locale, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
           <time
             dateTime={announcement.publishedAt}
             className="text-xs text-muted-foreground"

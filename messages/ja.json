@@ -81,6 +81,10 @@
       "targetingAllLabel": "全体一律",
       "targetingCountriesLabel": "配信対象国",
       "actionRequiredBadge": "要対応",
+      "publishPeriodAlwaysLabel": "常時公開",
+      "publishPeriodLabel": "公開期間",
+      "publishPeriodToSeparator": "〜",
+      "dueDateLabel": "対応期限",
       "filter": {
         "keywordLabel": "タイトル検索",
         "keywordPlaceholder": "タイトルに含まれる語句",
@@ -113,11 +117,17 @@
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {
         "required": "この項目は必須です",
-        "countriesRequired": "1つ以上の国・地域を選択してください"
+        "countriesRequired": "1つ以上の国・地域を選択してください",
+        "publishEndDateBeforeStart": "終了日は開始日以降の日付を指定してください",
+        "dueDateRequired": "対応が必要な場合は対応期限を入力してください"
       },
       "actionRequiredLabel": "対応要否",
       "actionRequiredTrueOption": "対応が必要",
-      "actionRequiredFalseOption": "対応不要"
+      "actionRequiredFalseOption": "対応不要",
+      "publishStartDateLabel": "公開開始日",
+      "publishEndDateLabel": "公開終了日",
+      "publishPeriodHint": "未入力の場合は常時公開になります",
+      "dueDateLabel": "対応期限"
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",
@@ -345,6 +355,7 @@
     },
     "actionRequiredBadge": "要対応",
     "reminderBadge": "リマインドが届いています",
+    "dueDateLabel": "対応期限",
     "filter": {
       "keywordLabel": "タイトル検索",
       "keywordPlaceholder": "タイトルに含まれる語句",

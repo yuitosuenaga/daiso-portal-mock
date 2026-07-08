@@ -21,6 +21,9 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       body: "2026年7月15日 2:00〜4:00の間、システムメンテナンスを実施いたします。メンテナンス中はポータルサイトにアクセスできませんのでご注意ください。ご不便をおかけしますが、何卒ご理解のほどよろしくお願いいたします。",
       targeting: { scope: "all" },
       actionRequired: true,
+      publishStartDate: null,
+      publishEndDate: null,
+      dueDate: "2026-07-14",
     },
     {
       id: "2",
@@ -30,6 +33,9 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       body: "よくあるお問い合わせをまとめたFAQページを新設しました。お問い合わせの前にぜひご活用ください。今後も内容を随時更新してまいります。",
       targeting: { scope: "all" },
       actionRequired: false,
+      publishStartDate: null,
+      publishEndDate: "2026-12-31",
+      dueDate: null,
     },
     {
       id: "3",
@@ -68,6 +74,35 @@ function isVisibleToCurrentCompany(announcement: Announcement): boolean {
   );
 }
 
+/**
+ * 公開期間内かどうかを判定する。開始日・終了日がいずれも未設定の場合は常に公開対象とする。
+ */
+function isWithinPublishPeriod(
+  announcement: Announcement,
+  referenceDate: Date
+): boolean {
+  if (announcement.publishStartDate) {
+    if (referenceDate < new Date(announcement.publishStartDate)) {
+      return false;
+    }
+  }
+  if (announcement.publishEndDate) {
+    const endOfDay = new Date(announcement.publishEndDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    if (referenceDate > endOfDay) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isVisibleToApplicant(announcement: Announcement): boolean {
+  return (
+    isVisibleToCurrentCompany(announcement) &&
+    isWithinPublishPeriod(announcement, new Date())
+  );
+}
+
 function sortByPublishedAtDesc(announcements: Announcement[]): Announcement[] {
   return [...announcements].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -75,35 +110,37 @@ function sortByPublishedAtDesc(announcements: Announcement[]): Announcement[] {
 }
 
 /**
- * 自社（`MOCK_CURRENT_COMPANY`）に配信対象が及ぶお知らせのうち、最新のものを返す。
+ * 自社（`MOCK_CURRENT_COMPANY`）に配信対象が及び、かつ公開期間内のお知らせのうち、
+ * 最新のものを返す。
  */
 export async function getRecentAnnouncements(
   options?: GetRecentAnnouncementsOptions
 ): Promise<Announcement[]> {
   const limit = options?.limit ?? 3;
   const visible = sortByPublishedAtDesc(
-    MOCK_ANNOUNCEMENTS.filter(isVisibleToCurrentCompany)
+    MOCK_ANNOUNCEMENTS.filter(isVisibleToApplicant)
   );
 
   return Promise.resolve(visible.slice(0, limit));
 }
 
 /**
- * 自社（`MOCK_CURRENT_COMPANY`）に配信対象が及ぶお知らせ全件を公開日の降順で返す。
+ * 自社（`MOCK_CURRENT_COMPANY`）に配信対象が及び、かつ公開期間内のお知らせ全件を
+ * 公開日の降順で返す。
  */
 export async function getAnnouncements(): Promise<Announcement[]> {
-  const visible = MOCK_ANNOUNCEMENTS.filter(isVisibleToCurrentCompany);
+  const visible = MOCK_ANNOUNCEMENTS.filter(isVisibleToApplicant);
 
   return Promise.resolve(sortByPublishedAtDesc(visible));
 }
 
 /**
- * 指定したIDのお知らせを1件返す。自社に配信対象が及ばない、または該当データが
- * 存在しない場合はnullを解決する。
+ * 指定したIDのお知らせを1件返す。自社に配信対象が及ばない、公開期間外、または
+ * 該当データが存在しない場合はnullを解決する。
  */
 export async function getAnnouncementById(id: string): Promise<Announcement | null> {
   const found = MOCK_ANNOUNCEMENTS.find(
-    (item) => item.id === id && isVisibleToCurrentCompany(item)
+    (item) => item.id === id && isVisibleToApplicant(item)
   );
 
   return Promise.resolve(found ?? null);
@@ -139,6 +176,9 @@ export async function createAnnouncement(
     id: crypto.randomUUID(),
     publishedAt: new Date().toISOString(),
     ...input,
+    publishStartDate: input.publishStartDate ?? null,
+    publishEndDate: input.publishEndDate ?? null,
+    dueDate: input.dueDate ?? null,
   };
 
   MOCK_ANNOUNCEMENTS.push(announcement);
@@ -162,6 +202,10 @@ export async function updateAnnouncement(
   announcement.body = input.body;
   announcement.category = input.category;
   announcement.targeting = input.targeting;
+  announcement.actionRequired = input.actionRequired;
+  announcement.publishStartDate = input.publishStartDate ?? null;
+  announcement.publishEndDate = input.publishEndDate ?? null;
+  announcement.dueDate = input.dueDate ?? null;
 
   return Promise.resolve(announcement);
 }
