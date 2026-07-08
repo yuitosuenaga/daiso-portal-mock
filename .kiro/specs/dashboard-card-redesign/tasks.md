@@ -147,3 +147,13 @@
   - 観測可能な完了条件: 両ダッシュボードにドキュメント関連カードが表示され、クリックでそれぞれ `/documents` / `/helpdesk/documents` へ遷移する。日本語・英語の両方でカード文言が正しく表示される
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
   - _Boundary: ApplicantDashboardPage, HelpdeskDashboardPage_
+
+- [x] 13. 申請者側ダッシュボードへのリマインド強調表示セクション追加（2026-07-08 その2 追記）
+  - `messages/ja.json` / `messages/en.json` に `dashboard.reminderAnnouncements.*`（見出し等の表示文言）を追加する
+  - `ReminderAnnouncementsPanel` コンポーネントを新規実装する。自社スコープの `getAnnouncements()` 全件を取得し、既存の `isReminderPendingForCompany()` で自社宛に未対応のままリマインドが送信されているお知らせのみに絞り込み、既存の `AnnouncementListItem`（`isReminderPending=true`固定）で一覧表示する
+  - 対象が0件、またはデータ取得・判定処理に失敗した場合は何も描画しない（`null`を返す）
+  - 他のプレビューパネルと視覚的に区別できるよう、警告色系のアクセント（DAISOブランドトークン経由）をCardに付与する
+  - 申請者側トップページ（`ApplicantDashboardPage`）のナビゲーションカード群と `AnnouncementsPreviewPanel` の間に、独立した`Suspense`境界（fallback: `null`）で配置する
+  - 観測可能な完了条件: 単体テストで、リマインド対象が存在する場合の一覧表示・0件時の非表示・データ取得失敗時の非表示フォールバックの3パターンが検証できる。日本語・英語両方でセクション見出しが正しく表示される
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
+  - _Boundary: ReminderAnnouncementsPanel, ApplicantDashboardPage_

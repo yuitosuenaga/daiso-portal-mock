@@ -275,6 +275,9 @@
       "error": "お知らせの取得に失敗しました。",
       "viewAll": "お知らせ一覧を見る"
     },
+    "reminderAnnouncements": {
+      "title": "日本側からのリマインド"
+    },
     "priorityInquiriesPreview": {
       "title": "対応が必要な問い合わせ",
       "empty": "対応が必要な問い合わせはありません。",

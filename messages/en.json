@@ -275,6 +275,9 @@
       "error": "Failed to load announcements.",
       "viewAll": "View all announcements"
     },
+    "reminderAnnouncements": {
+      "title": "Reminders from Japan"
+    },
     "priorityInquiriesPreview": {
       "title": "Inquiries Needing Attention",
       "empty": "There are no inquiries needing attention.",

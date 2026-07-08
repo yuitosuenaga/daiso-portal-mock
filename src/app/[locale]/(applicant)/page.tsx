@@ -9,6 +9,7 @@ import {
   AnnouncementsPreviewPanel,
   AnnouncementsPreviewPanelSkeleton,
 } from "@/components/features/dashboard/AnnouncementsPreviewPanel";
+import { ReminderAnnouncementsPanel } from "@/components/features/dashboard/ReminderAnnouncementsPanel";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
@@ -56,6 +57,9 @@ export default async function DashboardPage() {
           icon={HelpCircle}
         />
       </div>
+      <Suspense fallback={null}>
+        <ReminderAnnouncementsPanel />
+      </Suspense>
       <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
         <AnnouncementsPreviewPanel viewAllHref="/announcements" />
       </Suspense>
