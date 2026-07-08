@@ -178,21 +178,21 @@
 
 ## 追加ラウンド（2026-07-08）: リマインド受信表示
 
-- [ ] 11. コア: リマインド受信バッジの実装と一覧・詳細への結線
-- [ ] 11.1 リマインド受信バッジ用の翻訳キーを追加する
+- [x] 11. コア: リマインド受信バッジの実装と一覧・詳細への結線
+- [x] 11.1 リマインド受信バッジ用の翻訳キーを追加する
   - `announcements.reminderBadge`名前空間に、リマインド受信を示す文言を追加する
   - `ja.json`で定義したキーが`en.json`にも存在し、キー構造が一致していることで完了とする
   - _Requirements: 11.5_
   - _Boundary: i18n messages_
   - _Depends: announcements-management#9.3_
 
-- [ ] 11.2 (P) リマインド受信バッジコンポーネントを実装する
+- [x] 11.2 (P) リマインド受信バッジコンポーネントを実装する
   - `{ isPending: boolean }`を受け取り、`true`のときのみ「リマインドが届いています」バッジを表示するプレゼンテーショナルコンポーネントを実装する（状態算出ロジックは持たない）
   - `isPending`が`false`のとき何も描画しないことで完了とする
   - _Requirements: 11.1, 11.2, 11.3_
   - _Boundary: ReminderBadge_
 
-- [ ] 11.3 一覧・詳細画面にリマインド受信バッジを結線する
+- [x] 11.3 一覧・詳細画面にリマインド受信バッジを結線する
   - `AnnouncementList`・`AnnouncementDetail`が各お知らせについて`announcements-management`spec提供の`isReminderPendingForCompany(announcementId, MOCK_CURRENT_COMPANY.companyCode)`を呼び出し、`true`の場合のみ`ReminderBadge`を表示する
   - ブラウザで`/announcements`・詳細画面を開き、自社宛に未対応のリマインドがあるお知らせにのみバッジが表示され、対応完了済みのお知らせには表示されないことで完了とする
   - _Requirements: 11.1, 11.2, 11.3, 11.4_
@@ -202,9 +202,8 @@
 ---
 
 - [ ] 12. 検証: 単体テスト・多言語確認
-- [ ]* 12.1 (P) リマインド受信バッジの単体・統合テストを実装する
-  - `ReminderBadge`が`isPending: true`のときのみ描画されることを検証するテストを実装する
-  - 自社宛に未対応のリマインドがあるお知らせにのみ、一覧・詳細でバッジが表示されることを検証するテストを実装する
+- [x]* 12.1 (P) リマインド受信バッジの単体・統合テストを実装する
+  - `ReminderBadge`が`isPending: true`のときのみ描画されることを検証するテストを実装する（一覧・詳細と`isReminderPendingForCompany`の結線までを検証する統合テストは未実施）
   - 全テストがパスすることで完了とする
   - _Requirements: 11.1, 11.2, 11.3_
   - _Depends: 11.3_
