@@ -86,3 +86,12 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 7.1, 7.2, 8.1, 8.2_
   - _Depends: 2.4, 2.5_
+
+---
+
+- [x] 5. 見出し（h1 + 説明文）の統一（2026-07-08 追記）
+  - `DocumentList.tsx`に、`LinkList.tsx`/`FaqList.tsx`と同一の`h1`＋説明文の`heading`要素を追加し、`Card`の外側・上部に配置する（既存の`documents.list.title`/`.description`翻訳キーをそのまま使用）
+  - エラー時・空データ時の早期returnにも同じ`heading`を含める
+  - 観測可能な完了条件: `/documents`を開くと、リンク集・FAQページと同じスタイルの`h1`タイトルと説明文がカードの上部に表示される
+  - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - _Boundary: DocumentList_

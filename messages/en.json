@@ -238,6 +238,10 @@
       "title": "Announcements",
       "description": "View announcements from the help desk."
     },
+    "documents": {
+      "title": "Documents",
+      "description": "View business documents published by the help desk."
+    },
     "links": {
       "title": "Links",
       "description": "View links to internal and external sites used for daily operations."
@@ -275,6 +279,10 @@
     "announcements": {
       "title": "Announcement Management",
       "description": "View, create, edit, and delete announcements."
+    },
+    "documents": {
+      "title": "Document Management",
+      "description": "View, create, edit, and delete documents."
     },
     "inquiryForm": {
       "title": "Inquiry Form",

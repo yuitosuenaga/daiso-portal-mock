@@ -1,6 +1,6 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncements } from "@/lib/api/announcements";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { AnnouncementListClient } from "@/components/features/announcements/AnnouncementListClient";
@@ -12,19 +12,26 @@ export async function AnnouncementList() {
     getLocale(),
   ]);
 
+  const heading = (
+    <div className="mb-6">
+      <h1 className="text-2xl font-semibold text-foreground">{t("list.title")}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t("list.description")}</p>
+    </div>
+  );
+
   let announcements: Announcement[];
   try {
     announcements = await getAnnouncements();
   } catch {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("list.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{t("list.error")}</p>
-        </CardContent>
-      </Card>
+      <div>
+        {heading}
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{t("list.error")}</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -42,24 +49,24 @@ export async function AnnouncementList() {
   }));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("list.title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {announcements.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("list.empty")}</p>
-        ) : (
-          <AnnouncementListClient
-            announcements={announcements}
-            categoryLabels={categoryLabels}
-            categoryOptions={categoryOptions}
-            actionRequiredBadgeLabel={t("actionRequiredBadge")}
-            locale={locale}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <div>
+      {heading}
+      <Card>
+        <CardContent className="pt-6">
+          {announcements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("list.empty")}</p>
+          ) : (
+            <AnnouncementListClient
+              announcements={announcements}
+              categoryLabels={categoryLabels}
+              categoryOptions={categoryOptions}
+              actionRequiredBadgeLabel={t("actionRequiredBadge")}
+              locale={locale}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

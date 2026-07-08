@@ -1,5 +1,12 @@
 import { Suspense } from "react";
-import { Bell, FilePlus, FileText, HelpCircle, Link2 } from "lucide-react";
+import {
+  Bell,
+  FilePlus,
+  FileText,
+  FolderOpen,
+  HelpCircle,
+  Link2,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
@@ -42,6 +49,12 @@ export default async function HelpdeskHomePage() {
             description={t("announcements.description")}
             href="/helpdesk/announcements"
             icon={Bell}
+          />
+          <NavigationCard
+            title={t("documents.title")}
+            description={t("documents.description")}
+            href="/helpdesk/documents"
+            icon={FolderOpen}
           />
         </div>
       </section>

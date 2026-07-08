@@ -199,6 +199,15 @@ src/
 | `helpdeskDashboard.faq.title` | FAQ | よくある質問 | FAQ |
 | `helpdeskDashboard.inquiryForm.title` | 問い合わせ申請フォーム | 申請フォーム | Inquiry Form |
 
+## 両ダッシュボードへの「ドキュメント」カード追加（2026-07-08 追記）
+
+`documents` spec（申請者側 `/documents`）・`documents-management` spec（ヘルプデスク側 `/helpdesk/documents`）がいずれも実装済み・`main`マージ済みとなったことを受け、両ダッシュボードに静的な`NavigationCard`を1枚ずつ追加する。新規コンポーネントの追加は不要（既存の`NavigationCard`をそのまま利用する）。
+
+- **ApplicantDashboardPage**（`src/app/[locale]/(applicant)/page.tsx`）: 「お知らせ」カードの後、「リンク」カードの前に「ドキュメント」カード（静的`NavigationCard`, href `/documents`, icon `FolderOpen`）を追加する（`Sidebar.tsx`のNAV_ITEMS順序と一致させる）
+- **HelpdeskDashboardPage**（`src/app/[locale]/helpdesk/page.tsx`）: 「対応業務」セクションの「お知らせ管理」カードの後に「ドキュメント管理」カード（静的`NavigationCard`, href `/helpdesk/documents`, icon `FolderOpen`）を追加する（`HelpdeskSidebar.tsx`のHELPDESK_NAV_ITEMS順序と一致させる）
+- アイコンは`Sidebar.tsx` / `HelpdeskSidebar.tsx`の「ドキュメント」項目と同じ`FolderOpen`（`lucide-react`）を使用し、視覚的な一貫性を保つ
+- `messages/ja.json` / `messages/en.json` に `dashboard.documents.{title,description}` / `helpdeskDashboard.documents.{title,description}` を新規追加する
+
 ## Components and Interfaces
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |

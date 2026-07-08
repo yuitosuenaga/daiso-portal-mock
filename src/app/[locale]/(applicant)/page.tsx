@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { FilePlus, HelpCircle, Link2 } from "lucide-react";
+import { FilePlus, FolderOpen, HelpCircle, Link2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
@@ -37,6 +37,12 @@ export default async function DashboardPage() {
             descriptionKey="dashboard.announcements.description"
           />
         </Suspense>
+        <NavigationCard
+          title={t("documents.title")}
+          description={t("documents.description")}
+          href="/documents"
+          icon={FolderOpen}
+        />
         <NavigationCard
           title={t("links.title")}
           description={t("links.description")}

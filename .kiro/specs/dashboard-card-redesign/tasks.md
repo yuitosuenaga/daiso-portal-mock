@@ -139,3 +139,11 @@
   - 観測可能な完了条件: 申請者側・ヘルプデスク側の両ダッシュボードと両サイドバーで、日本語表示が「申請」「よくある質問」「申請フォーム」に変わり、英語表示は従来通りで、コンソールエラーがないこと（playwright実機確認済み）
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
   - _Boundary: messages/ja.json, messages/en.json_
+
+- [x] 12. 両ダッシュボードへの「ドキュメント」カード追加（2026-07-08 追記）
+  - `messages/ja.json` / `messages/en.json` に `dashboard.documents.{title,description}` / `helpdeskDashboard.documents.{title,description}` を追加する
+  - 申請者側トップページに「お知らせ」カードの後・「リンク」カードの前の位置で「ドキュメント」カード（href `/documents`, icon `FolderOpen`）を追加する
+  - ヘルプデスク側トップページ「対応業務」セクションに「お知らせ管理」カードの後の位置で「ドキュメント管理」カード（href `/helpdesk/documents`, icon `FolderOpen`）を追加する
+  - 観測可能な完了条件: 両ダッシュボードにドキュメント関連カードが表示され、クリックでそれぞれ `/documents` / `/helpdesk/documents` へ遷移する。日本語・英語の両方でカード文言が正しく表示される
+  - _Requirements: 8.1, 8.2, 8.3, 8.4_
+  - _Boundary: ApplicantDashboardPage, HelpdeskDashboardPage_

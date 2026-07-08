@@ -11,12 +11,12 @@ export function Header() {
 
   return (
     <header className="h-14 fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 bg-white border-b border-border shadow-sm">
-      <div className="flex items-center gap-3 min-w-0">
+      <Link href="/" className="flex items-center gap-3 min-w-0">
         <Logo />
         <span className="hidden sm:inline truncate font-semibold text-base text-foreground">
           {t("title")}
         </span>
-      </div>
+      </Link>
       <div className="flex items-center gap-4 shrink-0">
         <Link
           href="/helpdesk"
