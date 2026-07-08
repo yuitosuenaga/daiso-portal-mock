@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
+import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
 import type { Announcement } from "@/types/announcement";
 
 export interface AnnouncementListItemProps {
@@ -13,6 +14,12 @@ export interface AnnouncementListItemProps {
    * バッジ表示が不要な文脈のため省略可能）。
    */
   actionRequiredBadgeLabel?: string;
+  /**
+   * 自社宛に未対応のままリマインドが送信されているかどうか。
+   * 未指定の場合はリマインド受信バッジを表示しない（ダッシュボードのプレビュー等、
+   * バッジ表示が不要な文脈のため省略可能）。
+   */
+  isReminderPending?: boolean;
   /** 公開日のロケール整形に使用する現在のロケール */
   locale: string;
 }
@@ -25,6 +32,7 @@ export function AnnouncementListItem({
   announcement,
   categoryLabel,
   actionRequiredBadgeLabel,
+  isReminderPending,
   locale,
 }: AnnouncementListItemProps) {
   return (
@@ -41,6 +49,7 @@ export function AnnouncementListItem({
           {announcement.actionRequired && actionRequiredBadgeLabel && (
             <Badge variant="default">{actionRequiredBadgeLabel}</Badge>
           )}
+          {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
           <time
             dateTime={announcement.publishedAt}
             className="text-xs text-muted-foreground"

@@ -25,6 +25,10 @@ vi.mock("@/lib/api/announcements", () => ({
   getAllAnnouncements: (...args: unknown[]) => getAllAnnouncementsMock(...args),
 }));
 
+vi.mock("@/lib/api/announcement-tracking", () => ({
+  getAnnouncementRecipientStatuses: async () => [],
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const messages: Record<string, Record<string, string>> = {
     "helpdeskAnnouncements.list": {

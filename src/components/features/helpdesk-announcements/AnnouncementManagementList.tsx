@@ -3,10 +3,12 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAllAnnouncements } from "@/lib/api/announcements";
+import { getAnnouncementRecipientStatuses } from "@/lib/api/announcement-tracking";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { AnnouncementManagementListClient } from "@/components/features/helpdesk-announcements/AnnouncementManagementListClient";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
 
 export async function AnnouncementManagementList() {
   const [t, tCategories, tCountries, locale] = await Promise.all([
@@ -85,6 +87,20 @@ export async function AnnouncementManagementList() {
     label: tCategories(code),
   }));
 
+  const recipientStatusesEntries = await Promise.all(
+    announcements.map(
+      async (announcement) =>
+        [
+          announcement.id,
+          await getAnnouncementRecipientStatuses(announcement.id),
+        ] as const
+    )
+  );
+  const recipientStatusesByAnnouncementId: Record<
+    string,
+    AnnouncementRecipientStatusView[]
+  > = Object.fromEntries(recipientStatusesEntries);
+
   return (
     <div>
       {heading}
@@ -106,6 +122,7 @@ export async function AnnouncementManagementList() {
             deleteButtonLabel={t("deleteButton")}
             deleteConfirmMessage={t("deleteConfirm")}
             deleteErrorMessage={t("deleteError")}
+            recipientStatusesByAnnouncementId={recipientStatusesByAnnouncementId}
           />
         </CardContent>
       </Card>
