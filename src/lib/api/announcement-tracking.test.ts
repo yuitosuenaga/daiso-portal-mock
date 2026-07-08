@@ -71,6 +71,14 @@ describe("isReminderPendingForCompany", () => {
 
     expect(result).toBe(false);
   });
+
+  it("対応要否が偽のお知らせに対してはfalseを返す", async () => {
+    await sendAnnouncementReminders("2", ["vn-daiso-vietnam-1"]);
+
+    const result = await isReminderPendingForCompany("2", "vn-daiso-vietnam");
+
+    expect(result).toBe(false);
+  });
 });
 
 describe("sendAnnouncementReminders", () => {

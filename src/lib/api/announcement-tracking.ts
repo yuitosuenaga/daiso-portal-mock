@@ -234,6 +234,11 @@ export async function isReminderPendingForCompany(
   announcementId: string,
   companyCode: string
 ): Promise<boolean> {
+  const announcement = await getAnnouncementByIdForHelpdesk(announcementId);
+  if (!announcement?.actionRequired) {
+    return false;
+  }
+
   const statuses = await getAnnouncementRecipientStatuses(announcementId);
 
   return statuses.some(
