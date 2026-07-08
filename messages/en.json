@@ -195,15 +195,18 @@
   "helpdeskTemplates": {
     "list": {
       "title": "Template Management",
-      "description": "Manage reply templates organized by category.",
+      "description": "Register and manage multiple reply templates for each category.",
       "addButton": "Add new template",
       "editLink": "Edit",
-      "empty": "No templates"
+      "empty": "No templates",
+      "templateCount": "{count} template(s)"
     },
     "form": {
       "createTitle": "Create Template",
       "editTitle": "Edit Template",
       "notFound": "Template not found",
+      "nameLabel": "Template name",
+      "namePlaceholder": "Enter the template name",
       "categoryLabel": "Category",
       "categoryPlaceholder": "Select a category",
       "bodyLabel": "Body",
@@ -211,7 +214,8 @@
       "submitButton": "Save",
       "backToList": "Back to list",
       "validation": {
-        "required": "This field is required"
+        "required": "This field is required",
+        "nameTooLong": "Template name must be 40 characters or less"
       }
     }
   },

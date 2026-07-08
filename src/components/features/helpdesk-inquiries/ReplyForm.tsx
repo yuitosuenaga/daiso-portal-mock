@@ -91,7 +91,7 @@ export function ReplyForm({
             placeholder={templatePlaceholder}
             options={templates.map((template) => ({
               value: template.id,
-              label: template.body,
+              label: template.name,
             }))}
             onChange={handleTemplateChange}
           />

@@ -21,12 +21,15 @@ export default async function HelpdeskTemplateNewPage() {
       </h1>
       <TemplateForm
         mode="create"
+        nameLabel={t("nameLabel")}
+        namePlaceholder={t("namePlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
+        nameTooLongErrorMessage={t("validation.nameTooLong")}
         categoryOptions={categoryOptions}
       />
       <Link

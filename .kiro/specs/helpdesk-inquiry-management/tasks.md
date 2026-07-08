@@ -417,3 +417,61 @@
   - `inquiry-list`spec側の送信機能実装後、申請者側から送信した追加メッセージがヘルプデスク側の対応履歴タイムラインに反映されることを日本語・英語の両方で確認する
   - _Requirements: 14.2, 14.3, 14.4, 14.5_
   - _Depends: 18.1_
+
+---
+
+## 追加ラウンド（2026-07-08）: テンプレートの名称管理とテンプレート選択・一覧表示のUI改善
+
+- [x] 19. 基盤: `ReplyTemplate`型・バリデーションへの`name`追加
+- [x] 19.1 `ReplyTemplate`/`CreateReplyTemplateInput`型に`name`フィールドを追加する
+  - `src/types/reply-template.ts`の`ReplyTemplate`に`name: string`を追加する（`id`→`category`→`name`→`body`の順）
+  - `npx tsc --noEmit`が通ることで完了とする
+  - _Requirements: 8.6_
+
+- [x] 19.2 (P) `replyTemplateFormSchema`に`name`のバリデーションを追加する
+  - `src/lib/validation/reply-template.ts`に`TEMPLATE_NAME_MAX_LENGTH`（40）定数を追加し、`name: z.string().trim().min(1).max(TEMPLATE_NAME_MAX_LENGTH)`をスキーマに追加する
+  - 単体テスト（空文字・空白のみ・上限超過でエラーになること）が通ることで完了とする
+  - _Requirements: 8.5, 8.6_
+
+---
+
+- [x] 20. モックAPI・モックデータの更新
+  - `src/lib/api/reply-templates.ts`の`updateReplyTemplate`に`template.name = input.name;`を追加する
+  - `MOCK_REPLY_TEMPLATES`を各カテゴリ2件程度に拡充し、全件に`name`を付与する
+  - 既存の単体テスト（カテゴリごとに最低1件、作成・編集内容の反映）を`name`込みで更新し、通ることで完了とする
+  - _Requirements: 8.1, 8.6_
+  - _Depends: 19.1, 19.2_
+
+---
+
+- [x] 21. TemplateForm・関連ページの更新
+  - `TemplateForm`に`name`用の`Input`フィールドを追加し、`nameLabel`/`namePlaceholder`/`nameTooLongErrorMessage`propsを追加する
+  - `templates/new/page.tsx`・`templates/[id]/edit/page.tsx`のprops配線を更新する（`edit`側は`defaultValues.name`を含める）
+  - `messages/ja.json`・`messages/en.json`に`nameLabel`/`namePlaceholder`/`validation.nameTooLong`を追加する
+  - `name`未入力・上限超過時に送信がブロックされることを検証するテストが通ることで完了とする
+  - _Requirements: 8.2, 8.3, 8.5, 8.6_
+  - _Depends: 20_
+
+---
+
+- [x] 22. TemplateListの表示改善
+  - カテゴリ見出しを`Badge`でラップし、件数（`templateCount`）を併記する
+  - 各テンプレートを`name`（見出し）+`body`（`line-clamp-2`によるプレビュー）の2段組で表示する
+  - 同一カテゴリに複数テンプレートがある場合にそれぞれが名前で区別されて表示されることを検証するテストが通ることで完了とする
+  - _Requirements: 8.1, 8.6_
+  - _Depends: 20_
+
+---
+
+- [x] 23. ReplyFormのテンプレート選択肢をnameベースに変更
+  - `ReplyForm`のSelect optionsの`label`を`template.body`から`template.name`に変更する
+  - 選択肢ラベルが`name`で表示され、選択時の本文挿入動作（既存ロジック）が変わらないことを検証するテストが通ることで完了とする
+  - _Requirements: 7.6_
+  - _Depends: 20_
+
+---
+
+- [x] 24. 検証（テンプレート名称管理・選択UI改善）
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 7.6, 8.1〜8.6_
+  - _Depends: 21, 22, 23_

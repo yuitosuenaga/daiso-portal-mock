@@ -52,13 +52,20 @@ export default async function HelpdeskTemplateEditPage({
       <TemplateForm
         mode="edit"
         templateId={template.id}
-        defaultValues={{ category: template.category, body: template.body }}
+        defaultValues={{
+          category: template.category,
+          name: template.name,
+          body: template.body,
+        }}
+        nameLabel={t("nameLabel")}
+        namePlaceholder={t("namePlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
+        nameTooLongErrorMessage={t("validation.nameTooLong")}
         categoryOptions={categoryOptions}
       />
       <Link

@@ -37,6 +37,7 @@ describe("createReplyTemplate / updateReplyTemplate / getReplyTemplateById", () 
   it("作成したテンプレートが該当カテゴリの一覧に反映される", async () => {
     const created = await createReplyTemplate({
       category: "other",
+      name: "テスト用テンプレート名",
       body: "テスト用テンプレート本文",
     });
 
@@ -51,15 +52,18 @@ describe("createReplyTemplate / updateReplyTemplate / getReplyTemplateById", () 
   it("編集した内容がgetReplyTemplateByIdに反映される", async () => {
     const created = await createReplyTemplate({
       category: "system",
+      name: "編集前の名前",
       body: "編集前の本文",
     });
 
     await updateReplyTemplate(created.id, {
       category: "system",
+      name: "編集後の名前",
       body: "編集後の本文",
     });
 
     const result = await getReplyTemplateById(created.id);
+    expect(result?.name).toBe("編集後の名前");
     expect(result?.body).toBe("編集後の本文");
   });
 
