@@ -3,10 +3,13 @@ import { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 import {
   requireApplicantSession,
   requireHelpdeskStaffSession,
+  UnauthorizedSessionError,
 } from "@/lib/server/auth-session";
+import { getSession } from "@/lib/server/get-session";
 import {
   createInquiryRecord,
   findInquiryById as findInquiryByIdService,
+  findInquiryForCompany,
   listAllInquiries as listAllInquiriesService,
   listInquiriesForCompany,
   setClaim,
@@ -52,11 +55,19 @@ export async function getAllInquiries(): Promise<Inquiry[]> {
 }
 
 /**
- * 指定されたIDの問い合わせを1件取得する。セッションは要求しない
- * （呼び出し元のServer Action・Route Handlerが自身のコンテキストに応じて
- * アクセス制御を行う内部ヘルパーとして扱う）。
+ * 指定されたIDの問い合わせを1件取得する。申請者セッションでは自社スコープに
+ * 限定し、ヘルプデスクセッションでは全社の問い合わせを取得できる。
  */
 export async function getInquiryById(id: string): Promise<Inquiry | null> {
+  const session = await getSession();
+  if (!session?.claims) {
+    throw new UnauthorizedSessionError("Session required");
+  }
+
+  if (session.claims.role === "applicant") {
+    return findInquiryForCompany(id, session.claims.companyId);
+  }
+
   return findInquiryByIdService(id);
 }
 

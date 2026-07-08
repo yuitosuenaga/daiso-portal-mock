@@ -7,6 +7,7 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   listInquiriesForCompany: vi.fn(),
   listAllInquiries: vi.fn(),
   findInquiryById: vi.fn(),
+  findInquiryForCompany: vi.fn(),
   setClaim: vi.fn(),
   updateStatus: vi.fn(),
 }));
@@ -15,6 +16,7 @@ import { getSession } from "@/lib/server/get-session";
 import {
   createInquiryRecord,
   findInquiryById as findInquiryByIdService,
+  findInquiryForCompany,
   listAllInquiries as listAllInquiriesService,
   listInquiriesForCompany,
   setClaim,
@@ -142,16 +144,36 @@ describe("getAllInquiries", () => {
 });
 
 describe("getInquiryById", () => {
-  it("セッションを要求せずfindInquiryByIdに委譲する", async () => {
+  it("申請者セッションでは自社スコープでfindInquiryForCompanyに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue(inquiry());
+
+    const result = await getInquiryById("inquiry-1");
+
+    expect(findInquiryForCompany).toHaveBeenCalledWith("inquiry-1", "company-1");
+    expect(findInquiryByIdService).not.toHaveBeenCalled();
+    expect(result?.id).toBe("inquiry-1");
+  });
+
+  it("ヘルプデスクセッションではfindInquiryByIdに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(findInquiryByIdService).mockResolvedValue(inquiry());
 
     const result = await getInquiryById("inquiry-1");
 
-    expect(getSession).not.toHaveBeenCalled();
+    expect(findInquiryByIdService).toHaveBeenCalledWith("inquiry-1");
+    expect(findInquiryForCompany).not.toHaveBeenCalled();
     expect(result?.id).toBe("inquiry-1");
   });
 
+  it("セッションがない場合は例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+
+    await expect(getInquiryById("inquiry-1")).rejects.toThrow();
+  });
+
   it("存在しない場合nullを返す", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(findInquiryByIdService).mockResolvedValue(null);
 
     const result = await getInquiryById("missing");
