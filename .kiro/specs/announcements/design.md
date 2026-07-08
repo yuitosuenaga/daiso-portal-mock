@@ -467,3 +467,107 @@ function filterAnnouncements(
 | Requirement | Summary | Components |
 |-------------|---------|------------|
 | 10.1〜10.4 | h1＋説明文の見出し統一 | AnnouncementList |
+
+---
+
+## 追加ラウンド（2026-07-08）: リマインド受信表示
+
+### Overview（追加分）
+`announcements-management`spec側で追加される、担当者ごとの確認済み・実施済み・リマインド送信状態（モック）を読み取り、自社（`MOCK_CURRENT_COMPANY`）宛に未対応のままリマインドが送信されているお知らせについて、一覧・詳細画面にリマインド受信の表示を追加する。**Purpose**: 販社担当者が、ヘルプデスクからリマインドが届いている＝対応の優先度が高いお知らせを見分けられるようにする。**Impact**: `AnnouncementList`・`AnnouncementDetail`が`announcements-management`spec所有の読み取り専用API（`isReminderPendingForCompany`）を呼び出す点を除き、既存のレイアウト・操作性・データ取得の型は変更しない。
+
+### Goals（追加分）
+- 自社宛に未対応のリマインドが送信されているお知らせを、一覧・詳細画面で視覚的に区別できる
+- 対応が完了している場合はリマインド表示を行わない
+
+### Non-Goals（追加分）
+- 確認済み・実施済み人数や未対応者一覧の表示（ヘルプデスク限定。`announcements-management`spec側の対象）
+- 実際のメール・プッシュ通知配信
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- お知らせ一覧・詳細画面におけるリマインド受信バッジ・表示のUI
+
+**Out of Boundary（追加）**
+- リマインド送信状態（`AnnouncementRecipientStatus`）のデータ・算出ロジック自体（`announcements-management`specが所有。本specは`isReminderPendingForCompany`を読み取り専用で呼び出すのみ）
+- 確認済み・実施済み人数の算出・表示（対象外。要件6参照）
+
+**Allowed Dependencies（追加）**
+- `announcements-management`spec所有の`isReminderPendingForCompany(announcementId, companyCode)`（`lib/api/announcement-tracking.ts`、読み取り専用）
+- 既存の`MOCK_CURRENT_COMPANY`（`lib/constants/current-company.ts`）
+
+**Revalidation Triggers（追加）**
+- `isReminderPendingForCompany`の関数シグネチャ・戻り値の意味が変更された場合、本specの表示ロジックを再確認する必要がある
+
+### Architecture（追加分）
+
+`AnnouncementList`・`AnnouncementDetail`（いずれもServer Component）が、お知らせ取得時に`isReminderPendingForCompany(announcement.id, MOCK_CURRENT_COMPANY.companyCode)`を追加で呼び出し、結果を各行・詳細画面に渡す。表示は既存の`CategoryBadge`と同系統の新規`ReminderBadge`で行う。
+
+```mermaid
+graph TB
+    List[AnnouncementList]
+    Detail[AnnouncementDetail]
+    ReminderBadge[Reminder Badge]
+    TrackingApi[Announcement Tracking Mock Api existing]
+    CurrentCompany[Current Company Constant existing]
+
+    List --> TrackingApi
+    Detail --> TrackingApi
+    TrackingApi --> CurrentCompany
+    List --> ReminderBadge
+    Detail --> ReminderBadge
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 既存の`CategoryBadge`/`ActionRequiredBadge`と同じ「値に応じてバッジ表示を出し分ける」パターンを踏襲する
+- ドメイン境界: リマインド送信状態のデータ・算出は`announcements-management`spec側に留め、本specは真偽値の読み取り結果のみを扱う（データを直接参照・加工しない）
+- 新規コンポーネントの理由: リマインド受信表示は種別・対応要否とは異なる文脈の情報であり、既存バッジと視覚的に区別するため独立コンポーネントとする
+- Steering準拠: 表示テキストは`next-intl`翻訳キー経由という既存規約を維持
+
+### Technology Stack（追加分・差分のみ）
+新規の技術要素なし（既存のUIプリミティブ・モックAPI呼び出しパターンのみを使用）。
+
+### File Structure Plan（追加分）
+
+```
+src/components/features/announcements/
+├── ReminderBadge.tsx                # 新規: リマインド受信を示すバッジ（Badgeプリミティブを利用）
+├── AnnouncementList.tsx             # 変更: 各行についてisReminderPendingForCompanyを取得しReminderBadgeを表示
+└── AnnouncementDetail.tsx           # 変更: 詳細画面にReminderBadgeを表示
+
+messages/
+├── ja.json                          # 変更: announcements.reminderBadge名前空間を追加
+└── en.json                          # 同上
+```
+
+### Modified Files（追加分）
+- `src/components/features/announcements/AnnouncementList.tsx` — 一覧取得時に各お知らせへ`isReminderPendingForCompany`を並行して呼び出し、`true`の項目に`ReminderBadge`を表示
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 詳細取得時に同様の判定を行い、`true`のとき`ReminderBadge`を表示
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 11.1〜11.5 | リマインド受信表示 | ReminderBadge, AnnouncementList, AnnouncementDetail | Service（`isReminderPendingForCompany`読み取り） |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| ReminderBadge | UI/Presentational | リマインド受信中であることを示すバッジを表示 | 11.1, 11.2 | Badgeプリミティブ（P0） | — |
+
+**Presentation Components（サマリーのみ）**
+- **ReminderBadge**: `isReminderPendingForCompany`が`true`の場合のみ表示するプレゼンテーショナルコンポーネント。propsは`{ isPending: boolean }`のみを受け取り、状態算出ロジックを持たない。
+
+### Data Models（追加分）
+本specはデータモデルを追加しない。`announcements-management`spec所有の`isReminderPendingForCompany(announcementId: string, companyCode: string): Promise<boolean>`を読み取り専用で参照する。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `ReminderBadge`が`isPending: true`のときのみバッジを描画すること
+- **Integration Tests**:
+  - 自社宛に未対応のリマインドがあるお知らせについて、一覧・詳細の両方で`ReminderBadge`が表示されること
+  - 対応が完了している（`completedAt`が設定されている）場合、`ReminderBadge`が表示されないこと
+- **E2E/UI Tests**:
+  - 日本語・英語両方でリマインド受信表示の文言が翻訳されること
