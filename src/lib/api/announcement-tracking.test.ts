@@ -1,5 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/server/announcement-service", () => ({
+  getAnnouncementRecipientStatuses: vi.fn(),
+  getAnnouncementTrackingSummary: vi.fn(),
+  isReminderPendingForCompany: vi.fn(),
+  sendAnnouncementReminders: vi.fn(),
+}));
+
+import { getSession } from "@/lib/server/get-session";
+import {
+  getAnnouncementRecipientStatuses as getAnnouncementRecipientStatusesService,
+  getAnnouncementTrackingSummary as getAnnouncementTrackingSummaryService,
+  isReminderPendingForCompany as isReminderPendingForCompanyService,
+  sendAnnouncementReminders as sendAnnouncementRemindersService,
+} from "@/lib/server/announcement-service";
 import {
   getAnnouncementRecipientStatuses,
   getAnnouncementTrackingSummary,
@@ -7,103 +23,114 @@ import {
   sendAnnouncementReminders,
 } from "@/lib/api/announcement-tracking";
 
-describe("getAnnouncementTrackingSummary", () => {
-  it("対応要否ありのお知らせでは確認済み・実施済みの両方を返す", async () => {
-    const result = await getAnnouncementTrackingSummary("1");
+const helpdeskSession = {
+  claims: {
+    id: "staff-1",
+    role: "helpdesk" as const,
+    staffId: "staff-1",
+    displayName: "田中 太郎",
+  },
+};
 
-    expect(result.totalRecipients).toBe(16);
-    expect(result.confirmedCount).toBe(10);
-    expect(result.completedCount).toBe(6);
-  });
+const applicantSession = {
+  claims: {
+    id: "applicant-1",
+    role: "applicant" as const,
+    applicantUserId: "applicant-1",
+    companyId: "company-1",
+    companyName: "Test Co.",
+    companyCode: "test-co",
+    country: "VN",
+  },
+};
 
-  it("対応要否なしのお知らせでは実施済み件数がnullになる", async () => {
-    const result = await getAnnouncementTrackingSummary("2");
-
-    expect(result.totalRecipients).toBe(16);
-    expect(result.confirmedCount).toBe(12);
-    expect(result.completedCount).toBeNull();
-  });
-
-  it("存在しないお知らせIDに対しては全て0（実施済みはnull）を返す", async () => {
-    const result = await getAnnouncementTrackingSummary("not-exist");
-
-    expect(result).toEqual({
-      totalRecipients: 0,
-      confirmedCount: 0,
-      completedCount: null,
-    });
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 describe("getAnnouncementRecipientStatuses", () => {
-  it("配信対象（全体一律）でスコープされた全担当者を返す", async () => {
-    const result = await getAnnouncementRecipientStatuses("1");
+  it("ヘルプデスクセッションでサービス層に委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(getAnnouncementRecipientStatusesService).mockResolvedValue([]);
 
-    expect(result).toHaveLength(16);
-    expect(new Set(result.map((status) => status.companyCode)).size).toBe(8);
+    const result = await getAnnouncementRecipientStatuses("announcement-1");
+
+    expect(getAnnouncementRecipientStatusesService).toHaveBeenCalledWith(
+      "announcement-1"
+    );
+    expect(result).toEqual([]);
   });
 
-  it("存在しないお知らせIDに対しては空配列を返す", async () => {
-    const result = await getAnnouncementRecipientStatuses("not-exist");
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    expect(result).toEqual([]);
+    await expect(
+      getAnnouncementRecipientStatuses("announcement-1")
+    ).rejects.toThrow();
+  });
+});
+
+describe("getAnnouncementTrackingSummary", () => {
+  it("ヘルプデスクセッションでサービス層に委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(getAnnouncementTrackingSummaryService).mockResolvedValue({
+      totalRecipients: 16,
+      confirmedCount: 10,
+      completedCount: 6,
+    });
+
+    const result = await getAnnouncementTrackingSummary("announcement-1");
+
+    expect(getAnnouncementTrackingSummaryService).toHaveBeenCalledWith(
+      "announcement-1"
+    );
+    expect(result.totalRecipients).toBe(16);
+  });
+
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      getAnnouncementTrackingSummary("announcement-1")
+    ).rejects.toThrow();
   });
 });
 
 describe("isReminderPendingForCompany", () => {
-  it("未対応のままリマインドが送信されている会社に対してtrueを返す", async () => {
-    const result = await isReminderPendingForCompany("5", "vn-daiso-vietnam");
+  it("セッション検証なしでサービス層に委譲する（申請者側から呼ばれるため）", async () => {
+    vi.mocked(isReminderPendingForCompanyService).mockResolvedValue(true);
 
-    expect(result).toBe(true);
-  });
-
-  it("対応が完了している会社に対してはfalseを返す", async () => {
     const result = await isReminderPendingForCompany(
-      "5",
-      "jp-daiso-japan-trading"
+      "announcement-1",
+      "vn-daiso-vietnam"
     );
 
-    expect(result).toBe(false);
-  });
-
-  it("リマインドが送信されていないお知らせに対してはfalseを返す", async () => {
-    const result = await isReminderPendingForCompany("1", "vn-daiso-vietnam");
-
-    expect(result).toBe(false);
-  });
-
-  it("対応要否が偽のお知らせに対してはfalseを返す", async () => {
-    await sendAnnouncementReminders("2", ["vn-daiso-vietnam-1"]);
-
-    const result = await isReminderPendingForCompany("2", "vn-daiso-vietnam");
-
-    expect(result).toBe(false);
+    expect(isReminderPendingForCompanyService).toHaveBeenCalledWith(
+      "announcement-1",
+      "vn-daiso-vietnam"
+    );
+    expect(result).toBe(true);
   });
 });
 
 describe("sendAnnouncementReminders", () => {
-  it("対象担当者のみのreminderSentAtを更新し、自社宛リマインド有無判定に反映される", async () => {
-    const before = await isReminderPendingForCompany("3", "sg-daiso-singapore");
-    expect(before).toBe(false);
+  it("ヘルプデスクセッションでサービス層に委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(sendAnnouncementRemindersService).mockResolvedValue(undefined);
 
-    await sendAnnouncementReminders("3", ["sg-daiso-singapore-2"]);
+    await sendAnnouncementReminders("announcement-1", ["recipient-1"]);
 
-    const after = await isReminderPendingForCompany("3", "sg-daiso-singapore");
-    expect(after).toBe(true);
-
-    const statuses = await getAnnouncementRecipientStatuses("3");
-    const target = statuses.find(
-      (status) => status.recipientId === "sg-daiso-singapore-2"
+    expect(sendAnnouncementRemindersService).toHaveBeenCalledWith(
+      "announcement-1",
+      ["recipient-1"]
     );
-    const others = statuses.filter(
-      (status) => status.recipientId !== "sg-daiso-singapore-2"
-    );
-
-    expect(target?.reminderSentAt).not.toBeNull();
-    expect(others.every((status) => status.reminderSentAt === null)).toBe(true);
   });
 
-  it("空配列を渡した場合は何もせず正常終了する", async () => {
-    await expect(sendAnnouncementReminders("1", [])).resolves.toBeUndefined();
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      sendAnnouncementReminders("announcement-1", ["recipient-1"])
+    ).rejects.toThrow();
   });
 });

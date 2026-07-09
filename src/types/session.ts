@@ -5,6 +5,10 @@ export type ApplicantSessionClaims = {
   applicantUserId: string;
   companyId: string;
   companyName: string;
+  /** `DOCUMENT_COMPANY_CODES`のいずれかの値。お知らせの確認・追跡対象の特定に使用する。 */
+  companyCode: string;
+  /** ISO 3166-1 alpha-2。お知らせの配信対象フィルタに使用する。 */
+  country: string;
 };
 
 export type HelpdeskSessionClaims = {

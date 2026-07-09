@@ -37,6 +37,8 @@ export async function authorizeApplicantCredentials(
     applicantUserId: applicantUser.id,
     companyId: applicantUser.companyId,
     companyName: applicantUser.company.name,
+    companyCode: applicantUser.company.companyCode,
+    country: applicantUser.company.country,
   };
 }
 

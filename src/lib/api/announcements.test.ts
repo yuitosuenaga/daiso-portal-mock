@@ -1,5 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/server/announcement-service", () => ({
+  createAnnouncementRecord: vi.fn(),
+  deleteAnnouncementRecord: vi.fn(),
+  findAnnouncementById: vi.fn(),
+  findAnnouncementVisibleToCountry: vi.fn(),
+  listAllAnnouncements: vi.fn(),
+  listAnnouncementsVisibleToCountry: vi.fn(),
+  updateAnnouncementRecord: vi.fn(),
+}));
+
+import { getSession } from "@/lib/server/get-session";
+import {
+  createAnnouncementRecord,
+  deleteAnnouncementRecord,
+  findAnnouncementById as findAnnouncementByIdService,
+  findAnnouncementVisibleToCountry,
+  listAllAnnouncements as listAllAnnouncementsService,
+  listAnnouncementsVisibleToCountry,
+  updateAnnouncementRecord,
+} from "@/lib/server/announcement-service";
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -10,217 +32,199 @@ import {
   getRecentAnnouncements,
   updateAnnouncement,
 } from "@/lib/api/announcements";
-import type { CreateAnnouncementInput } from "@/types/announcement";
+import type { Announcement, CreateAnnouncementInput } from "@/types/announcement";
 
-describe("getAnnouncements", () => {
-  it("公開日（publishedAt）の降順で全件を返す", async () => {
-    const result = await getAnnouncements();
+const applicantSession = {
+  claims: {
+    id: "applicant-1",
+    role: "applicant" as const,
+    applicantUserId: "applicant-1",
+    companyId: "company-1",
+    companyName: "Test Co.",
+    companyCode: "test-co",
+    country: "VN",
+  },
+};
 
-    const sortedIds = [...result]
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      .map((item) => item.id);
+const helpdeskSession = {
+  claims: {
+    id: "staff-1",
+    role: "helpdesk" as const,
+    staffId: "staff-1",
+    displayName: "田中 太郎",
+  },
+};
 
-    expect(result.map((item) => item.id)).toEqual(sortedIds);
-  });
+function announcement(overrides: Partial<Announcement> = {}): Announcement {
+  return {
+    id: "announcement-1",
+    title: "タイトル",
+    publishedAt: "2026-07-01T00:00:00.000Z",
+    category: "other",
+    body: "本文",
+    targeting: { scope: "all" },
+    actionRequired: false,
+    ...overrides,
+  };
+}
 
-  it("モックデータの全件を返す", async () => {
-    const result = await getAnnouncements();
-
-    expect(result).toHaveLength(5);
-    expect(new Set(result.map((item) => item.id))).toEqual(
-      new Set(["1", "2", "3", "4", "5"])
-    );
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
-describe("getAnnouncementById", () => {
-  it("存在するIDに対応するAnnouncementを返す", async () => {
-    const result = await getAnnouncementById("1");
+describe("getRecentAnnouncements", () => {
+  it("自社country絞り込みの結果からデフォルトで最新3件を返す", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listAnnouncementsVisibleToCountry).mockResolvedValue([
+      announcement({ id: "1" }),
+      announcement({ id: "2" }),
+      announcement({ id: "3" }),
+      announcement({ id: "4" }),
+    ]);
 
-    expect(result).not.toBeNull();
-    expect(result?.id).toBe("1");
-    expect(result?.title).toBe(
-      "システムメンテナンスのお知らせ（7月15日 2:00〜4:00）"
-    );
-    expect(result?.category).toBe("maintenance");
-  });
-
-  it("存在しないIDに対してnullを返す", async () => {
-    const result = await getAnnouncementById("does-not-exist");
-
-    expect(result).toBeNull();
-  });
-});
-
-describe("getRecentAnnouncements（既存挙動のリグレッション防止）", () => {
-  it("デフォルトで最新3件を公開日降順で返す", async () => {
     const result = await getRecentAnnouncements();
 
-    expect(result).toHaveLength(3);
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN");
     expect(result.map((item) => item.id)).toEqual(["1", "2", "3"]);
   });
 
   it("limit指定時にその件数を返す", async () => {
-    const result = await getRecentAnnouncements({ limit: 2 });
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listAnnouncementsVisibleToCountry).mockResolvedValue([
+      announcement({ id: "1" }),
+      announcement({ id: "2" }),
+    ]);
 
-    expect(result).toHaveLength(2);
-    expect(result.map((item) => item.id)).toEqual(["1", "2"]);
+    const result = await getRecentAnnouncements({ limit: 1 });
+
+    expect(result.map((item) => item.id)).toEqual(["1"]);
   });
 
-  it("limitがモックデータ件数を超える場合は全件を返す", async () => {
-    const result = await getRecentAnnouncements({ limit: 100 });
+  it("未ログインのとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
 
-    expect(result).toHaveLength(5);
-    expect(result.map((item) => item.id)).toEqual(["1", "2", "3", "4", "5"]);
+    await expect(getRecentAnnouncements()).rejects.toThrow();
   });
 });
 
-// 以下のテストは`createAnnouncement`等でお知らせを追加するため、上記の既存件数
-// 前提のテスト（"モックデータの全件を返す"等）より後ろに配置する。
-describe("自社国スコープフィルタ（配信対象）", () => {
-  it("全体一律のお知らせは自社国スコープの取得結果に含まれる", async () => {
+describe("getAnnouncements", () => {
+  it("申請者セッションのcountryでlistAnnouncementsVisibleToCountryに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listAnnouncementsVisibleToCountry).mockResolvedValue([announcement()]);
+
     const result = await getAnnouncements();
-    expect(result.every((item) => item.targeting.scope === "all")).toBe(true);
+
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN");
+    expect(result).toHaveLength(1);
   });
 
-  it("自社国を含まない配信対象のお知らせは自社国スコープの取得結果から除外される", async () => {
-    const input: CreateAnnouncementInput = {
-      title: "他国向けお知らせ",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "countries", countries: ["US"] },
-      actionRequired: false,
-    };
-    const created = await createAnnouncement(input);
+  it("ヘルプデスクセッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
-    const scoped = await getAnnouncements();
-    const all = await getAllAnnouncements();
+    await expect(getAnnouncements()).rejects.toThrow();
+  });
+});
 
-    expect(scoped.some((item) => item.id === created.id)).toBe(false);
-    expect(all.some((item) => item.id === created.id)).toBe(true);
+describe("getAnnouncementById", () => {
+  it("申請者セッションのcountryでfindAnnouncementVisibleToCountryに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findAnnouncementVisibleToCountry).mockResolvedValue(announcement());
+
+    const result = await getAnnouncementById("announcement-1");
+
+    expect(findAnnouncementVisibleToCountry).toHaveBeenCalledWith(
+      "announcement-1",
+      "VN"
+    );
+    expect(result?.id).toBe("announcement-1");
   });
 
-  it("自社国を含む配信対象のお知らせは自社国スコープの取得結果に含まれる", async () => {
-    const input: CreateAnnouncementInput = {
-      title: "ベトナム向けお知らせ",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "countries", countries: ["VN", "TH"] },
-      actionRequired: false,
-    };
-    const created = await createAnnouncement(input);
+  it("未ログインのとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
 
-    const scoped = await getAnnouncements();
-    expect(scoped.some((item) => item.id === created.id)).toBe(true);
+    await expect(getAnnouncementById("announcement-1")).rejects.toThrow();
+  });
+});
+
+describe("getAllAnnouncements", () => {
+  it("ヘルプデスクセッションでlistAllAnnouncementsに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(listAllAnnouncementsService).mockResolvedValue([announcement()]);
+
+    const result = await getAllAnnouncements();
+
+    expect(listAllAnnouncementsService).toHaveBeenCalled();
+    expect(result).toHaveLength(1);
   });
 
-  it("配信対象外のIDをgetAnnouncementByIdで取得するとnullになる", async () => {
-    const input: CreateAnnouncementInput = {
-      title: "他国向け詳細テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "countries", countries: ["US"] },
-      actionRequired: false,
-    };
-    const created = await createAnnouncement(input);
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    const scopedResult = await getAnnouncementById(created.id);
-    const unscopedResult = await getAnnouncementByIdForHelpdesk(created.id);
+    await expect(getAllAnnouncements()).rejects.toThrow();
+  });
+});
 
-    expect(scopedResult).toBeNull();
-    expect(unscopedResult?.id).toBe(created.id);
+describe("getAnnouncementByIdForHelpdesk", () => {
+  it("ヘルプデスクセッションでfindAnnouncementByIdに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(findAnnouncementByIdService).mockResolvedValue(announcement());
+
+    const result = await getAnnouncementByIdForHelpdesk("announcement-1");
+
+    expect(findAnnouncementByIdService).toHaveBeenCalledWith("announcement-1");
+    expect(result?.id).toBe("announcement-1");
+  });
+
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(getAnnouncementByIdForHelpdesk("announcement-1")).rejects.toThrow();
   });
 });
 
 describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
-  it("作成したお知らせがgetAllAnnouncementsに反映される", async () => {
-    const created = await createAnnouncement({
-      title: "新規作成テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
+  const input: CreateAnnouncementInput = {
+    title: "新規作成テスト",
+    body: "本文",
+    category: "other",
+    targeting: { scope: "all" },
+    actionRequired: false,
+  };
 
-    expect(created.id).toBeTruthy();
-    expect(typeof created.publishedAt).toBe("string");
+  it("ヘルプデスクセッションでcreateAnnouncementRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(createAnnouncementRecord).mockResolvedValue(announcement());
 
-    const all = await getAllAnnouncements();
-    expect(all.some((item) => item.id === created.id)).toBe(true);
+    const result = await createAnnouncement(input);
+
+    expect(createAnnouncementRecord).toHaveBeenCalledWith(input);
+    expect(result.id).toBe("announcement-1");
   });
 
-  it("更新した内容がgetAnnouncementByIdForHelpdeskに反映される", async () => {
-    const created = await createAnnouncement({
-      title: "更新前タイトル",
-      body: "更新前本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
+  it("申請者セッションでのcreateAnnouncementは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    await updateAnnouncement(created.id, {
-      title: "更新後タイトル",
-      body: "更新後本文",
-      category: "policy",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
-
-    const result = await getAnnouncementByIdForHelpdesk(created.id);
-    expect(result?.title).toBe("更新後タイトル");
-    expect(result?.category).toBe("policy");
+    await expect(createAnnouncement(input)).rejects.toThrow();
   });
 
-  it("削除したお知らせはgetAllAnnouncementsから除去される", async () => {
-    const created = await createAnnouncement({
-      title: "削除テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
+  it("ヘルプデスクセッションでupdateAnnouncementRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(updateAnnouncementRecord).mockResolvedValue(
+      announcement({ title: "更新後" })
+    );
 
-    await deleteAnnouncement(created.id);
+    const result = await updateAnnouncement("announcement-1", input);
 
-    const all = await getAllAnnouncements();
-    expect(all.some((item) => item.id === created.id)).toBe(false);
+    expect(updateAnnouncementRecord).toHaveBeenCalledWith("announcement-1", input);
+    expect(result.title).toBe("更新後");
   });
 
-  it("存在しないIDのupdateAnnouncementはエラーになる", async () => {
-    await expect(
-      updateAnnouncement("does-not-exist", {
-        title: "t",
-        body: "b",
-        category: "other",
-        targeting: { scope: "all" },
-        actionRequired: false,
-      })
-    ).rejects.toThrow();
-  });
+  it("ヘルプデスクセッションでdeleteAnnouncementRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(deleteAnnouncementRecord).mockResolvedValue(undefined);
 
-  it("存在しないIDのdeleteAnnouncementはエラーになる", async () => {
-    await expect(deleteAnnouncement("does-not-exist")).rejects.toThrow();
-  });
+    await deleteAnnouncement("announcement-1");
 
-  it("対象以外のお知らせには影響しない", async () => {
-    const before = await getAnnouncementByIdForHelpdesk("1");
-
-    const created = await createAnnouncement({
-      title: "影響確認用",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
-    await updateAnnouncement(created.id, {
-      title: "変更後",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
-
-    const after = await getAnnouncementByIdForHelpdesk("1");
-    expect(after).toEqual(before);
+    expect(deleteAnnouncementRecord).toHaveBeenCalledWith("announcement-1");
   });
 });

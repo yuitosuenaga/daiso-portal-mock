@@ -550,3 +550,213 @@ flowchart LR
 ```
 - 本specでは実際の本番プロビジョニングは行わず、同一のPrismaマイグレーション手順が両環境で通用する構成であることを設計・確認する
 - 既存モックデータの本番移行は発生しない（フェーズ1のモックデータは開発用シードとして再構成する）
+
+## 追加ラウンド（2026-07-09）: お知らせ・お知らせ管理領域の実DB化
+
+### Overview（追加分）
+
+問い合わせ・申請領域に続き、`announcements`spec（申請者側のお知らせ閲覧）・`announcements-management`spec（ヘルプデスク側のお知らせ管理）が対象とする画面群のデータアクセスを、`getGlobalMockStore`によるインメモリ配列からPostgreSQL（Prisma経由）へ置き換える。既存のUIコンポーネント・Server Actions・画面の見た目・操作性は変更しない。
+
+### Goals（追加分）
+- `Announcement`・確認済み/実施済み/リマインド送信状況の追跡データ（`AnnouncementRecipient`・`AnnouncementRecipientStatus`）をPrismaスキーマとして定義し、DBへ永続化する
+- `lib/api/announcements.ts`の既存エクスポート関数のシグネチャを変更せず、内部実装をDBアクセスに置き換える
+- 申請者側の配信対象フィルタ（自社の国が対象国に含まれるか）を、`MOCK_CURRENT_COMPANY`ではなくログイン中の申請者セッションが所属する`Company`の国情報を用いて行う
+- `lib/api/announcement-tracking.ts`の既存エクスポート関数の内部実装をDBアクセスに置き換える。`isReminderPendingForCompany`は、呼び出し元がセッションから解決した`companyCode`を明示的に渡す既存の呼び出し方を維持したまま実装を差し替える
+
+### Non-Goals（追加分）
+- documents・faq・links-page・reply-templatesドメインの実DB化（将来別ラウンド）
+- `AnnouncementRecipient`（お知らせ確認・対応状況の追跡対象）への実際のログイン機能の追加（引き続き閲覧・追跡専用のモック担当者マスタとしてDBに保持する）
+- お知らせの既読・未読管理、実際のメール・プッシュ通知配信（`announcements`・`announcements-management`両specの既存のNon-Goalsを継承する）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加分）**
+- `Announcement`・`AnnouncementRecipient`・`AnnouncementRecipientStatus`のDBスキーマとPrisma経由のアクセス
+- `src/lib/api/announcements.ts`・`src/lib/api/announcement-tracking.ts`の内部実装
+- `src/lib/server/announcement-service.ts`・`announcement-mapper.ts`（新規）
+- `ApplicantSessionClaims`への`companyCode`・`country`フィールドの追加（お知らせの配信対象フィルタ・リマインド判定に必要な会社情報をセッションから解決するため）
+
+**Out of Boundary（追加分）**
+- `announcements`・`announcements-management`両specが所有するUIコンポーネント・画面・Server Actionsの構造自体の変更（`revalidatePath`呼び出し箇所も含め変更しない）
+- documents・faq・links-page・reply-templatesのAPI実装
+
+**Allowed Dependencies（追加分）**
+- `src/types/announcement.ts`・`announcement-recipient.ts`（`announcements`・`announcements-management`spec所有の型定義） — 型の形状を変更せず、DBスキーマ・マッパーをこれに合わせる
+- `src/lib/constants/document-company-options.ts`（`DOCUMENT_COMPANY_OPTIONS`） — 開発用シードで会社マスタを再構成する際の参照データとして使用する（読み取りのみ、定義自体は変更しない）
+- `src/lib/validation/announcement.ts`（`announcementFormSchema`） — Server Action側の既存の入力検証をそのまま再利用する
+
+**Revalidation Triggers（追加分）**
+- `Announcement`・`AnnouncementRecipient`・`AnnouncementRecipientStatus`型（`src/types/announcement.ts`・`announcement-recipient.ts`）の形状変更
+- `ApplicantSessionClaims`のクレーム形状の再変更
+- `lib/api/announcements.ts`・`announcement-tracking.ts`のシグネチャ変更
+
+### Architecture（追加分）
+
+- `AnnouncementService`（`src/lib/server/announcement-service.ts`）を新設し、`InquiryService`と同様にPrisma経由のドメインロジックを一元化する
+- `lib/api/announcements.ts`・`announcement-tracking.ts`は、既存の`InquiryService`利用パターンと同様に、内部で`requireApplicantSession()`／`requireHelpdeskStaffSession()`を呼び認可判定を行った上で`AnnouncementService`を呼び出す
+- 申請者側の配信対象フィルタは、`Announcement.targetingScope`が`all`のとき常に可視、`countries`のときセッションから解決した`Company.country`が`targetingCountries`に含まれる場合のみ可視とする（DBクエリ側で絞り込む）
+
+```mermaid
+graph TB
+    LibApiAnnouncements[lib/api/announcements.ts] --> SessionGuard[Session Guard]
+    LibApiAnnouncements --> AnnouncementService
+    LibApiAnnouncementTracking[lib/api/announcement-tracking.ts] --> SessionGuard
+    LibApiAnnouncementTracking --> AnnouncementService
+    AnnouncementService --> AnnouncementMapper
+    AnnouncementService --> PrismaClient
+    PrismaClient --> Postgres
+```
+
+### File Structure Plan（追加分）
+
+```
+prisma/
+├── schema.prisma          # [変更] Announcement/AnnouncementRecipient/AnnouncementRecipientStatusモデル・Enumを追加
+└── seed.ts                 # [変更] 会社8社・お知らせ5件・担当者16名・確認状況のシードを追加
+
+src/
+├── types/
+│   └── session.ts          # [変更] ApplicantSessionClaimsにcompanyCode・countryを追加
+├── lib/
+│   ├── server/
+│   │   ├── authorize.ts        # [変更] authorizeApplicantCredentialsの戻り値にcompanyCode・countryを追加
+│   │   ├── announcement-service.ts # [新規] Prisma経由のお知らせ・追跡ドメインロジック
+│   │   └── announcement-mapper.ts  # [新規] Prismaモデル⇄既存Announcement系型の変換
+│   └── api/
+│       ├── announcements.ts        # [変更] 内部実装をannouncement-service呼び出しに置き換え。シグネチャ不変
+│       └── announcement-tracking.ts # [変更] 同上。isReminderPendingForCompanyは呼び出し方を維持したまま内部実装を差し替え
+└── components/features/
+    ├── announcements/
+    │   ├── AnnouncementList.tsx    # [変更] MOCK_CURRENT_COMPANY参照を削除（lib/api側でセッション解決するため不要になる）
+    │   └── AnnouncementDetail.tsx  # [変更] 同上
+    └── dashboard/
+        └── ReminderAnnouncementsPanel.tsx # [変更] 同上
+```
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `Announcement`・`AnnouncementRecipient`・`AnnouncementRecipientStatus`モデル、`AnnouncementCategory`・`AnnouncementTargetingScope`Enum、`Company`への逆参照リレーションを追加
+- `prisma/seed.ts` — `DOCUMENT_COMPANY_OPTIONS`相当の会社8社、既存モックと同内容のお知らせ5件・担当者16名・確認状況の初期データ投入を追加
+- `src/types/session.ts` — `ApplicantSessionClaims`に`companyCode`・`country`を追加（既存の`companyId`・`companyName`は変更しない）
+- `src/lib/server/authorize.ts` — `authorizeApplicantCredentials`の戻り値に`companyCode`・`country`を追加
+- `src/lib/api/announcements.ts` — 内部実装を`announcement-service`呼び出しに置き換え。エクスポート関数のシグネチャは変更しない
+- `src/lib/api/announcement-tracking.ts` — 内部実装を`announcement-service`呼び出しに置き換え
+- `src/components/features/announcements/AnnouncementList.tsx`・`AnnouncementDetail.tsx`・`src/components/features/dashboard/ReminderAnnouncementsPanel.tsx` — `MOCK_CURRENT_COMPANY`のimport・参照を削除（`isReminderPendingForCompany`が引き続きセッションから会社情報を解決するため、呼び出し元での参照が不要になる）
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|---|---|---|---|---|
+| 10.1-10.5 | お知らせデータモデル | Prisma Schema | Prisma Client | ER図（Data Models 追加分） |
+| 11.1-11.7 | お知らせ閲覧・管理APIのDB化 | AnnouncementService, lib/api互換層 | Service Interface | — |
+| 12.1-12.2 | 既存フロントエンドとの互換性 | lib/api互換層, 既存コンポーネント | 既存関数シグネチャ | — |
+
+### Components and Interfaces（追加分）
+
+#### AnnouncementService (`src/lib/server/announcement-service.ts`)
+
+| Field | Detail |
+|-------|--------|
+| Intent | Prisma経由のお知らせ本体・確認済み/実施済み/リマインド送信状況に関するドメインロジックを一元化する |
+| Requirements | 10.1-10.4, 11.2-11.4, 11.7 |
+
+**Responsibilities & Constraints**
+- お知らせの取得（自社country絞り込み／全件）・作成・更新・削除を提供する
+- `targeting`（`AnnouncementTargeting`ユニオン型）とDBの`targetingScope`・`targetingCountries`列を相互変換する
+- 確認済み・実施済み・リマインド送信状況（`AnnouncementRecipientStatus`）の取得・集計・リマインド記録を提供する
+- 配信対象（`targeting`）に応じて集計対象の`AnnouncementRecipient`を絞り込む（`scope: "all"`は全担当者、`scope: "countries"`は対象国に属する会社の担当者のみ）
+
+##### Service Interface
+```typescript
+interface AnnouncementService {
+  listVisibleToCountry(country: string): Promise<Announcement[]>;
+  findByIdVisibleToCountry(id: string, country: string): Promise<Announcement | null>;
+  listAll(): Promise<Announcement[]>;
+  findByIdForHelpdesk(id: string): Promise<Announcement | null>;
+  create(input: CreateAnnouncementInput): Promise<Announcement>;
+  update(id: string, input: CreateAnnouncementInput): Promise<Announcement>;
+  remove(id: string): Promise<void>;
+  getRecipientStatuses(announcementId: string): Promise<AnnouncementRecipientStatusView[]>;
+  getTrackingSummary(announcementId: string): Promise<AnnouncementTrackingSummary>;
+  isReminderPendingForCompany(announcementId: string, companyCode: string): Promise<boolean>;
+  sendReminders(announcementId: string, recipientIds: string[]): Promise<void>;
+}
+```
+- Preconditions: `listVisibleToCountry`・`findByIdVisibleToCountry`の`country`は呼び出し元が`requireApplicantSession()`で解決済みの値であること
+- Postconditions: 全メソッドは既存の型（`Announcement`・`AnnouncementRecipientStatusView`・`AnnouncementTrackingSummary`）と同じ形状を返す（`AnnouncementMapper`で変換済み）
+- Invariants: `listVisibleToCountry`は配信対象が`all`または`country`を含む`countries`以外のお知らせを返さない
+
+**Dependencies**
+- Outbound: PrismaClient (P0), AnnouncementMapper (P0)
+- Inbound: lib/api互換層 (P0)
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+#### lib/api互換層 (`src/lib/api/announcements.ts`, `announcement-tracking.ts`)
+
+| Field | Detail |
+|-------|--------|
+| Intent | 既存の呼び出し元（Server Component/Server Action）に対し、シグネチャ不変のまま`AnnouncementService`への橋渡しを行う |
+| Requirements | 11.1, 11.5, 11.6, 12.1, 12.2 |
+
+**Responsibilities & Constraints**
+- `getRecentAnnouncements`・`getAnnouncements`・`getAnnouncementById`は内部で`requireApplicantSession()`を呼び、セッションが所属する`Company.country`で`AnnouncementService.listVisibleToCountry`／`findByIdVisibleToCountry`を呼ぶ
+- `getAllAnnouncements`・`getAnnouncementByIdForHelpdesk`・`createAnnouncement`・`updateAnnouncement`・`deleteAnnouncement`は内部で`requireHelpdeskStaffSession()`を呼ぶ
+- `getAnnouncementRecipientStatuses`・`getAnnouncementTrackingSummary`・`sendAnnouncementReminders`は内部で`requireHelpdeskStaffSession()`を呼ぶ
+- `isReminderPendingForCompany(announcementId, companyCode)`は既存の呼び出し方（引数で`companyCode`を受け取る）を維持したまま、内部実装のみ`AnnouncementService`呼び出しに差し替える。呼び出し元（`AnnouncementList`・`AnnouncementDetail`・`ReminderAnnouncementsPanel`）は`MOCK_CURRENT_COMPANY.companyCode`の代わりに`requireApplicantSession()`で解決した`companyCode`を渡す
+
+**Dependencies**
+- Outbound: AnnouncementService (P0), Session Guard (P0)
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Data Models（追加分）
+
+#### Domain Model（追加分）
+- `Announcement`が集約ルート。`AnnouncementRecipientStatus`は`Announcement`・`AnnouncementRecipient`の両方に従属する中間エンティティ
+- `AnnouncementRecipient`は`Company`に多対一で属する、確認・対応状況の追跡専用マスタ（ログイン機能は持たない）
+
+```mermaid
+erDiagram
+    Company ||--o{ AnnouncementRecipient : has
+    Announcement ||--o{ AnnouncementRecipientStatus : trackedBy
+    AnnouncementRecipient ||--o{ AnnouncementRecipientStatus : statusFor
+```
+
+#### Logical Data Model（追加分）
+- `Announcement.targetingScope`が`all`のとき`targetingCountries`は空配列とする。`countries`のとき1件以上のISO 3166-1 alpha-2コードを保持する
+- `AnnouncementRecipientStatus`は`Announcement`×`AnnouncementRecipient`の組ごとに0または1件（`(announcementId, recipientId)`一意制約）。レコードが存在しない組み合わせは既存モック同様「未確認・未実施・リマインド未送信」を意味する
+- カーディナリティ: `Company 1—N AnnouncementRecipient`、`Announcement 1—N AnnouncementRecipientStatus`、`AnnouncementRecipient 1—N AnnouncementRecipientStatus`
+
+#### Physical Data Model（追加分）
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| Announcement | id | text (cuid) | PK |
+| | title | text | not null |
+| | body | text | not null |
+| | category | enum(maintenance,policy,incident,other) | not null |
+| | publishedAt | timestamptz | default now() |
+| | actionRequired | boolean | not null, default false |
+| | targetingScope | enum(all,countries) | not null, default all |
+| | targetingCountries | text[] | not null, default '{}' |
+| AnnouncementRecipient | id | text (cuid) | PK |
+| | companyId | text | FK → Company.id, not null, index |
+| | contactName | text | not null |
+| AnnouncementRecipientStatus | id | text (cuid) | PK |
+| | announcementId | text | FK → Announcement.id, not null, index |
+| | recipientId | text | FK → AnnouncementRecipient.id, not null |
+| | confirmedAt | timestamptz | null |
+| | completedAt | timestamptz | null |
+| | reminderSentAt | timestamptz | null |
+
+- 一意制約: `AnnouncementRecipientStatus.(announcementId, recipientId)`（お知らせ×担当者の組は最大1件）
+- `Company`モデルに`announcementRecipients AnnouncementRecipient[]`の逆参照リレーションを追加する
+
+#### Data Contracts & Integration（追加分）
+- `Announcement.targetingScope`/`targetingCountries`と既存の`AnnouncementTargeting`ユニオン型（`{ scope: "all" }` | `{ scope: "countries"; countries: string[] }`）は`AnnouncementMapper`で相互変換する
+- `AnnouncementRecipient.companyId`から`Company`をJOINし、既存の`AnnouncementRecipient`型が持つ`companyCode`・`companyName`・`country`はマッパーで`Company`レコードの`companyCode`・`name`・`country`から補完する
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `AnnouncementService`の各メソッド（targeting相互変換、country絞り込み、リマインド対象抽出、二重送信時の`reminderSentAt`上書き）をPrisma Clientをモック化して検証する
+- **Integration Tests**: 既存の`src/lib/api/announcements.test.ts`・`announcement-tracking.test.ts`は、`get-session`と`AnnouncementService`をvitestの`vi.mock`でモックし、既存のアサーション（自社country絞り込み等）を維持する
+- **Component Tests**: `AnnouncementList.test.tsx`・`AnnouncementDetail.test.tsx`・`ReminderAnnouncementsPanel.test.tsx`は、`lib/api/announcements.ts`・`announcement-tracking.ts`をモックしたまま、`MOCK_CURRENT_COMPANY`参照削除後も既存のアサーションが成功する状態を維持する

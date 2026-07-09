@@ -38,6 +38,8 @@ describe("authorizeApplicantCredentials", () => {
       applicantUserId: "applicant-1",
       companyId: "company-1",
       companyName: "Test Co.",
+      companyCode: "jp-test",
+      country: "JP",
     });
   });
 

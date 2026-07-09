@@ -1,7 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncementById } from "@/lib/api/announcements";
 import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
-import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
+import { requireApplicantSession } from "@/lib/server/auth-session";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,10 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   );
 
   let announcement;
+  let companyCode: string;
   try {
+    const { claims } = await requireApplicantSession();
+    companyCode = claims.companyCode;
     announcement = await getAnnouncementById(id);
   } catch {
     return (
@@ -56,7 +59,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
 
   const isReminderPending = await isReminderPendingForCompany(
     announcement.id,
-    MOCK_CURRENT_COMPANY.companyCode
+    companyCode
   );
 
   return (

@@ -5,6 +5,8 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 
 追加決定事項（2026-07-08）: 現状モックには認証・ログイン機能が存在しないため、本specの対象に認証機能を含める。対象は申請者側企業ユーザー（自社の問い合わせのみ閲覧可能にするための認証）とヘルプデスク担当者（全問い合わせを操作するための認証）の双方。ログイン画面・セッション管理・User/Company/HelpdeskStaffに relevantなDBスキーマ・アクセス制御（自社データのみ閲覧等）を本spec内で設計・実装する。認証方式（NextAuth.js等ライブラリ利用か自前実装か）は設計フェーズで検討する。
 
+追加決定事項（2026-07-09）: 問い合わせ・申請領域の実DB化完了後、横断的なバックエンド化を段階的に他ドメインへ拡張する方針とし、次の対象を`announcements`（お知らせ、申請者側閲覧画面）・`announcements-management`（お知らせ管理、ヘルプデスク側画面）とする。これらは`announcements`・`announcements-management`の各specが所有する画面・UIコンポーネントを変更せず、両specが現在`MOCK_CURRENT_COMPANY`・`getGlobalMockStore`に依存しているモックAPI（`lib/api/announcements.ts`・`lib/api/announcement-tracking.ts`）の内部実装のみをPrisma経由の実DBアクセスへ置き換える。他ドメイン（documents, faq, links-page, reply-templates）は引き続き本spec範囲外とし、将来別ラウンドで対応する。
+
 ## はじめに
 
 本specは、フェーズ1でモックAPI・固定値（`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`・`getGlobalMockStore`によるインメモリストア）に依存していたヘルプデスクポータルに、開発環境で実際に動作するバックエンド（Next.js Route Handlers）とDB（PostgreSQL、Prisma管理）を導入するための基盤仕様です。あわせて、これまで存在しなかった認証・ログイン機能（申請者側企業ユーザー、ヘルプデスク担当者）を導入し、問い合わせ・申請領域（`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`）のデータを実際にDBへ永続化・スコープ制御できるようにします。開発環境ではDocker Compose上のPostgreSQLをDBeaverで直接確認できるようにし、将来の本番環境（Cloud SQL for PostgreSQL）へ接続先を切り替えるだけで移行できる拡張性を持たせます。
@@ -19,13 +21,19 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
   - 問い合わせ・申請領域（`Company`・`ApplicantUser`・`HelpdeskStaff`・`Inquiry`・添付ファイル・対応履歴に相当するDBスキーマ）の実DB化
   - 既存のモックAPI関数（`lib/api/inquiries.ts`等）のシグネチャ（引数・戻り値の型）を維持したまま、内部実装をDBアクセスに置き換えること
   - 本番環境（Cloud SQL for PostgreSQL）への接続切り替えを環境変数のみで行える構成
+- **お知らせ領域（2026-07-09追加）**:
+  - `Announcement`（お知らせ本体：タイトル・本文・種別・公開日・対応要否・配信対象）に相当するDBスキーマの追加
+  - お知らせの確認済み・実施済み・リマインド送信状況を追跡する担当者マスタ（`AnnouncementRecipient`）・状況（`AnnouncementRecipientStatus`）に相当するDBスキーマの追加
+  - `lib/api/announcements.ts`・`lib/api/announcement-tracking.ts`の既存エクスポート関数の内部実装をPrisma経由のDBアクセスに置き換えること（`announcements.ts`側のシグネチャは維持する。`announcement-tracking.ts`側は本spec内で必要最小限の見直しを許容する）
+  - 申請者側のお知らせ閲覧における配信対象フィルタ（自社の国が対象国に含まれるか）を、ログイン中の申請者セッションが所属する`Company`の国情報を用いて行うこと（`MOCK_CURRENT_COMPANY`への依存を除去する）
 - **対象外**:
-  - お知らせ（`announcements`・`announcements-management`）、ドキュメント（`documents`・`documents-management`）、FAQ（`faq`）、リンク集（`links-page`）の実DB化（将来、別途対応）
+  - ドキュメント（`documents`・`documents-management`）、FAQ（`faq`）、リンク集（`links-page`）、返信テンプレート（`reply-templates`）の実DB化（将来、別途対応）
   - 自由記述の翻訳処理（Google Cloud Translation API連携）
   - 添付ファイルの実ファイルストレージ・CDN化（本specでは添付ファイルの実体はDBにデータとして保持する。外部ストレージ連携は将来対応）
   - 本番環境（Cloud SQL）への実際のプロビジョニング・デプロイ作業の実行（構成として拡張可能にすることのみが対象。実際の本番構築は別途）
   - パスワードリセット・ユーザー登録（サインアップ）画面（本specでは初期データとしてDBに投入したアカウントでのログインのみを対象とする）
-- **隣接仕様との境界**: `announcements`・`documents`等が参照している`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`（`src/lib/constants/current-company.ts`・`src/lib/constants/helpdesk.ts`）は、本spec完了後も同一のインターフェース（関数・定数名）を維持し、それらのドメインのコードは変更しない。将来、これらのドメインを実DB化・認証連携する際は別specで対応する。
+  - お知らせの確認・実施を行う担当者（`AnnouncementRecipient`）に、実際のログイン機能を持たせること（引き続き閲覧・追跡専用のモック担当者マスタとしてDBに保持する）
+- **隣接仕様との境界**: `documents`等が参照している`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`（`src/lib/constants/current-company.ts`・`src/lib/constants/helpdesk.ts`）は、本spec完了後も同一のインターフェース（関数・定数名）を維持し、それらのドメインのコードは変更しない。`announcements`・`announcements-management`ドメインのUIコンポーネント・Server Actions自体（見た目・操作性）は変更しない。将来、documents等の残りのドメインを実DB化・認証連携する際は別ラウンドで対応する。
 
 ## 要件
 
@@ -151,3 +159,104 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 1. The プロジェクト shall 本spec導入後も、`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`の既存UIコンポーネントを変更せずに動作させる。
 2. The プロジェクト shall 既存の`vitest`テストスイートが、モックAPIへの依存部分をテスト用DB接続（またはテスト用モック）に置き換えた上で成功する状態を維持する。
 3. Where ログイン前提の画面遷移が既存のE2E的な確認手順と異なる場合、the プロジェクト shall ログイン手順を含めた最新の確認手順を`README.md`または関連ドキュメントに反映する。
+
+---
+
+### 追加ラウンド（2026-07-09）: announcements / announcements-management の実DB化
+
+問い合わせ・申請領域の実DB化完了を受け、次の対象を`announcements`（お知らせ、申請者側閲覧画面）・`announcements-management`（お知らせ管理、ヘルプデスク側画面）とする。両画面specの`requirements.md`（UI・振る舞いの契約）は変更せず、本spec側でDBスキーマ・サービス層・既存モックAPI関数の内部実装のみを差し替える。
+
+### 要件 10: お知らせデータモデル
+
+**目的:** 開発者として、お知らせ本体と配信対象をDB上で一貫して管理したい。そうすることで、申請者側の配信対象フィルタとヘルプデスク側の管理操作を同一のデータソースで実現できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall お知らせ（`Announcement`）を表すテーブルを持ち、既存の`Announcement`型（`title`・`body`・`category`・`publishedAt`・`actionRequired`）に相当する項目を保持する。
+2. The プロジェクト shall お知らせの配信対象（`targeting`）を、「全体一律」または「1件以上の国・地域」を表現できる構造でDB上に保持する。
+3. The プロジェクト shall 既存の`Announcement`型・`AnnouncementTargeting`型とDBスキーマの項目が対応する構造を維持する。
+
+---
+
+### 要件 11: お知らせ確認・実施・リマインド追跡のデータモデル
+
+**目的:** ヘルプデスク担当者として、お知らせごとの確認済み・実施済み・リマインド送信状況を担当者単位でDB上に保持したい。そうすることで、周知の浸透状況を正確に追跡できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall お知らせの確認・対応状況を追跡する対象となる担当者マスタ（`AnnouncementRecipient`）を表すテーブルを持ち、`Company`に対して多対一の関連を持つ。
+2. The プロジェクト shall `AnnouncementRecipient`に実際のログイン機能（`ApplicantUser`との統合）を持たせず、引き続き閲覧・追跡専用のマスタとしてDBに保持する。
+3. The プロジェクト shall お知らせ×担当者ごとの確認済み・実施済み・リマインド送信状態（`AnnouncementRecipientStatus`）を表すテーブルを持ち、`Announcement`・`AnnouncementRecipient`の組に対して一意な関連を持つ。
+4. The プロジェクト shall `confirmedAt`・`completedAt`の値を初期投入（シード）によってのみ設定し、アプリケーションからの更新経路は設けない（既読・実施管理は本spec・隣接specの対象外という既存の決定を維持する）。
+5. When ヘルプデスク担当者がリマインドを送信したとき、the プロジェクト shall 対象の`AnnouncementRecipientStatus`の`reminderSentAt`をDBへ永続化する。
+
+---
+
+### 要件 12: お知らせ・お知らせ管理APIのDB化
+
+**目的:** 開発者として、`announcements`・`announcements-management`両specのモックAPI関数をシグネチャを保ったままDBアクセスに置き換えたい。そうすることで、両specが所有する画面・UIコンポーネントの実装を変更せずに済む。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall `src/lib/api/announcements.ts`の既存のエクスポート関数（`getRecentAnnouncements`・`getAnnouncements`・`getAnnouncementById`・`getAllAnnouncements`・`getAnnouncementByIdForHelpdesk`・`createAnnouncement`・`updateAnnouncement`・`deleteAnnouncement`）の引数・戻り値の型を変更せず、内部実装をDBアクセスに置き換える。
+2. The プロジェクト shall `src/lib/api/announcement-tracking.ts`の既存のエクスポート関数（`getAnnouncementRecipientStatuses`・`getAnnouncementTrackingSummary`・`isReminderPendingForCompany`・`sendAnnouncementReminders`）の引数・戻り値の型を変更せず、内部実装をDBアクセスに置き換える。
+3. When 申請者側ユーザーがお知らせ一覧・詳細を取得したとき、the プロジェクト shall ログイン中ユーザーが所属する`Company`の国が配信対象に含まれるお知らせ、または配信対象が全体一律のお知らせのみをDBから取得する。
+4. When ヘルプデスク担当者がお知らせの一覧・詳細を取得したとき、the プロジェクト shall 配信対象によるスコープ制限なく全ての`Announcement`をDBから取得する。
+5. When ヘルプデスク担当者がお知らせを作成・編集・削除・リマインド送信したとき、the プロジェクト shall 当該操作の前にヘルプデスク側セッションを検証し、未ログインの場合は操作を拒否する。
+
+---
+
+### 要件 13: 申請者側セッションの会社情報拡張
+
+**目的:** 開発者として、申請者側セッションから所属会社の国コード・会社コードを取得したい。そうすることで、お知らせの配信対象フィルタ・リマインド受信判定を`MOCK_CURRENT_COMPANY`に依存せず実現できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall 申請者側セッションのクレームに、所属`Company`の`country`（国コード）・`companyCode`を含める。
+2. The プロジェクト shall 既存の`companyId`・`companyName`クレームの意味・形式を変更しない。
+3. The プロジェクト shall お知らせ一覧・詳細・リマインド受信表示（`AnnouncementList`・`AnnouncementDetail`・`ReminderAnnouncementsPanel`）における`MOCK_CURRENT_COMPANY`への依存を除去し、申請者側セッションのクレームを使用する。
+
+---
+
+### 追加要望（2026-07-09）: お知らせ・お知らせ管理領域の実DB化
+
+問い合わせ・申請領域に続き、`announcements`spec（申請者側のお知らせ一覧・詳細閲覧）・`announcements-management`spec（ヘルプデスク側のお知らせ作成・編集・削除、配信対象指定、対応要否設定、確認済み・実施済み人数の可視化、未対応者へのリマインド送信）が対象とする画面群を実DB化する。両specの既存のUIコンポーネント・Server Actions・画面の見た目・操作性は変更せず、データアクセス層（`lib/api/announcements.ts`・`lib/api/announcement-tracking.ts`）の内部実装のみをPrisma経由のDBアクセスに置き換える。
+
+### 要件 10: お知らせデータモデル
+
+**目的:** 開発者として、お知らせの内容・配信対象・対応要否をDB上で一貫して管理したい。そうすることで、申請者側の閲覧・ヘルプデスク側の管理の両方から同じデータを参照できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall お知らせ（`Announcement`）を表すテーブルを持ち、既存の`Announcement`型（`title`・`body`・`category`・`publishedAt`・`actionRequired`・`targeting`）に相当する項目を保持する。
+2. The プロジェクト shall `targeting`（配信対象。全体一律または特定の国・地域1件以上）に相当する項目を保持し、既存の`AnnouncementTargeting`型（`{ scope: "all" }` または `{ scope: "countries"; countries: string[] }`）と相互変換できる構造にする。
+3. The プロジェクト shall お知らせの確認・対応状況を追跡する担当者マスタ（`AnnouncementRecipient`）を表すテーブルを持ち、既存の`Company`との関連（所属会社）を持たせる。
+4. The プロジェクト shall お知らせ×担当者ごとの確認済み・実施済み・リマインド送信状態（`AnnouncementRecipientStatus`）を表すテーブルを持ち、`Announcement`・`AnnouncementRecipient`の双方に対して関連を持つ。
+5. The プロジェクト shall 既存の型定義（`src/types/announcement.ts`・`announcement-recipient.ts`）とDBスキーマの項目が対応する構造を維持する。
+
+---
+
+### 要件 11: お知らせ閲覧・管理APIのDB化
+
+**目的:** 開発者として、フェーズ1のモックAPI関数をシグネチャを保ったままDBアクセスに置き換えたい。そうすることで、呼び出し側のコンポーネント・Server Actionsの実装を変更せずに済む。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall `src/lib/api/announcements.ts`の既存のエクスポート関数（`getRecentAnnouncements`・`getAnnouncements`・`getAnnouncementById`・`getAllAnnouncements`・`getAnnouncementByIdForHelpdesk`・`createAnnouncement`・`updateAnnouncement`・`deleteAnnouncement`）の引数・戻り値の型を変更せず、内部実装をDBアクセスに置き換える。
+2. When 申請者側ユーザーがお知らせ一覧・詳細を取得したとき、the プロジェクト shall ログイン中ユーザーが所属する`Company`の国が配信対象に含まれるお知らせ（または配信対象が全体一律のお知らせ）のみをDBから取得する。
+3. When ヘルプデスク担当者がお知らせの一覧・詳細を取得したとき、the プロジェクト shall 配信対象による絞り込みなく全てのお知らせをDBから取得する。
+4. When ヘルプデスク担当者がお知らせを新規作成・編集・削除したとき、the プロジェクト shall DBの`Announcement`テーブルへ変更内容を永続化する。
+5. The プロジェクト shall `src/lib/api/announcement-tracking.ts`の既存のエクスポート関数（`getAnnouncementRecipientStatuses`・`getAnnouncementTrackingSummary`・`sendAnnouncementReminders`）の引数・戻り値の型を変更せず、内部実装をDBアクセスに置き換える。
+6. The プロジェクト shall 自社宛のリマインド受信有無を判定する関数（`isReminderPendingForCompany`）について、ログイン中の申請者セッションから会社情報を解決できるようにし、呼び出し元が固定値（`MOCK_CURRENT_COMPANY`）を明示的に渡す必要がない構造に見直すことを許容する。
+7. When ヘルプデスク担当者が未対応の担当者へリマインドを送信したとき、the プロジェクト shall 対象担当者の`AnnouncementRecipientStatus`にリマインド送信時刻をDBへ永続化する。
+
+---
+
+### 要件 12: お知らせ領域における既存フロントエンドとの互換性
+
+**目的:** 開発者として、お知らせ領域の実DB化後も既存のUIコンポーネント・テストが壊れないようにしたい。そうすることで、フロントエンド側の再修正コストを最小化できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall 本要件追加後も、`announcements`・`announcements-management`の既存UIコンポーネント・画面の見た目・操作性を変更せずに動作させる。
+2. The プロジェクト shall 既存の`vitest`テストスイートが、モックAPIへの依存部分をテスト用DB接続（またはテスト用モック）に置き換えた上で成功する状態を維持する。

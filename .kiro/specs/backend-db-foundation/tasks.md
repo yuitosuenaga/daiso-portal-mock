@@ -135,3 +135,65 @@
   - Observable: README記載の手順のみで、初めてクローンした環境からログインまで到達できる
   - _Requirements: 9.3_
   - _Depends: 8_
+
+- [x] 10. お知らせ領域のPrismaスキーマ・シード拡張
+- [x] 10.1 Announcement関連モデルの追加とマイグレーション
+  - `Announcement`・`AnnouncementRecipient`・`AnnouncementRecipientStatus`モデルと`AnnouncementCategory`・`AnnouncementTargetingScope`Enumを`schema.prisma`に追加する
+  - `Company`に`announcementRecipients`の逆参照リレーションを追加し、`AnnouncementRecipientStatus`に`(announcementId, recipientId)`の一意制約を設定する
+  - `prisma migrate dev`でマイグレーションを生成・適用する
+  - Observable: `prisma validate`が成功し、DBeaverで新規テーブルが確認できる
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+
+- [x] 10.2 シードデータの拡張（会社8社・お知らせ5件・担当者16名・確認状況）
+  - `DOCUMENT_COMPANY_OPTIONS`相当の会社8社をupsertし、既存モックと同内容のお知らせ5件・担当者16名（2名×8社）・確認済み/実施済み/リマインド送信状況を`seed.ts`に追加する
+  - Observable: シード実行後、DBeaverで各テーブルに既存モックと同等のデモデータが表示される
+  - _Requirements: 10.3, 10.4_
+  - _Depends: 10.1_
+
+- [x] 11. セッションクレーム拡張
+- [x] 11.1 ApplicantSessionClaimsへのcompanyCode・country追加
+  - `src/types/session.ts`の`ApplicantSessionClaims`に`companyCode`・`country`を追加し、`src/lib/server/authorize.ts`の`authorizeApplicantCredentials`の戻り値に含める
+  - Observable: 申請者ログイン後のセッションクレームに`companyCode`・`country`が含まれる
+  - _Requirements: 11.2, 11.6_
+  - _Depends: 10.1_
+
+- [x] 12. お知らせドメインサービス層
+- [x] 12.1 お知らせ取得・作成・更新・削除ロジック
+  - `announcement-mapper.ts`でPrismaモデルと既存`Announcement`型（`targeting`ユニオン型を含む）を相互変換する
+  - `announcement-service.ts`に自社country絞り込みの一覧・詳細取得、全件一覧・詳細取得、作成・更新・削除を実装する
+  - Observable: 配信対象が特定の国のお知らせが、対象国のセッションでのみ取得できる
+  - _Requirements: 10.1, 10.2, 11.2, 11.3, 11.4_
+  - _Depends: 10.1, 11.1_
+
+- [x] 12.2 確認済み・実施済み・リマインド送信状況の追跡ロジック
+  - 配信対象に応じた集計対象`AnnouncementRecipient`の抽出、確認済み・実施済み人数の集計、リマインド送信記録（既存レコードの上書き・新規作成）を実装する
+  - Observable: 配信対象が特定の国のお知らせでは、対象国の担当者のみが集計・追跡対象になる
+  - _Requirements: 10.4, 11.7_
+  - _Depends: 12.1_
+
+- [x] 13. 既存コードの実DB・認証連携への切替
+- [x] 13.1 lib/api/announcements.ts・announcement-tracking.tsの内部実装差し替え
+  - 既存のエクスポート関数のシグネチャを変更せず、内部実装をセッション検証＋`announcement-service`呼び出しに置き換える
+  - Observable: 既存の呼び出し元（Server Component・Server Action）のコードを変更せずに、実DBの値が返るようになる
+  - _Requirements: 11.1, 11.5, 12.1_
+  - _Depends: 12.1, 12.2_
+
+- [x] 13.2 (P) MOCK_CURRENT_COMPANY参照箇所のセッション連携への切替
+  - `AnnouncementList.tsx`・`AnnouncementDetail.tsx`・`ReminderAnnouncementsPanel.tsx`の`MOCK_CURRENT_COMPANY.companyCode`参照を、`requireApplicantSession()`で解決した`companyCode`に置き換える
+  - Observable: 申請者側のリマインド受信表示が、ログイン中セッションの会社に基づいて正しく表示される
+  - _Requirements: 11.2, 11.6_
+  - _Boundary: announcements閲覧コンポーネント_
+  - _Depends: 13.1_
+
+- [x] 14. テストの適応と新規カバレッジ
+- [x] 14.1 既存vitestテストのモック更新
+  - `announcements.test.ts`・`announcement-tracking.test.ts`・関連コンポーネントテストで、セッション取得と`announcement-service`をモック化し、既存のアサーションが成功する状態を維持する
+  - Observable: `npm run test`が既存テストを含めて成功する
+  - _Requirements: 12.2_
+  - _Depends: 13.1, 13.2_
+
+- [x] 14.2 (P) お知らせサービス層の新規単体テスト
+  - targeting相互変換、自社country絞り込み、配信対象に応じた集計対象抽出、リマインド送信の重複記録を検証するテストを追加する
+  - Observable: 新規テストで、対象国外のお知らせが一覧に含まれないこと・配信対象外の担当者が集計対象に含まれないことを確認できる
+  - _Requirements: 10.2, 11.2, 11.3, 11.7_
+  - _Depends: 12.1, 12.2_

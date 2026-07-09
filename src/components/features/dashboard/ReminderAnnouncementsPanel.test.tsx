@@ -31,6 +31,19 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
     isReminderPendingForCompanyMock(...args),
 }));
 
+vi.mock("@/lib/server/auth-session", () => ({
+  requireApplicantSession: async () => ({
+    claims: {
+      role: "applicant",
+      applicantUserId: "applicant-1",
+      companyId: "company-1",
+      companyName: "Test Co.",
+      companyCode: "test-co",
+      country: "JP",
+    },
+  }),
+}));
+
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace: string) => (key: string) =>
     `${namespace}.${key}`,

@@ -25,6 +25,19 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
   isReminderPendingForCompany: async () => false,
 }));
 
+vi.mock("@/lib/server/auth-session", () => ({
+  requireApplicantSession: async () => ({
+    claims: {
+      role: "applicant",
+      applicantUserId: "applicant-1",
+      companyId: "company-1",
+      companyName: "Test Co.",
+      companyCode: "test-co",
+      country: "JP",
+    },
+  }),
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;
