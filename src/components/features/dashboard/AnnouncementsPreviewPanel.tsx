@@ -26,8 +26,9 @@ export interface AnnouncementsPreviewPanelProps {
 export async function AnnouncementsPreviewPanel({
   viewAllHref,
 }: AnnouncementsPreviewPanelProps) {
-  const [t, tCategories, locale] = await Promise.all([
+  const [t, tAnnouncements, tCategories, locale] = await Promise.all([
     getTranslations("dashboard.announcementsPreview"),
+    getTranslations("announcements"),
     getTranslations("announcements.categories"),
     getLocale(),
   ]);
@@ -58,6 +59,9 @@ export async function AnnouncementsPreviewPanel({
                 key={announcement.id}
                 announcement={announcement}
                 categoryLabel={tCategories(announcement.category)}
+                actionRequiredBadgeLabel={tAnnouncements("actionRequiredBadge")}
+                dueDateLabel={tAnnouncements("dueDateLabel")}
+                showBodyExcerpt
                 locale={locale}
               />
             ))}
@@ -89,6 +93,7 @@ export function AnnouncementsPreviewPanelSkeleton() {
           {Array.from({ length: SKELETON_ITEM_COUNT }, (_, index) => (
             <li key={index} className="space-y-2 py-3 first:pt-0 last:pb-0">
               <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-1/3" />
             </li>
           ))}

@@ -8,9 +8,8 @@ import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
 import type { Announcement } from "@/types/announcement";
 
 /**
- * 申請者側ダッシュボードのナビゲーションカード群と「最新のお知らせ」プレビューパネルの
- * 間に表示する、自社宛に未対応のままリマインドが送信されているお知らせのみを
- * 集めた強調表示セクション。
+ * 申請者側ダッシュボードの最上部、「最新のお知らせ」プレビューパネルより前に表示する、
+ * 自社宛に未対応のままリマインドが送信されているお知らせのみを集めた強調表示セクション。
  *
  * 対象が1件も存在しない場合、およびデータ取得・判定に失敗した場合は`null`を返し
  * 何も描画しない（要件9.4, 9.5）。既存の`isReminderPendingForCompany`の判定結果を
@@ -34,8 +33,9 @@ export async function ReminderAnnouncementsPanel() {
     return null;
   }
 
-  const [t, tCategories, locale] = await Promise.all([
+  const [t, tAnnouncements, tCategories, locale] = await Promise.all([
     getTranslations("dashboard.reminderAnnouncements"),
+    getTranslations("announcements"),
     getTranslations("announcements.categories"),
     getLocale(),
   ]);
@@ -52,7 +52,10 @@ export async function ReminderAnnouncementsPanel() {
               key={announcement.id}
               announcement={announcement}
               categoryLabel={tCategories(announcement.category)}
+              actionRequiredBadgeLabel={tAnnouncements("actionRequiredBadge")}
+              dueDateLabel={tAnnouncements("dueDateLabel")}
               isReminderPending
+              showBodyExcerpt
               locale={locale}
             />
           ))}

@@ -23,6 +23,10 @@ export default async function HelpdeskHomePage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>
+        <PriorityInquiriesPreviewPanel viewAllHref="/helpdesk/inquiries" />
+      </Suspense>
+
       <section aria-labelledby="helpdesk-dashboard-support-heading">
         <h2
           id="helpdesk-dashboard-support-heading"
@@ -88,10 +92,6 @@ export default async function HelpdeskHomePage() {
           />
         </div>
       </section>
-
-      <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>
-        <PriorityInquiriesPreviewPanel viewAllHref="/helpdesk/inquiries" />
-      </Suspense>
     </div>
   );
 }

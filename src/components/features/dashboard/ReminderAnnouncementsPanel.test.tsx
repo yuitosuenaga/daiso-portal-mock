@@ -41,7 +41,11 @@ vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }));
 
-function makeAnnouncement(id: string, title: string): Announcement {
+function makeAnnouncement(
+  id: string,
+  title: string,
+  overrides: Partial<Announcement> = {}
+): Announcement {
   return {
     id,
     title,
@@ -50,6 +54,7 @@ function makeAnnouncement(id: string, title: string): Announcement {
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: true,
+    ...overrides,
   };
 }
 
@@ -74,6 +79,20 @@ describe("ReminderAnnouncementsPanel", () => {
 
     expect(screen.getByText("リマインド対象のお知らせ")).toBeTruthy();
     expect(screen.queryByText("通常のお知らせ")).toBeNull();
+  });
+
+  it("リマインド対象のお知らせの本文要約を表示する", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([
+      makeAnnouncement("1", "リマインド対象のお知らせ", {
+        body: "本文の要約テキスト",
+      }),
+    ]);
+    isReminderPendingForCompanyMock.mockResolvedValue(true);
+
+    const jsx = await ReminderAnnouncementsPanel();
+    render(jsx);
+
+    expect(screen.getByText("本文の要約テキスト")).toBeTruthy();
   });
 
   it("リマインド対象が0件の場合は何も描画しない", async () => {

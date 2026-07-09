@@ -268,6 +268,29 @@ interface ReminderAnnouncementsPanelProps {} // props不要（自社スコープ
 | 9.5 | データ取得失敗時のフォールバック（非表示） | ReminderAnnouncementsPanel | Service | カード単位エラー分離 |
 | 9.7 | 表示文言のi18n対応 | messages/ja.json, messages/en.json | — | — |
 
+## プレビューパネルの表示順変更と表示内容充実（2026-07-09 追記）
+
+### 表示順の変更（Requirement 4.6 上書き, Requirement 10）
+両ポータルのトップページの構成順を反転する。既存の`<div className="space-y-6">`によるレイアウト構造（縦積み・要素間`gap-1.5rem`）自体は変更せず、内部の要素の並び順のみ入れ替える。
+
+- **ApplicantDashboardPage**: `ReminderAnnouncementsPanel`（Suspense, fallback `null`）→ `AnnouncementsPreviewPanel`（Suspense, fallback `AnnouncementsPreviewPanelSkeleton`）→ ナビゲーションカードの`grid`、の順に変更する
+- **HelpdeskDashboardPage**: `PriorityInquiriesPreviewPanel`（Suspense, fallback `PriorityInquiriesPreviewPanelSkeleton`）→ 「対応業務」`<section>` → 「参考情報」`<section>`、の順に変更する
+
+### AnnouncementListItem の拡張（Requirement 10.1〜10.5）
+既存の`AnnouncementListItem`（`src/components/features/announcements/AnnouncementListItem.tsx`）に、任意prop `showBodyExcerpt?: boolean` を追加する。`true`の場合、タイトルと既存のバッジ/日付行の間に`announcement.body`を`<p className="line-clamp-2 text-sm text-muted-foreground">`で表示する。未指定（`/announcements`一覧ページ等の既存呼び出し）の場合は現状の見た目を維持し、影響を与えない（Requirement 10.4）。`line-clamp-2`はTailwind CSS v3.3以降のコア機能であり、追加プラグインのインストールは不要（Requirement 10.5）。
+
+`AnnouncementsPreviewPanel` / `ReminderAnnouncementsPanel` はそれぞれ`getTranslations("announcements")`を追加取得し、既存の翻訳キー`announcements.actionRequiredBadge` / `announcements.dueDateLabel`（一覧ページ側`AnnouncementList.tsx`が使用しているものと同一）を`actionRequiredBadgeLabel` / `dueDateLabel`として`AnnouncementListItem`に渡す。新規翻訳キーの追加は不要。`AnnouncementsPreviewPanelSkeleton`には本文要約分のスケルトン行（`<Skeleton className="h-3 w-full" />`）を追加する。
+
+### Requirements Traceability（2026-07-09 追記分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 4.6（上書き） | プレビューパネルを画面上部、ナビゲーションカード群をその下部に表示 | ApplicantDashboardPage, HelpdeskDashboardPage | — | — |
+| 10.1, 10.2 | 本文要約の表示（プレビューパネル・リマインドセクション両方） | AnnouncementListItem, AnnouncementsPreviewPanel, ReminderAnnouncementsPanel | — | — |
+| 10.3 | 対応要否バッジ・対応期限の表示 | AnnouncementListItem, AnnouncementsPreviewPanel, ReminderAnnouncementsPanel | — | — |
+| 10.4 | 既存呼び出し元（一覧ページ）への影響なし | AnnouncementListItem | — | — |
+| 10.5 | 追加プラグインなしでのline-clamp利用 | AnnouncementListItem | — | — |
+
 ## Components and Interfaces
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
@@ -549,6 +572,8 @@ function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary>;
 - **HelpdeskDashboardPage**（`src/app/[locale]/helpdesk/page.tsx`）: 上部に「対応系」セクション（「問い合わせ一覧」`InquiryListCard` scope=all href `/helpdesk/inquiries`、「テンプレート管理」静的 href `/helpdesk/templates`、「お知らせ管理」静的 href `/helpdesk/announcements`）と「参照系」セクション（「問い合わせ申請フォーム」静的 href `/inquiry/new`、「リンク」静的 href `/helpdesk/links`、「FAQ」静的 href `/helpdesk/faq`）を配置し、その下部に `PriorityInquiriesPreviewPanel`（viewAllHref `/helpdesk/inquiries`）を配置する
 - **HelpdeskLinksPage / HelpdeskFaqPage**: 既存の `LinkList` / `FaqList` をそのまま `Suspense` でラップして描画する薄いページ（申請者側の `links/page.tsx` / `faq/page.tsx` と同一構造）
 - **HelpdeskSidebar（変更）**: `HELPDESK_NAV_ITEMS` に `{ translationKey: "links", href: "/helpdesk/links", icon: Link2 }` と `{ translationKey: "faq", href: "/helpdesk/faq", icon: HelpCircle }` を追加し、`helpdeskNav.home` の翻訳値を「ダッシュボード」/`Dashboard`に変更する
+
+> **2026-07-09追記による更新**: 上記2つのページの並び順は、本追記時点で「プレビューパネル（リマインドセクション含む）を上部、ナビゲーションカード群をその下部」に反転している（詳細は「プレビューパネルの表示順変更と表示内容充実（2026-07-09 追記）」節を参照）。
 
 ## Data Models
 
