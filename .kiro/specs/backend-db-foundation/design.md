@@ -1126,3 +1126,124 @@ interface LinkService {
 ### Testing Strategy（追加分）
 - **Unit Tests**: `link-service.ts`の`listLinks`をPrisma Clientをモック化して検証する
 - **Integration Tests**: 既存の`src/lib/api/links.test.ts`は`link-service`をvitestの`vi.mock`でモックし、既存のアサーション（カテゴリ網羅性等）を維持する
+
+## 追加ラウンド（2026-07-09 続き4）: reply-templates の実DB化
+
+### Overview（追加分）
+links-page領域の実DB化完了を受け、`reply-templates`（`helpdesk-inquiry-management`spec所有、ヘルプデスク担当者の返信テンプレート）のデータアクセスを、`getGlobalMockStore`によるインメモリ配列からPostgreSQL（Prisma経由）へ置き換える。faq・links-pageと異なり、`reply-templates`はヘルプデスク側限定機能（申請者側からの参照・操作は存在しない）のため、Inquiry・Announcement・Document領域と同様に`requireHelpdeskStaffSession()`によるセッション検証を内部実装に追加する。**Impact**: `helpdesk-inquiry-management`specが所有するUIコンポーネント（`TemplateList`・`TemplateForm`・`HelpdeskInquiryDetail`のテンプレート選択部分）の見た目・操作性は変更しない。既存モックには削除機能が無いため、削除機能の新設は行わない。
+
+### Goals（追加分）
+- `ReplyTemplate`をPrismaスキーマとして定義し、DBへ永続化する。`category`は既存の`InquiryCategory`Enumを再利用する
+- `lib/api/reply-templates.ts`の既存エクスポート関数のシグネチャを変更せず、内部実装をDBアクセスに置き換える
+- 全関数呼び出し前に`requireHelpdeskStaffSession()`を検証する
+
+### Non-Goals（追加分）
+- `helpdesk-inquiry-management`specのUI・画面遷移・翻訳キーの変更
+- テンプレート削除機能の新設（既存モックに存在しないため対象外）
+- backend-db-foundation spec対象外の他ドメインの実DB化（本ラウンドで全ドメイン完了のため以降は無し）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `ReplyTemplate`のPrismaスキーマとPrisma経由のアクセス
+- `src/lib/server/reply-template-service.ts`（新規）
+- `src/lib/api/reply-templates.ts`の内部実装
+
+**Out of Boundary（追加）**
+- `helpdesk-inquiry-management`specが所有するUIコンポーネント（`TemplateList`・`TemplateForm`・`HelpdeskInquiryDetail`）・翻訳キー・画面遷移そのもの
+- `lib/actions/helpdesk.ts`の`createReplyTemplateAction`・`updateReplyTemplateAction`自体の構造（`revalidatePath`呼び出し箇所も含め変更しない。セッション検証は`lib/api/reply-templates.ts`側で行う既存パターンを踏襲する）
+
+**Allowed Dependencies（追加）**
+- `src/types/reply-template.ts`（`helpdesk-inquiry-management`spec所有の型定義） — 型の形状を変更せず、DBスキーマをこれに合わせる
+- 既存の`InquiryCategory`Enum（`schema.prisma`） — `ReplyTemplate.category`で再利用する
+- 既存の`Session Guard`（`requireHelpdeskStaffSession`）
+
+**Revalidation Triggers（追加）**
+- `ReplyTemplate`型（`src/types/reply-template.ts`）の形状変更
+- `lib/api/reply-templates.ts`のシグネチャ変更
+- `InquiryCategory`Enumの値集合の変更（`Inquiry`・`ReplyTemplate`双方に影響するため）
+
+### Architecture（追加分）
+Inquiry・Announcement・Document領域と同一の層構造（lib/api互換層 → サーバー専用サービス層 → Prisma）を適用する。
+
+```mermaid
+graph TB
+    LibApiReplyTemplates[lib/api/reply-templates.ts] --> SessionGuard[Session Guard]
+    LibApiReplyTemplates --> ReplyTemplateService
+    ReplyTemplateService --> PrismaClient
+    PrismaClient --> Postgres
+```
+
+### File Structure Plan（追加分）
+```
+prisma/
+├── schema.prisma          # [変更] ReplyTemplateモデルを追加（categoryはInquiryCategory Enumを再利用）
+└── seed.ts                 # [変更] 既存モックと同内容のテンプレート7件を追加投入
+
+src/
+├── lib/
+│   ├── server/
+│   │   └── reply-template-service.ts  # [新規] Prisma経由のテンプレート取得・作成・更新ロジック
+│   └── api/
+│       └── reply-templates.ts          # [変更] 内部実装をreply-template-service呼び出しに置き換え。シグネチャ不変
+```
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `ReplyTemplate`モデルを追加。`category`は`InquiryCategory`Enumをそのまま参照する
+- `prisma/seed.ts` — 既存モックと同内容のテンプレート7件（カテゴリごと1〜2件）の投入を追加
+- `src/lib/api/reply-templates.ts` — 内部実装を`reply-template-service`呼び出しに置き換え。全関数で`requireHelpdeskStaffSession()`を検証してからサービス呼び出しを行う
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components | Interfaces | Flows |
+|---|---|---|---|---|
+| 22.1-22.3 | 返信テンプレートデータモデル | Prisma Schema | Prisma Client | — |
+| 23.1-23.2 | 返信テンプレートAPIのDB化 | ReplyTemplateService, lib/api互換層, Session Guard | Service Interface | — |
+| 24.1-24.2 | 既存フロントエンドとの互換性 | lib/api互換層 | 既存関数シグネチャ | — |
+
+### Components and Interfaces（追加分）
+
+#### ReplyTemplateService (`src/lib/server/reply-template-service.ts`)
+
+| Field | Detail |
+|-------|--------|
+| Intent | Prisma経由の返信テンプレート取得・作成・更新ロジック |
+| Requirements | 22.1-22.3, 23.1 |
+
+**Responsibilities & Constraints**
+- 全件取得・カテゴリ別取得・ID指定取得・作成・更新を提供する（削除は既存モックに存在しないため提供しない）
+- 認可（`requireHelpdeskStaffSession()`）はlib/api互換層側の責務とし、本サービス自体は認可ロジックを持たない
+
+##### Service Interface
+```typescript
+interface ReplyTemplateService {
+  listReplyTemplates(): Promise<ReplyTemplate[]>;
+  listReplyTemplatesByCategory(category: Inquiry["category"]): Promise<ReplyTemplate[]>;
+  findReplyTemplateById(id: string): Promise<ReplyTemplate | null>;
+  createReplyTemplateRecord(input: CreateReplyTemplateInput): Promise<ReplyTemplate>;
+  updateReplyTemplateRecord(id: string, input: CreateReplyTemplateInput): Promise<ReplyTemplate>;
+}
+```
+
+**Dependencies**
+- Outbound: PrismaClient (P0)
+- Inbound: lib/api互換層 (P0)
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Data Models（追加分）
+
+#### Physical Data Model（追加分）
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| ReplyTemplate | id | text (cuid) | PK |
+| | category | InquiryCategory（既存Enumを再利用） | not null |
+| | name | text | not null |
+| | body | text | not null |
+| | createdAt | timestamptz | default now() |
+
+- `ReplyTemplate`は他モデルから参照されない独立テーブルのため、削除時のFK制約は発生しない
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `reply-template-service.ts`の各メソッド（カテゴリ別絞り込み、作成・更新）をPrisma Clientをモック化して検証する
+- **Integration Tests**: 既存の`src/lib/api/reply-templates.test.ts`は`reply-template-service`と`get-session`をvitestの`vi.mock`でモックし、既存のアサーション（カテゴリごとの絞り込み等）を維持する。`src/lib/actions/helpdesk.test.ts`のテンプレート関連describeブロックは`@/lib/api/reply-templates`をモックする方式に変更する

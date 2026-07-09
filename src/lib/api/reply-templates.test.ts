@@ -1,5 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/server/reply-template-service", () => ({
+  createReplyTemplateRecord: vi.fn(),
+  findReplyTemplateById: vi.fn(),
+  listReplyTemplates: vi.fn(),
+  listReplyTemplatesByCategory: vi.fn(),
+  updateReplyTemplateRecord: vi.fn(),
+}));
+
+import { getSession } from "@/lib/server/get-session";
+import {
+  createReplyTemplateRecord,
+  findReplyTemplateById as findReplyTemplateByIdService,
+  listReplyTemplates as listReplyTemplatesService,
+  listReplyTemplatesByCategory as listReplyTemplatesByCategoryService,
+  updateReplyTemplateRecord,
+} from "@/lib/server/reply-template-service";
 import {
   createReplyTemplate,
   getReplyTemplateById,
@@ -7,68 +25,141 @@ import {
   getReplyTemplatesByCategory,
   updateReplyTemplate,
 } from "@/lib/api/reply-templates";
-import { INQUIRY_CATEGORY_CODES } from "@/lib/constants/inquiry-options";
+import type { ReplyTemplate } from "@/types/reply-template";
 
-describe("getReplyTemplates / getReplyTemplatesByCategory", () => {
-  it("カテゴリごとに最低1件の初期テンプレートを持つ", async () => {
-    for (const category of INQUIRY_CATEGORY_CODES) {
-      const result = await getReplyTemplatesByCategory(category);
-      expect(result.length).toBeGreaterThanOrEqual(1);
-      expect(result.every((template) => template.category === category)).toBe(
-        true
-      );
-    }
+const helpdeskSession = {
+  claims: {
+    id: "staff-1",
+    role: "helpdesk" as const,
+    staffId: "staff-1",
+    displayName: "田中 太郎",
+  },
+};
+
+const applicantSession = {
+  claims: {
+    id: "applicant-1",
+    role: "applicant" as const,
+    applicantUserId: "applicant-1",
+    companyId: "company-1",
+    companyName: "Test Co.",
+    companyCode: "test-co",
+    country: "VN",
+  },
+};
+
+function template(overrides: Partial<ReplyTemplate> = {}): ReplyTemplate {
+  return {
+    id: "template-1",
+    category: "other",
+    name: "テンプレート名",
+    body: "本文",
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("getReplyTemplates", () => {
+  it("ヘルプデスクセッションでlistReplyTemplatesに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(listReplyTemplatesService).mockResolvedValue([template()]);
+
+    const result = await getReplyTemplates();
+
+    expect(listReplyTemplatesService).toHaveBeenCalled();
+    expect(result).toHaveLength(1);
   });
 
-  it("getReplyTemplatesは全カテゴリ分の合計件数を返す", async () => {
-    const all = await getReplyTemplates();
-    const byCategory = await Promise.all(
-      INQUIRY_CATEGORY_CODES.map((category) =>
-        getReplyTemplatesByCategory(category)
-      )
-    );
-    const total = byCategory.reduce((sum, list) => sum + list.length, 0);
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    expect(all).toHaveLength(total);
+    await expect(getReplyTemplates()).rejects.toThrow();
+  });
+
+  it("未ログインのとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+
+    await expect(getReplyTemplates()).rejects.toThrow();
   });
 });
 
-describe("createReplyTemplate / updateReplyTemplate / getReplyTemplateById", () => {
-  it("作成したテンプレートが該当カテゴリの一覧に反映される", async () => {
-    const created = await createReplyTemplate({
+describe("getReplyTemplatesByCategory", () => {
+  it("ヘルプデスクセッションでlistReplyTemplatesByCategoryに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(listReplyTemplatesByCategoryService).mockResolvedValue([
+      template({ category: "defect" }),
+    ]);
+
+    const result = await getReplyTemplatesByCategory("defect");
+
+    expect(listReplyTemplatesByCategoryService).toHaveBeenCalledWith("defect");
+    expect(result.every((t) => t.category === "defect")).toBe(true);
+  });
+});
+
+describe("getReplyTemplateById", () => {
+  it("ヘルプデスクセッションでfindReplyTemplateByIdに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(findReplyTemplateByIdService).mockResolvedValue(template());
+
+    const result = await getReplyTemplateById("template-1");
+
+    expect(findReplyTemplateByIdService).toHaveBeenCalledWith("template-1");
+    expect(result?.id).toBe("template-1");
+  });
+
+  it("存在しないIDに対してnullを返す", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(findReplyTemplateByIdService).mockResolvedValue(null);
+
+    const result = await getReplyTemplateById("does-not-exist");
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("createReplyTemplate / updateReplyTemplate", () => {
+  it("ヘルプデスクセッションでcreateReplyTemplateRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(createReplyTemplateRecord).mockResolvedValue(template());
+
+    const result = await createReplyTemplate({
       category: "other",
       name: "テスト用テンプレート名",
       body: "テスト用テンプレート本文",
     });
 
-    expect(created.id).toBeTruthy();
+    expect(createReplyTemplateRecord).toHaveBeenCalled();
+    expect(result.id).toBe("template-1");
+  });
 
-    const byCategory = await getReplyTemplatesByCategory("other");
-    expect(byCategory.some((template) => template.id === created.id)).toBe(
-      true
+  it("申請者セッションでのcreateReplyTemplateは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      createReplyTemplate({ category: "other", name: "n", body: "b" })
+    ).rejects.toThrow();
+  });
+
+  it("ヘルプデスクセッションでupdateReplyTemplateRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(updateReplyTemplateRecord).mockResolvedValue(
+      template({ name: "更新後の名前", body: "更新後の本文" })
     );
-  });
 
-  it("編集した内容がgetReplyTemplateByIdに反映される", async () => {
-    const created = await createReplyTemplate({
+    const result = await updateReplyTemplate("template-1", {
       category: "system",
-      name: "編集前の名前",
-      body: "編集前の本文",
+      name: "更新後の名前",
+      body: "更新後の本文",
     });
 
-    await updateReplyTemplate(created.id, {
-      category: "system",
-      name: "編集後の名前",
-      body: "編集後の本文",
-    });
-
-    const result = await getReplyTemplateById(created.id);
-    expect(result?.name).toBe("編集後の名前");
-    expect(result?.body).toBe("編集後の本文");
-  });
-
-  it("存在しないIDの取得はnullを返す", async () => {
-    const result = await getReplyTemplateById("does-not-exist");
-    expect(result).toBeNull();
+    expect(updateReplyTemplateRecord).toHaveBeenCalledWith(
+      "template-1",
+      expect.objectContaining({ name: "更新後の名前" })
+    );
+    expect(result.name).toBe("更新後の名前");
   });
 });

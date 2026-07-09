@@ -210,3 +210,11 @@ model Link {
   description String?
   createdAt   DateTime     @default(now())
 }
+
+model ReplyTemplate {
+  id        String          @id @default(cuid())
+  category  InquiryCategory
+  name      String
+  body      String
+  createdAt DateTime        @default(now())
+}

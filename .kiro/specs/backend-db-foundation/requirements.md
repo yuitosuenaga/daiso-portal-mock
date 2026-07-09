@@ -13,6 +13,8 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 
 追加決定事項（2026-07-09 続き3）: faq完了後、次の対象を`links-page`（リンク集、申請者側・ヘルプデスク側の双方が同一内容を閲覧する画面）とする。`links-page`specもFAQと同様にヘルプデスク側の作成・編集・削除機能を対象外としており、`lib/api/links.ts`の`getLinks()`は会社・ロールによるスコープ制御を一切行わない（全ロール・全社共通の参照専用データ）。既存の`LINK_CATEGORY_CODES`・`Link`型は変更せず、`getLinks()`のシグネチャを維持したまま内部実装のみをPrisma経由のDBアクセスに置き換える。セッションクレームの追加変更は不要。reply-templatesは引き続き本spec範囲外とし、将来別ラウンドで対応する。
 
+追加決定事項（2026-07-09 続き4）: links-page完了後、次の対象を`reply-templates`（ヘルプデスク担当者の返信テンプレート、`helpdesk-inquiry-management`specが依存）とする。`reply-templates`はヘルプデスク側限定の機能（申請者側からの参照・操作は無い）であり、`ReplyTemplate.category`は既存の`Inquiry`カテゴリ（`InquiryCategory`Enum）を再利用する。`lib/api/reply-templates.ts`の既存エクスポート関数（`getReplyTemplates`・`getReplyTemplatesByCategory`・`getReplyTemplateById`・`createReplyTemplate`・`updateReplyTemplate`。既存モックに削除機能は無い）のシグネチャを維持したまま内部実装のみをPrisma経由のDBアクセスに置き換える。ヘルプデスク側限定機能のため、announcements/documents領域で確立したパターンに合わせ`requireHelpdeskStaffSession()`による検証を内部実装に追加する。本ラウンドの完了により、backend-db-foundation specが対象とする全ドメイン（inquiry, announcements, documents, faq, links-page, reply-templates）の実DB化が完了する。
+
 ## はじめに
 
 本specは、フェーズ1でモックAPI・固定値（`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`・`getGlobalMockStore`によるインメモリストア）に依存していたヘルプデスクポータルに、開発環境で実際に動作するバックエンド（Next.js Route Handlers）とDB（PostgreSQL、Prisma管理）を導入するための基盤仕様です。あわせて、これまで存在しなかった認証・ログイン機能（申請者側企業ユーザー、ヘルプデスク担当者）を導入し、問い合わせ・申請領域（`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`）のデータを実際にDBへ永続化・スコープ制御できるようにします。開発環境ではDocker Compose上のPostgreSQLをDBeaverで直接確認できるようにし、将来の本番環境（Cloud SQL for PostgreSQL）へ接続先を切り替えるだけで移行できる拡張性を持たせます。
@@ -44,14 +46,17 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
   - リンク（`Link`：タイトル・URL・種別・補足説明）に相当するDBスキーマの追加
   - `lib/api/links.ts`の既存エクスポート関数（`getLinks`）のシグネチャを維持したまま、内部実装をPrisma経由のDBアクセスに置き換えること
   - `getLinks()`は会社・ロールによるスコープ制御を行わない（全ロール・全社共通の参照専用データという既存の振る舞いを維持する）
+- **返信テンプレート領域（2026-07-09追加）**:
+  - 返信テンプレート（`ReplyTemplate`：カテゴリ・テンプレート名・本文）に相当するDBスキーマの追加。`category`は既存の`InquiryCategory`Enumを再利用する
+  - `lib/api/reply-templates.ts`の既存エクスポート関数（`getReplyTemplates`・`getReplyTemplatesByCategory`・`getReplyTemplateById`・`createReplyTemplate`・`updateReplyTemplate`）のシグネチャを維持したまま、内部実装をPrisma経由のDBアクセスに置き換えること
+  - `reply-templates`はヘルプデスク側限定機能のため、全関数の呼び出し前にヘルプデスク側セッションを検証すること
 - **対象外**:
-  - 返信テンプレート（`reply-templates`）の実DB化（将来、別途対応）
   - 自由記述の翻訳処理（Google Cloud Translation API連携）
   - 添付ファイルの実ファイルストレージ・CDN化（本specでは添付ファイルの実体はDBにデータとして保持する。外部ストレージ連携は将来対応）
   - 本番環境（Cloud SQL）への実際のプロビジョニング・デプロイ作業の実行（構成として拡張可能にすることのみが対象。実際の本番構築は別途）
   - パスワードリセット・ユーザー登録（サインアップ）画面（本specでは初期データとしてDBに投入したアカウントでのログインのみを対象とする）
   - お知らせの確認・実施を行う担当者（`AnnouncementRecipient`）に、実際のログイン機能を持たせること（引き続き閲覧・追跡専用のモック担当者マスタとしてDBに保持する）
-- **隣接仕様との境界**: `reply-templates`等が参照している`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`（`src/lib/constants/current-company.ts`・`src/lib/constants/helpdesk.ts`）は、本spec完了後も同一のインターフェース（関数・定数名）を維持し、それらのドメインのコードは変更しない。`announcements`・`announcements-management`・`documents`・`documents-management`・`faq`・`links-page`ドメインのUIコンポーネント・Server Actions自体（見た目・操作性）は変更しない。将来、reply-templatesドメインを実DB化・認証連携する際は別ラウンドで対応する。
+- **隣接仕様との境界**: `announcements`・`announcements-management`・`documents`・`documents-management`・`faq`・`links-page`・`reply-templates`（`helpdesk-inquiry-management`spec所有）ドメインのUIコンポーネント・Server Actions自体（見た目・操作性）は変更しない。
 
 ## 要件
 
@@ -394,4 +399,42 @@ faq領域の実DB化完了を受け、次の対象を`links-page`（リンク集
 #### 受け入れ基準
 
 1. The プロジェクト shall 本要件追加後も、`links-page`の既存UIコンポーネント・画面（申請者側・ヘルプデスク側の両方）の見た目・操作性を変更せずに動作させる。
+2. The プロジェクト shall 既存の`vitest`テストスイートが、モックAPIへの依存部分をテスト用DB接続（またはテスト用モック）に置き換えた上で成功する状態を維持する。
+
+---
+
+### 追加ラウンド（2026-07-09）: reply-templates の実DB化
+
+links-page領域の実DB化完了を受け、次の対象を`reply-templates`（ヘルプデスク担当者の返信テンプレート、`helpdesk-inquiry-management`spec所有）とする。同specの`requirements.md`（UI・振る舞いの契約）は変更せず、本spec側でDBスキーマ・サービス層・既存モックAPI関数の内部実装のみを差し替える。この完了により、backend-db-foundation specが対象とする全ドメインの実DB化が完了する。
+
+### 要件 22: 返信テンプレートデータモデル
+
+**目的:** 開発者として、返信テンプレートをDB上で一貫して管理したい。そうすることで、問い合わせ対応画面・テンプレート管理画面が同一のデータソースを参照できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall 返信テンプレート（`ReplyTemplate`）を表すテーブルを持ち、既存の`ReplyTemplate`型（`category`・`name`・`body`）に相当する項目を保持する。
+2. The プロジェクト shall `ReplyTemplate.category`について、既存の`Inquiry`のカテゴリ（`InquiryCategory`）と同一のEnumを再利用する。
+3. The プロジェクト shall 既存の`ReplyTemplate`型とDBスキーマの項目が対応する構造を維持する。
+
+---
+
+### 要件 23: 返信テンプレートAPIのDB化
+
+**目的:** 開発者として、`helpdesk-inquiry-management`specのモックAPI関数をシグネチャを保ったままDBアクセスに置き換えたい。そうすることで、同specが所有する画面・UIコンポーネントの実装を変更せずに済む。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall `src/lib/api/reply-templates.ts`の既存のエクスポート関数（`getReplyTemplates`・`getReplyTemplatesByCategory`・`getReplyTemplateById`・`createReplyTemplate`・`updateReplyTemplate`）の引数・戻り値の型を変更せず、内部実装をDBアクセスに置き換える。
+2. When ヘルプデスク担当者がテンプレートを取得・作成・編集したとき、the プロジェクト shall 当該操作の前にヘルプデスク側セッションを検証し、未ログインの場合は操作を拒否する。
+
+---
+
+### 要件 24: 返信テンプレート領域における既存フロントエンドとの互換性
+
+**目的:** 開発者として、返信テンプレート領域の実DB化後も既存のUIコンポーネント・テストが壊れないようにしたい。そうすることで、フロントエンド側の再修正コストを最小化できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall 本要件追加後も、問い合わせ対応画面のテンプレート返信機能・テンプレート管理画面の既存UIコンポーネント・見た目・操作性を変更せずに動作させる。
 2. The プロジェクト shall 既存の`vitest`テストスイートが、モックAPIへの依存部分をテスト用DB接続（またはテスト用モック）に置き換えた上で成功する状態を維持する。

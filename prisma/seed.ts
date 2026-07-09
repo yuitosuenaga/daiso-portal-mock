@@ -572,6 +572,67 @@ async function seedLinks(): Promise<void> {
   }
 }
 
+/** 既存モック（`MOCK_REPLY_TEMPLATES`）と同内容の返信テンプレート7件。 */
+const REPLY_TEMPLATE_SEEDS = [
+  {
+    id: "seed-reply-template-001",
+    category: "defect" as const,
+    name: "不良品対応（交換・返金案内）",
+    body: "この度はご不便をおかけし申し訳ございません。不良品の詳細を確認のうえ、交換または返金の対応についてご案内いたします。",
+  },
+  {
+    id: "seed-reply-template-002",
+    category: "defect" as const,
+    name: "不良品対応（詳細確認依頼）",
+    body: "お問い合わせいただいた不良の状況について、恐れ入りますが写真または詳細な症状をご共有いただけますでしょうか。確認のうえ改めてご案内いたします。",
+  },
+  {
+    id: "seed-reply-template-003",
+    category: "order" as const,
+    name: "発注内容確認（発送日未定）",
+    body: "お問い合わせいただいた発注内容について確認いたしました。発送予定日が確定次第、改めてご連絡いたします。",
+  },
+  {
+    id: "seed-reply-template-004",
+    category: "order" as const,
+    name: "発注内容確認（発送日確定案内）",
+    body: "ご注文いただいた商品の発送日が確定いたしましたのでご案内いたします。発送後、追跡番号を別途ご連絡いたします。",
+  },
+  {
+    id: "seed-reply-template-005",
+    category: "system" as const,
+    name: "システム不具合（受付・調査中）",
+    body: "システムの不具合について報告いただきありがとうございます。現在状況を確認しておりますので、今しばらくお待ちください。",
+  },
+  {
+    id: "seed-reply-template-006",
+    category: "system" as const,
+    name: "システム不具合（対応完了報告）",
+    body: "ご報告いただいたシステムの不具合について、修正対応が完了いたしましたのでご報告いたします。ご不便をおかけし申し訳ございませんでした。",
+  },
+  {
+    id: "seed-reply-template-007",
+    category: "other" as const,
+    name: "その他問い合わせ（受付案内）",
+    body: "お問い合わせいただきありがとうございます。内容を確認のうえ、担当部署より改めてご連絡いたします。",
+  },
+];
+
+async function seedReplyTemplates(): Promise<void> {
+  for (const seed of REPLY_TEMPLATE_SEEDS) {
+    await prisma.replyTemplate.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        category: seed.category,
+        name: seed.name,
+        body: seed.body,
+      },
+    });
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
@@ -622,6 +683,7 @@ async function main() {
   await seedDocuments();
   await seedFaqs();
   await seedLinks();
+  await seedReplyTemplates();
 
   console.log("Seed complete:", {
     companies: COMPANY_OPTIONS.length,
@@ -632,6 +694,7 @@ async function main() {
     documents: DOCUMENT_SEEDS.length,
     faqs: FAQ_SEEDS.length,
     links: LINK_SEEDS.length,
+    replyTemplates: REPLY_TEMPLATE_SEEDS.length,
   });
   console.log(`Seed password for both accounts: ${SEED_PASSWORD}`);
 }

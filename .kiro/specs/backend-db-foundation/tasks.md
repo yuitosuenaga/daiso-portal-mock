@@ -306,3 +306,38 @@
   - Observable: 新規テストで、Prisma Clientのモックから返した件数・内容が`listLinks`の戻り値と一致することを確認できる
   - _Requirements: 19.1_
   - _Depends: 23.1_
+
+- [x] 25. 返信テンプレート領域のPrismaスキーマ・シード拡張
+- [x] 25.1 ReplyTemplateモデルの追加とマイグレーション
+  - `ReplyTemplate`モデルを`schema.prisma`に追加する（`category`は既存の`InquiryCategory`Enumを再利用）
+  - `prisma migrate dev`でマイグレーションを生成・適用する
+  - Observable: `prisma validate`が成功し、DBeaverで新規テーブルが確認できる
+  - _Requirements: 22.1, 22.2, 22.3_
+
+- [x] 25.2 シードデータの拡張（テンプレート7件）
+  - 既存モック（`MOCK_REPLY_TEMPLATES`）と同内容のテンプレート7件を`seed.ts`に追加する
+  - Observable: シード実行後、DBeaverで`ReplyTemplate`テーブルに既存モックと同等のデモデータが表示される
+  - _Requirements: 22.1_
+  - _Depends: 25.1_
+
+- [x] 26. 返信テンプレートドメインサービス層とlib/api差し替え
+- [x] 26.1 テンプレート取得・作成・更新ロジックとlib/api/reply-templates.tsの内部実装差し替え
+  - `reply-template-service.ts`に全件取得・カテゴリ別取得・ID指定取得・作成・更新ロジックを実装する
+  - `lib/api/reply-templates.ts`の既存エクスポート関数のシグネチャを変更せず、内部実装をセッション検証＋`reply-template-service`呼び出しに置き換える
+  - Observable: 既存の呼び出し元（`TemplateList`・`TemplateForm`・`HelpdeskInquiryDetail`）のコードを変更せずに、実DBの値が返るようになる
+  - _Requirements: 22.1, 22.2, 22.3, 23.1, 23.2_
+  - _Depends: 25.1_
+
+- [x] 27. テストの適応と新規カバレッジ
+- [x] 27.1 既存vitestテストのモック更新
+  - `reply-templates.test.ts`で`reply-template-service`と`get-session`をモック化し、既存のアサーション（カテゴリ別絞り込み等）が成功する状態を維持する
+  - `helpdesk.test.ts`のテンプレート関連describeブロックを`@/lib/api/reply-templates`のモック方式に変更する
+  - Observable: `npm run test`が既存テストを含めて成功する
+  - _Requirements: 24.2_
+  - _Depends: 26.1_
+
+- [x] 27.2 (P) 返信テンプレートサービス層の新規単体テスト
+  - カテゴリ別絞り込み、作成・更新ロジックを検証するテストを追加する
+  - Observable: 新規テストで、指定カテゴリ以外のテンプレートが絞り込み結果に含まれないことを確認できる
+  - _Requirements: 22.1_
+  - _Depends: 26.1_

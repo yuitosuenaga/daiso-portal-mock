@@ -11,6 +11,11 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   updateStatus: vi.fn(),
   appendHistoryEntry: vi.fn(),
 }));
+vi.mock("@/lib/api/reply-templates", () => ({
+  createReplyTemplate: vi.fn(),
+  updateReplyTemplate: vi.fn(),
+  getReplyTemplateById: vi.fn(),
+}));
 
 vi.mock("next-intl/server", async () => {
   const messages = (await import("../../../messages/ja.json")).default;
@@ -43,7 +48,11 @@ import {
   createReplyTemplateAction,
   updateReplyTemplateAction,
 } from "@/lib/actions/helpdesk";
-import { getReplyTemplateById } from "@/lib/api/reply-templates";
+import {
+  createReplyTemplate,
+  getReplyTemplateById,
+  updateReplyTemplate,
+} from "@/lib/api/reply-templates";
 import {
   ATTACHMENT_MAX_COUNT,
   ATTACHMENT_MAX_FILE_SIZE_BYTES,
@@ -302,6 +311,13 @@ describe("sendInquiryReplyAction", () => {
 
 describe("createReplyTemplateAction / updateReplyTemplateAction", () => {
   it("有効な入力でテンプレートを作成する", async () => {
+    vi.mocked(createReplyTemplate).mockResolvedValue({
+      id: "template-1",
+      category: "other",
+      name: "新規テンプレート名",
+      body: "新規テンプレート本文",
+    });
+
     const created = await createReplyTemplateAction({
       category: "other",
       name: "新規テンプレート名",
@@ -320,22 +336,31 @@ describe("createReplyTemplateAction / updateReplyTemplateAction", () => {
         body: "",
       })
     ).rejects.toThrow();
+
+    expect(createReplyTemplate).not.toHaveBeenCalled();
   });
 
   it("既存テンプレートを更新する", async () => {
-    const created = await createReplyTemplateAction({
+    vi.mocked(updateReplyTemplate).mockResolvedValue({
+      id: "template-1",
       category: "system",
-      name: "更新前の名前",
-      body: "更新前の本文",
+      name: "更新後の名前",
+      body: "更新後の本文",
     });
-
-    await updateReplyTemplateAction(created.id, {
+    vi.mocked(getReplyTemplateById).mockResolvedValue({
+      id: "template-1",
       category: "system",
       name: "更新後の名前",
       body: "更新後の本文",
     });
 
-    const result = await getReplyTemplateById(created.id);
+    await updateReplyTemplateAction("template-1", {
+      category: "system",
+      name: "更新後の名前",
+      body: "更新後の本文",
+    });
+
+    const result = await getReplyTemplateById("template-1");
     expect(result?.name).toBe("更新後の名前");
     expect(result?.body).toBe("更新後の本文");
   });
