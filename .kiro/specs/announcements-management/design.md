@@ -744,3 +744,117 @@ interface AnnouncementTrackingActions {
 - **E2E/UI Tests**:
   - 日本語・英語両方で人数表示・ダイアログ内文言が翻訳されること
   - タブレット幅（768px）でダイアログが横スクロールを発生させずに表示されること
+
+---
+
+## 追加ラウンド（2026-07-08）: 公開期間・対応期限の設定
+
+### Overview（追加分）
+`Announcement`に公開期間（`publishStartDate`/`publishEndDate`）と対応期限（`dueDate`）を追加する。両フィールドともISO日付文字列（`YYYY-MM-DD`）の任意項目とし、既存の`AnnouncementForm`（作成・編集共用）にネイティブの`<input type="date">`を用いた入力欄を追加する。**Purpose**: 期限切れの周知を表示し続けない・対応期限を明確化するため。**Impact**: `Announcement`型・`announcementFormSchema`・`AnnouncementsMockApi`（`isVisibleToCurrentCompany`相当の判定）・`AnnouncementForm`・`AnnouncementManagementListClient`を変更する。新規コンポーネント・新規依存パッケージの追加はない。既存の`updateAnnouncement`が`actionRequired`を更新していない既存バグも本ラウンドで併せて修正する（対応期限の更新と同じ代入ブロックを触るため）。
+
+### Goals（追加分）
+- 公開期間が設定されたお知らせを、期間外は申請者側に表示しない（未設定時は常時公開）
+- 対応要否が真のお知らせに対応期限の入力を必須化する
+- 対応期限を申請者側の一覧・詳細画面にも表示する
+
+### Non-Goals（追加分）
+- 対応期限超過時の自動状態変更・自動エスカレーション通知
+- 公開期間・対応期限の変更履歴の保持
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `Announcement.publishStartDate`/`publishEndDate`/`dueDate`の型定義・バリデーション・フォーム入力・ヘルプデスク側一覧表示
+- 公開期間による申請者側読み取り関数（`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`）の可視性判定ロジック（要件6の配信対象フィルタと同じ関数群への追加）
+
+**Out of Boundary（追加）**
+- 対応期限の申請者側UIでの表示自体（`announcements`spec側が実装。本specは`Announcement.dueDate`を提供するのみ）
+
+**Allowed Dependencies（追加）**: 変更なし（既存の`AnnouncementsMockApiExtension`・`announcementFormSchema`の拡張のみ）
+
+**Revalidation Triggers（追加）**
+- `Announcement.dueDate`/`publishStartDate`/`publishEndDate`の型・意味の変更（`announcements`specが再確認する必要がある）
+
+### Architecture（追加分）
+新規コンポーネント・新規フローは発生しない。既存の`AnnouncementsMockApiExtension`内の可視性判定関数（`isVisibleToCurrentCompany`）に公開期間チェックを合成し、既存の`AnnouncementForm`・`AnnouncementManagementListClient`にフィールドを追加する形で対応する。
+
+**Architecture Integration（追加分）**:
+- 既存パターン踏襲: 可視性判定は既存の`isVisibleToCurrentCompany`（`lib/api/announcements.ts`）に`isWithinPublishPeriod`判定を`&&`で合成する形で拡張し、`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`のシグネチャは変更しない
+- 新規コンポーネントを作らない理由: 入力欄・表示項目の追加のみであり、既存コンポーネントの責務範囲に収まるため
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし（既存の`react-hook-form`+`zod`、ネイティブHTML `<input type="date">`のみを使用し、日付ピッカー等の新規ライブラリは導入しない）。
+
+### File Structure Plan（追加分）
+新規ファイルなし。以下を変更する。
+
+### Modified Files（追加分）
+- `src/types/announcement.ts` — `Announcement`に`publishStartDate: string | null`, `publishEndDate: string | null`, `dueDate: string | null`を追加
+- `src/lib/validation/announcement.ts` — 上記3フィールドのスキーマ追加、`superRefine`で「終了日は開始日以降」「`actionRequired`が真なら`dueDate`必須」を検証
+- `src/lib/api/announcements.ts` — `isVisibleToCurrentCompany`に公開期間チェックを合成、`createAnnouncement`/`updateAnnouncement`で新フィールドを保存・更新（`updateAnnouncement`の`actionRequired`更新漏れも修正）
+- `src/components/features/helpdesk-announcements/AnnouncementForm.tsx` — 公開期間（開始日・終了日）・対応期限の入力欄を追加。対応期限欄は`actionRequired`が偽のとき無効化し、偽に変更された時点で値をクリアする
+- `src/components/features/helpdesk-announcements/AnnouncementManagementListClient.tsx` — 各行に公開期間（設定時のみ）・対応期限（`actionRequired`が真の場合のみ）を表示
+- `messages/ja.json` / `messages/en.json` — 上記フィールドのラベル・バリデーションメッセージの翻訳キー追加
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 15.1〜15.5 | 公開期間の設定 | AnnouncementForm, Announcement型 | State | — |
+| 16.1〜16.4 | 公開期間による表示制御 | AnnouncementsMockApi（拡張）, AnnouncementManagementListClient | Service | — |
+| 17.1〜17.6 | 対応期限の設定 | AnnouncementForm, announcementFormSchema, AnnouncementManagementListClient | State | — |
+
+### Components and Interfaces（追加分）
+
+#### AnnouncementsMockApiExtension（差分）
+
+**Responsibilities & Constraints（追加）**
+- `isVisibleToCurrentCompany`相当の判定に加え、`isWithinPublishPeriod(announcement, referenceDate)`を導入し、`publishStartDate`/`publishEndDate`がいずれも未設定なら常に`true`、設定されている場合は`referenceDate`（呼び出し時点の現在日時）がその範囲内かどうかで判定する
+- `getAllAnnouncements`/`getAnnouncementByIdForHelpdesk`（ヘルプデスク側）は公開期間による絞り込みを行わない（要件16.3）
+
+```typescript
+function isWithinPublishPeriod(announcement: Announcement, referenceDate: Date): boolean {
+  const start = announcement.publishStartDate ? new Date(announcement.publishStartDate) : null;
+  const end = announcement.publishEndDate ? new Date(announcement.publishEndDate) : null;
+  if (start && referenceDate < start) return false;
+  if (end && referenceDate > end) return false;
+  return true;
+}
+```
+- Preconditions: `referenceDate`は呼び出し時点の`new Date()`
+- Postconditions: `getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`は`isVisibleToCurrentCompany(a) && isWithinPublishPeriod(a, new Date())`を満たすお知らせのみ返す
+- Invariants: 公開期間が両方`null`のお知らせは常に`isWithinPublishPeriod`が`true`
+
+#### AnnouncementForm（差分）
+
+**Responsibilities & Constraints（追加）**
+- 公開期間の開始日・終了日入力欄（`<input type="date">`、任意入力）を追加する
+- 対応期限入力欄（`<input type="date">`）を追加し、`actionRequired`フィールドの値を`watch`して、真のときのみ活性化・必須表示（`requiredIndicator`）にする
+- `actionRequired`が偽に変更されたとき、`setValue("dueDate", "")`で対応期限をクリアする（要件17.5）
+
+#### AnnouncementManagementListClient（差分）
+
+**Responsibilities & Constraints（追加）**
+- 各行のメタ情報表示に、公開期間が設定されている場合は`「公開期間: {開始日} 〜 {終了日}」`（片方のみ設定時は該当側のみ）を、未設定の場合は表示を省略する
+- `actionRequired`が真の行にのみ、対応期限（`dueDate`）をラベル付きで表示する
+
+### Data Models（追加分）
+
+- `Announcement`（既存、拡張）: `publishStartDate: string | null`, `publishEndDate: string | null`, `dueDate: string | null`を追加（いずれもISO日付文字列 `YYYY-MM-DD`、初期値は`null`）
+- `CreateAnnouncementInput`は`Announcement`から`id`・`publishedAt`を除いたサブセットのため自動的に3フィールドを含む
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `announcementFormSchema`が、終了日が開始日より前のとき`publishEndDate`にエラーを付与すること
+  - `announcementFormSchema`が、`actionRequired: true`かつ`dueDate`未入力のとき`dueDate`にエラーを付与すること
+  - `announcementFormSchema`が、`actionRequired: false`のときは`dueDate`未入力を許容すること
+  - `isWithinPublishPeriod`相当のロジックが、開始前・終了後・期間内・未設定の4パターンを正しく判定すること
+  - `getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`が公開期間外のお知らせを除外すること
+  - `getAllAnnouncements`/`getAnnouncementByIdForHelpdesk`が公開期間に関わらず全件を返すこと
+  - `updateAnnouncement`が`actionRequired`・`dueDate`・公開期間を含め、渡された全フィールドを更新すること
+- **Integration Tests**:
+  - 対応要否を「対応が必要」にした状態で対応期限未入力のまま保存しようとすると、保存がブロックされること
+  - 対応要否を「対応が必要」から「対応不要」に変更すると、対応期限欄がクリア・無効化されること
+- **E2E/UI Tests**:
+  - 公開期間・対応期限の入力欄が日本語・英語で表示されること

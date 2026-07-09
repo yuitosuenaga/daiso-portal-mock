@@ -17,6 +17,7 @@ import {
 import {
   announcementFormSchema,
   type AnnouncementFormValues,
+  type AnnouncementSubmitValues,
 } from "@/lib/validation/announcement";
 
 export interface AnnouncementFormProps {
@@ -38,6 +39,12 @@ export interface AnnouncementFormProps {
   targetingAllOption: string;
   targetingCountriesOption: string;
   countriesLabel: string;
+  publishStartDateLabel: string;
+  publishEndDateLabel: string;
+  publishPeriodHint: string;
+  publishEndDateBeforeStartErrorMessage: string;
+  dueDateLabel: string;
+  dueDateRequiredErrorMessage: string;
   submitButtonLabel: string;
   requiredErrorMessage: string;
   countriesRequiredErrorMessage: string;
@@ -67,6 +74,12 @@ export function AnnouncementForm({
   targetingAllOption,
   targetingCountriesOption,
   countriesLabel,
+  publishStartDateLabel,
+  publishEndDateLabel,
+  publishPeriodHint,
+  publishEndDateBeforeStartErrorMessage,
+  dueDateLabel,
+  dueDateRequiredErrorMessage,
   submitButtonLabel,
   requiredErrorMessage,
   countriesRequiredErrorMessage,
@@ -80,8 +93,9 @@ export function AnnouncementForm({
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<AnnouncementFormValues>({
+  } = useForm<AnnouncementFormValues, unknown, AnnouncementSubmitValues>({
     resolver: zodResolver(announcementFormSchema),
     defaultValues: defaultValues ?? {
       title: "",
@@ -89,6 +103,9 @@ export function AnnouncementForm({
       category: "" as unknown as AnnouncementFormValues["category"],
       targeting: { scope: "all" },
       actionRequired: false,
+      publishStartDate: "",
+      publishEndDate: "",
+      dueDate: "",
     },
   });
 
@@ -102,8 +119,9 @@ export function AnnouncementForm({
     { value: "countries", label: targetingCountriesOption },
   ];
   const scope = watch("targeting.scope");
+  const actionRequired = watch("actionRequired");
 
-  async function onSubmit(values: AnnouncementFormValues) {
+  async function onSubmit(values: AnnouncementSubmitValues) {
     setHasSubmitError(false);
     try {
       if (mode === "edit" && announcementId) {
@@ -166,6 +184,34 @@ export function AnnouncementForm({
         />
       </FormField>
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+        <FormField
+          label={publishStartDateLabel}
+          htmlFor="announcement-publish-start-date"
+          className="flex-1"
+        >
+          <Input
+            id="announcement-publish-start-date"
+            type="date"
+            {...register("publishStartDate")}
+          />
+        </FormField>
+        <FormField
+          label={publishEndDateLabel}
+          htmlFor="announcement-publish-end-date"
+          className="flex-1"
+          error={errors.publishEndDate ? publishEndDateBeforeStartErrorMessage : undefined}
+        >
+          <Input
+            id="announcement-publish-end-date"
+            type="date"
+            aria-invalid={errors.publishEndDate ? true : undefined}
+            {...register("publishEndDate")}
+          />
+        </FormField>
+      </div>
+      <p className="text-xs text-muted-foreground">{publishPeriodHint}</p>
+
       <FormField
         label={actionRequiredLabel}
         htmlFor="announcement-action-required"
@@ -178,11 +224,34 @@ export function AnnouncementForm({
               id="announcement-action-required"
               options={actionRequiredOptions}
               value={field.value ? "true" : "false"}
-              onChange={(event) => field.onChange(event.target.value === "true")}
+              onChange={(event) => {
+                const nextValue = event.target.value === "true";
+                field.onChange(nextValue);
+                if (!nextValue) {
+                  setValue("dueDate", "");
+                }
+              }}
             />
           )}
         />
       </FormField>
+
+      {actionRequired && (
+        <FormField
+          label={dueDateLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          htmlFor="announcement-due-date"
+          error={errors.dueDate ? dueDateRequiredErrorMessage : undefined}
+        >
+          <Input
+            id="announcement-due-date"
+            type="date"
+            aria-invalid={errors.dueDate ? true : undefined}
+            {...register("dueDate")}
+          />
+        </FormField>
+      )}
 
       <FormField label={targetingLabel} htmlFor="announcement-targeting-scope">
         <Controller

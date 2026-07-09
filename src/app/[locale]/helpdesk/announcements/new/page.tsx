@@ -46,6 +46,12 @@ export default async function HelpdeskAnnouncementNewPage() {
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
         countriesLabel={t("countriesLabel")}
+        publishStartDateLabel={t("publishStartDateLabel")}
+        publishEndDateLabel={t("publishEndDateLabel")}
+        publishPeriodHint={t("publishPeriodHint")}
+        publishEndDateBeforeStartErrorMessage={t("validation.publishEndDateBeforeStart")}
+        dueDateLabel={t("dueDateLabel")}
+        dueDateRequiredErrorMessage={t("validation.dueDateRequired")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         countriesRequiredErrorMessage={t("validation.countriesRequired")}

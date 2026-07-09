@@ -571,3 +571,69 @@ messages/
   - 対応が完了している（`completedAt`が設定されている）場合、`ReminderBadge`が表示されないこと
 - **E2E/UI Tests**:
   - 日本語・英語両方でリマインド受信表示の文言が翻訳されること
+
+---
+
+## 追加ラウンド（2026-07-08）: 対応期限の表示・公開期間による表示制御
+
+### Overview（追加分）
+`announcements-management`spec側で追加される`Announcement.dueDate`（対応期限）・`publishStartDate`/`publishEndDate`（公開期間）を参照し、対応期限を一覧・詳細画面に表示する。公開期間による表示制御自体は`announcements-management`spec側の`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`（既存の可視性判定関数）に実装されるため、本specは追加のフィルタ処理を実装しない（既存の呼び出しのままで期間外のお知らせは戻り値に含まれなくなる）。**Purpose**: 販社担当者が対応期限を把握できるようにし、期限切れ・未公開の周知に惑わされないようにする。**Impact**: `AnnouncementListItem`・`AnnouncementDetail`に対応期限表示を追加する点を除き、既存のデータ取得・レイアウト・操作性は変更しない。
+
+### Goals（追加分）
+- 対応が必要なお知らせについて、対応期限が設定されていれば一覧・詳細画面に表示する
+- 公開期間外のお知らせが表示されなくなる（データ層の変更のみで実現し、本spec側のロジック追加は不要）
+
+### Non-Goals（追加分）
+- 対応期限フィールド自体の追加、作成・編集フォームでの設定操作（`announcements-management`spec側で実装）
+- 公開期間フィルタの算出ロジック自体（`announcements-management`spec側の`getAnnouncements`等に実装。本specは戻り値をそのまま利用するのみ）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- お知らせ一覧・詳細画面における対応期限のラベル・表示UI
+
+**Out of Boundary（追加）**
+- `Announcement.dueDate`/`publishStartDate`/`publishEndDate`の型定義・バリデーション・算出ロジック（`announcements-management`spec所有）
+
+**Allowed Dependencies（追加）**
+- `announcements-management`spec側で拡張される`Announcement.dueDate`（読み取りのみ）
+
+**Revalidation Triggers（追加）**
+- `Announcement.dueDate`のフィールド名・型が変更された場合
+
+### Architecture（追加分）
+新規コンポーネント・新規フローは発生しない。既存の`AnnouncementListItem`・`AnnouncementDetail`が、既に受け取っている`announcement`オブジェクトから`dueDate`を読み取り、`actionRequired`が真かつ`dueDate`が設定されている場合のみ表示する。公開期間フィルタは`getAnnouncements`等の戻り値が変わるだけであり、本spec側のコンポーネントに変更は不要。
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし。
+
+### File Structure Plan（追加分）
+新規ファイルなし。
+
+### Modified Files（追加分）
+- `src/components/features/announcements/AnnouncementListItem.tsx` — `actionRequired`が真かつ`dueDate`が設定されている場合、対応期限を表示するテキストを追加
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 同様に詳細画面へ対応期限表示を追加
+- `messages/ja.json` / `messages/en.json` — `announcements.dueDateLabel`翻訳キーを追加
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 12.1〜12.4 | 対応期限の表示 | AnnouncementListItem, AnnouncementDetail | — |
+| 13.1〜13.4 | 公開期間による表示制御 | （データ層のみ、`announcements-management`spec所有） | — |
+
+### Components and Interfaces（追加分）
+新規コンポーネントなし。`AnnouncementListItem`・`AnnouncementDetail`に表示分岐を追加するのみ（`Announcement.dueDate`はいずれも既存propsの`announcement`経由で取得済みのため、propsの追加は不要）。
+
+### Data Models（追加分）
+本specはデータモデルを追加しない。`announcements-management`spec所有の`Announcement.dueDate: string | null`を読み取り専用で参照する。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `AnnouncementListItem`/`AnnouncementDetail`が、`actionRequired: true`かつ`dueDate`設定時のみ対応期限を表示すること
+  - `actionRequired: false`または`dueDate`が`null`のとき対応期限を表示しないこと
+- **Integration Tests**:
+  - 公開期間外のお知らせIDを直接指定した場合、詳細画面が「見つかりません」表示になること
+- **E2E/UI Tests**:
+  - 日本語・英語両方で対応期限ラベルが翻訳されること

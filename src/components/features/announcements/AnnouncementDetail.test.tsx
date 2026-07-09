@@ -103,4 +103,30 @@ describe("AnnouncementDetail", () => {
 
     expect(screen.getByText("一覧へ戻る")).toBeTruthy();
   });
+
+  it("actionRequiredが真かつdueDate設定時に対応期限を表示する", async () => {
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      actionRequired: true,
+      dueDate: "2026-07-14",
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.getByText(/対応期限/)).toBeTruthy();
+  });
+
+  it("actionRequiredが偽のときは対応期限を表示しない", async () => {
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      actionRequired: false,
+      dueDate: "2026-07-14",
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.queryByText(/対応期限/)).toBeNull();
+  });
 });

@@ -17,6 +17,7 @@ export interface AnnouncementListClientProps {
   categoryLabels: Record<AnnouncementCategory, string>;
   categoryOptions: SelectOption[];
   actionRequiredBadgeLabel: string;
+  dueDateLabel: string;
   /** お知らせIDごとの、自社宛リマインド受信有無 */
   reminderPendingByAnnouncementId: Record<string, boolean>;
   locale: string;
@@ -31,6 +32,7 @@ export function AnnouncementListClient({
   categoryLabels,
   categoryOptions,
   actionRequiredBadgeLabel,
+  dueDateLabel,
   reminderPendingByAnnouncementId,
   locale,
 }: AnnouncementListClientProps) {
@@ -60,6 +62,7 @@ export function AnnouncementListClient({
               announcement={item}
               categoryLabel={categoryLabels[item.category]}
               actionRequiredBadgeLabel={actionRequiredBadgeLabel}
+              dueDateLabel={dueDateLabel}
               isReminderPending={reminderPendingByAnnouncementId[item.id] ?? false}
               locale={locale}
             />
