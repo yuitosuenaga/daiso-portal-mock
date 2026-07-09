@@ -9,6 +9,8 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 
 追加決定事項（2026-07-09 続き）: announcements/announcements-management完了後、次の対象を`documents`（ドキュメント、申請者側閲覧画面）・`documents-management`（ドキュメント管理、ヘルプデスク側画面）とする。両specが所有する画面・UIコンポーネントは変更せず、両specが現在`MOCK_CURRENT_COMPANY`・`getGlobalMockStore`に依存しているモックAPI（`lib/api/documents.ts`）の内部実装のみをPrisma経由の実DBアクセスへ置き換える。`Document`の公開範囲（全体公開／国単位／販社単位）判定は、announcements領域で拡張済みの申請者側セッションクレーム（`companyCode`・`country`）を再利用する（クレーム形状の追加変更は不要）。faq, links-page, reply-templatesは引き続き本spec範囲外とし、将来別ラウンドで対応する。
 
+追加決定事項（2026-07-09 続き2）: documents/documents-management完了後、次の対象を`faq`（FAQ、申請者側・ヘルプデスク側の双方が同一内容を閲覧する画面）とする。`faq`specはヘルプデスク側の作成・編集・削除機能を対象外としており、`lib/api/faqs.ts`の`getFaqs()`は会社・ロールによるスコープ制御を一切行わない（全ロール・全社共通の参照専用データ）。既存の`FAQ_CATEGORY_CODES`・`Faq`型は変更せず、`getFaqs()`のシグネチャを維持したまま内部実装のみをPrisma経由のDBアクセスに置き換える。セッションクレームの追加変更は不要（`getFaqs()`は特定ロールのセッションを要求しない。ページレベルの認証保護は既存のMiddlewareが担う）。links-page, reply-templatesは引き続き本spec範囲外とし、将来別ラウンドで対応する。
+
 ## はじめに
 
 本specは、フェーズ1でモックAPI・固定値（`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`・`getGlobalMockStore`によるインメモリストア）に依存していたヘルプデスクポータルに、開発環境で実際に動作するバックエンド（Next.js Route Handlers）とDB（PostgreSQL、Prisma管理）を導入するための基盤仕様です。あわせて、これまで存在しなかった認証・ログイン機能（申請者側企業ユーザー、ヘルプデスク担当者）を導入し、問い合わせ・申請領域（`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`）のデータを実際にDBへ永続化・スコープ制御できるようにします。開発環境ではDocker Compose上のPostgreSQLをDBeaverで直接確認できるようにし、将来の本番環境（Cloud SQL for PostgreSQL）へ接続先を切り替えるだけで移行できる拡張性を持たせます。
@@ -32,14 +34,18 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
   - `Document`（ドキュメント本体：タイトル・補足説明・ファイル名・ファイル種別・ファイルサイズ・PDFデータ・アップロード日・公開範囲）に相当するDBスキーマの追加
   - `lib/api/documents.ts`の既存エクスポート関数（`getDocuments`・`getDocumentById`・`getAllDocuments`・`getDocumentByIdForHelpdesk`・`createDocument`・`updateDocument`・`deleteDocument`）のシグネチャを維持したまま、内部実装をPrisma経由のDBアクセスに置き換えること
   - 申請者側のドキュメント閲覧における公開範囲フィルタ（全体公開／自社の国が対象国に含まれる／自社が対象販社に含まれる）を、ログイン中の申請者セッションが所属する`Company`の国・会社コード情報を用いて行うこと（`MOCK_CURRENT_COMPANY`への依存を除去する）。セッションクレームは`announcements`領域で追加済みの`companyCode`・`country`を再利用し、追加のクレーム変更は行わない
+- **FAQ領域（2026-07-09追加）**:
+  - FAQ（`Faq`：種別・質問・回答）に相当するDBスキーマの追加
+  - `lib/api/faqs.ts`の既存エクスポート関数（`getFaqs`）のシグネチャを維持したまま、内部実装をPrisma経由のDBアクセスに置き換えること
+  - `getFaqs()`は会社・ロールによるスコープ制御を行わない（全ロール・全社共通の参照専用データという既存の振る舞いを維持する）
 - **対象外**:
-  - FAQ（`faq`）、リンク集（`links-page`）、返信テンプレート（`reply-templates`）の実DB化（将来、別途対応）
+  - リンク集（`links-page`）、返信テンプレート（`reply-templates`）の実DB化（将来、別途対応）
   - 自由記述の翻訳処理（Google Cloud Translation API連携）
   - 添付ファイルの実ファイルストレージ・CDN化（本specでは添付ファイルの実体はDBにデータとして保持する。外部ストレージ連携は将来対応）
   - 本番環境（Cloud SQL）への実際のプロビジョニング・デプロイ作業の実行（構成として拡張可能にすることのみが対象。実際の本番構築は別途）
   - パスワードリセット・ユーザー登録（サインアップ）画面（本specでは初期データとしてDBに投入したアカウントでのログインのみを対象とする）
   - お知らせの確認・実施を行う担当者（`AnnouncementRecipient`）に、実際のログイン機能を持たせること（引き続き閲覧・追跡専用のモック担当者マスタとしてDBに保持する）
-- **隣接仕様との境界**: `faq`・`links-page`・`reply-templates`等が参照している`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`（`src/lib/constants/current-company.ts`・`src/lib/constants/helpdesk.ts`）は、本spec完了後も同一のインターフェース（関数・定数名）を維持し、それらのドメインのコードは変更しない。`announcements`・`announcements-management`・`documents`・`documents-management`ドメインのUIコンポーネント・Server Actions自体（見た目・操作性）は変更しない。将来、faq等の残りのドメインを実DB化・認証連携する際は別ラウンドで対応する。
+- **隣接仕様との境界**: `links-page`・`reply-templates`等が参照している`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`（`src/lib/constants/current-company.ts`・`src/lib/constants/helpdesk.ts`）は、本spec完了後も同一のインターフェース（関数・定数名）を維持し、それらのドメインのコードは変更しない。`announcements`・`announcements-management`・`documents`・`documents-management`・`faq`ドメインのUIコンポーネント・Server Actions自体（見た目・操作性）は変更しない。将来、links-page等の残りのドメインを実DB化・認証連携する際は別ラウンドで対応する。
 
 ## 要件
 
@@ -306,4 +312,42 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 #### 受け入れ基準
 
 1. The プロジェクト shall 本要件追加後も、`documents`・`documents-management`の既存UIコンポーネント・画面の見た目・操作性を変更せずに動作させる。
+2. The プロジェクト shall 既存の`vitest`テストスイートが、モックAPIへの依存部分をテスト用DB接続（またはテスト用モック）に置き換えた上で成功する状態を維持する。
+
+---
+
+### 追加ラウンド（2026-07-09）: faq の実DB化
+
+documents・documents-management領域の実DB化完了を受け、次の対象を`faq`（FAQ、申請者側・ヘルプデスク側の双方が同一内容を閲覧する画面）とする。`faq`spec自体の`requirements.md`（UI・振る舞いの契約）は変更せず、本spec側でDBスキーマ・サービス層・既存モックAPI関数の内部実装のみを差し替える。`faq`specはヘルプデスク側の作成・編集・削除機能を明示的に対象外としているため、本ラウンドでもCRUD機能の追加は行わない（既存の参照専用の振る舞いをDBバックエンドで再現するのみ）。
+
+### 要件 16: FAQデータモデル
+
+**目的:** 開発者として、FAQをDB上で一貫して管理したい。そうすることで、申請者側・ヘルプデスク側の両画面が同一のデータソースを参照できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall FAQ（`Faq`）を表すテーブルを持ち、既存の`Faq`型（`category`・`question`・`answer`）に相当する項目を保持する。
+2. The プロジェクト shall 既存の`Faq`型とDBスキーマの項目が対応する構造を維持する。
+
+---
+
+### 要件 17: FAQ閲覧APIのDB化
+
+**目的:** 開発者として、`faq`specのモックAPI関数をシグネチャを保ったままDBアクセスに置き換えたい。そうすることで、`faq`specが所有する画面・UIコンポーネントの実装を変更せずに済む。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall `src/lib/api/faqs.ts`の既存のエクスポート関数（`getFaqs`）の引数・戻り値の型を変更せず、内部実装をDBアクセスに置き換える。
+2. The プロジェクト shall `getFaqs()`について、会社・ロールによるスコープ制御を行わず、全てのFAQをDBから取得する（申請者側・ヘルプデスク側で同一の結果を返す既存の振る舞いを維持する）。
+3. The プロジェクト shall `getFaqs()`の呼び出しにあたり、申請者側セッション・ヘルプデスク側セッションのいずれかのロールを要求する追加のセッション検証を行わない（ページレベルの未ログインアクセス制御は既存のMiddlewareが担う）。
+
+---
+
+### 要件 18: FAQ領域における既存フロントエンドとの互換性
+
+**目的:** 開発者として、FAQ領域の実DB化後も既存のUIコンポーネント・テストが壊れないようにしたい。そうすることで、フロントエンド側の再修正コストを最小化できる。
+
+#### 受け入れ基準
+
+1. The プロジェクト shall 本要件追加後も、`faq`の既存UIコンポーネント・画面（申請者側・ヘルプデスク側の両方）の見た目・操作性を変更せずに動作させる。
 2. The プロジェクト shall 既存の`vitest`テストスイートが、モックAPIへの依存部分をテスト用DB接続（またはテスト用モック）に置き換えた上で成功する状態を維持する。

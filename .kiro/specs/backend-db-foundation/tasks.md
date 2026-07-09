@@ -238,3 +238,37 @@
   - Observable: 新規テストで、対象外のドキュメントが一覧に含まれないことを確認できる
   - _Requirements: 13.2, 14.2_
   - _Depends: 16.1_
+
+- [x] 19. FAQ領域のPrismaスキーマ・シード拡張
+- [x] 19.1 Faqモデルの追加とマイグレーション
+  - `Faq`モデルと`FaqCategory`Enumを`schema.prisma`に追加する
+  - `prisma migrate dev`でマイグレーションを生成・適用する
+  - Observable: `prisma validate`が成功し、DBeaverで新規テーブルが確認できる
+  - _Requirements: 16.1, 16.2_
+
+- [x] 19.2 シードデータの拡張（FAQ12件）
+  - 既存モック（`MOCK_FAQS`）と同内容のFAQ12件を`seed.ts`に追加する
+  - Observable: シード実行後、DBeaverで`Faq`テーブルに既存モックと同等のデモデータが表示される
+  - _Requirements: 16.1_
+  - _Depends: 19.1_
+
+- [x] 20. FAQドメインサービス層とlib/api差し替え
+- [x] 20.1 FAQ取得ロジックとlib/api/faqs.tsの内部実装差し替え
+  - `faq-service.ts`に全件取得ロジックを実装する（セッション検証は行わない）
+  - `lib/api/faqs.ts`の`getFaqs`のシグネチャを変更せず、内部実装を`faq-service`呼び出しに置き換える
+  - Observable: 既存の呼び出し元（申請者側・ヘルプデスク側の両`FaqList`）のコードを変更せずに、実DBの値が返るようになる
+  - _Requirements: 16.1, 16.2, 17.1, 17.2, 17.3_
+  - _Depends: 19.1_
+
+- [x] 21. テストの適応と新規カバレッジ
+- [x] 21.1 既存vitestテストのモック更新
+  - `faqs.test.ts`で`faq-service`をモック化し、既存のアサーション（カテゴリ網羅性・ID重複なし等）が成功する状態を維持する
+  - Observable: `npm run test`が既存テストを含めて成功する
+  - _Requirements: 18.2_
+  - _Depends: 20.1_
+
+- [x] 21.2 (P) FAQサービス層の新規単体テスト
+  - `listFaqs`がPrisma経由で全件を取得することを検証するテストを追加する
+  - Observable: 新規テストで、Prisma Clientのモックから返した件数・内容が`listFaqs`の戻り値と一致することを確認できる
+  - _Requirements: 16.1_
+  - _Depends: 20.1_

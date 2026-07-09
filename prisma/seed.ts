@@ -372,6 +372,109 @@ async function seedDocuments(): Promise<void> {
   }
 }
 
+/** 既存モック（`MOCK_FAQS`）と同内容のFAQ12件。 */
+const FAQ_SEEDS = [
+  {
+    id: "seed-faq-001",
+    category: "inquiry_method" as const,
+    question: "ヘルプデスクへの問い合わせはどの方法で行えば良いですか。",
+    answer:
+      "ポータル上の「問い合わせ申請」ページから、案件種別・緊急度・内容を入力して送信してください。メールや電話での問い合わせは受け付けておりません。",
+  },
+  {
+    id: "seed-faq-002",
+    category: "inquiry_method" as const,
+    question: "複数の案件をまとめて1件の問い合わせとして送信できますか。",
+    answer:
+      "1件の問い合わせにつき1つの案件のみご記入ください。複数の案件がある場合は、それぞれ個別に問い合わせを作成してください。",
+  },
+  {
+    id: "seed-faq-003",
+    category: "inquiry_method" as const,
+    question: "緊急度の高い問い合わせを行った場合、対応は早くなりますか。",
+    answer:
+      "緊急度は対応の優先順位付けの参考情報として利用しますが、対応順序や対応完了時期を保証するものではありません。緊急性の高い内容は具体的な状況を本文に記載してください。",
+  },
+  {
+    id: "seed-faq-004",
+    category: "form_input" as const,
+    question: "問い合わせフォームの「原文言語」は何のために入力しますか。",
+    answer:
+      "「原文言語」は、問い合わせ内容（自由記述）が元々どの言語で書かれているかを示す項目です。ヘルプデスク側での翻訳・確認作業に利用します。",
+  },
+  {
+    id: "seed-faq-005",
+    category: "form_input" as const,
+    question: "自由記述欄の文字数に上限はありますか。",
+    answer:
+      "自由記述欄には文字数の上限があります。入力欄の下に表示される残り文字数を確認しながら入力し、上限を超える場合は内容を要約して記載してください。",
+  },
+  {
+    id: "seed-faq-006",
+    category: "form_input" as const,
+    question: "会社名や国の情報は毎回入力する必要がありますか。",
+    answer:
+      "現在のフェーズでは問い合わせごとに会社名・国を入力していただく仕様となっています。入力内容に誤りがあると対応が遅れる可能性がありますので、正確にご入力ください。",
+  },
+  {
+    id: "seed-faq-007",
+    category: "status" as const,
+    question: "送信した問い合わせの対応状況はどこで確認できますか。",
+    answer:
+      "「問い合わせ一覧」ページで、自社が送信した問い合わせの対応状況（新規・対応中・解決済み）を確認できます。",
+  },
+  {
+    id: "seed-faq-008",
+    category: "status" as const,
+    question: "「対応中」から「解決済み」に変わるまでの目安期間はどれくらいですか。",
+    answer:
+      "案件の内容や混雑状況により対応期間は異なるため、一律の目安期間は設けておりません。進捗が気になる場合は、問い合わせ一覧の詳細画面をご確認ください。",
+  },
+  {
+    id: "seed-faq-009",
+    category: "status" as const,
+    question: "解決済みになった問い合わせについて、追加で質問したい場合はどうすれば良いですか。",
+    answer:
+      "解決済みの問い合わせに対する追記機能は現在提供しておりません。追加で確認したい内容がある場合は、新規の問い合わせとして改めて送信してください。",
+  },
+  {
+    id: "seed-faq-010",
+    category: "other" as const,
+    question: "ポータルの表示言語はどこで切り替えられますか。",
+    answer:
+      "画面上部のヘッダーにある言語切り替えメニューから、日本語・英語の表示を切り替えることができます。",
+  },
+  {
+    id: "seed-faq-011",
+    category: "other" as const,
+    question: "ポータルにログインできない場合はどうすれば良いですか。",
+    answer:
+      "ログインに関するトラブルは、社内の情報システム管理者または導入時にご案内した連絡先にお問い合わせください。本ポータルの問い合わせフォームでは対応できません。",
+  },
+  {
+    id: "seed-faq-012",
+    category: "other" as const,
+    question: "リンク集やお知らせの内容はどのくらいの頻度で更新されますか。",
+    answer:
+      "リンク集やお知らせは、ヘルプデスク側で随時更新しています。更新頻度は内容によって異なり、一定のスケジュールは定めていません。",
+  },
+];
+
+async function seedFaqs(): Promise<void> {
+  for (const seed of FAQ_SEEDS) {
+    await prisma.faq.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        category: seed.category,
+        question: seed.question,
+        answer: seed.answer,
+      },
+    });
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
@@ -420,6 +523,7 @@ async function main() {
   await seedAnnouncements();
   await seedAnnouncementRecipientStatuses();
   await seedDocuments();
+  await seedFaqs();
 
   console.log("Seed complete:", {
     companies: COMPANY_OPTIONS.length,
@@ -428,6 +532,7 @@ async function main() {
     inquiry: inquiry.id,
     announcements: ANNOUNCEMENT_SEEDS.length,
     documents: DOCUMENT_SEEDS.length,
+    faqs: FAQ_SEEDS.length,
   });
   console.log(`Seed password for both accounts: ${SEED_PASSWORD}`);
 }

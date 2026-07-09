@@ -899,3 +899,116 @@ interface DocumentService {
 ### Testing Strategy（追加分）
 - **Unit Tests**: `DocumentService`の各メソッド（targeting相互変換、country/companyCode絞り込みのOR条件）をPrisma Clientをモック化して検証する
 - **Integration Tests**: 既存の`src/lib/api/documents.test.ts`・`src/lib/actions/documents.test.ts`は、`get-session`と`DocumentService`をvitestの`vi.mock`でモックし、既存のアサーション（公開範囲ごとの可視性判定等）を維持する
+
+## 追加ラウンド（2026-07-09 続き2）: faq の実DB化
+
+### Overview（追加分）
+documents・documents-management領域の実DB化完了を受け、`faq`spec（申請者側・ヘルプデスク側の双方が閲覧するFAQ画面）のデータアクセスを、インメモリ配列（`MOCK_FAQS`）からPostgreSQL（Prisma経由）へ置き換える。**Purpose**: FAQ本体をDBに永続化する。**Impact**: `faq`specが所有するUIコンポーネント（`FaqList`等）の見た目・操作性は変更しない。FAQは会社・ロールによるスコープを持たない参照専用データのため、Inquiry・Announcement・Document領域と異なりセッションクレームの参照・拡張は不要（`getFaqs()`は無条件に全件を返す既存の振る舞いを維持する）。
+
+### Goals（追加分）
+- `Faq`をPrismaスキーマとして定義し、DBへ永続化する
+- `lib/api/faqs.ts`の既存エクスポート関数（`getFaqs`）のシグネチャを変更せず、内部実装をDBアクセスに置き換える
+
+### Non-Goals（追加分）
+- `faq`specのUI・画面遷移・翻訳キーの変更
+- ヘルプデスク側のFAQ作成・編集・削除機能の追加（`faq`spec自体が対象外としている既存の決定を維持する）
+- links-page・reply-templatesドメインの実DB化（将来別ラウンド）
+- セッションクレームの追加変更（`getFaqs()`はロール・会社を問わない参照専用データのため不要）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `Faq`のPrismaスキーマとPrisma経由のアクセス
+- `src/lib/server/faq-service.ts`（新規）
+- `src/lib/api/faqs.ts`の内部実装
+
+**Out of Boundary（追加）**
+- `faq`specが所有するUIコンポーネント・翻訳キー・画面遷移そのもの
+- ヘルプデスク側のFAQ管理機能（作成・編集・削除）の新設
+
+**Allowed Dependencies（追加）**
+- `src/types/faq.ts`（`faq`spec所有の型定義） — 型の形状を変更せず、DBスキーマをこれに合わせる
+- `src/lib/constants/faq-options.ts`（`FAQ_CATEGORY_CODES`） — Prisma Enumの値集合の参照元として使用する（変更しない）
+
+**Revalidation Triggers（追加）**
+- `Faq`型（`src/types/faq.ts`）の形状変更
+- `lib/api/faqs.ts`のシグネチャ変更
+
+### Architecture（追加分）
+`Faq`にはセッションスコープ・公開範囲判定が存在しないため、Inquiry・Announcement・Document領域よりさらに単純な構成になる。`lib/api/faqs.ts`はSession Guardを経由せず、直接`faq-service`を呼ぶ。
+
+```mermaid
+graph TB
+    LibApiFaqs[lib/api/faqs.ts] --> FaqService
+    FaqService --> PrismaClient
+    PrismaClient --> Postgres
+```
+
+### File Structure Plan（追加分）
+```
+prisma/
+├── schema.prisma          # [変更] FaqCategory Enum・Faqモデルを追加
+└── seed.ts                 # [変更] 既存モックと同内容のFAQ12件を追加投入
+
+src/
+├── lib/
+│   ├── server/
+│   │   └── faq-service.ts   # [新規] Prisma経由のFAQ取得ロジック（マッパーは同ファイル内のヘルパーで対応、専用ファイルは設けない）
+│   └── api/
+│       └── faqs.ts           # [変更] 内部実装をfaq-service呼び出しに置き換え。シグネチャ不変
+```
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `Faq`モデル、`FaqCategory`Enumを追加
+- `prisma/seed.ts` — 既存モックと同内容のFAQ12件の投入を追加
+- `src/lib/api/faqs.ts` — 内部実装を`faq-service`呼び出しに置き換え。エクスポート関数のシグネチャは変更しない。セッション検証は行わない
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components | Interfaces | Flows |
+|---|---|---|---|---|
+| 16.1-16.2 | FAQデータモデル | Prisma Schema | Prisma Client | — |
+| 17.1-17.3 | FAQ閲覧APIのDB化 | FaqService, lib/api互換層 | Service Interface | — |
+| 18.1-18.2 | 既存フロントエンドとの互換性 | lib/api互換層 | 既存関数シグネチャ | — |
+
+### Components and Interfaces（追加分）
+
+#### FaqService (`src/lib/server/faq-service.ts`)
+
+| Field | Detail |
+|-------|--------|
+| Intent | Prisma経由のFAQ取得ロジック |
+| Requirements | 16.1-16.2, 17.1-17.2 |
+
+**Responsibilities & Constraints**
+- 全件取得のみを提供し、絞り込み・並び順の保証は行わない（既存モックの振る舞いを維持）
+
+##### Service Interface
+```typescript
+interface FaqService {
+  listFaqs(): Promise<Faq[]>;
+}
+```
+
+**Dependencies**
+- Outbound: PrismaClient (P0)
+- Inbound: lib/api互換層 (P0)
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Data Models（追加分）
+
+#### Physical Data Model（追加分）
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| Faq | id | text (cuid) | PK |
+| | category | enum(inquiry_method,form_input,status,other) | not null |
+| | question | text | not null |
+| | answer | text | not null |
+| | createdAt | timestamptz | default now()（表示順の参考、厳密な順序保証はしない） |
+
+- `Faq`は他モデルから参照されない独立テーブルのため、削除時のFK制約は発生しない
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `faq-service.ts`の`listFaqs`をPrisma Clientをモック化して検証する
+- **Integration Tests**: 既存の`src/lib/api/faqs.test.ts`は`faq-service`をvitestの`vi.mock`でモックし、既存のアサーション（カテゴリ網羅性・ID重複なし等）を維持する

@@ -179,3 +179,18 @@ model Document {
   targetingCountries    String[]               @default([])
   targetingCompanyCodes String[]               @default([])
 }
+
+enum FaqCategory {
+  inquiry_method
+  form_input
+  status
+  other
+}
+
+model Faq {
+  id        String      @id @default(cuid())
+  category  FaqCategory
+  question  String
+  answer    String
+  createdAt DateTime    @default(now())
+}
