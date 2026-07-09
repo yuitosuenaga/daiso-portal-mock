@@ -95,3 +95,48 @@
   - 観測可能な完了条件: `/documents`を開くと、リンク集・FAQページと同じスタイルの`h1`タイトルと説明文がカードの上部に表示される
   - _Requirements: 9.1, 9.2, 9.3, 9.4_
   - _Boundary: DocumentList_
+
+---
+
+- [x] 6. 一覧ページへのPDFプレビュー統合（2026-07-09 追記）
+- [x] 6.1 PdfViewerの高さをグリッド向けに調整する
+  - `PdfViewer.tsx`の`<iframe>`コンテナの高さを`h-[70vh] lg:h-[80vh]`から2列グリッドの1セル幅を想定した高さ（`h-[50vh]`程度、`min-h`確保）に変更する
+  - 既存の単体テストがパスすることで完了とする
+  - _Requirements: 10.1, 10.2, 11.2_
+  - _Boundary: PdfViewer_
+
+- [x] 6.2 DocumentListItemにPdfViewerをインライン統合し、詳細ページへのリンクを削除する
+  - `DocumentListItem`から詳細ページ（`/documents/[id]`）への「表示」リンクを削除し、タイトル・説明・メタ情報の直下に`PdfViewer`を配置する（ダウンロードリンクは`PdfViewer`が提供するもので代替し、重複するリンクを持たない）
+  - 各カードが独立した`Card`として構成されることで完了とする
+  - _Requirements: 10.1, 10.2, 10.3, 10.4_
+  - _Boundary: DocumentListItem_
+  - _Depends: 6.1_
+
+- [x] 6.3 DocumentListを2列グリッドレイアウトに変更する
+  - `ul.divide-y`構成をやめ、`DocumentListItem`を`grid grid-cols-1 md:grid-cols-2 gap-6`のグリッドに配置する（見出しの`h1`+説明文は変更しない）
+  - 768px未満で1列表示に切り替わり、768px以上で2列グリッドが横スクロールなく表示されることで完了とする
+  - _Requirements: 11.1, 11.3, 11.4_
+  - _Boundary: DocumentList_
+  - _Depends: 6.2_
+
+- [x] 6.4 一覧ページのコンテナ幅を拡張する
+  - `app/[locale]/(applicant)/documents/page.tsx`のコンテナ幅を、2列グリッドが画面全体を活かして表示できる幅に変更する
+  - 2列グリッドが画面全体を使って表示されることで完了とする
+  - _Requirements: 11.2_
+  - _Boundary: DocumentList_
+  - _Depends: 6.3_
+
+- [x] 6.5 詳細ページ関連の削除と翻訳キーの整理
+  - `app/[locale]/(applicant)/documents/[id]/page.tsx`、`DocumentDetail.tsx`（および対応するテスト）を削除する
+  - `messages/ja.json`・`messages/en.json`から`documents.list.viewLink`・`documents.detail`名前空間を削除する（`en.json`にも同様の変更を行い、キー構造の一致を保つ）
+  - 型チェック・既存テストが通ることで完了とする
+  - _Requirements: 10.5_
+  - _Boundary: i18n messages_
+  - _Depends: 6.4_
+
+- [x] 6.6 (P) 一覧ページのテストを更新する
+  - `DocumentListItem`のテストを、インラインPdfViewerの描画・ダウンロードリンクの動作を検証する内容に更新する
+  - `DocumentList`のテストを、2列グリッドでの表示・0件時の空状態表示に追従させる
+  - 全テストがパスすることで完了とする
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 11.1_
+  - _Depends: 6.5_

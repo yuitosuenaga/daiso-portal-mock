@@ -163,3 +163,44 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 9.1, 9.2, 10.1_
   - _Depends: 3.5, 3.6, 3.7_
+
+---
+
+- [x] 6. 既存ドキュメント画面のプレビュー表示とビュー/編集切り替え（2026-07-09 追記）
+- [x] 6.1 targetingLabelをdocument-utils.tsへ切り出す
+  - `DocumentManagementList.tsx`内のローカル関数`targetingLabel`を`src/lib/document-utils.ts`に移動し、`DocumentManagementList.tsx`側はインポートに置き換える（重複定義を避ける）
+  - `DocumentManagementList`の既存表示が変わらないことで完了とする
+  - _Requirements: 11.1_
+  - _Boundary: DocumentsMockApi_
+
+- [x] 6.2 (P) 翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskDocuments.form`に`detailTitle`（「ドキュメント詳細」/"Document Details"）・`editButton`（「編集」/"Edit"）・`cancelButton`（「キャンセル」/"Cancel"）を追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在することで完了とする
+  - _Requirements: 11.2, 11.3, 11.5_
+  - _Boundary: i18n messages_
+
+- [x] 6.3 DocumentDetailPanelを実装する
+  - `mode: "view" | "edit"`（初期値`"view"`）をローカル状態で持つクライアントコンポーネントを新設する
+  - `view`時: タイトル・説明・`targetingLabel`による公開範囲要約・ファイルサイズ・アップロード日を読み取り専用で表示し、その直下に`PdfViewer`（`documents`spec所有）を配置。「編集」ボタン・`DeleteDocumentButton`・一覧へ戻るリンクを表示する
+  - `edit`時: 既存の`DocumentForm`（`mode="edit"`, 変更なし）と`PdfViewer`を並べて表示し、「キャンセル」ボタンで`mode`を`"view"`に戻す（保存は行わない、ページ遷移なし）
+  - PDFプレビュー領域に`title`属性でドキュメントのタイトルを設定することで完了とする
+  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.7_
+  - _Boundary: DocumentDetailPanel_
+  - _Depends: 6.1, 6.2_
+
+- [x] 6.4 ドキュメント編集ルートをDocumentDetailPanelに結線する
+  - `app/[locale]/helpdesk/documents/[id]/edit/page.tsx`のデータ取得・翻訳解決はそのまま維持し、`DocumentForm`を直接呼ぶ代わりに`DocumentDetailPanel`へ表示用props・フォーム用props一式を渡す
+  - 存在しないIDの場合は見つからない旨のメッセージと一覧へ戻るリンクを表示する（変更なし）
+  - 一覧の「編集」リンクから遷移すると、まず表示モード（登録済み情報＋PDFプレビュー）が表示され、「編集」ボタンで編集モードに切り替わることで完了とする
+  - _Requirements: 11.1, 11.6, 11.8_
+  - _Boundary: DocumentDetailPanel_
+  - _Depends: 6.3_
+
+- [x] 6.5 (P) DocumentDetailPanelの単体テストを実装する
+  - 初期表示（表示モード）でタイトル・説明・公開範囲要約・ファイルサイズ・アップロード日・PDFプレビューが表示され、編集フォームが表示されないことを検証するテストを実装する
+  - 「編集」ボタンクリックで編集モードに切り替わり、`DocumentForm`とPDFプレビューが両方表示されることを検証するテストを実装する
+  - 編集モードで「キャンセル」をクリックすると表示モードに戻ることを検証するテストを実装する
+  - `targetingLabel`が全体公開／国単位／販社単位の各パターンで正しいラベルを返すことを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+  - _Depends: 6.4_

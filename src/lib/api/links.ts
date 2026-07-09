@@ -63,10 +63,10 @@ const MOCK_LINKS: Link[] = [
   },
   {
     id: "10",
-    title: "ヘルプデスク連絡先一覧",
+    title: "本社連絡先一覧",
     url: "https://example.com/other/contact-list",
     category: "other",
-    description: "各拠点のヘルプデスク窓口の連絡先一覧です。",
+    description: "各拠点の本社窓口の連絡先一覧です。",
   },
   {
     id: "11",

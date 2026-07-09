@@ -34,7 +34,8 @@ describe("Header", () => {
   it("ロゴとタイトル文言の両方が表示される", () => {
     renderHeader();
     expect(screen.getAllByText("DAISO").length).toBeGreaterThan(0);
-    expect(screen.getByText(messages.header.title)).toBeTruthy();
+    expect(screen.getByText(messages.header.portalName)).toBeTruthy();
+    expect(screen.getByText(`/ ${messages.header.screenName}`)).toBeTruthy();
   });
 
   it("ヘルプデスク側画面への切り替えリンクが表示される", () => {

@@ -34,6 +34,7 @@
 - 関連する翻訳キー（`dashboard.*` の書き換え、`helpdeskDashboard.*` の新規追加、`helpdeskNav.*` の追加・変更、`helpdeskHome` の削除）
 - 申請者側トップページへの「最新のお知らせ」プレビューパネル（`AnnouncementsPreviewPanel`）の追加
 - ヘルプデスク側トップページへの「対応が必要な問い合わせ」プレビューパネル（`PriorityInquiriesPreviewPanel`）の追加、および優先度付き並び替えロジック（`sortInquiriesForPriorityPreview`）の新設
+- 申請者側トップページへの「日本側からのリマインド」強調表示セクション（`ReminderAnnouncementsPanel`）の追加
 
 ### Out of Boundary
 - `/[locale]/helpdesk/announcements` 配下の一覧・作成・編集ページの内部実装（`announcements-management` spec が所有）。本specは当該ルートへの導線カードのみを追加する
@@ -41,9 +42,10 @@
 - 問い合わせ一覧・問い合わせ申請フォーム・テンプレート管理の画面内部のロジック変更
 - 認証・セッション・ユーザーごとの既読管理の実装
 - 既存の `sortInquiriesForHelpdesk`（`src/lib/helpdesk-inquiry-list.ts`、問い合わせ一覧ページ本体が使用）の変更。プレビューパネル専用の並び替えロジックは別関数として新設し、既存の一覧ページの挙動には影響を与えない
+- リマインド有無の判定ロジック（`isReminderPendingForCompany`）・リマインド送信機能自体・`ReminderBadge`コンポーネント自体の実装（`announcements`/`announcements-management` spec が所有、実装済み・`main`にマージ済み）。本specはそれらをそのまま呼び出す専用セクションの追加のみを対象とする
 
 ### Allowed Dependencies
-- 既存のモックAPI関数: `getLinks()`, `getFaqs()`, `getAllInquiries()`, `getInquiries()`, `getInquiryStatusSummary()`, `getAnnouncements()`, `getRecentAnnouncements()`
+- 既存のモックAPI関数: `getLinks()`, `getFaqs()`, `getAllInquiries()`, `getInquiries()`, `getInquiryStatusSummary()`, `getAnnouncements()`, `getRecentAnnouncements()`, `isReminderPendingForCompany()`（`announcements`/`announcements-management` spec所有）
 - 既存UIコンポーネント: `Card` / `CardHeader` / `CardTitle` / `CardContent`（`src/components/ui/card.tsx`）, `Badge`（`src/components/ui/badge.tsx`）, `Skeleton`
 - 既存の表示コンポーネント: `AnnouncementListItem`（`src/components/features/announcements/`）, `HelpdeskInquiryListItem`（`src/components/features/helpdesk-inquiries/`）
 - `lucide-react` アイコンセット（追加インストール不要、既存依存関係）
@@ -55,6 +57,7 @@
 - `Card` / `Badge` コンポーネントのAPIが変更された場合
 - `AnnouncementListItem` / `HelpdeskInquiryListItem` のPropsが変更された場合
 - `Inquiry` 型の `claim` フィールドの構造が変更された場合（優先度並び替えロジックが依存する）
+- `isReminderPendingForCompany()` のシグネチャ、または `MOCK_CURRENT_COMPANY` の構造が変更された場合（`announcements`/`announcements-management` spec所有）
 
 ## Architecture
 
@@ -143,6 +146,7 @@ src/
 │           ├── InquiryListCard.tsx       # 新規: 問い合わせ状況バッジ付きカード（own/all共通）
 │           ├── AnnouncementsCard.tsx     # 新規: お知らせ新着件数バッジ付きカード
 │           ├── AnnouncementsPreviewPanel.tsx      # 新規: 申請者側「最新のお知らせ」プレビュー
+│           ├── ReminderAnnouncementsPanel.tsx     # 新規: 申請者側「日本側からのリマインド」強調表示セクション
 │           ├── PriorityInquiriesPreviewPanel.tsx  # 新規: ヘルプデスク側「対応が必要な問い合わせ」プレビュー
 │           ├── AnnouncementWidget.tsx    # 削除: ダッシュボード置き換えに伴い未使用化
 │           ├── InquiryStatusWidget.tsx   # 削除: 同上
@@ -162,7 +166,8 @@ src/
 - `src/app/[locale]/helpdesk/page.tsx` — プレースホルダー文言から、対応系3枚（問い合わせ一覧・テンプレート管理・お知らせ管理）＋参照系3枚（問い合わせ申請フォーム・リンク・FAQ）のセクション区分カード構成へ書き換え。カード群の下部に `PriorityInquiriesPreviewPanel` を追加
 - `src/components/layout/HelpdeskSidebar.tsx` — `HELPDESK_NAV_ITEMS` に `links` / `faq` を追加し、`translationKey` のユニオン型を拡張。既存 `home` の表示ラベル（`helpdeskNav.home` の翻訳値）を「ホーム」から「ダッシュボード」に変更（キー名は変更しない）
 - `src/lib/api/inquiries.ts` — `getAllInquiryStatusSummary(): Promise<InquiryStatusSummary>` を追加（`getInquiryStatusSummary()` と同一パターンで `getAllInquiries()` を集計元とする）
-- `messages/ja.json` / `messages/en.json` — `dashboard.*` を新カード文言に置き換え、`helpdeskDashboard.*` を新設、`helpdeskNav.links` / `helpdeskNav.faq` を追加、`helpdeskHome` を削除。プレビューパネル用の文言（`dashboard.announcementsPreview.*`, `helpdeskDashboard.priorityInquiriesPreview.*`）を追加
+- `messages/ja.json` / `messages/en.json` — `dashboard.*` を新カード文言に置き換え、`helpdeskDashboard.*` を新設、`helpdeskNav.links` / `helpdeskNav.faq` を追加、`helpdeskHome` を削除。プレビューパネル用の文言（`dashboard.announcementsPreview.*`, `helpdeskDashboard.priorityInquiriesPreview.*`）を追加。リマインド強調表示セクション用の文言（`dashboard.reminderAnnouncements.*`）を追加
+- `src/app/[locale]/(applicant)/page.tsx` — ナビゲーションカード群と `AnnouncementsPreviewPanel` の間に `ReminderAnnouncementsPanel` を追加
 
 ## Requirements Traceability
 
@@ -207,6 +212,84 @@ src/
 - **HelpdeskDashboardPage**（`src/app/[locale]/helpdesk/page.tsx`）: 「対応業務」セクションの「お知らせ管理」カードの後に「ドキュメント管理」カード（静的`NavigationCard`, href `/helpdesk/documents`, icon `FolderOpen`）を追加する（`HelpdeskSidebar.tsx`のHELPDESK_NAV_ITEMS順序と一致させる）
 - アイコンは`Sidebar.tsx` / `HelpdeskSidebar.tsx`の「ドキュメント」項目と同じ`FolderOpen`（`lucide-react`）を使用し、視覚的な一貫性を保つ
 - `messages/ja.json` / `messages/en.json` に `dashboard.documents.{title,description}` / `helpdeskDashboard.documents.{title,description}` を新規追加する
+
+## 申請者側ダッシュボードへのリマインド強調表示セクション追加（2026-07-08 その2 追記）
+
+`announcements`/`announcements-management` spec（#30）が、ヘルプデスク側でのリマインド送信（モック）と、海外販社側でのリマインド受信有無の判定関数 `isReminderPendingForCompany(announcementId, companyCode): Promise<boolean>`（`src/lib/api/announcement-tracking.ts`）・表示コンポーネント `ReminderBadge`（`src/components/features/announcements/ReminderBadge.tsx`）を実装済みである。`AnnouncementListItem`（本spec及び`announcements` specが共同利用する既存コンポーネント）は既に`isReminderPending`プロップを受け取り`ReminderBadge`を描画できるが、本specが所有する`AnnouncementsPreviewPanel`はこのプロップを渡していないため、ダッシュボード上ではリマインド対象のお知らせが他のお知らせに埋もれている。この状態を解消するため、リマインド対象のお知らせのみを集めた新規プレゼンテーション兼データ取得コンポーネント `ReminderAnnouncementsPanel` を追加し、ナビゲーションカード群と `AnnouncementsPreviewPanel` の間に配置する。
+
+新規ロジック（リマインド有無の判定・件数集計等）は追加しない。既存の `getAnnouncements()`（自社スコープ全件）と `isReminderPendingForCompany()` をそのまま組み合わせてフィルタするのみであり、判定ロジックの重複実装は行わない（要件9.6）。
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| ReminderAnnouncementsPanel | dashboard (data) | 自社宛に未対応のままリマインドが送信されているお知らせのみを一覧表示する。対象が0件、またはデータ取得に失敗した場合は何も描画しない | 9.1〜9.7 | announcements api（P0）, announcement-tracking api（P0）, AnnouncementListItem（P0） | Service |
+
+#### ReminderAnnouncementsPanel
+
+| Field | Detail |
+|-------|--------|
+| Intent | 自社宛に未対応のままリマインドが送信されているお知らせのみを、公開日の降順で一覧表示する |
+| Requirements | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7 |
+
+**Responsibilities & Constraints**
+- `getAnnouncements()`（自社スコープ全件、既に公開日降順）を取得し、各お知らせについて `isReminderPendingForCompany(id, MOCK_CURRENT_COMPANY.companyCode)` を判定し、`true`のもののみを残す
+- 対象が0件の場合、およびデータ取得・判定処理が失敗した場合は、`null`を返し何も描画しない（要件9.4, 9.5）。既存の`AnnouncementsPreviewPanel`のような空状態メッセージ・エラーメッセージの表示は行わない（本セクションは「目立たせる」ことが目的であり、対象がない場合にまで存在を主張する必要がないため）
+- 各項目は既存の `AnnouncementListItem` を `isReminderPending={true}` 固定で描画し、表示ロジックを重複実装しない（バッジ判定自体は呼び出し前に完了しているため、`AnnouncementListItem`側は渡された値をそのまま表示するのみ）
+- 視覚的な強調のため、`Card`に警告色系のアクセント（例: `border-destructive/50` 等、DAISOブランドトークン経由）を付与し、`AnnouncementsPreviewPanel`と区別できる見た目にする
+- 表示件数の上限は設けない（リマインド対象は性質上少数に限られるため、`AnnouncementsPreviewPanel`のような5件上限・「一覧を見る」導線は設けない）
+
+**Dependencies**
+- Inbound: ApplicantDashboardPage（P0）
+- Outbound: `AnnouncementListItem`（`src/components/features/announcements/`, P0）
+- External: `getAnnouncements`（`src/lib/api/announcements.ts`, P0）, `isReminderPendingForCompany`（`src/lib/api/announcement-tracking.ts`, P0）, `MOCK_CURRENT_COMPANY`（`src/lib/constants/current-company.ts`, P0）
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+##### Service Interface
+```typescript
+interface ReminderAnnouncementsPanelProps {} // props不要（自社スコープは内部でMOCK_CURRENT_COMPANYを参照）
+```
+- Preconditions: なし
+- Postconditions: リマインド対象が1件以上ある場合は該当お知らせの一覧を含むCardを返す。0件または取得失敗時は`null`を返す
+- Invariants: 例外を上位（ページ）へ再送出しない。既存の`AnnouncementsPreviewPanel`・ナビゲーションカードの表示には影響を与えない
+
+**Implementation Notes**
+- Integration: 申請者側ダッシュボードの`ApplicantDashboardPage`内で、ナビゲーションカード群の`div`と`AnnouncementsPreviewPanel`の`Suspense`の間に、独立した`Suspense`境界（fallbackは`null`。対象有無が確定するまで表示すべきスケルトンの形が定まらないため、他のプレビューパネルと異なりスケルトンは設けない）で配置する
+- Validation: 該当なし
+- Risks: `AnnouncementsPreviewPanel`と同様に`getAnnouncements()`を呼び出すため重複フェッチが発生するが、フェーズ1のモックデータ規模では性能への影響はない
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 9.1〜9.3, 9.6 | リマインド対象のお知らせのみを集めた専用セクションの表示・遷移・判定ロジックの再利用 | ReminderAnnouncementsPanel | Service | — |
+| 9.4 | 対象0件時はセクション自体を非表示 | ReminderAnnouncementsPanel | — | — |
+| 9.5 | データ取得失敗時のフォールバック（非表示） | ReminderAnnouncementsPanel | Service | カード単位エラー分離 |
+| 9.7 | 表示文言のi18n対応 | messages/ja.json, messages/en.json | — | — |
+
+## プレビューパネルの表示順変更と表示内容充実（2026-07-09 追記）
+
+### 表示順の変更（Requirement 4.6 上書き, Requirement 10）
+両ポータルのトップページの構成順を反転する。既存の`<div className="space-y-6">`によるレイアウト構造（縦積み・要素間`gap-1.5rem`）自体は変更せず、内部の要素の並び順のみ入れ替える。
+
+- **ApplicantDashboardPage**: `ReminderAnnouncementsPanel`（Suspense, fallback `null`）→ `AnnouncementsPreviewPanel`（Suspense, fallback `AnnouncementsPreviewPanelSkeleton`）→ ナビゲーションカードの`grid`、の順に変更する
+- **HelpdeskDashboardPage**: `PriorityInquiriesPreviewPanel`（Suspense, fallback `PriorityInquiriesPreviewPanelSkeleton`）→ 「対応業務」`<section>` → 「参考情報」`<section>`、の順に変更する
+
+### AnnouncementListItem の拡張（Requirement 10.1〜10.5）
+既存の`AnnouncementListItem`（`src/components/features/announcements/AnnouncementListItem.tsx`）に、任意prop `showBodyExcerpt?: boolean` を追加する。`true`の場合、タイトルと既存のバッジ/日付行の間に`announcement.body`を`<p className="line-clamp-2 text-sm text-muted-foreground">`で表示する。未指定（`/announcements`一覧ページ等の既存呼び出し）の場合は現状の見た目を維持し、影響を与えない（Requirement 10.4）。`line-clamp-2`はTailwind CSS v3.3以降のコア機能であり、追加プラグインのインストールは不要（Requirement 10.5）。
+
+`AnnouncementsPreviewPanel` / `ReminderAnnouncementsPanel` はそれぞれ`getTranslations("announcements")`を追加取得し、既存の翻訳キー`announcements.actionRequiredBadge` / `announcements.dueDateLabel`（一覧ページ側`AnnouncementList.tsx`が使用しているものと同一）を`actionRequiredBadgeLabel` / `dueDateLabel`として`AnnouncementListItem`に渡す。新規翻訳キーの追加は不要。`AnnouncementsPreviewPanelSkeleton`には本文要約分のスケルトン行（`<Skeleton className="h-3 w-full" />`）を追加する。
+
+### Requirements Traceability（2026-07-09 追記分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 4.6（上書き） | プレビューパネルを画面上部、ナビゲーションカード群をその下部に表示 | ApplicantDashboardPage, HelpdeskDashboardPage | — | — |
+| 10.1, 10.2 | 本文要約の表示（プレビューパネル・リマインドセクション両方） | AnnouncementListItem, AnnouncementsPreviewPanel, ReminderAnnouncementsPanel | — | — |
+| 10.3 | 対応要否バッジ・対応期限の表示 | AnnouncementListItem, AnnouncementsPreviewPanel, ReminderAnnouncementsPanel | — | — |
+| 10.4 | 既存呼び出し元（一覧ページ）への影響なし | AnnouncementListItem | — | — |
+| 10.5 | 追加プラグインなしでのline-clamp利用 | AnnouncementListItem | — | — |
 
 ## Components and Interfaces
 
@@ -490,6 +573,8 @@ function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary>;
 - **HelpdeskLinksPage / HelpdeskFaqPage**: 既存の `LinkList` / `FaqList` をそのまま `Suspense` でラップして描画する薄いページ（申請者側の `links/page.tsx` / `faq/page.tsx` と同一構造）
 - **HelpdeskSidebar（変更）**: `HELPDESK_NAV_ITEMS` に `{ translationKey: "links", href: "/helpdesk/links", icon: Link2 }` と `{ translationKey: "faq", href: "/helpdesk/faq", icon: HelpCircle }` を追加し、`helpdeskNav.home` の翻訳値を「ダッシュボード」/`Dashboard`に変更する
 
+> **2026-07-09追記による更新**: 上記2つのページの並び順は、本追記時点で「プレビューパネル（リマインドセクション含む）を上部、ナビゲーションカード群をその下部」に反転している（詳細は「プレビューパネルの表示順変更と表示内容充実（2026-07-09 追記）」節を参照）。
+
 ## Data Models
 
 ### Domain Model
@@ -510,5 +595,5 @@ function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary>;
 ## Testing Strategy
 
 - **Unit Tests**: `NavigationCard`（バッジあり/なし表示切り替え）, `getAllInquiryStatusSummary`（集計ロジック）, `AnnouncementsCard`（7日しきい値の境界値）, `sortInquiriesForPriorityPreview`（未着手優先・緊急度・受付日時の並び替えロジック）
-- **Integration Tests**: `InquiryListCard`（scope=own/allそれぞれでのAPI呼び出しとエラー時フォールバック）, `AnnouncementsPreviewPanel`（正常表示・空状態・エラー時フォールバック）, `PriorityInquiriesPreviewPanel`（正常表示・0件時の空状態・エラー時フォールバック）
+- **Integration Tests**: `InquiryListCard`（scope=own/allそれぞれでのAPI呼び出しとエラー時フォールバック）, `AnnouncementsPreviewPanel`（正常表示・空状態・エラー時フォールバック）, `PriorityInquiriesPreviewPanel`（正常表示・0件時の空状態・エラー時フォールバック）, `ReminderAnnouncementsPanel`（リマインド対象が存在する場合の表示、0件時の非表示、データ取得失敗時の非表示フォールバック）
 - **E2E/UI Tests**: 申請者側トップページの5カードから各ページへの遷移、ヘルプデスク側トップページの6カードから各ページへの遷移とセクション区分表示、ヘルプデスク側「リンク」「FAQ」ページの表示内容が申請者側と一致すること、両ポータルともナビゲーションカードが画面上部・プレビューパネルがその下部に表示されること

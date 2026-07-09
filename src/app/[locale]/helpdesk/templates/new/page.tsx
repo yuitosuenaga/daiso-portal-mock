@@ -15,18 +15,21 @@ export default async function HelpdeskTemplateNewPage() {
   }));
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <h1 className="text-2xl font-semibold text-foreground">
         {t("createTitle")}
       </h1>
       <TemplateForm
         mode="create"
+        nameLabel={t("nameLabel")}
+        namePlaceholder={t("namePlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
+        nameTooLongErrorMessage={t("validation.nameTooLong")}
         categoryOptions={categoryOptions}
       />
       <Link

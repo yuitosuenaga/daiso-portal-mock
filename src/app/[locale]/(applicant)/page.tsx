@@ -9,13 +9,20 @@ import {
   AnnouncementsPreviewPanel,
   AnnouncementsPreviewPanelSkeleton,
 } from "@/components/features/dashboard/AnnouncementsPreviewPanel";
+import { ReminderAnnouncementsPanel } from "@/components/features/dashboard/ReminderAnnouncementsPanel";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
+      <Suspense fallback={null}>
+        <ReminderAnnouncementsPanel />
+      </Suspense>
+      <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
+        <AnnouncementsPreviewPanel viewAllHref="/announcements" />
+      </Suspense>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NavigationCard
           title={t("inquiryForm.title")}
           description={t("inquiryForm.description")}
@@ -56,9 +63,6 @@ export default async function DashboardPage() {
           icon={HelpCircle}
         />
       </div>
-      <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
-        <AnnouncementsPreviewPanel viewAllHref="/announcements" />
-      </Suspense>
     </div>
   );
 }

@@ -5,16 +5,6 @@ import { DocumentList } from "@/components/features/documents/DocumentList";
 import type { Document } from "@/types/document";
 import messages from "../../../../messages/ja.json";
 
-vi.mock("@/i18n/navigation", () => ({
-  Link: ({
-    children,
-    href,
-  }: {
-    children: React.ReactNode;
-    href: string;
-  }) => <a href={href}>{children}</a>,
-}));
-
 const getDocumentsMock = vi.fn();
 
 vi.mock("@/lib/api/documents", () => ({
@@ -69,14 +59,15 @@ describe("DocumentList", () => {
     expect(screen.getByText("ドキュメントの取得に失敗しました")).toBeTruthy();
   });
 
-  it("取得成功時にドキュメント一覧と表示/ダウンロードリンクを表示する", async () => {
+  it("取得成功時にドキュメント一覧をクリック操作なしでプレビュー付きで表示する", async () => {
     getDocumentsMock.mockResolvedValueOnce([DOCUMENT]);
 
     const jsx = await DocumentList();
     render(jsx);
 
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
-    expect(screen.getByText("表示")).toBeTruthy();
+    const iframe = screen.getByTitle("テストドキュメント");
+    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
     expect(screen.getByText("ダウンロード")).toBeTruthy();
   });
 });

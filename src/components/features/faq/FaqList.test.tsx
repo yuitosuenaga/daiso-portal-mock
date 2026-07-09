@@ -32,7 +32,7 @@ vi.mock("next-intl/server", () => ({
 const INQUIRY_METHOD_FAQ: Faq = {
   id: "1",
   category: "inquiry_method",
-  question: "ヘルプデスクへの問い合わせはどの方法で行えば良いですか。",
+  question: "本社への問い合わせはどの方法で行えば良いですか。",
   answer: "ポータル上の「問い合わせ申請」ページから送信してください。",
 };
 
@@ -69,7 +69,7 @@ describe("FaqList", () => {
 
     expect(screen.getByText("問い合わせ方法")).toBeTruthy();
     expect(
-      screen.getByText("ヘルプデスクへの問い合わせはどの方法で行えば良いですか。"),
+      screen.getByText("本社への問い合わせはどの方法で行えば良いですか。"),
     ).toBeTruthy();
 
     expect(screen.queryByText("フォーム入力")).toBeNull();

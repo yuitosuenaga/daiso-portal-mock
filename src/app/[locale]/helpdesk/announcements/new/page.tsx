@@ -25,7 +25,7 @@ export default async function HelpdeskAnnouncementNewPage() {
   }));
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <h1 className="text-2xl font-semibold text-foreground">
         {t("createTitle")}
       </h1>
@@ -46,6 +46,12 @@ export default async function HelpdeskAnnouncementNewPage() {
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
         countriesLabel={t("countriesLabel")}
+        publishStartDateLabel={t("publishStartDateLabel")}
+        publishEndDateLabel={t("publishEndDateLabel")}
+        publishPeriodHint={t("publishPeriodHint")}
+        publishEndDateBeforeStartErrorMessage={t("validation.publishEndDateBeforeStart")}
+        dueDateLabel={t("dueDateLabel")}
+        dueDateRequiredErrorMessage={t("validation.dueDateRequired")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         countriesRequiredErrorMessage={t("validation.countriesRequired")}

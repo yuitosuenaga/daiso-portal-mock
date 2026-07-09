@@ -38,6 +38,12 @@ const labels = {
   targetingAllOption: "全体一律",
   targetingCountriesOption: "特定の国・地域を指定",
   countriesLabel: "国・地域",
+  publishStartDateLabel: "公開開始日",
+  publishEndDateLabel: "公開終了日",
+  publishPeriodHint: "未入力の場合は常時公開になります",
+  publishEndDateBeforeStartErrorMessage: "終了日は開始日以降の日付を指定してください",
+  dueDateLabel: "対応期限",
+  dueDateRequiredErrorMessage: "対応が必要な場合は対応期限を入力してください",
   submitButtonLabel: "保存する",
   requiredErrorMessage: "この項目は必須です",
   countriesRequiredErrorMessage: "1つ以上の国・地域を選択してください",
@@ -89,6 +95,9 @@ describe("AnnouncementForm", () => {
         category: "maintenance",
         targeting: { scope: "all" },
         actionRequired: false,
+        publishStartDate: null,
+        publishEndDate: null,
+        dueDate: null,
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
@@ -157,6 +166,9 @@ describe("AnnouncementForm", () => {
         category: "maintenance",
         targeting: { scope: "countries", countries: ["JP", "VN"] },
         actionRequired: false,
+        publishStartDate: null,
+        publishEndDate: null,
+        dueDate: null,
       });
     });
   });
@@ -195,9 +207,98 @@ describe("AnnouncementForm", () => {
           category: "policy",
           targeting: { scope: "all" },
           actionRequired: false,
+          publishStartDate: null,
+          publishEndDate: null,
+          dueDate: null,
         }
       );
     });
+  });
+
+  it("対応要否を「対応が必要」にした状態で対応期限未入力のまま送信すると送信がブロックされる", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.change(screen.getByLabelText("対応要否"), {
+      target: { value: "true" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("対応が必要な場合は対応期限を入力してください")
+      ).toBeTruthy();
+    });
+    expect(createAnnouncementActionMock).not.toHaveBeenCalled();
+  });
+
+  it("対応要否を「対応不要」に変更すると対応期限欄が非表示になりクリアされる", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("対応要否"), {
+      target: { value: "true" },
+    });
+    fireEvent.change(screen.getByLabelText(/対応期限/), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.change(screen.getByLabelText("対応要否"), {
+      target: { value: "false" },
+    });
+
+    expect(screen.queryByLabelText(/対応期限/)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createAnnouncementActionMock).toHaveBeenCalledWith(
+        expect.objectContaining({ actionRequired: false, dueDate: null })
+      );
+    });
+  });
+
+  it("公開終了日が公開開始日より前だと送信がブロックされる", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.change(screen.getByLabelText("公開開始日"), {
+      target: { value: "2026-08-10" },
+    });
+    fireEvent.change(screen.getByLabelText("公開終了日"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("終了日は開始日以降の日付を指定してください")
+      ).toBeTruthy();
+    });
+    expect(createAnnouncementActionMock).not.toHaveBeenCalled();
   });
 
   it("createAnnouncementActionが失敗した場合、エラーメッセージを表示し遷移しない", async () => {

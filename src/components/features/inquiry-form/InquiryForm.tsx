@@ -22,10 +22,15 @@ import {
 /** 送信結果の表示状態。 */
 type SubmissionState = "idle" | "success" | "error";
 
+interface InquiryFormProps {
+  /** 送信成功後に遷移先として表示する問い合わせ一覧のパス */
+  listHref?: string;
+}
+
 /**
  * 問い合わせ・申請フォーム全体の状態管理・バリデーション・送信処理を統括するコンポーネント。
  */
-export function InquiryForm() {
+export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
   const t = useTranslations("inquiryForm");
   const [submissionState, setSubmissionState] =
     useState<SubmissionState>("idle");
@@ -64,7 +69,7 @@ export function InquiryForm() {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <h1 className="text-2xl font-semibold text-foreground mb-2">
         {t("title")}
       </h1>
@@ -75,7 +80,7 @@ export function InquiryForm() {
           <AlertTitle>{t("submit.successTitle")}</AlertTitle>
           <AlertDescription>
             <p>{t("submit.successDescription")}</p>
-            <Link href="/inquiry" className="underline">
+            <Link href={listHref} className="underline">
               {t("submit.viewInquiryListLink")}
             </Link>
           </AlertDescription>

@@ -212,6 +212,7 @@ describe("createReplyTemplateAction / updateReplyTemplateAction", () => {
   it("有効な入力でテンプレートを作成する", async () => {
     const created = await createReplyTemplateAction({
       category: "other",
+      name: "新規テンプレート名",
       body: "新規テンプレート本文",
     });
 
@@ -221,22 +222,29 @@ describe("createReplyTemplateAction / updateReplyTemplateAction", () => {
 
   it("不正な入力（本文空）は例外になる", async () => {
     await expect(
-      createReplyTemplateAction({ category: "other", body: "" })
+      createReplyTemplateAction({
+        category: "other",
+        name: "テンプレート名",
+        body: "",
+      })
     ).rejects.toThrow();
   });
 
   it("既存テンプレートを更新する", async () => {
     const created = await createReplyTemplateAction({
       category: "system",
+      name: "更新前の名前",
       body: "更新前の本文",
     });
 
     await updateReplyTemplateAction(created.id, {
       category: "system",
+      name: "更新後の名前",
       body: "更新後の本文",
     });
 
     const result = await getReplyTemplateById(created.id);
+    expect(result?.name).toBe("更新後の名前");
     expect(result?.body).toBe("更新後の本文");
   });
 });

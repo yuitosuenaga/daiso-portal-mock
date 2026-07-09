@@ -22,6 +22,12 @@ export interface Announcement {
   targeting: AnnouncementTargeting;
   /** 販社担当者側の対応要否。真のとき「対応が必要」バッジを表示する。 */
   actionRequired: boolean;
+  /** 公開期間の開始日（ISO日付 YYYY-MM-DD）。未設定の場合は開始日による制限なし。 */
+  publishStartDate?: string | null;
+  /** 公開期間の終了日（ISO日付 YYYY-MM-DD）。未設定の場合は終了日による制限なし（開始日・終了日ともに未設定なら常時公開）。 */
+  publishEndDate?: string | null;
+  /** 対応期限（ISO日付 YYYY-MM-DD）。actionRequiredが真の場合のみ設定される。 */
+  dueDate?: string | null;
 }
 
 /**

@@ -6,7 +6,7 @@ import {
 
 export default function HelpdeskTemplateListPage() {
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <Suspense fallback={<TemplateListSkeleton />}>
         <TemplateList />
       </Suspense>

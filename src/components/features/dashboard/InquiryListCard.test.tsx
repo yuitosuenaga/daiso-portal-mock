@@ -75,7 +75,7 @@ describe("InquiryListCard", () => {
     const jsx = await InquiryListCard({
       scope: "all",
       href: "/helpdesk/inquiries",
-      titleKey: "helpdeskDashboard.inquiries.title",
+      titleKey: "helpdeskNav.inquiries",
       descriptionKey: "helpdeskDashboard.inquiries.description",
     });
     render(jsx);
@@ -130,7 +130,7 @@ describe("InquiryListCard", () => {
     const jsx = await InquiryListCard({
       scope: "all",
       href: "/helpdesk/inquiries",
-      titleKey: "helpdeskDashboard.inquiries.title",
+      titleKey: "helpdeskNav.inquiries",
       descriptionKey: "helpdeskDashboard.inquiries.description",
     });
 

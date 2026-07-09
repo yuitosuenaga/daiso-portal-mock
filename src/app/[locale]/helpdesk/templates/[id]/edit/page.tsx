@@ -23,7 +23,7 @@ export default async function HelpdeskTemplateEditPage({
 
   if (!template) {
     return (
-      <div className="max-w-xl space-y-4">
+      <div className="max-w-2xl space-y-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
@@ -45,20 +45,27 @@ export default async function HelpdeskTemplateEditPage({
   }));
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <h1 className="text-2xl font-semibold text-foreground">
         {t("editTitle")}
       </h1>
       <TemplateForm
         mode="edit"
         templateId={template.id}
-        defaultValues={{ category: template.category, body: template.body }}
+        defaultValues={{
+          category: template.category,
+          name: template.name,
+          body: template.body,
+        }}
+        nameLabel={t("nameLabel")}
+        namePlaceholder={t("namePlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
+        nameTooLongErrorMessage={t("validation.nameTooLong")}
         categoryOptions={categoryOptions}
       />
       <Link
