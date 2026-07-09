@@ -1,11 +1,13 @@
 {
   "header": {
-    "title": "海外販社代理店ポータル",
-    "switchToHelpdesk": "日本管理者側画面へ"
+    "portalName": "海外運用ポータル",
+    "screenName": "海外販社代理店画面",
+    "switchToHelpdesk": "日本大創側画面へ"
   },
   "helpdeskHeader": {
-    "title": "日本管理者側ポータル",
-    "switchToApplicant": "海外販社側画面へ"
+    "portalName": "海外運用ポータル",
+    "screenName": "日本大創側画面",
+    "switchToApplicant": "海外販社代理店画面へ"
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",

@@ -69,7 +69,7 @@ export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <h1 className="text-2xl font-semibold text-foreground mb-2">
         {t("title")}
       </h1>

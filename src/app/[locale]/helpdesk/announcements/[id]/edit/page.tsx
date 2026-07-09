@@ -39,7 +39,7 @@ export default async function HelpdeskAnnouncementEditPage({
 
   if (!announcement) {
     return (
-      <div className="max-w-xl space-y-4">
+      <div className="max-w-2xl space-y-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
@@ -61,7 +61,7 @@ export default async function HelpdeskAnnouncementEditPage({
   }));
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">
           {t("editTitle")}

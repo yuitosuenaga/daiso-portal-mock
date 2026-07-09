@@ -22,11 +22,11 @@ export default async function HelpdeskHomePage() {
   const nav = await getTranslations("helpdeskNav");
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className="space-y-6">
       <section aria-labelledby="helpdesk-dashboard-support-heading">
         <h2
           id="helpdesk-dashboard-support-heading"
-          className="mb-4 text-lg font-semibold"
+          className="mb-3 text-xl font-semibold"
         >
           {t("sections.support")}
         </h2>
@@ -69,7 +69,7 @@ export default async function HelpdeskHomePage() {
       <section aria-labelledby="helpdesk-dashboard-reference-heading">
         <h2
           id="helpdesk-dashboard-reference-heading"
-          className="mb-4 text-lg font-semibold"
+          className="mb-3 text-xl font-semibold"
         >
           {t("sections.reference")}
         </h2>

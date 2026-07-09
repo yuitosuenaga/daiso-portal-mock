@@ -14,7 +14,7 @@ export default function DocumentDetailPage({
   params,
 }: DocumentDetailPageProps) {
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <Suspense fallback={<DocumentDetailSkeleton />}>
         <DocumentDetail id={params.id} />
       </Suspense>
