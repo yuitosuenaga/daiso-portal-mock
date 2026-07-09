@@ -81,7 +81,7 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       body: "公開開始日が未来に設定されたお知らせの動作確認用データです。海外販社側には公開開始日前は表示されません。",
       targeting: { scope: "all" },
       actionRequired: false,
-      publishStartDate: "2026-07-09",
+      publishStartDate: "2099-01-01",
       publishEndDate: null,
       dueDate: null,
     },
