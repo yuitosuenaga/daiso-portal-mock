@@ -45,6 +45,9 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       body: "問い合わせ・申請フォームの入力項目を一部更新しました。案件種別・緊急度の選択肢が変更されておりますので、ご利用の際はご確認ください。",
       targeting: { scope: "all" },
       actionRequired: true,
+      publishStartDate: null,
+      publishEndDate: null,
+      dueDate: "2026-07-20",
     },
     {
       id: "4",
@@ -54,6 +57,9 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       body: "誠に恐れ入りますが、8月13日〜16日は夏季休業期間とさせていただきます。休業期間中に受け付けた問い合わせは、休業明けに順次対応いたします。",
       targeting: { scope: "all" },
       actionRequired: false,
+      publishStartDate: null,
+      publishEndDate: null,
+      dueDate: null,
     },
     {
       id: "5",
@@ -63,6 +69,21 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = getGlobalMockStore(
       body: "本日未明、決済システムに障害が発生し、一部の処理が正常に完了しない事象が確認されました。現在は復旧しておりますが、影響を受けた処理については別途ご案内いたします。",
       targeting: { scope: "all" },
       actionRequired: true,
+      publishStartDate: null,
+      publishEndDate: null,
+      dueDate: "2026-06-17",
+    },
+    {
+      id: "6",
+      title: "【公開予定】次期ポータル機能の事前案内",
+      publishedAt: "2026-07-08T09:00:00Z",
+      category: "policy",
+      body: "公開開始日が未来に設定されたお知らせの動作確認用データです。海外販社側には公開開始日前は表示されません。",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      publishStartDate: "2026-07-09",
+      publishEndDate: null,
+      dueDate: null,
     },
   ]
 );
@@ -74,22 +95,33 @@ function isVisibleToCurrentCompany(announcement: Announcement): boolean {
   );
 }
 
+/** ISO日付（YYYY-MM-DD）をローカルタイムゾーンの当日0時に変換する。 */
+function parseDateOnlyStartOfDay(isoDate: string): Date {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
+/** ISO日付（YYYY-MM-DD）をローカルタイムゾーンの当日23:59:59.999に変換する。 */
+function parseDateOnlyEndOfDay(isoDate: string): Date {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day, 23, 59, 59, 999);
+}
+
 /**
  * 公開期間内かどうかを判定する。開始日・終了日がいずれも未設定の場合は常に公開対象とする。
+ * 開始日・終了日はいずれもローカルタイムゾーンの日付境界で比較する。
  */
 function isWithinPublishPeriod(
   announcement: Announcement,
   referenceDate: Date
 ): boolean {
   if (announcement.publishStartDate) {
-    if (referenceDate < new Date(announcement.publishStartDate)) {
+    if (referenceDate < parseDateOnlyStartOfDay(announcement.publishStartDate)) {
       return false;
     }
   }
   if (announcement.publishEndDate) {
-    const endOfDay = new Date(announcement.publishEndDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    if (referenceDate > endOfDay) {
+    if (referenceDate > parseDateOnlyEndOfDay(announcement.publishEndDate)) {
       return false;
     }
   }

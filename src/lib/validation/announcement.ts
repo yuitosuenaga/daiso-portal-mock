@@ -11,11 +11,14 @@ const announcementTargetingSchema = z.discriminatedUnion("scope", [
   }),
 ]);
 
-/** 空文字を`null`に変換する任意入力の日付（ISO日付 YYYY-MM-DD）フィールド。 */
+/** 空文字・nullを`null`に変換する任意入力の日付（ISO日付 YYYY-MM-DD）フィールド。 */
 const optionalDateField = z
-  .string()
-  .default("")
-  .transform((value) => (value.trim() === "" ? null : value));
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((value) => {
+    const trimmed = (value ?? "").trim();
+    return trimmed === "" ? null : trimmed;
+  });
 
 /**
  * お知らせ新規作成・編集フォームの入力値を検証する zod スキーマ。
@@ -53,7 +56,11 @@ export const announcementFormSchema = z
         message: "dueDate is required when actionRequired is true",
       });
     }
-  });
+  })
+  .transform((values) => ({
+    ...values,
+    dueDate: values.actionRequired ? values.dueDate : null,
+  }));
 
 /**
  * `announcementFormSchema` から推論されるフォーム入力値の型。

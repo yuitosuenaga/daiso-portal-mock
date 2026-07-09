@@ -152,4 +152,20 @@ describe("announcementFormSchema", () => {
 
     expect(result.success).toBe(true);
   });
+
+  it("対応要否が偽の場合は対応期限が入力されていてもnullに正規化する", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      dueDate: "2026-08-01",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dueDate).toBeNull();
+    }
+  });
 });

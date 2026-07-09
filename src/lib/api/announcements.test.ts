@@ -328,4 +328,18 @@ describe("公開期間による表示制御", () => {
     const all = await getAllAnnouncements();
     expect(all.some((item) => item.id === created.id)).toBe(true);
   });
+
+  it("getRecentAnnouncementsは公開期間外のお知らせを除外する", async () => {
+    const created = await createAnnouncement({
+      title: "ウィジェット除外テスト",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      publishStartDate: isoDateOffset(5),
+    });
+
+    const recent = await getRecentAnnouncements({ limit: 100 });
+    expect(recent.some((item) => item.id === created.id)).toBe(false);
+  });
 });
