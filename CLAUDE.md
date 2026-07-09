@@ -62,6 +62,7 @@ Kiro-style Spec-Driven Development on an agentic SDLC
   - 例: `feature/inquiry-form`, `spec/dashboard-tasks`, `chore/setup-gitignore`
 - 1タスク = 1ブランチを基本とする。関連の薄い複数タスクを1ブランチに混在させない
 - 作業完了後は `main` へマージ（またはPR作成）してからブランチを削除する
+- **例外（Cursorレビュー待ちのマージ）**: 機能実装（`/kiro:spec-impl`等によるコード変更）の場合、PR作成後はCursorでのレビュー結果（「問題なかった」等のユーザーからの確認）を受け取るまでマージしない。詳細は「開発後レビュー（Cursorに委譲）」節を参照
 
 ## 開発後レビュー（Cursorに委譲）
 
@@ -74,6 +75,9 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 - Cursorでのレビューが行えない状況（Cursorが使えない、緊急対応など）で、ユーザーから明示的に依頼された場合に限り、Claude Codeが `/kiro:review-impl {feature名}` を実行してよい（詳細は `.claude/commands/kiro/review-impl.md` 参照）
 
 実装完了後、次の機能開発に進む前に「Cursorでのレビューを依頼してください」とユーザーに伝えること。
+
+**マージのタイミング（重要）**: 機能実装のPRは、Cursorでのレビュー結果（レビュー完了・問題なしの確認）をユーザーから受け取る前にマージしない。ユーザーから「マージまで進めて」等の指示があっても、Cursorレビューが未完了の場合はPR作成までで一旦止め、レビュー結果を待つ。ユーザーが「レビュー問題なかった」等でレビュー完了を伝えてきた時点で、初めてマージ（および使用済みブランチの削除）まで進めてよい。
+- 例外: CLAUDE.md更新やspecドキュメントのみの変更など、Cursorのレビュー観点（正確性・セキュリティ・パフォーマンス・アクセシビリティ・i18n準拠の実装コードレビュー）が本来対象としない、コード実装を伴わない変更はこの制約の対象外とする
 
 ## Spec管理ルール（1画面 = 1spec）
 
