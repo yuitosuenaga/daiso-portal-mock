@@ -6,7 +6,7 @@ import {
 
 export default function DocumentsPage() {
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <Suspense fallback={<DocumentListSkeleton />}>
         <DocumentList />
       </Suspense>

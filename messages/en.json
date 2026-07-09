@@ -66,7 +66,11 @@
         "sizeExceeded": "The file size exceeds the limit (20MB)",
         "typeNotAllowed": "This file type is not allowed (PDF only)",
         "readFailed": "Failed to read the file. Please try again."
-      }
+      },
+      "detailTitle": "Document Details",
+      "editButton": "Edit",
+      "cancelButton": "Cancel",
+      "downloadLink": "Download"
     }
   },
   "helpdeskAnnouncements": {
@@ -375,18 +379,9 @@
       "description": "View business documents published by head office.",
       "empty": "No documents",
       "error": "Failed to load documents",
-      "viewLink": "View",
       "downloadLink": "Download",
       "fileSizeLabel": "File size",
       "uploadedAtLabel": "Uploaded"
-    },
-    "detail": {
-      "notFound": "Document not found",
-      "error": "Failed to load the document",
-      "backToList": "Back to list",
-      "uploadedAtLabel": "Uploaded",
-      "fileSizeLabel": "File size",
-      "downloadLink": "Download"
     }
   },
   "inquiryForm": {
