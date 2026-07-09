@@ -1,10 +1,12 @@
 {
   "header": {
-    "title": "Overseas Sales Agent Portal",
-    "switchToHelpdesk": "Switch to Japan Admin View"
+    "portalName": "Overseas Operations Portal",
+    "screenName": "Overseas Sales Agent View",
+    "switchToHelpdesk": "Switch to Japan Daiso View"
   },
   "helpdeskHeader": {
-    "title": "Japan Admin Portal",
+    "portalName": "Overseas Operations Portal",
+    "screenName": "Japan Daiso View",
     "switchToApplicant": "Switch to Overseas Sales Agent View"
   },
   "helpdeskNav": {

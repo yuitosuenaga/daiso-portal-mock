@@ -14,7 +14,7 @@ export default function InquiryDetailPage({
   params,
 }: InquiryDetailPageProps) {
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <Suspense fallback={<InquiryDetailSkeleton />}>
         <InquiryDetail id={params.id} />
       </Suspense>

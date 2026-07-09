@@ -25,7 +25,7 @@ export default async function HelpdeskAnnouncementNewPage() {
   }));
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <h1 className="text-2xl font-semibold text-foreground">
         {t("createTitle")}
       </h1>

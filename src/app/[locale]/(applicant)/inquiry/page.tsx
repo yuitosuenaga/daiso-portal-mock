@@ -6,7 +6,7 @@ import {
 
 export default function InquiryListPage() {
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <Suspense fallback={<InquiryListSkeleton />}>
         <InquiryList />
       </Suspense>

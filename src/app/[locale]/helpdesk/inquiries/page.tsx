@@ -6,7 +6,7 @@ import {
 
 export default function HelpdeskInquiryListPage() {
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <Suspense fallback={<HelpdeskInquiryListSkeleton />}>
         <HelpdeskInquiryList />
       </Suspense>

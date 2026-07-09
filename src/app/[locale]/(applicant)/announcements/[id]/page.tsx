@@ -14,7 +14,7 @@ export default function AnnouncementDetailPage({
   params,
 }: AnnouncementDetailPageProps) {
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <Suspense fallback={<AnnouncementDetailSkeleton />}>
         <AnnouncementDetail id={params.id} />
       </Suspense>

@@ -24,11 +24,11 @@ export function LanguageSwitcher() {
       {LOCALES.map((item, index) => (
         <span key={item.value} className="flex items-center">
           {index > 0 && (
-            <span className="mx-1 text-muted-foreground text-sm">|</span>
+            <span className="mx-1 text-muted-foreground text-base">|</span>
           )}
           <button
             onClick={() => handleChange(item.value)}
-            className={`text-sm px-1 py-0.5 rounded transition-colors ${
+            className={`text-base px-1 py-0.5 rounded transition-colors ${
               locale === item.value
                 ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground"
