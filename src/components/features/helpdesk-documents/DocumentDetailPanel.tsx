@@ -52,9 +52,10 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
 }
 
 /**
- * ヘルプデスク側の既存ドキュメント画面。通常時（表示モード）は読み取り専用の登録済み
- * 情報とPDFプレビューを直接表示し、「編集」ボタンでページ遷移なしに編集モード
- * （既存のDocumentForm + プレビュー）へ切り替える。
+ * ヘルプデスク側の既存ドキュメント画面。一覧から遷移した直後は編集モード
+ * （既存のDocumentForm + PDFプレビュー）を直接表示する。「キャンセル」を押すと
+ * 読み取り専用の登録済み情報とPDFプレビューを表示する表示モードに切り替わり、
+ * 表示モードの「編集」ボタンでページ遷移なしに編集モードへ戻れる。
  */
 export function DocumentDetailPanel({
   document,
@@ -77,7 +78,7 @@ export function DocumentDetailPanel({
   deleteErrorMessage,
   formProps,
 }: DocumentDetailPanelProps) {
-  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [mode, setMode] = useState<"view" | "edit">("edit");
 
   const preview = (
     <PdfViewer
