@@ -83,36 +83,43 @@ const BASE_PROPS = {
 };
 
 describe("DocumentDetailPanel", () => {
-  it("初期表示（表示モード）でタイトル・説明・公開範囲・PDFプレビューを表示し、編集フォームを表示しない", () => {
+  it("初期表示（編集モード）でタイトル入力欄とPDFプレビューを表示し、表示専用の情報は表示しない", () => {
     render(<DocumentDetailPanel {...BASE_PROPS} />);
 
+    expect(
+      screen.getByRole("heading", { name: BASE_PROPS.editTitleLabel }),
+    ).toBeTruthy();
+    expect(screen.getByLabelText(/タイトル/)).toBeTruthy();
+
+    const iframe = screen.getByTitle("テストドキュメント");
+    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
+
+    expect(screen.queryByRole("button", { name: "編集" })).toBeNull();
+  });
+
+  it("「キャンセル」をクリックすると表示モードに切り替わり、登録済み情報とPDFプレビューを表示する", () => {
+    render(<DocumentDetailPanel {...BASE_PROPS} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+
+    expect(
+      screen.getByRole("heading", { name: BASE_PROPS.detailTitleLabel }),
+    ).toBeTruthy();
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
     expect(screen.getByText("テスト用の説明文")).toBeTruthy();
     expect(screen.getByText("全体公開")).toBeTruthy();
-
-    const iframe = screen.getByTitle("テストドキュメント");
-    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
-
     expect(screen.queryByLabelText(/タイトル/)).toBeNull();
-  });
 
-  it("「編集」ボタンをクリックすると編集モードに切り替わり、フォームとプレビューが両方表示される", () => {
-    render(<DocumentDetailPanel {...BASE_PROPS} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "編集" }));
-
-    expect(screen.getByLabelText(/タイトル/)).toBeTruthy();
     const iframe = screen.getByTitle("テストドキュメント");
     expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
   });
 
-  it("編集モードで「キャンセル」をクリックすると表示モードに戻る", () => {
+  it("表示モードで「編集」ボタンをクリックすると編集モードに戻る", () => {
     render(<DocumentDetailPanel {...BASE_PROPS} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "編集" }));
-    expect(screen.getByLabelText(/タイトル/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
-    expect(screen.queryByLabelText(/タイトル/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "編集" }));
+
+    expect(screen.getByLabelText(/タイトル/)).toBeTruthy();
   });
 });
