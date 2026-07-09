@@ -20,7 +20,7 @@ export function PdfViewer({
 }: PdfViewerProps) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="h-[70vh] min-h-[420px] w-full overflow-hidden rounded-md border border-input lg:h-[80vh]">
+      <div className="h-[50vh] min-h-[360px] w-full overflow-hidden rounded-md border border-input">
         <iframe src={dataUrl} title={title} className="h-full w-full" />
       </div>
       <a
