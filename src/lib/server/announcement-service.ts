@@ -128,10 +128,17 @@ export async function updateAnnouncementRecord(
   }
 }
 
-/** お知らせを削除する。存在しない場合は`AnnouncementNotFoundError`を送出する。 */
+/**
+ * お知らせを削除する。存在しない場合は`AnnouncementNotFoundError`を送出する。
+ * 確認済み・実施済み・リマインド送信状態（`AnnouncementRecipientStatus`）は
+ * `onDelete: Restrict`のため、削除前に関連レコードを同一トランザクションで先に削除する。
+ */
 export async function deleteAnnouncementRecord(id: string): Promise<void> {
   try {
-    await prisma.announcement.delete({ where: { id } });
+    await prisma.$transaction([
+      prisma.announcementRecipientStatus.deleteMany({ where: { announcementId: id } }),
+      prisma.announcement.delete({ where: { id } }),
+    ]);
   } catch {
     throw new AnnouncementNotFoundError(id);
   }

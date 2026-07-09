@@ -15,7 +15,9 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     announcementRecipientStatus: {
       upsert: vi.fn(),
+      deleteMany: vi.fn(),
     },
+    $transaction: vi.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
   },
 }));
 
@@ -205,6 +207,23 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
     await expect(deleteAnnouncementRecord("missing")).rejects.toThrow(
       AnnouncementNotFoundError
     );
+  });
+
+  it("関連するAnnouncementRecipientStatusを先に削除してからお知らせを削除する（ON DELETE RESTRICT対策）", async () => {
+    vi.mocked(prisma.announcementRecipientStatus.deleteMany).mockResolvedValue(
+      { count: 2 } as never
+    );
+    vi.mocked(prisma.announcement.delete).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+
+    await deleteAnnouncementRecord("1");
+
+    expect(prisma.announcementRecipientStatus.deleteMany).toHaveBeenCalledWith({
+      where: { announcementId: "1" },
+    });
+    expect(prisma.announcement.delete).toHaveBeenCalledWith({ where: { id: "1" } });
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 });
 
