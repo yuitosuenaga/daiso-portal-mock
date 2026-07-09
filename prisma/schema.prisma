@@ -194,3 +194,19 @@ model Faq {
   answer    String
   createdAt DateTime    @default(now())
 }
+
+enum LinkCategory {
+  internal
+  external
+  document
+  other
+}
+
+model Link {
+  id          String       @id @default(cuid())
+  title       String
+  url         String
+  category    LinkCategory
+  description String?
+  createdAt   DateTime     @default(now())
+}

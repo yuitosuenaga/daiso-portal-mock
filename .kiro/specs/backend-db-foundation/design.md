@@ -1012,3 +1012,117 @@ interface FaqService {
 ### Testing Strategy（追加分）
 - **Unit Tests**: `faq-service.ts`の`listFaqs`をPrisma Clientをモック化して検証する
 - **Integration Tests**: 既存の`src/lib/api/faqs.test.ts`は`faq-service`をvitestの`vi.mock`でモックし、既存のアサーション（カテゴリ網羅性・ID重複なし等）を維持する
+
+## 追加ラウンド（2026-07-09 続き3）: links-page の実DB化
+
+### Overview（追加分）
+faq領域の実DB化完了を受け、`links-page`spec（申請者側・ヘルプデスク側の双方が閲覧するリンク集画面）のデータアクセスを、インメモリ配列（`MOCK_LINKS`）からPostgreSQL（Prisma経由）へ置き換える。faq領域と完全に同一の構造（会社・ロールによるスコープを持たない参照専用データ、セッション検証なし）を踏襲する。
+
+### Goals（追加分）
+- `Link`をPrismaスキーマとして定義し、DBへ永続化する
+- `lib/api/links.ts`の既存エクスポート関数（`getLinks`）のシグネチャを変更せず、内部実装をDBアクセスに置き換える
+
+### Non-Goals（追加分）
+- `links-page`specのUI・画面遷移・翻訳キーの変更
+- ヘルプデスク側のリンク作成・編集・削除機能の追加（`links-page`spec自体が対象外としている既存の決定を維持する）
+- reply-templatesドメインの実DB化（将来別ラウンド）
+- セッションクレームの追加変更（`getLinks()`はロール・会社を問わない参照専用データのため不要）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `Link`のPrismaスキーマとPrisma経由のアクセス
+- `src/lib/server/link-service.ts`（新規）
+- `src/lib/api/links.ts`の内部実装
+
+**Out of Boundary（追加）**
+- `links-page`specが所有するUIコンポーネント・翻訳キー・画面遷移そのもの
+- ヘルプデスク側のリンク管理機能（作成・編集・削除）の新設
+
+**Allowed Dependencies（追加）**
+- `src/types/link.ts`（`links-page`spec所有の型定義） — 型の形状を変更せず、DBスキーマをこれに合わせる
+- `src/lib/constants/link-options.ts`（`LINK_CATEGORY_CODES`） — Prisma Enumの値集合の参照元として使用する（変更しない）
+
+**Revalidation Triggers（追加）**
+- `Link`型（`src/types/link.ts`）の形状変更
+- `lib/api/links.ts`のシグネチャ変更
+
+### Architecture（追加分）
+`faq-service.ts`と同型の構成。`lib/api/links.ts`はSession Guardを経由せず、直接`link-service`を呼ぶ。
+
+```mermaid
+graph TB
+    LibApiLinks[lib/api/links.ts] --> LinkService
+    LinkService --> PrismaClient
+    PrismaClient --> Postgres
+```
+
+### File Structure Plan（追加分）
+```
+prisma/
+├── schema.prisma          # [変更] LinkCategory Enum・Linkモデルを追加
+└── seed.ts                 # [変更] 既存モックと同内容のリンク11件を追加投入
+
+src/
+├── lib/
+│   ├── server/
+│   │   └── link-service.ts  # [新規] Prisma経由のリンク取得ロジック
+│   └── api/
+│       └── links.ts          # [変更] 内部実装をlink-service呼び出しに置き換え。シグネチャ不変
+```
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `Link`モデル、`LinkCategory`Enumを追加
+- `prisma/seed.ts` — 既存モックと同内容のリンク11件の投入を追加
+- `src/lib/api/links.ts` — 内部実装を`link-service`呼び出しに置き換え。エクスポート関数のシグネチャは変更しない。セッション検証は行わない
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components | Interfaces | Flows |
+|---|---|---|---|---|
+| 19.1-19.2 | リンク集データモデル | Prisma Schema | Prisma Client | — |
+| 20.1-20.3 | リンク集閲覧APIのDB化 | LinkService, lib/api互換層 | Service Interface | — |
+| 21.1-21.2 | 既存フロントエンドとの互換性 | lib/api互換層 | 既存関数シグネチャ | — |
+
+### Components and Interfaces（追加分）
+
+#### LinkService (`src/lib/server/link-service.ts`)
+
+| Field | Detail |
+|-------|--------|
+| Intent | Prisma経由のリンク取得ロジック |
+| Requirements | 19.1-19.2, 20.1-20.2 |
+
+**Responsibilities & Constraints**
+- 全件取得のみを提供し、絞り込み・並び順の保証は行わない（既存モックの振る舞いを維持）
+
+##### Service Interface
+```typescript
+interface LinkService {
+  listLinks(): Promise<Link[]>;
+}
+```
+
+**Dependencies**
+- Outbound: PrismaClient (P0)
+- Inbound: lib/api互換層 (P0)
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Data Models（追加分）
+
+#### Physical Data Model（追加分）
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| Link | id | text (cuid) | PK |
+| | title | text | not null |
+| | url | text | not null |
+| | category | enum(internal,external,document,other) | not null |
+| | description | text | null |
+| | createdAt | timestamptz | default now()（表示順の参考、厳密な順序保証はしない） |
+
+- `Link`は他モデルから参照されない独立テーブルのため、削除時のFK制約は発生しない
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `link-service.ts`の`listLinks`をPrisma Clientをモック化して検証する
+- **Integration Tests**: 既存の`src/lib/api/links.test.ts`は`link-service`をvitestの`vi.mock`でモックし、既存のアサーション（カテゴリ網羅性等）を維持する

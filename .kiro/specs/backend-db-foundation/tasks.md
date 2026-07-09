@@ -272,3 +272,37 @@
   - Observable: 新規テストで、Prisma Clientのモックから返した件数・内容が`listFaqs`の戻り値と一致することを確認できる
   - _Requirements: 16.1_
   - _Depends: 20.1_
+
+- [x] 22. リンク集領域のPrismaスキーマ・シード拡張
+- [x] 22.1 Linkモデルの追加とマイグレーション
+  - `Link`モデルと`LinkCategory`Enumを`schema.prisma`に追加する
+  - `prisma migrate dev`でマイグレーションを生成・適用する
+  - Observable: `prisma validate`が成功し、DBeaverで新規テーブルが確認できる
+  - _Requirements: 19.1, 19.2_
+
+- [x] 22.2 シードデータの拡張（リンク11件）
+  - 既存モック（`MOCK_LINKS`）と同内容のリンク11件を`seed.ts`に追加する
+  - Observable: シード実行後、DBeaverで`Link`テーブルに既存モックと同等のデモデータが表示される
+  - _Requirements: 19.1_
+  - _Depends: 22.1_
+
+- [x] 23. リンク集ドメインサービス層とlib/api差し替え
+- [x] 23.1 リンク取得ロジックとlib/api/links.tsの内部実装差し替え
+  - `link-service.ts`に全件取得ロジックを実装する（セッション検証は行わない）
+  - `lib/api/links.ts`の`getLinks`のシグネチャを変更せず、内部実装を`link-service`呼び出しに置き換える
+  - Observable: 既存の呼び出し元（申請者側・ヘルプデスク側の両`LinkList`）のコードを変更せずに、実DBの値が返るようになる
+  - _Requirements: 19.1, 19.2, 20.1, 20.2, 20.3_
+  - _Depends: 22.1_
+
+- [x] 24. テストの適応と新規カバレッジ
+- [x] 24.1 既存vitestテストのモック更新
+  - `links.test.ts`で`link-service`をモック化し、既存のアサーション（カテゴリ網羅性等）が成功する状態を維持する
+  - Observable: `npm run test`が既存テストを含めて成功する
+  - _Requirements: 21.2_
+  - _Depends: 23.1_
+
+- [x] 24.2 (P) リンク集サービス層の新規単体テスト
+  - `listLinks`がPrisma経由で全件を取得することを検証するテストを追加する
+  - Observable: 新規テストで、Prisma Clientのモックから返した件数・内容が`listLinks`の戻り値と一致することを確認できる
+  - _Requirements: 19.1_
+  - _Depends: 23.1_

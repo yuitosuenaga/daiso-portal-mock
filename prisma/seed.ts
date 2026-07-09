@@ -475,6 +475,103 @@ async function seedFaqs(): Promise<void> {
   }
 }
 
+/** 既存モック（`MOCK_LINKS`）と同内容のリンク11件。 */
+const LINK_SEEDS = [
+  {
+    id: "seed-link-001",
+    title: "社内ポータル（グループウェア）",
+    url: "https://example.com/internal/groupware",
+    category: "internal" as const,
+    description: "スケジュール管理・社内連絡に使用する社内ポータルです。",
+  },
+  {
+    id: "seed-link-002",
+    title: "販売管理システム",
+    url: "https://example.com/internal/sales-system",
+    category: "internal" as const,
+    description: "受発注状況・在庫状況を確認できる販売管理システムです。",
+  },
+  {
+    id: "seed-link-003",
+    title: "勤怠管理システム",
+    url: "https://example.com/internal/attendance",
+    category: "internal" as const,
+    description: null,
+  },
+  {
+    id: "seed-link-004",
+    title: "Daiso公式サイト",
+    url: "https://example.com/external/daiso-official",
+    category: "external" as const,
+    description: "商品情報・店舗情報を掲載する公式サイトです。",
+  },
+  {
+    id: "seed-link-005",
+    title: "取引先向けサプライヤーポータル",
+    url: "https://example.com/external/supplier-portal",
+    category: "external" as const,
+    description: "取引先企業との連携に利用する外部ポータルです。",
+  },
+  {
+    id: "seed-link-006",
+    title: "為替レート情報サイト",
+    url: "https://example.com/external/exchange-rate",
+    category: "external" as const,
+    description: null,
+  },
+  {
+    id: "seed-link-007",
+    title: "販社担当者向け業務マニュアル",
+    url: "https://example.com/document/operation-manual.pdf",
+    category: "document" as const,
+    description: "日常業務の手順をまとめたマニュアルです。",
+  },
+  {
+    id: "seed-link-008",
+    title: "問い合わせ対応フローチャート",
+    url: "https://example.com/document/inquiry-flowchart.pdf",
+    category: "document" as const,
+    description: "問い合わせ受付から解決までの対応フローです。",
+  },
+  {
+    id: "seed-link-009",
+    title: "よくある質問集（FAQ）",
+    url: "https://example.com/document/faq.pdf",
+    category: "document" as const,
+    description: null,
+  },
+  {
+    id: "seed-link-010",
+    title: "ヘルプデスク連絡先一覧",
+    url: "https://example.com/other/contact-list",
+    category: "other" as const,
+    description: "各拠点のヘルプデスク窓口の連絡先一覧です。",
+  },
+  {
+    id: "seed-link-011",
+    title: "システム利用規約",
+    url: "https://example.com/other/terms-of-use",
+    category: "other" as const,
+    description: null,
+  },
+];
+
+async function seedLinks(): Promise<void> {
+  for (const seed of LINK_SEEDS) {
+    await prisma.link.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        title: seed.title,
+        url: seed.url,
+        category: seed.category,
+        description: seed.description,
+      },
+    });
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
@@ -524,6 +621,7 @@ async function main() {
   await seedAnnouncementRecipientStatuses();
   await seedDocuments();
   await seedFaqs();
+  await seedLinks();
 
   console.log("Seed complete:", {
     companies: COMPANY_OPTIONS.length,
@@ -533,6 +631,7 @@ async function main() {
     announcements: ANNOUNCEMENT_SEEDS.length,
     documents: DOCUMENT_SEEDS.length,
     faqs: FAQ_SEEDS.length,
+    links: LINK_SEEDS.length,
   });
   console.log(`Seed password for both accounts: ${SEED_PASSWORD}`);
 }
