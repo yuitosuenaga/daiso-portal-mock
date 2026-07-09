@@ -35,7 +35,8 @@ vi.mock("next-intl/server", () => ({
 function makeAnnouncement(
   id: string,
   title: string,
-  publishedAt: string
+  publishedAt: string,
+  overrides: Partial<Announcement> = {}
 ): Announcement {
   return {
     id,
@@ -45,6 +46,7 @@ function makeAnnouncement(
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    ...overrides,
   };
 }
 
@@ -69,6 +71,25 @@ describe("AnnouncementsPreviewPanel", () => {
     expect(screen.getByText("お知らせ1")).toBeTruthy();
     expect(screen.getByText("お知らせ2")).toBeTruthy();
     expect(screen.getByText("お知らせ3")).toBeTruthy();
+  });
+
+  it("各お知らせの本文要約・対応要否バッジ・対応期限を表示する", async () => {
+    getRecentAnnouncementsMock.mockResolvedValueOnce([
+      makeAnnouncement("1", "お知らせ1", "2026-07-01T09:00:00Z", {
+        body: "本文の要約テキスト",
+        actionRequired: true,
+        dueDate: "2026-07-14",
+      }),
+    ]);
+
+    const jsx = await AnnouncementsPreviewPanel({
+      viewAllHref: "/announcements",
+    });
+    render(jsx);
+
+    expect(screen.getByText("本文の要約テキスト")).toBeTruthy();
+    expect(screen.getByText("announcements.actionRequiredBadge")).toBeTruthy();
+    expect(screen.getByText(/announcements.dueDateLabel/)).toBeTruthy();
   });
 
   it("お知らせが0件の場合は空状態メッセージを表示する", async () => {

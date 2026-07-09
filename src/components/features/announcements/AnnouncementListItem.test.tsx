@@ -97,4 +97,29 @@ describe("AnnouncementListItem", () => {
 
     expect(screen.queryByText(/対応期限/)).toBeNull();
   });
+
+  it("showBodyExcerptが真のときは本文を表示する", () => {
+    render(
+      <AnnouncementListItem
+        announcement={{ ...BASE_ANNOUNCEMENT, body: "本文の要約テキスト" }}
+        categoryLabel="メンテナンス"
+        locale="ja"
+        showBodyExcerpt
+      />
+    );
+
+    expect(screen.getByText("本文の要約テキスト")).toBeTruthy();
+  });
+
+  it("showBodyExcerptが未指定のときは本文を表示しない", () => {
+    render(
+      <AnnouncementListItem
+        announcement={{ ...BASE_ANNOUNCEMENT, body: "本文の要約テキスト" }}
+        categoryLabel="メンテナンス"
+        locale="ja"
+      />
+    );
+
+    expect(screen.queryByText("本文の要約テキスト")).toBeNull();
+  });
 });

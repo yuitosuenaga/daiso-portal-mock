@@ -16,6 +16,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <ReminderAnnouncementsPanel />
+      </Suspense>
+      <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
+        <AnnouncementsPreviewPanel viewAllHref="/announcements" />
+      </Suspense>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NavigationCard
           title={t("inquiryForm.title")}
@@ -57,12 +63,6 @@ export default async function DashboardPage() {
           icon={HelpCircle}
         />
       </div>
-      <Suspense fallback={null}>
-        <ReminderAnnouncementsPanel />
-      </Suspense>
-      <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
-        <AnnouncementsPreviewPanel viewAllHref="/announcements" />
-      </Suspense>
     </div>
   );
 }
