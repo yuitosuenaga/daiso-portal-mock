@@ -285,6 +285,93 @@ async function seedAnnouncementRecipientStatuses(): Promise<void> {
   }
 }
 
+/**
+ * フェーズ1のモックシード用PDF（1ページ、"Sample Document PDF"とだけ描画される最小限のPDF）。
+ * `src/lib/api/documents.ts`の`SAMPLE_PDF_DATA_URL`と同一。
+ */
+const SAMPLE_PDF_DATA_URL =
+  "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNjIgPj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiAyMCAxMDAgVGQgKFNhbXBsZSBEb2N1bWVudCBQREYpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjAKJSVFT0YK";
+
+/** 既存モック（`MOCK_DOCUMENTS`）と同内容のドキュメント5件。 */
+const DOCUMENT_SEEDS = [
+  {
+    id: "seed-document-001",
+    title: "店舗運営マニュアル（共通版）",
+    description: "全販社共通の店舗運営における基本ルールをまとめたマニュアルです。",
+    fileName: "store-operations-manual.pdf",
+    fileSize: 245_760,
+    uploadedAt: "2026-07-01T09:00:00Z",
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-document-002",
+    title: "商品陳列ガイドライン（東南アジア版）",
+    description: "東南アジア地域向けの商品陳列レイアウトのガイドラインです。",
+    fileName: "merchandising-guideline-sea.pdf",
+    fileSize: 512_000,
+    uploadedAt: "2026-06-25T09:00:00Z",
+    targetingScope: "countries" as const,
+    targetingCountries: ["VN", "TH", "ID"],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-document-003",
+    title: "レジ操作マニュアル（ベトナム限定）",
+    description: "ベトナム販社向けのレジ端末操作手順をまとめた資料です。",
+    fileName: "pos-manual-vietnam.pdf",
+    fileSize: 189_440,
+    uploadedAt: "2026-06-20T09:00:00Z",
+    targetingScope: "companies" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: ["vn-daiso-vietnam"],
+  },
+  {
+    id: "seed-document-004",
+    title: "内部監査資料（本部限定）",
+    description: "日本本部限定の内部監査に関する資料です。",
+    fileName: "internal-audit-hq-only.pdf",
+    fileSize: 1_048_576,
+    uploadedAt: "2026-06-15T09:00:00Z",
+    targetingScope: "companies" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: ["jp-daiso-japan-trading"],
+  },
+  {
+    id: "seed-document-005",
+    title: "什器組み立て手順書（北米向け）",
+    description: "北米地域向け店舗什器の組み立て手順をまとめた資料です。",
+    fileName: "fixture-assembly-us.pdf",
+    fileSize: 358_400,
+    uploadedAt: "2026-06-10T09:00:00Z",
+    targetingScope: "countries" as const,
+    targetingCountries: ["US"],
+    targetingCompanyCodes: [] as string[],
+  },
+];
+
+async function seedDocuments(): Promise<void> {
+  for (const seed of DOCUMENT_SEEDS) {
+    await prisma.document.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        title: seed.title,
+        description: seed.description,
+        fileName: seed.fileName,
+        fileSize: seed.fileSize,
+        dataUrl: SAMPLE_PDF_DATA_URL,
+        uploadedAt: new Date(seed.uploadedAt),
+        targetingScope: seed.targetingScope,
+        targetingCountries: seed.targetingCountries,
+        targetingCompanyCodes: seed.targetingCompanyCodes,
+      },
+    });
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
@@ -332,6 +419,7 @@ async function main() {
   await seedAnnouncementRecipients(companyIdByCode);
   await seedAnnouncements();
   await seedAnnouncementRecipientStatuses();
+  await seedDocuments();
 
   console.log("Seed complete:", {
     companies: COMPANY_OPTIONS.length,
@@ -339,6 +427,7 @@ async function main() {
     helpdeskStaff: helpdeskStaff.email,
     inquiry: inquiry.id,
     announcements: ANNOUNCEMENT_SEEDS.length,
+    documents: DOCUMENT_SEEDS.length,
   });
   console.log(`Seed password for both accounts: ${SEED_PASSWORD}`);
 }

@@ -197,3 +197,44 @@
   - Observable: 新規テストで、対象国外のお知らせが一覧に含まれないこと・配信対象外の担当者が集計対象に含まれないことを確認できる
   - _Requirements: 10.2, 11.2, 11.3, 11.7_
   - _Depends: 12.1, 12.2_
+
+- [x] 15. ドキュメント領域のPrismaスキーマ・シード拡張
+- [x] 15.1 Documentモデルの追加とマイグレーション
+  - `Document`モデルと`DocumentTargetingScope`Enumを`schema.prisma`に追加する（`targetingScope`・`targetingCountries`・`targetingCompanyCodes`）
+  - `prisma migrate dev`でマイグレーションを生成・適用する
+  - Observable: `prisma validate`が成功し、DBeaverで新規テーブルが確認できる
+  - _Requirements: 13.1, 13.2, 13.3_
+
+- [x] 15.2 シードデータの拡張（ドキュメント5件）
+  - 既存モック（`MOCK_DOCUMENTS`）と同内容のドキュメント5件（サンプルPDFのBase64データ含む）を`seed.ts`に追加する
+  - Observable: シード実行後、DBeaverで`Document`テーブルに既存モックと同等のデモデータが表示される
+  - _Requirements: 13.1_
+  - _Depends: 15.1_
+
+- [x] 16. ドキュメントドメインサービス層
+- [x] 16.1 ドキュメント取得・作成・更新・削除ロジック
+  - `document-mapper.ts`でPrismaモデルと既存`Document`型（`targeting`ユニオン型を含む）を相互変換する
+  - `document-service.ts`に自社country/companyCode絞り込みの一覧・詳細取得、全件一覧・詳細取得、作成・更新・削除を実装する
+  - Observable: 公開範囲が特定の国・特定の販社のドキュメントが、対象country/companyCodeのセッションでのみ取得できる
+  - _Requirements: 13.1, 13.2, 14.2, 14.3_
+  - _Depends: 15.1_
+
+- [x] 17. 既存コードの実DB・認証連携への切替
+- [x] 17.1 lib/api/documents.tsの内部実装差し替え
+  - 既存のエクスポート関数のシグネチャを変更せず、内部実装をセッション検証＋`document-service`呼び出しに置き換える
+  - Observable: 既存の呼び出し元（Server Component・Server Action）のコードを変更せずに、実DBの値が返るようになる
+  - _Requirements: 14.1, 14.4, 14.5_
+  - _Depends: 16.1_
+
+- [x] 18. テストの適応と新規カバレッジ
+- [x] 18.1 既存vitestテストのモック更新
+  - `documents.test.ts`・`lib/actions/documents.test.ts`で、セッション取得と`document-service`をモック化し、既存のアサーションが成功する状態を維持する
+  - Observable: `npm run test`が既存テストを含めて成功する
+  - _Requirements: 15.2_
+  - _Depends: 17.1_
+
+- [x] 18.2 (P) ドキュメントサービス層の新規単体テスト
+  - targeting相互変換、country/companyCode絞り込みのOR条件を検証するテストを追加する
+  - Observable: 新規テストで、対象外のドキュメントが一覧に含まれないことを確認できる
+  - _Requirements: 13.2, 14.2_
+  - _Depends: 16.1_

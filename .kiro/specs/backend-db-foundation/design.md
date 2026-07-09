@@ -760,3 +760,142 @@ erDiagram
 - **Unit Tests**: `AnnouncementService`の各メソッド（targeting相互変換、country絞り込み、リマインド対象抽出、二重送信時の`reminderSentAt`上書き）をPrisma Clientをモック化して検証する
 - **Integration Tests**: 既存の`src/lib/api/announcements.test.ts`・`announcement-tracking.test.ts`は、`get-session`と`AnnouncementService`をvitestの`vi.mock`でモックし、既存のアサーション（自社country絞り込み等）を維持する
 - **Component Tests**: `AnnouncementList.test.tsx`・`AnnouncementDetail.test.tsx`・`ReminderAnnouncementsPanel.test.tsx`は、`lib/api/announcements.ts`・`announcement-tracking.ts`をモックしたまま、`MOCK_CURRENT_COMPANY`参照削除後も既存のアサーションが成功する状態を維持する
+
+## 追加ラウンド（2026-07-09 続き）: documents / documents-management の実DB化
+
+### Overview（追加分）
+announcements・announcements-management領域の実DB化完了を受け、`documents`spec（申請者側のドキュメント閲覧）・`documents-management`spec（ヘルプデスク側のドキュメント管理）が対象とする画面群のデータアクセスを、`getGlobalMockStore`によるインメモリ配列からPostgreSQL（Prisma経由）へ置き換える。**Purpose**: `Document`本体・公開範囲（全体公開／国単位／販社単位）をDBに永続化し、申請者側の公開範囲フィルタをセッション由来の値で行う。**Impact**: `documents`・`documents-management`両specが所有するUIコンポーネント・画面の見た目・操作性は変更しない。両ドメインのコンポーネント（`DocumentList.tsx`・`DocumentDetail.tsx`）は`MOCK_CURRENT_COMPANY`を直接参照していないため（`lib/api/documents.ts`内でのみ参照）、コンポーネント自体の変更は不要（announcements領域より変更範囲が小さい）。
+
+### Goals（追加分）
+- `Document`・公開範囲（`targeting`）をPrismaスキーマとして定義し、DBへ永続化する
+- `lib/api/documents.ts`の既存エクスポート関数のシグネチャを変更せず、内部実装をDBアクセスに置き換える
+- 申請者側の公開範囲フィルタ（全体公開／自社の国が対象国に含まれる／自社が対象販社に含まれる）を、`MOCK_CURRENT_COMPANY`ではなくログイン中の申請者セッションのクレーム（`country`・`companyCode`、announcements領域で追加済み）から行う
+
+### Non-Goals（追加分）
+- `documents`・`documents-management`両specのUI・画面遷移・翻訳キーの変更
+- faq・links-page・reply-templatesドメインの実DB化（将来別ラウンド）
+- PDF以外のファイル形式のサポート、実ファイルストレージへの移行（引き続きBase64データURLをDBのtext列に保持する）
+- 申請者側セッションクレームの追加変更（`country`・`companyCode`は既存のまま再利用する）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `Document`のPrismaスキーマとPrisma経由のアクセス
+- `src/lib/server/document-service.ts`・`document-mapper.ts`（新規）
+- `src/lib/api/documents.ts`の内部実装
+
+**Out of Boundary（追加）**
+- `documents`・`documents-management`両specが所有するUIコンポーネント・翻訳キー・画面遷移そのもの
+- `MOCK_CURRENT_COMPANY`の定義自体（`current-company.ts`）。faq・links-page・reply-templatesは引き続きこれを参照する
+
+**Allowed Dependencies（追加）**
+- `src/types/document.ts`（`documents`spec所有の型定義） — 型の形状を変更せず、DBスキーマ・マッパーをこれに合わせる
+- `src/lib/validation/document.ts`（`documentFormSchema`） — Server Action側の既存の入力検証をそのまま再利用する
+- 既存の`Session Guard`（`requireApplicantSession`/`requireHelpdeskStaffSession`）、`ApplicantSessionClaims`の`companyCode`・`country`（追加変更なし）
+
+**Revalidation Triggers（追加）**
+- `Document`・`DocumentTargeting`型（`src/types/document.ts`）の形状変更
+- `lib/api/documents.ts`のシグネチャ変更
+
+### Architecture（追加分）
+既存のInquiry・Announcement領域と同一の層構造（lib/api互換層 → サーバー専用サービス層 → Prisma）を適用する。`Document`には確認済み・実施済み等の追跡サブドメインが存在しないため、`AnnouncementService`より単純な構成になる。
+
+```mermaid
+graph TB
+    LibApiDocuments[lib/api/documents.ts] --> SessionGuard[Session Guard]
+    LibApiDocuments --> DocumentService
+    DocumentService --> DocumentMapper
+    DocumentService --> PrismaClient
+    PrismaClient --> Postgres
+```
+
+### File Structure Plan（追加分）
+```
+prisma/
+├── schema.prisma          # [変更] DocumentTargetingScope Enum・Documentモデルを追加
+└── seed.ts                 # [変更] 既存モックと同内容のドキュメント5件を追加投入
+
+src/
+├── lib/
+│   ├── server/
+│   │   ├── document-service.ts  # [新規] Prisma経由のドキュメントドメインロジック
+│   │   └── document-mapper.ts   # [新規] Prismaモデル⇄既存Document型の変換
+│   └── api/
+│       └── documents.ts          # [変更] 内部実装をdocument-service呼び出しに置き換え。シグネチャ不変
+```
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `Document`モデル、`DocumentTargetingScope`Enumを追加
+- `prisma/seed.ts` — 既存モックと同内容のドキュメント5件（Base64サンプルPDF含む）の投入を追加
+- `src/lib/api/documents.ts` — 内部実装を`document-service`呼び出しに置き換え。エクスポート関数のシグネチャは変更しない。申請者側2関数（`getDocuments`・`getDocumentById`）は`requireApplicantSession()`→`claims.country`・`claims.companyCode`でサービス呼び出し、ヘルプデスク側5関数は`requireHelpdeskStaffSession()`を追加してサービス呼び出し
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components | Interfaces | Flows |
+|---|---|---|---|---|
+| 13.1-13.3 | ドキュメントデータモデル | Prisma Schema | Prisma Client | ER図（Data Models 追加分） |
+| 14.1-14.5 | ドキュメント閲覧・管理APIのDB化 | DocumentService, lib/api互換層 | Service Interface | — |
+| 15.1-15.2 | 既存フロントエンドとの互換性 | lib/api互換層 | 既存関数シグネチャ | — |
+
+### Components and Interfaces（追加分）
+
+#### DocumentService (`src/lib/server/document-service.ts`)
+
+| Field | Detail |
+|-------|--------|
+| Intent | Prisma経由のドキュメント本体・公開範囲に関するドメインロジックを一元化する |
+| Requirements | 13.1-13.3, 14.2-14.4 |
+
+**Responsibilities & Constraints**
+- 申請者側の一覧・詳細取得は、`targetingScope`が`all`、または`targetingCountries`に指定`country`が含まれる、または`targetingCompanyCodes`に指定`companyCode`が含まれる`Document`のみを返す
+- ヘルプデスク側の一覧・詳細取得はスコープ制限を行わない
+- `create`/`update`は`targeting`ユニオン型を`targetingScope`+`targetingCountries`+`targetingCompanyCodes`列へ分解して永続化する
+
+##### Service Interface
+```typescript
+interface DocumentService {
+  listVisibleTo(country: string, companyCode: string): Promise<Document[]>;
+  findByIdVisibleTo(id: string, country: string, companyCode: string): Promise<Document | null>;
+  listAll(): Promise<Document[]>;
+  findByIdForHelpdesk(id: string): Promise<Document | null>;
+  create(input: CreateDocumentInput): Promise<Document>;
+  update(id: string, input: CreateDocumentInput): Promise<Document>;
+  remove(id: string): Promise<void>;
+}
+```
+- Preconditions: `listVisibleTo`・`findByIdVisibleTo`の`country`・`companyCode`は呼び出し元が`requireApplicantSession()`で解決済みの値であること
+- Postconditions: 全メソッドは既存の型（`Document`）と同じ形状を返す（`DocumentMapper`で変換済み）
+- Invariants: `listVisibleTo`は公開範囲が`all`でも対象`country`/`companyCode`を含む`countries`/`companies`でもないドキュメントを返さない
+
+**Dependencies**
+- Outbound: PrismaClient (P0), DocumentMapper (P0)
+- Inbound: lib/api互換層 (P0)
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Data Models（追加分）
+
+#### Physical Data Model（追加分）
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| Document | id | text (cuid) | PK |
+| | title | text | not null |
+| | description | text | null |
+| | fileName | text | not null |
+| | fileType | text | not null, デフォルト値 `application/pdf` |
+| | fileSize | integer | not null |
+| | dataUrl | text | not null |
+| | uploadedAt | timestamptz | default now() |
+| | targetingScope | enum(all,countries,companies) | not null, default all |
+| | targetingCountries | text[] | not null, default '{}' |
+| | targetingCompanyCodes | text[] | not null, default '{}' |
+
+- `targetingScope`が`countries`のときのみ`targetingCountries`が1件以上、`companies`のときのみ`targetingCompanyCodes`が1件以上（アプリケーション層で保証、DB制約は設けない）
+- `Document`は他モデルから参照されない独立テーブルのため、削除時のFK制約は発生しない（announcements領域で発生した`ON DELETE RESTRICT`の問題は該当しない）
+
+#### Data Contracts & Integration（追加分）
+- `Document.targetingScope`/`targetingCountries`/`targetingCompanyCodes`と既存の`DocumentTargeting`ユニオン型（`{scope:"all"}` | `{scope:"countries";countries:string[]}` | `{scope:"companies";companyCodes:string[]}`）は`DocumentMapper`で相互変換する
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `DocumentService`の各メソッド（targeting相互変換、country/companyCode絞り込みのOR条件）をPrisma Clientをモック化して検証する
+- **Integration Tests**: 既存の`src/lib/api/documents.test.ts`・`src/lib/actions/documents.test.ts`は、`get-session`と`DocumentService`をvitestの`vi.mock`でモックし、既存のアサーション（公開範囲ごとの可視性判定等）を維持する
