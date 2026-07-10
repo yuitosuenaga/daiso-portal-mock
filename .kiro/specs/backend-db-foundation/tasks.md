@@ -414,7 +414,7 @@
   - _Requirements: 26.1_
   - _Depends: 31.1_
 
-- [ ] 32.2 コミット・push
+- [x] 32.2 コミット・push
   - `spec/backend-db-foundation`へ本ラウンドの変更をコミットし、pushする
   - Observable: `git status`がクリーンになり、リモートブランチに反映される
   - _Requirements: 26.1, 26.2, 26.3_
