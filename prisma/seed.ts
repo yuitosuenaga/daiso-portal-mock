@@ -633,6 +633,162 @@ async function seedReplyTemplates(): Promise<void> {
   }
 }
 
+/**
+ * 問い合わせ一覧のデモ用に、様々なカテゴリ・緊急度・ステータス・国を持つ
+ * 問い合わせ10件を追加投入する（`seed-inquiry-001`とは別に、各社の窓口担当者からの
+ * 問い合わせを想定したサンプル）。
+ */
+const ADDITIONAL_INQUIRY_SEEDS = [
+  {
+    id: "inquiry-001",
+    category: "defect" as const,
+    urgency: "high" as const,
+    storeRegion: "Kanto",
+    originalText: "店舗に納品された商品の一部に破損が見られます。至急対応をお願いします。",
+    originalLanguage: "ja",
+    translatedText: null as string | null,
+    status: "new" as const,
+    companyCode: "jp-daiso-japan-trading",
+    createdAt: "2026-06-28T18:15:00Z",
+  },
+  {
+    id: "inquiry-002",
+    category: "order" as const,
+    urgency: "medium" as const,
+    storeRegion: "West Coast",
+    originalText: "We would like to place an additional order for next month's shipment.",
+    originalLanguage: "en",
+    translatedText: "来月分の配送に向けて追加発注をお願いしたいです。",
+    status: "in_progress" as const,
+    companyCode: "us-daiso-usa",
+    createdAt: "2026-06-25T23:30:00Z",
+  },
+  {
+    id: "inquiry-003",
+    category: "system" as const,
+    urgency: "high" as const,
+    storeRegion: "Seoul",
+    originalText: "포털 시스템에 로그인할 수 없는 문제가 발생하고 있습니다.",
+    originalLanguage: "ko",
+    translatedText: "ポータルシステムにログインできない問題が発生しています。",
+    status: "new" as const,
+    companyCode: "kr-daiso-korea",
+    createdAt: "2026-06-29T11:45:00Z",
+  },
+  {
+    id: "inquiry-004",
+    category: "other" as const,
+    urgency: "low" as const,
+    storeRegion: "Bangkok",
+    originalText: "次回の販促キャンペーンに関する資料の共有をお願いしたいです。",
+    originalLanguage: "ja",
+    translatedText: null as string | null,
+    status: "resolved" as const,
+    companyCode: "th-daiso-thailand",
+    createdAt: "2026-06-10T15:00:00Z",
+  },
+  {
+    id: "inquiry-005",
+    category: "defect" as const,
+    urgency: "medium" as const,
+    storeRegion: "Taipei",
+    originalText: "部分商品外包裝有輕微破損，請確認是否需要更換。",
+    originalLanguage: "zh",
+    translatedText: "一部商品の外装に軽微な破損が見られます。交換の必要があるかご確認ください。",
+    status: "in_progress" as const,
+    companyCode: "tw-daiso-taiwan",
+    createdAt: "2026-06-20T20:20:00Z",
+  },
+  {
+    id: "inquiry-006",
+    category: "order" as const,
+    urgency: "low" as const,
+    storeRegion: "Singapore",
+    originalText: "Could you confirm the estimated delivery date for order #4821?",
+    originalLanguage: "en",
+    translatedText: "注文番号#4821の配送予定日をご確認いただけますでしょうか。",
+    status: "resolved" as const,
+    companyCode: "sg-daiso-singapore",
+    createdAt: "2026-05-30T17:10:00Z",
+  },
+  {
+    id: "inquiry-007",
+    category: "system" as const,
+    urgency: "low" as const,
+    storeRegion: "Ho Chi Minh City",
+    originalText: "Trang cổng thông tin hiển thị chậm khi tải danh sách đơn hàng.",
+    originalLanguage: "vi",
+    translatedText: "ポータルサイトで注文一覧を読み込む際の表示が遅くなっています。",
+    status: "new" as const,
+    companyCode: "vn-daiso-vietnam",
+    createdAt: "2026-06-27T22:05:00Z",
+  },
+  {
+    id: "inquiry-008",
+    category: "other" as const,
+    urgency: "medium" as const,
+    storeRegion: "Jakarta",
+    originalText: "Kami ingin menanyakan mengenai perpanjangan kontrak distribusi.",
+    originalLanguage: "id",
+    translatedText: "販売契約の更新についてお伺いしたいです。",
+    status: "in_progress" as const,
+    companyCode: "id-daiso-indonesia",
+    createdAt: "2026-06-15T14:40:00Z",
+  },
+  {
+    id: "inquiry-009",
+    category: "order" as const,
+    urgency: "medium" as const,
+    storeRegion: "Da Nang",
+    originalText: "Chúng tôi muốn đặt thêm hàng cho đợt giao tháng sau.",
+    originalLanguage: "vi",
+    translatedText: "来月分の配送に向けて追加発注をお願いしたいです。",
+    status: "in_progress" as const,
+    companyCode: "vn-daiso-vietnam",
+    createdAt: "2026-06-22T18:30:00Z",
+  },
+  {
+    id: "inquiry-010",
+    category: "defect" as const,
+    urgency: "high" as const,
+    storeRegion: "Hanoi",
+    originalText: "Sản phẩm giao đến bị lỗi, đã được đổi trả và xử lý xong.",
+    originalLanguage: "vi",
+    translatedText: "納品された商品に不具合があり、交換・対応は既に完了しております。",
+    status: "resolved" as const,
+    companyCode: "vn-daiso-vietnam",
+    createdAt: "2026-06-05T11:15:00Z",
+  },
+];
+
+async function seedAdditionalInquiries(
+  companyIdByCode: Map<string, string>
+): Promise<void> {
+  for (const seed of ADDITIONAL_INQUIRY_SEEDS) {
+    const companyId = companyIdByCode.get(seed.companyCode)!;
+    const company = COMPANY_OPTIONS.find((c) => c.code === seed.companyCode)!;
+
+    await prisma.inquiry.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        category: seed.category,
+        urgency: seed.urgency,
+        storeRegion: seed.storeRegion,
+        originalText: seed.originalText,
+        originalLanguage: seed.originalLanguage,
+        translatedText: seed.translatedText ?? undefined,
+        status: seed.status,
+        createdAt: new Date(seed.createdAt),
+        companyId,
+        submittedByCompanyName: company.name,
+        submittedByCountry: company.country,
+      },
+    });
+  }
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
@@ -677,6 +833,7 @@ async function main() {
     },
   });
 
+  await seedAdditionalInquiries(companyIdByCode);
   await seedAnnouncementRecipients(companyIdByCode);
   await seedAnnouncements();
   await seedAnnouncementRecipientStatuses();
@@ -690,6 +847,7 @@ async function main() {
     applicantUser: applicantUser.email,
     helpdeskStaff: helpdeskStaff.email,
     inquiry: inquiry.id,
+    additionalInquiries: ADDITIONAL_INQUIRY_SEEDS.length,
     announcements: ANNOUNCEMENT_SEEDS.length,
     documents: DOCUMENT_SEEDS.length,
     faqs: FAQ_SEEDS.length,

@@ -1,6 +1,7 @@
 --
 -- prisma/seed.ts と同内容のデモデータ（会社8社・申請者/ヘルプデスクアカウント各1・
--- 問い合わせ1件・お知らせ5件+担当者16名+確認状況47件・ドキュメント5件・FAQ12件・
+-- 問い合わせ11件（seed-inquiry-001 + inquiry-001〜010の多様なサンプル）・
+-- お知らせ5件+担当者16名+確認状況47件・ドキュメント5件・FAQ12件・
 -- リンク11件・返信テンプレート7件）をDBeaver等のSQLエディタから直接投入するための
 -- データのみのSQLファイル（pg_dump --data-only --inserts で生成）。
 --
@@ -57,14 +58,14 @@ ALTER TABLE public."Announcement" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."Company" DISABLE TRIGGER ALL;
 
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tg20000o6qz67w623w1', 'Daiso Japan Trading Co.', 'JP', 'jp-daiso-japan-trading', '2026-07-10 02:48:53.136');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tgh0001o6qzc1o63ecy', 'Daiso USA Inc.', 'US', 'us-daiso-usa', '2026-07-10 02:48:53.153');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tgk0002o6qzrwrr0awa', 'Daiso Korea Co., Ltd.', 'KR', 'kr-daiso-korea', '2026-07-10 02:48:53.157');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tgo0003o6qzo9ag1n3h', 'Daiso Thailand Co., Ltd.', 'TH', 'th-daiso-thailand', '2026-07-10 02:48:53.16');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tgr0004o6qzycmcy5d9', 'Daiso Vietnam Co., Ltd.', 'VN', 'vn-daiso-vietnam', '2026-07-10 02:48:53.164');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tgu0005o6qzvusvgjx0', 'Daiso Indonesia Co., Ltd.', 'ID', 'id-daiso-indonesia', '2026-07-10 02:48:53.167');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6tgy0006o6qzg994csnr', 'Daiso Taiwan Co., Ltd.', 'TW', 'tw-daiso-taiwan', '2026-07-10 02:48:53.171');
-INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmrec6th10007o6qzmbnmalqt', 'Daiso Singapore Pte. Ltd.', 'SG', 'sg-daiso-singapore', '2026-07-10 02:48:53.174');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6as0000o60sk8eqyjk4', 'Daiso Japan Trading Co.', 'JP', 'jp-daiso-japan-trading', '2026-07-10 03:27:15.94');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6bd0001o60s0wo76qxr', 'Daiso USA Inc.', 'US', 'us-daiso-usa', '2026-07-10 03:27:15.962');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6bj0002o60st0gz3qju', 'Daiso Korea Co., Ltd.', 'KR', 'kr-daiso-korea', '2026-07-10 03:27:15.968');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6bo0003o60s9i6jj6pj', 'Daiso Thailand Co., Ltd.', 'TH', 'th-daiso-thailand', '2026-07-10 03:27:15.973');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6bt0004o60sbqoff9sc', 'Daiso Vietnam Co., Ltd.', 'VN', 'vn-daiso-vietnam', '2026-07-10 03:27:15.977');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6bx0005o60s22dgq3xw', 'Daiso Indonesia Co., Ltd.', 'ID', 'id-daiso-indonesia', '2026-07-10 03:27:15.982');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6c20006o60s8d5hj108', 'Daiso Taiwan Co., Ltd.', 'TW', 'tw-daiso-taiwan', '2026-07-10 03:27:15.987');
+INSERT INTO public."Company" (id, name, country, "companyCode", "createdAt") VALUES ('cmredk6c60007o60sscvsnegq', 'Daiso Singapore Pte. Ltd.', 'SG', 'sg-daiso-singapore', '2026-07-10 03:27:15.991');
 
 
 ALTER TABLE public."Company" ENABLE TRIGGER ALL;
@@ -75,22 +76,22 @@ ALTER TABLE public."Company" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."AnnouncementRecipient" DISABLE TRIGGER ALL;
 
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('jp-daiso-japan-trading-1', 'cmrec6tg20000o6qz67w623w1', '高橋 直子');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('jp-daiso-japan-trading-2', 'cmrec6tg20000o6qz67w623w1', '佐藤 健');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('us-daiso-usa-1', 'cmrec6tgh0001o6qzc1o63ecy', 'Robert Johnson');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('us-daiso-usa-2', 'cmrec6tgh0001o6qzc1o63ecy', 'Emily Davis');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('kr-daiso-korea-1', 'cmrec6tgk0002o6qzrwrr0awa', 'Kim Min-jun');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('kr-daiso-korea-2', 'cmrec6tgk0002o6qzrwrr0awa', 'Lee Seo-yeon');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('th-daiso-thailand-1', 'cmrec6tgo0003o6qzo9ag1n3h', 'Somchai Srisuk');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('th-daiso-thailand-2', 'cmrec6tgo0003o6qzo9ag1n3h', 'Nittaya Boonmee');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('vn-daiso-vietnam-1', 'cmrec6tgr0004o6qzycmcy5d9', 'Nguyen Van An');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('vn-daiso-vietnam-2', 'cmrec6tgr0004o6qzycmcy5d9', 'Tran Thi Hoa');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('id-daiso-indonesia-1', 'cmrec6tgu0005o6qzvusvgjx0', 'Budi Santoso');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('id-daiso-indonesia-2', 'cmrec6tgu0005o6qzvusvgjx0', 'Siti Rahayu');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('tw-daiso-taiwan-1', 'cmrec6tgy0006o6qzg994csnr', 'Chen Chih-Ming');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('tw-daiso-taiwan-2', 'cmrec6tgy0006o6qzg994csnr', 'Lin Mei-Ling');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('sg-daiso-singapore-1', 'cmrec6th10007o6qzmbnmalqt', 'Wei Ming Tan');
-INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('sg-daiso-singapore-2', 'cmrec6th10007o6qzmbnmalqt', 'Priya Sharma');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('jp-daiso-japan-trading-1', 'cmredk6as0000o60sk8eqyjk4', '高橋 直子');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('jp-daiso-japan-trading-2', 'cmredk6as0000o60sk8eqyjk4', '佐藤 健');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('us-daiso-usa-1', 'cmredk6bd0001o60s0wo76qxr', 'Robert Johnson');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('us-daiso-usa-2', 'cmredk6bd0001o60s0wo76qxr', 'Emily Davis');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('kr-daiso-korea-1', 'cmredk6bj0002o60st0gz3qju', 'Kim Min-jun');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('kr-daiso-korea-2', 'cmredk6bj0002o60st0gz3qju', 'Lee Seo-yeon');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('th-daiso-thailand-1', 'cmredk6bo0003o60s9i6jj6pj', 'Somchai Srisuk');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('th-daiso-thailand-2', 'cmredk6bo0003o60s9i6jj6pj', 'Nittaya Boonmee');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('vn-daiso-vietnam-1', 'cmredk6bt0004o60sbqoff9sc', 'Nguyen Van An');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('vn-daiso-vietnam-2', 'cmredk6bt0004o60sbqoff9sc', 'Tran Thi Hoa');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('id-daiso-indonesia-1', 'cmredk6bx0005o60s22dgq3xw', 'Budi Santoso');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('id-daiso-indonesia-2', 'cmredk6bx0005o60s22dgq3xw', 'Siti Rahayu');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('tw-daiso-taiwan-1', 'cmredk6c20006o60s8d5hj108', 'Chen Chih-Ming');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('tw-daiso-taiwan-2', 'cmredk6c20006o60s8d5hj108', 'Lin Mei-Ling');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('sg-daiso-singapore-1', 'cmredk6c60007o60sscvsnegq', 'Wei Ming Tan');
+INSERT INTO public."AnnouncementRecipient" (id, "companyId", "contactName") VALUES ('sg-daiso-singapore-2', 'cmredk6c60007o60sscvsnegq', 'Priya Sharma');
 
 
 ALTER TABLE public."AnnouncementRecipient" ENABLE TRIGGER ALL;
@@ -101,53 +102,53 @@ ALTER TABLE public."AnnouncementRecipient" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."AnnouncementRecipientStatus" DISABLE TRIGGER ALL;
 
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tk3000co6qzkuvofnn7', 'seed-announcement-001', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tk9000eo6qzyb83w6gr', 'seed-announcement-001', 'us-daiso-usa-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkd000go6qzh08rh0t2', 'seed-announcement-001', 'kr-daiso-korea-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkh000io6qznbj5m3yd', 'seed-announcement-001', 'th-daiso-thailand-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkl000ko6qz9ml7eqe2', 'seed-announcement-001', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkn000mo6qz0k0hx7fr', 'seed-announcement-001', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkq000oo6qza9ygmxcc', 'seed-announcement-001', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkt000qo6qzd4cghyam', 'seed-announcement-001', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkw000so6qzw133gnzs', 'seed-announcement-001', 'jp-daiso-japan-trading-2', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tkz000uo6qzao8v5x1s', 'seed-announcement-001', 'us-daiso-usa-2', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tl2000wo6qzu114uonc', 'seed-announcement-002', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tl5000yo6qz3c1ny8u6', 'seed-announcement-002', 'jp-daiso-japan-trading-2', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tl80010o6qzo6qel9ui', 'seed-announcement-002', 'us-daiso-usa-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tlb0012o6qzb76426rp', 'seed-announcement-002', 'us-daiso-usa-2', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tld0014o6qz0y0asar6', 'seed-announcement-002', 'kr-daiso-korea-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tlg0016o6qzimq18jx9', 'seed-announcement-002', 'th-daiso-thailand-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tlk0018o6qz2ebo7jir', 'seed-announcement-002', 'th-daiso-thailand-2', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tln001ao6qzkxh1kvah', 'seed-announcement-002', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tlq001co6qzlr16an73', 'seed-announcement-002', 'vn-daiso-vietnam-2', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tlu001eo6qz4tphvke7', 'seed-announcement-002', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tlx001go6qzl26mirb2', 'seed-announcement-002', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tm0001io6qzp99538lq', 'seed-announcement-002', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tm3001ko6qzwjoitugk', 'seed-announcement-003', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tm8001mo6qzbq5udgbd', 'seed-announcement-003', 'us-daiso-usa-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmc001oo6qzmjoh92k7', 'seed-announcement-003', 'kr-daiso-korea-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmf001qo6qz7cqrw727', 'seed-announcement-003', 'th-daiso-thailand-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmj001so6qz48yx2wz5', 'seed-announcement-003', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmn001uo6qz0ul88sep', 'seed-announcement-003', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmr001wo6qznbxt42md', 'seed-announcement-003', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmv001yo6qzt5k0n4gn', 'seed-announcement-003', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tmz0020o6qzgx4dciz3', 'seed-announcement-004', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tn30022o6qzxe2ms9kf', 'seed-announcement-004', 'us-daiso-usa-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tn70024o6qzz2n7dawu', 'seed-announcement-004', 'kr-daiso-korea-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tnb0026o6qzgluue87a', 'seed-announcement-004', 'th-daiso-thailand-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tng0028o6qz2h56ftyh', 'seed-announcement-004', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tnl002ao6qzhd5wzkiu', 'seed-announcement-004', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tno002co6qz0yuqi1e1', 'seed-announcement-004', 'id-daiso-indonesia-2', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tnt002eo6qz21heown0', 'seed-announcement-004', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tnx002go6qzcr34jnop', 'seed-announcement-004', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6to2002io6qzogels835', 'seed-announcement-005', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6to5002ko6qzghxiaedv', 'seed-announcement-005', 'us-daiso-usa-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6to9002mo6qz6o15bftv', 'seed-announcement-005', 'kr-daiso-korea-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tod002oo6qzngo7dc38', 'seed-announcement-005', 'th-daiso-thailand-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6toh002qo6qzkph4krtx', 'seed-announcement-005', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, '2026-07-05 00:00:00');
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tok002so6qzj1bjmp66', 'seed-announcement-005', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, '2026-07-05 00:00:00');
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6ton002uo6qzkjdc5atp', 'seed-announcement-005', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
-INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmrec6tor002wo6qzpq32g1sh', 'seed-announcement-005', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6h0000co60s7yejh9ec', 'seed-announcement-001', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6h8000eo60st4l8pa1x', 'seed-announcement-001', 'us-daiso-usa-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6hd000go60skauvgnml', 'seed-announcement-001', 'kr-daiso-korea-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6hh000io60su3yblerl', 'seed-announcement-001', 'th-daiso-thailand-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6hn000ko60soninhkyu', 'seed-announcement-001', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6hs000mo60sw2ioryuv', 'seed-announcement-001', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6hx000oo60szxqsto99', 'seed-announcement-001', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6i1000qo60sf0wodsg9', 'seed-announcement-001', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6i5000so60sipo2np9y', 'seed-announcement-001', 'jp-daiso-japan-trading-2', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6ia000uo60shjwm66ov', 'seed-announcement-001', 'us-daiso-usa-2', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6if000wo60shpspk2fd', 'seed-announcement-002', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6ij000yo60s7lyl5cwc', 'seed-announcement-002', 'jp-daiso-japan-trading-2', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6in0010o60s6iy0rcl9', 'seed-announcement-002', 'us-daiso-usa-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6is0012o60s0jrfdo5d', 'seed-announcement-002', 'us-daiso-usa-2', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6iw0014o60sfq9lt9j0', 'seed-announcement-002', 'kr-daiso-korea-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6j10016o60s74rldp3l', 'seed-announcement-002', 'th-daiso-thailand-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6j50018o60syfqjfzz2', 'seed-announcement-002', 'th-daiso-thailand-2', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6ja001ao60sesulae4y', 'seed-announcement-002', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6je001co60s4yf67vvk', 'seed-announcement-002', 'vn-daiso-vietnam-2', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6jj001eo60sni96ru5h', 'seed-announcement-002', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6jo001go60sbubnonfb', 'seed-announcement-002', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6js001io60sm429l8x8', 'seed-announcement-002', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6jx001ko60s9xzj6rg6', 'seed-announcement-003', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6k1001mo60siombig2f', 'seed-announcement-003', 'us-daiso-usa-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6k5001oo60smhtrv2xg', 'seed-announcement-003', 'kr-daiso-korea-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6ka001qo60ss8ciku8e', 'seed-announcement-003', 'th-daiso-thailand-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6kf001so60s70ho67ri', 'seed-announcement-003', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6kj001uo60skjg18czw', 'seed-announcement-003', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6ko001wo60sewgf4gj0', 'seed-announcement-003', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6kt001yo60sm0munmbz', 'seed-announcement-003', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6kz0020o60sziqxma5k', 'seed-announcement-004', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6l40022o60sijm4796t', 'seed-announcement-004', 'us-daiso-usa-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6la0024o60sadkhaahl', 'seed-announcement-004', 'kr-daiso-korea-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6lf0026o60spbaccn22', 'seed-announcement-004', 'th-daiso-thailand-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6lk0028o60s47k0l63q', 'seed-announcement-004', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6lp002ao60sn0gh0h5o', 'seed-announcement-004', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6lv002co60srcv4pheb', 'seed-announcement-004', 'id-daiso-indonesia-2', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6m0002eo60su1fk97o6', 'seed-announcement-004', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6m6002go60s77u5p6ug', 'seed-announcement-004', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6md002io60sk37igzgr', 'seed-announcement-005', 'jp-daiso-japan-trading-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6ml002ko60sp8gj6uiz', 'seed-announcement-005', 'us-daiso-usa-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6mq002mo60sid2yghag', 'seed-announcement-005', 'kr-daiso-korea-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6mv002oo60ski1s2rny', 'seed-announcement-005', 'th-daiso-thailand-1', '2026-07-02 03:00:00', '2026-07-02 05:00:00', NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6n0002qo60s2w4exzy2', 'seed-announcement-005', 'vn-daiso-vietnam-1', '2026-07-02 03:00:00', NULL, '2026-07-05 00:00:00');
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6n5002so60sgjx5q2gi', 'seed-announcement-005', 'id-daiso-indonesia-1', '2026-07-02 03:00:00', NULL, '2026-07-05 00:00:00');
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6na002uo60skvwuxtka', 'seed-announcement-005', 'tw-daiso-taiwan-1', '2026-07-02 03:00:00', NULL, NULL);
+INSERT INTO public."AnnouncementRecipientStatus" (id, "announcementId", "recipientId", "confirmedAt", "completedAt", "reminderSentAt") VALUES ('cmredk6nf002wo60stv58gr8b', 'seed-announcement-005', 'sg-daiso-singapore-1', '2026-07-02 03:00:00', NULL, NULL);
 
 
 ALTER TABLE public."AnnouncementRecipientStatus" ENABLE TRIGGER ALL;
@@ -158,7 +159,7 @@ ALTER TABLE public."AnnouncementRecipientStatus" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."ApplicantUser" DISABLE TRIGGER ALL;
 
-INSERT INTO public."ApplicantUser" (id, email, "passwordHash", "displayName", "companyId", "createdAt") VALUES ('cmrec6th70009o6qzjy7cfc7m', 'applicant@daiso-vietnam.example.com', '$2b$10$0n6pzCW4mSl3018XUhVEn.zrDTA6HgAUv7s4qmX8OiFMIcsYfO2nW', 'Nguyen Van A', 'cmrec6tgr0004o6qzycmcy5d9', '2026-07-10 02:48:53.179');
+INSERT INTO public."ApplicantUser" (id, email, "passwordHash", "displayName", "companyId", "createdAt") VALUES ('cmredk6cb0009o60sh08f1u4n', 'applicant@daiso-vietnam.example.com', '$2b$10$yOAFDi7ySQ7qfs.yXsBuNOfZ3ZFS6YJbdPq194ayEjCLACUfEnFda', 'Nguyen Van A', 'cmredk6bt0004o60sbqoff9sc', '2026-07-10 03:27:15.995');
 
 
 ALTER TABLE public."ApplicantUser" ENABLE TRIGGER ALL;
@@ -184,18 +185,18 @@ ALTER TABLE public."Document" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."Faq" DISABLE TRIGGER ALL;
 
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-001', 'inquiry_method', 'ヘルプデスクへの問い合わせはどの方法で行えば良いですか。', 'ポータル上の「問い合わせ申請」ページから、案件種別・緊急度・内容を入力して送信してください。メールや電話での問い合わせは受け付けておりません。', '2026-07-10 02:48:53.476');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-002', 'inquiry_method', '複数の案件をまとめて1件の問い合わせとして送信できますか。', '1件の問い合わせにつき1つの案件のみご記入ください。複数の案件がある場合は、それぞれ個別に問い合わせを作成してください。', '2026-07-10 02:48:53.481');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-003', 'inquiry_method', '緊急度の高い問い合わせを行った場合、対応は早くなりますか。', '緊急度は対応の優先順位付けの参考情報として利用しますが、対応順序や対応完了時期を保証するものではありません。緊急性の高い内容は具体的な状況を本文に記載してください。', '2026-07-10 02:48:53.483');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-004', 'form_input', '問い合わせフォームの「原文言語」は何のために入力しますか。', '「原文言語」は、問い合わせ内容（自由記述）が元々どの言語で書かれているかを示す項目です。ヘルプデスク側での翻訳・確認作業に利用します。', '2026-07-10 02:48:53.486');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-005', 'form_input', '自由記述欄の文字数に上限はありますか。', '自由記述欄には文字数の上限があります。入力欄の下に表示される残り文字数を確認しながら入力し、上限を超える場合は内容を要約して記載してください。', '2026-07-10 02:48:53.49');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-006', 'form_input', '会社名や国の情報は毎回入力する必要がありますか。', '現在のフェーズでは問い合わせごとに会社名・国を入力していただく仕様となっています。入力内容に誤りがあると対応が遅れる可能性がありますので、正確にご入力ください。', '2026-07-10 02:48:53.493');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-007', 'status', '送信した問い合わせの対応状況はどこで確認できますか。', '「問い合わせ一覧」ページで、自社が送信した問い合わせの対応状況（新規・対応中・解決済み）を確認できます。', '2026-07-10 02:48:53.497');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-008', 'status', '「対応中」から「解決済み」に変わるまでの目安期間はどれくらいですか。', '案件の内容や混雑状況により対応期間は異なるため、一律の目安期間は設けておりません。進捗が気になる場合は、問い合わせ一覧の詳細画面をご確認ください。', '2026-07-10 02:48:53.501');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-009', 'status', '解決済みになった問い合わせについて、追加で質問したい場合はどうすれば良いですか。', '解決済みの問い合わせに対する追記機能は現在提供しておりません。追加で確認したい内容がある場合は、新規の問い合わせとして改めて送信してください。', '2026-07-10 02:48:53.504');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-010', 'other', 'ポータルの表示言語はどこで切り替えられますか。', '画面上部のヘッダーにある言語切り替えメニューから、日本語・英語の表示を切り替えることができます。', '2026-07-10 02:48:53.507');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-011', 'other', 'ポータルにログインできない場合はどうすれば良いですか。', 'ログインに関するトラブルは、社内の情報システム管理者または導入時にご案内した連絡先にお問い合わせください。本ポータルの問い合わせフォームでは対応できません。', '2026-07-10 02:48:53.511');
-INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-012', 'other', 'リンク集やお知らせの内容はどのくらいの頻度で更新されますか。', 'リンク集やお知らせは、ヘルプデスク側で随時更新しています。更新頻度は内容によって異なり、一定のスケジュールは定めていません。', '2026-07-10 02:48:53.514');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-001', 'inquiry_method', 'ヘルプデスクへの問い合わせはどの方法で行えば良いですか。', 'ポータル上の「問い合わせ申請」ページから、案件種別・緊急度・内容を入力して送信してください。メールや電話での問い合わせは受け付けておりません。', '2026-07-10 03:27:16.429');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-002', 'inquiry_method', '複数の案件をまとめて1件の問い合わせとして送信できますか。', '1件の問い合わせにつき1つの案件のみご記入ください。複数の案件がある場合は、それぞれ個別に問い合わせを作成してください。', '2026-07-10 03:27:16.436');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-003', 'inquiry_method', '緊急度の高い問い合わせを行った場合、対応は早くなりますか。', '緊急度は対応の優先順位付けの参考情報として利用しますが、対応順序や対応完了時期を保証するものではありません。緊急性の高い内容は具体的な状況を本文に記載してください。', '2026-07-10 03:27:16.441');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-004', 'form_input', '問い合わせフォームの「原文言語」は何のために入力しますか。', '「原文言語」は、問い合わせ内容（自由記述）が元々どの言語で書かれているかを示す項目です。ヘルプデスク側での翻訳・確認作業に利用します。', '2026-07-10 03:27:16.445');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-005', 'form_input', '自由記述欄の文字数に上限はありますか。', '自由記述欄には文字数の上限があります。入力欄の下に表示される残り文字数を確認しながら入力し、上限を超える場合は内容を要約して記載してください。', '2026-07-10 03:27:16.45');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-006', 'form_input', '会社名や国の情報は毎回入力する必要がありますか。', '現在のフェーズでは問い合わせごとに会社名・国を入力していただく仕様となっています。入力内容に誤りがあると対応が遅れる可能性がありますので、正確にご入力ください。', '2026-07-10 03:27:16.454');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-007', 'status', '送信した問い合わせの対応状況はどこで確認できますか。', '「問い合わせ一覧」ページで、自社が送信した問い合わせの対応状況（新規・対応中・解決済み）を確認できます。', '2026-07-10 03:27:16.459');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-008', 'status', '「対応中」から「解決済み」に変わるまでの目安期間はどれくらいですか。', '案件の内容や混雑状況により対応期間は異なるため、一律の目安期間は設けておりません。進捗が気になる場合は、問い合わせ一覧の詳細画面をご確認ください。', '2026-07-10 03:27:16.463');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-009', 'status', '解決済みになった問い合わせについて、追加で質問したい場合はどうすれば良いですか。', '解決済みの問い合わせに対する追記機能は現在提供しておりません。追加で確認したい内容がある場合は、新規の問い合わせとして改めて送信してください。', '2026-07-10 03:27:16.468');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-010', 'other', 'ポータルの表示言語はどこで切り替えられますか。', '画面上部のヘッダーにある言語切り替えメニューから、日本語・英語の表示を切り替えることができます。', '2026-07-10 03:27:16.472');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-011', 'other', 'ポータルにログインできない場合はどうすれば良いですか。', 'ログインに関するトラブルは、社内の情報システム管理者または導入時にご案内した連絡先にお問い合わせください。本ポータルの問い合わせフォームでは対応できません。', '2026-07-10 03:27:16.476');
+INSERT INTO public."Faq" (id, category, question, answer, "createdAt") VALUES ('seed-faq-012', 'other', 'リンク集やお知らせの内容はどのくらいの頻度で更新されますか。', 'リンク集やお知らせは、ヘルプデスク側で随時更新しています。更新頻度は内容によって異なり、一定のスケジュールは定めていません。', '2026-07-10 03:27:16.48');
 
 
 ALTER TABLE public."Faq" ENABLE TRIGGER ALL;
@@ -206,7 +207,7 @@ ALTER TABLE public."Faq" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."HelpdeskStaff" DISABLE TRIGGER ALL;
 
-INSERT INTO public."HelpdeskStaff" (id, email, "passwordHash", "displayName", "createdAt") VALUES ('cmrec6thh000ao6qzq1g2dspf', 'staff@helpdesk.example.com', '$2b$10$0n6pzCW4mSl3018XUhVEn.zrDTA6HgAUv7s4qmX8OiFMIcsYfO2nW', '田中 太郎', '2026-07-10 02:48:53.189');
+INSERT INTO public."HelpdeskStaff" (id, email, "passwordHash", "displayName", "createdAt") VALUES ('cmredk6ci000ao60sz711djfc', 'staff@helpdesk.example.com', '$2b$10$yOAFDi7ySQ7qfs.yXsBuNOfZ3ZFS6YJbdPq194ayEjCLACUfEnFda', '田中 太郎', '2026-07-10 03:27:16.002');
 
 
 ALTER TABLE public."HelpdeskStaff" ENABLE TRIGGER ALL;
@@ -217,7 +218,17 @@ ALTER TABLE public."HelpdeskStaff" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."Inquiry" DISABLE TRIGGER ALL;
 
-INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('seed-inquiry-001', 'defect', 'high', 'Ho Chi Minh City', '納品された商品に破損が見られます。至急対応をお願いします。', 'ja', NULL, 'new', '2026-07-10 02:48:53.196', 'cmrec6tgr0004o6qzycmcy5d9', 'Daiso Vietnam Co., Ltd.', 'VN', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('seed-inquiry-001', 'defect', 'high', 'Ho Chi Minh City', '納品された商品に破損が見られます。至急対応をお願いします。', 'ja', NULL, 'new', '2026-07-10 03:27:16.009', 'cmredk6bt0004o60sbqoff9sc', 'Daiso Vietnam Co., Ltd.', 'VN', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-001', 'defect', 'high', 'Kanto', '店舗に納品された商品の一部に破損が見られます。至急対応をお願いします。', 'ja', NULL, 'new', '2026-06-28 18:15:00', 'cmredk6as0000o60sk8eqyjk4', 'Daiso Japan Trading Co.', 'JP', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-002', 'order', 'medium', 'West Coast', 'We would like to place an additional order for next month''s shipment.', 'en', '来月分の配送に向けて追加発注をお願いしたいです。', 'in_progress', '2026-06-25 23:30:00', 'cmredk6bd0001o60s0wo76qxr', 'Daiso USA Inc.', 'US', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-003', 'system', 'high', 'Seoul', '포털 시스템에 로그인할 수 없는 문제가 발생하고 있습니다.', 'ko', 'ポータルシステムにログインできない問題が発生しています。', 'new', '2026-06-29 11:45:00', 'cmredk6bj0002o60st0gz3qju', 'Daiso Korea Co., Ltd.', 'KR', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-004', 'other', 'low', 'Bangkok', '次回の販促キャンペーンに関する資料の共有をお願いしたいです。', 'ja', NULL, 'resolved', '2026-06-10 15:00:00', 'cmredk6bo0003o60s9i6jj6pj', 'Daiso Thailand Co., Ltd.', 'TH', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-005', 'defect', 'medium', 'Taipei', '部分商品外包裝有輕微破損，請確認是否需要更換。', 'zh', '一部商品の外装に軽微な破損が見られます。交換の必要があるかご確認ください。', 'in_progress', '2026-06-20 20:20:00', 'cmredk6c20006o60s8d5hj108', 'Daiso Taiwan Co., Ltd.', 'TW', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-006', 'order', 'low', 'Singapore', 'Could you confirm the estimated delivery date for order #4821?', 'en', '注文番号#4821の配送予定日をご確認いただけますでしょうか。', 'resolved', '2026-05-30 17:10:00', 'cmredk6c60007o60sscvsnegq', 'Daiso Singapore Pte. Ltd.', 'SG', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-007', 'system', 'low', 'Ho Chi Minh City', 'Trang cổng thông tin hiển thị chậm khi tải danh sách đơn hàng.', 'vi', 'ポータルサイトで注文一覧を読み込む際の表示が遅くなっています。', 'new', '2026-06-27 22:05:00', 'cmredk6bt0004o60sbqoff9sc', 'Daiso Vietnam Co., Ltd.', 'VN', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-008', 'other', 'medium', 'Jakarta', 'Kami ingin menanyakan mengenai perpanjangan kontrak distribusi.', 'id', '販売契約の更新についてお伺いしたいです。', 'in_progress', '2026-06-15 14:40:00', 'cmredk6bx0005o60s22dgq3xw', 'Daiso Indonesia Co., Ltd.', 'ID', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-009', 'order', 'medium', 'Da Nang', 'Chúng tôi muốn đặt thêm hàng cho đợt giao tháng sau.', 'vi', '来月分の配送に向けて追加発注をお願いしたいです。', 'in_progress', '2026-06-22 18:30:00', 'cmredk6bt0004o60sbqoff9sc', 'Daiso Vietnam Co., Ltd.', 'VN', NULL, NULL);
+INSERT INTO public."Inquiry" (id, category, urgency, "storeRegion", "originalText", "originalLanguage", "translatedText", status, "createdAt", "companyId", "submittedByCompanyName", "submittedByCountry", "claimedByStaffId", "claimedAt") VALUES ('inquiry-010', 'defect', 'high', 'Hanoi', 'Sản phẩm giao đến bị lỗi, đã được đổi trả và xử lý xong.', 'vi', '納品された商品に不具合があり、交換・対応は既に完了しております。', 'resolved', '2026-06-05 11:15:00', 'cmredk6bt0004o60sbqoff9sc', 'Daiso Vietnam Co., Ltd.', 'VN', NULL, NULL);
 
 
 ALTER TABLE public."Inquiry" ENABLE TRIGGER ALL;
@@ -248,17 +259,17 @@ ALTER TABLE public."InquiryAttachment" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."Link" DISABLE TRIGGER ALL;
 
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-001', '社内ポータル（グループウェア）', 'https://example.com/internal/groupware', 'internal', 'スケジュール管理・社内連絡に使用する社内ポータルです。', '2026-07-10 02:48:53.517');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-002', '販売管理システム', 'https://example.com/internal/sales-system', 'internal', '受発注状況・在庫状況を確認できる販売管理システムです。', '2026-07-10 02:48:53.524');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-003', '勤怠管理システム', 'https://example.com/internal/attendance', 'internal', NULL, '2026-07-10 02:48:53.528');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-004', 'Daiso公式サイト', 'https://example.com/external/daiso-official', 'external', '商品情報・店舗情報を掲載する公式サイトです。', '2026-07-10 02:48:53.532');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-005', '取引先向けサプライヤーポータル', 'https://example.com/external/supplier-portal', 'external', '取引先企業との連携に利用する外部ポータルです。', '2026-07-10 02:48:53.536');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-006', '為替レート情報サイト', 'https://example.com/external/exchange-rate', 'external', NULL, '2026-07-10 02:48:53.541');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-007', '販社担当者向け業務マニュアル', 'https://example.com/document/operation-manual.pdf', 'document', '日常業務の手順をまとめたマニュアルです。', '2026-07-10 02:48:53.545');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-008', '問い合わせ対応フローチャート', 'https://example.com/document/inquiry-flowchart.pdf', 'document', '問い合わせ受付から解決までの対応フローです。', '2026-07-10 02:48:53.549');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-009', 'よくある質問集（FAQ）', 'https://example.com/document/faq.pdf', 'document', NULL, '2026-07-10 02:48:53.552');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-010', 'ヘルプデスク連絡先一覧', 'https://example.com/other/contact-list', 'other', '各拠点のヘルプデスク窓口の連絡先一覧です。', '2026-07-10 02:48:53.555');
-INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-011', 'システム利用規約', 'https://example.com/other/terms-of-use', 'other', NULL, '2026-07-10 02:48:53.559');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-001', '社内ポータル（グループウェア）', 'https://example.com/internal/groupware', 'internal', 'スケジュール管理・社内連絡に使用する社内ポータルです。', '2026-07-10 03:27:16.485');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-002', '販売管理システム', 'https://example.com/internal/sales-system', 'internal', '受発注状況・在庫状況を確認できる販売管理システムです。', '2026-07-10 03:27:16.492');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-003', '勤怠管理システム', 'https://example.com/internal/attendance', 'internal', NULL, '2026-07-10 03:27:16.496');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-004', 'Daiso公式サイト', 'https://example.com/external/daiso-official', 'external', '商品情報・店舗情報を掲載する公式サイトです。', '2026-07-10 03:27:16.501');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-005', '取引先向けサプライヤーポータル', 'https://example.com/external/supplier-portal', 'external', '取引先企業との連携に利用する外部ポータルです。', '2026-07-10 03:27:16.506');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-006', '為替レート情報サイト', 'https://example.com/external/exchange-rate', 'external', NULL, '2026-07-10 03:27:16.51');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-007', '販社担当者向け業務マニュアル', 'https://example.com/document/operation-manual.pdf', 'document', '日常業務の手順をまとめたマニュアルです。', '2026-07-10 03:27:16.514');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-008', '問い合わせ対応フローチャート', 'https://example.com/document/inquiry-flowchart.pdf', 'document', '問い合わせ受付から解決までの対応フローです。', '2026-07-10 03:27:16.518');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-009', 'よくある質問集（FAQ）', 'https://example.com/document/faq.pdf', 'document', NULL, '2026-07-10 03:27:16.523');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-010', 'ヘルプデスク連絡先一覧', 'https://example.com/other/contact-list', 'other', '各拠点のヘルプデスク窓口の連絡先一覧です。', '2026-07-10 03:27:16.527');
+INSERT INTO public."Link" (id, title, url, category, description, "createdAt") VALUES ('seed-link-011', 'システム利用規約', 'https://example.com/other/terms-of-use', 'other', NULL, '2026-07-10 03:27:16.531');
 
 
 ALTER TABLE public."Link" ENABLE TRIGGER ALL;
@@ -269,13 +280,13 @@ ALTER TABLE public."Link" ENABLE TRIGGER ALL;
 
 ALTER TABLE public."ReplyTemplate" DISABLE TRIGGER ALL;
 
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-001', 'defect', '不良品対応（交換・返金案内）', 'この度はご不便をおかけし申し訳ございません。不良品の詳細を確認のうえ、交換または返金の対応についてご案内いたします。', '2026-07-10 02:48:53.563');
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-002', 'defect', '不良品対応（詳細確認依頼）', 'お問い合わせいただいた不良の状況について、恐れ入りますが写真または詳細な症状をご共有いただけますでしょうか。確認のうえ改めてご案内いたします。', '2026-07-10 02:48:53.569');
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-003', 'order', '発注内容確認（発送日未定）', 'お問い合わせいただいた発注内容について確認いたしました。発送予定日が確定次第、改めてご連絡いたします。', '2026-07-10 02:48:53.574');
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-004', 'order', '発注内容確認（発送日確定案内）', 'ご注文いただいた商品の発送日が確定いたしましたのでご案内いたします。発送後、追跡番号を別途ご連絡いたします。', '2026-07-10 02:48:53.577');
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-005', 'system', 'システム不具合（受付・調査中）', 'システムの不具合について報告いただきありがとうございます。現在状況を確認しておりますので、今しばらくお待ちください。', '2026-07-10 02:48:53.581');
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-006', 'system', 'システム不具合（対応完了報告）', 'ご報告いただいたシステムの不具合について、修正対応が完了いたしましたのでご報告いたします。ご不便をおかけし申し訳ございませんでした。', '2026-07-10 02:48:53.584');
-INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-007', 'other', 'その他問い合わせ（受付案内）', 'お問い合わせいただきありがとうございます。内容を確認のうえ、担当部署より改めてご連絡いたします。', '2026-07-10 02:48:53.587');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-001', 'defect', '不良品対応（交換・返金案内）', 'この度はご不便をおかけし申し訳ございません。不良品の詳細を確認のうえ、交換または返金の対応についてご案内いたします。', '2026-07-10 03:27:16.535');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-002', 'defect', '不良品対応（詳細確認依頼）', 'お問い合わせいただいた不良の状況について、恐れ入りますが写真または詳細な症状をご共有いただけますでしょうか。確認のうえ改めてご案内いたします。', '2026-07-10 03:27:16.542');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-003', 'order', '発注内容確認（発送日未定）', 'お問い合わせいただいた発注内容について確認いたしました。発送予定日が確定次第、改めてご連絡いたします。', '2026-07-10 03:27:16.552');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-004', 'order', '発注内容確認（発送日確定案内）', 'ご注文いただいた商品の発送日が確定いたしましたのでご案内いたします。発送後、追跡番号を別途ご連絡いたします。', '2026-07-10 03:27:16.56');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-005', 'system', 'システム不具合（受付・調査中）', 'システムの不具合について報告いただきありがとうございます。現在状況を確認しておりますので、今しばらくお待ちください。', '2026-07-10 03:27:16.565');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-006', 'system', 'システム不具合（対応完了報告）', 'ご報告いただいたシステムの不具合について、修正対応が完了いたしましたのでご報告いたします。ご不便をおかけし申し訳ございませんでした。', '2026-07-10 03:27:16.571');
+INSERT INTO public."ReplyTemplate" (id, category, name, body, "createdAt") VALUES ('seed-reply-template-007', 'other', 'その他問い合わせ（受付案内）', 'お問い合わせいただきありがとうございます。内容を確認のうえ、担当部署より改めてご連絡いたします。', '2026-07-10 03:27:16.576');
 
 
 ALTER TABLE public."ReplyTemplate" ENABLE TRIGGER ALL;
