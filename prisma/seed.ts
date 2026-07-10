@@ -43,6 +43,9 @@ const ANNOUNCEMENT_SEEDS = [
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     actionRequired: true,
+    publishStartDate: null as string | null,
+    publishEndDate: null as string | null,
+    dueDate: "2026-07-14" as string | null,
   },
   {
     id: "seed-announcement-002",
@@ -53,6 +56,9 @@ const ANNOUNCEMENT_SEEDS = [
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     actionRequired: false,
+    publishStartDate: null as string | null,
+    publishEndDate: "2026-12-31" as string | null,
+    dueDate: null as string | null,
   },
   {
     id: "seed-announcement-003",
@@ -63,6 +69,9 @@ const ANNOUNCEMENT_SEEDS = [
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     actionRequired: true,
+    publishStartDate: null as string | null,
+    publishEndDate: null as string | null,
+    dueDate: "2026-07-20" as string | null,
   },
   {
     id: "seed-announcement-004",
@@ -73,6 +82,9 @@ const ANNOUNCEMENT_SEEDS = [
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     actionRequired: false,
+    publishStartDate: null as string | null,
+    publishEndDate: null as string | null,
+    dueDate: null as string | null,
   },
   {
     id: "seed-announcement-005",
@@ -83,6 +95,22 @@ const ANNOUNCEMENT_SEEDS = [
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     actionRequired: true,
+    publishStartDate: null as string | null,
+    publishEndDate: null as string | null,
+    dueDate: "2026-06-17" as string | null,
+  },
+  {
+    id: "seed-announcement-006",
+    title: "【公開予定】次期ポータル機能の事前案内",
+    publishedAt: "2026-07-08T09:00:00Z",
+    category: "policy" as const,
+    body: "公開開始日が未来に設定されたお知らせの動作確認用データです。海外販社側には公開開始日前は表示されません。",
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    actionRequired: false,
+    publishStartDate: "2099-01-01" as string | null,
+    publishEndDate: null as string | null,
+    dueDate: null as string | null,
   },
 ];
 
@@ -251,6 +279,9 @@ async function seedAnnouncements(): Promise<void> {
         actionRequired: seed.actionRequired,
         targetingScope: seed.targetingScope,
         targetingCountries: seed.targetingCountries,
+        publishStartDate: seed.publishStartDate ? new Date(seed.publishStartDate) : null,
+        publishEndDate: seed.publishEndDate ? new Date(seed.publishEndDate) : null,
+        dueDate: seed.dueDate ? new Date(seed.dueDate) : null,
       },
     });
   }
@@ -377,7 +408,7 @@ const FAQ_SEEDS = [
   {
     id: "seed-faq-001",
     category: "inquiry_method" as const,
-    question: "ヘルプデスクへの問い合わせはどの方法で行えば良いですか。",
+    question: "本社への問い合わせはどの方法で行えば良いですか。",
     answer:
       "ポータル上の「問い合わせ申請」ページから、案件種別・緊急度・内容を入力して送信してください。メールや電話での問い合わせは受け付けておりません。",
   },
@@ -400,7 +431,7 @@ const FAQ_SEEDS = [
     category: "form_input" as const,
     question: "問い合わせフォームの「原文言語」は何のために入力しますか。",
     answer:
-      "「原文言語」は、問い合わせ内容（自由記述）が元々どの言語で書かれているかを示す項目です。ヘルプデスク側での翻訳・確認作業に利用します。",
+      "「原文言語」は、問い合わせ内容（自由記述）が元々どの言語で書かれているかを示す項目です。本社側での翻訳・確認作業に利用します。",
   },
   {
     id: "seed-faq-005",
@@ -456,7 +487,7 @@ const FAQ_SEEDS = [
     category: "other" as const,
     question: "リンク集やお知らせの内容はどのくらいの頻度で更新されますか。",
     answer:
-      "リンク集やお知らせは、ヘルプデスク側で随時更新しています。更新頻度は内容によって異なり、一定のスケジュールは定めていません。",
+      "リンク集やお知らせは、本社側で随時更新しています。更新頻度は内容によって異なり、一定のスケジュールは定めていません。",
   },
 ];
 
@@ -542,10 +573,10 @@ const LINK_SEEDS = [
   },
   {
     id: "seed-link-010",
-    title: "ヘルプデスク連絡先一覧",
+    title: "本社連絡先一覧",
     url: "https://example.com/other/contact-list",
     category: "other" as const,
-    description: "各拠点のヘルプデスク窓口の連絡先一覧です。",
+    description: "各拠点の本社窓口の連絡先一覧です。",
   },
   {
     id: "seed-link-011",

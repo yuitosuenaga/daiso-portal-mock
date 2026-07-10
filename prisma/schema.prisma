@@ -133,6 +133,9 @@ model Announcement {
   actionRequired     Boolean                       @default(false)
   targetingScope     AnnouncementTargetingScope    @default(all)
   targetingCountries String[]                      @default([])
+  publishStartDate   DateTime?                     @db.Date
+  publishEndDate     DateTime?                     @db.Date
+  dueDate            DateTime?                     @db.Date
   recipientStatuses  AnnouncementRecipientStatus[]
 }
 

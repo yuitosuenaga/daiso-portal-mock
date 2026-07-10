@@ -340,4 +340,82 @@
   - カテゴリ別絞り込み、作成・更新ロジックを検証するテストを追加する
   - Observable: 新規テストで、指定カテゴリ以外のテンプレートが絞り込み結果に含まれないことを確認できる
   - _Requirements: 22.1_
-  - _Depends: 26.1_
+
+## 追加ラウンド（2026-07-10）: mainブランチとの画面構成差分の統合（お知らせの公開期間・対応期限フィールド）
+
+- [x] 28. `main`ブランチのマージとお知らせ領域のPrismaスキーマ拡張
+- [x] 28.1 `git merge origin/main`の実行とコンフリクト解消
+  - `spec/backend-db-foundation`へ`origin/main`をマージし、`lib/api/announcements.ts`・`lib/api/faqs.ts`・`lib/api/links.ts`等のコンフリクトを、UI変更はmain優先・DB/session連携は自ブランチ優先の方針で解消する
+  - Observable: `git status`でコンフリクトマーカーが残っていないことを確認し、マージコミットを作成できる
+  - _Requirements: 26.1_
+
+- [x] 28.2 Announcementモデルへの公開期間・対応期限フィールド追加
+  - `schema.prisma`の`Announcement`に`publishStartDate`・`publishEndDate`・`dueDate`（いずれも`DateTime? @db.Date`）を追加する
+  - `prisma migrate dev`でマイグレーションを生成・適用する
+  - Observable: `prisma validate`が成功し、ローカルDBに新規カラムが反映される
+  - _Requirements: 25.1_
+  - _Depends: 28.1_
+
+- [x] 29. サービス層・マッパー層の拡張とテスト
+- [x] 29.1 announcement-mapper.ts / announcement-service.tsの拡張
+  - `mapAnnouncement`に3フィールドの`Date|null ⇄ "YYYY-MM-DD"|null`変換を追加する
+  - `createAnnouncementRecord`・`updateAnnouncementRecord`に3フィールドを渡す
+  - `listAnnouncementsVisibleToCountry`・`findAnnouncementVisibleToCountry`（申請者側）に公開期間フィルタ（`isWithinPublishPeriod`）を追加する。`listAllAnnouncements`・`findAnnouncementById`（ヘルプデスク側）には適用しない
+  - Observable: `getRecentAnnouncements`等が公開期間外のお知らせを除外し、ヘルプデスク側取得関数は全件を返す
+  - _Requirements: 25.2, 25.3, 25.4_
+  - _Depends: 28.2_
+
+- [x] 29.2 (P) announcement-service.test.tsへの新規テスト追加
+  - 公開期間フィルタ（開始日未到来・終了日超過・両方未設定・期間内）とヘルプデスク側の非絞り込みを検証するテストを追加する
+  - 作成時の公開期間・対応期限フィールドの列変換を検証するテストを追加する
+  - Observable: 新規テストが成功し、公開開始日が未来のお知らせが申請者側取得関数から除外されることを確認できる
+  - _Requirements: 26.3_
+  - _Depends: 29.1_
+
+- [x] 29.3 マージにより生じたテストファイルの整合
+  - `lib/api/announcements.test.ts`にmainからマージされた、実ストア前提の公開期間関連テストブロックを、本ブランチのモックサービス方式に合わない箇所を除去・調整する
+  - `lib/actions/announcements.test.ts`の日付フィールドnullケースのテストに、未設定だった`createAnnouncement`モックの戻り値を設定する
+  - Observable: `npx vitest run --exclude ".claude/worktrees/**"`が全件成功する
+  - _Requirements: 26.3_
+  - _Depends: 29.1_
+
+- [x] 30. シードデータの更新・再生成
+- [x] 30.1 prisma/seed.tsの更新
+  - 既存5件のお知らせに`main`と同一の`publishStartDate`/`publishEndDate`/`dueDate`を設定する
+  - 公開期間フィルタの動作確認用データ`seed-announcement-006`（公開開始日`2099-01-01`）を追加する
+  - FAQ・リンクのシード文言を`main`に合わせて「ヘルプデスク」→「本社」に更新する
+  - Observable: シード実行後、DBeaverまたは直接クエリで6件のお知らせと更新後の文言が確認できる
+  - _Requirements: 26.2_
+  - _Depends: 28.2_
+
+- [x] 30.2 prisma/seed.sqlの再生成
+  - クリーンな状態のローカルDBから`pg_dump --data-only --inserts --column-inserts`で再生成し、クリーンな一時DBへの復元でラウンドトリップ検証を行う
+  - Observable: 一時DBへの投入がエラーなく完了し、件数が`seed.ts`と一致する
+  - _Requirements: 26.2_
+  - _Depends: 30.1_
+
+- [x] 31. ローカル・リモート双方のDBへの反映
+- [x] 31.1 ローカルDBへの反映
+  - `prisma migrate reset --force`（ユーザー承認済み）でローカルDBを再構築し、`seed.ts`の内容と一致することを確認する
+  - Observable: `npx tsc --noEmit`・`npx vitest run`・`npm run lint`・`npx prisma validate`が全て成功する
+  - _Requirements: 25.1, 26.2, 26.3_
+  - _Depends: 30.2_
+
+- [x] 31.2 リモート（Cloud SQL）DBへの反映
+  - `cloud-sql-proxy`トンネル経由で`portal-mock-backend-db`に対し、マイグレーション適用とシードデータの反映を行う。`seed.ts`のupsertが既存行を上書きしない箇所（5件の既存お知らせの日付・FAQ/リンクの文言）は個別のUPDATEで反映する
+  - Observable: リモートDBのお知らせが6件になり、公開期間・対応期限の値・FAQ/リンクの文言がローカルと一致する
+  - _Requirements: 25.1, 26.2_
+  - _Depends: 31.1_
+
+- [x] 32. 最終検証とコミット
+- [x] 32.1 ローカル開発サーバーでの実機確認
+  - ダッシュボード再配置（Reminders from Japanパネル・Latest Announcements）、お知らせ作成・編集フォームの公開期間・対応期限入力、一覧でのdueDate表示・本文要約、ドキュメント一覧のインラインPDFプレビュー、ヘルプデスク側お知らせ管理一覧（6件表示・公開期間ラベル）を確認する
+  - Observable: 各画面が意図通りに表示・動作する。公開開始日が未来のお知らせが申請者側では非表示、ヘルプデスク側では表示されることを確認できる
+  - _Requirements: 26.1_
+  - _Depends: 31.1_
+
+- [ ] 32.2 コミット・push
+  - `spec/backend-db-foundation`へ本ラウンドの変更をコミットし、pushする
+  - Observable: `git status`がクリーンになり、リモートブランチに反映される
+  - _Requirements: 26.1, 26.2, 26.3_
+  - _Depends: 32.1_

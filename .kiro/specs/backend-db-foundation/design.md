@@ -1247,3 +1247,52 @@ interface ReplyTemplateService {
 ### Testing Strategy（追加分）
 - **Unit Tests**: `reply-template-service.ts`の各メソッド（カテゴリ別絞り込み、作成・更新）をPrisma Clientをモック化して検証する
 - **Integration Tests**: 既存の`src/lib/api/reply-templates.test.ts`は`reply-template-service`と`get-session`をvitestの`vi.mock`でモックし、既存のアサーション（カテゴリごとの絞り込み等）を維持する。`src/lib/actions/helpdesk.test.ts`のテンプレート関連describeブロックは`@/lib/api/reply-templates`をモックする方式に変更する
+
+## 追加ラウンド（2026-07-10）: mainブランチとの画面構成差分の統合（お知らせの公開期間・対応期限フィールド）
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Data Models |
+|---|---|---|---|---|
+| 25.1 | Announcementへの公開期間・対応期限フィールド追加 | Prisma Schema | — | Announcement |
+| 25.2-25.3 | 公開期間による申請者側絞り込み・ヘルプデスク側非絞り込み | AnnouncementService | Service Interface | — |
+| 25.4 | 作成・更新時の新規フィールド素通し | AnnouncementService | Service Interface | — |
+| 26.1 | main由来の型・zodスキーマの採用 | types/announcement.ts, validation/announcement.ts | — | — |
+| 26.2 | シードデータの拡張 | prisma/seed.ts, prisma/seed.sql | — | Announcement |
+| 26.3 | テストカバレッジの追加 | announcement-service.test.ts | — | — |
+
+### Components and Interfaces（追加分）
+
+#### AnnouncementService (`src/lib/server/announcement-service.ts`、拡張)
+
+| Field | Detail |
+|-------|--------|
+| Intent | 公開期間（`publishStartDate`/`publishEndDate`）による申請者側の表示制御を追加する |
+| Requirements | 25.2, 25.3, 25.4 |
+
+**Responsibilities & Constraints**
+- `listAnnouncementsVisibleToCountry`・`findAnnouncementVisibleToCountry`（申請者側）は、country絞り込みの後段で公開期間フィルタ（`isWithinPublishPeriod`）を適用する。ローカルタイムゾーンでの日付境界判定（`parseDateOnlyStartOfDay`/`parseDateOnlyEndOfDay`）は`main`の既存モック実装をそのまま移植する
+- `listAllAnnouncements`・`findAnnouncementById`（ヘルプデスク側）には公開期間フィルタを適用しない
+- `createAnnouncementRecord`・`updateAnnouncementRecord`は`publishStartDate`/`publishEndDate`/`dueDate`（ISO日付文字列 or null）をそのままDate型の列へ変換して渡す
+
+**Dependencies**
+- Outbound: PrismaClient (P0)
+- Inbound: lib/api/announcements.ts（互換層、シグネチャ変更なし）
+
+**Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Data Models（追加分）
+
+#### Physical Data Model（追加分）
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| Announcement | publishStartDate | date | nullable |
+| | publishEndDate | date | nullable |
+| | dueDate | date | nullable |
+
+- `@db.Date`列とし、時刻・タイムゾーン情報を持たない。Prisma上はUTC深夜0時のDateとして往復するため、文字列化は`toISOString().slice(0, 10)`で行う
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `announcement-service.test.ts`に、公開期間フィルタ（開始日未到来・終了日超過・両方未設定・期間内の各パターン）と、ヘルプデスク側関数が公開期間に関わらず全件を返すことを検証するテストケースを追加する
+- **Integration Tests**: `src/lib/api/announcements.test.ts`は既存のセッション委譲パターン（`@/lib/server/announcement-service`を`vi.fn()`でモック）を維持し、公開期間フィルタ自体の検証はサービス層のテストに委譲する

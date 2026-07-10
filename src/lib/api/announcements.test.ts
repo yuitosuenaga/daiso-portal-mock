@@ -228,122 +228,24 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
     expect(deleteAnnouncementRecord).toHaveBeenCalledWith("announcement-1");
   });
 
-  it("actionRequired・公開期間・対応期限を含む全フィールドを更新する", async () => {
-    const created = await createAnnouncement({
-      title: "更新確認用",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
-
-    await updateAnnouncement(created.id, {
-      title: created.title,
-      body: created.body,
-      category: created.category,
-      targeting: created.targeting,
+  it("公開期間・対応期限を含む入力をそのままcreateAnnouncementRecordへ渡す", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    const inputWithNewFields: CreateAnnouncementInput = {
+      ...input,
       actionRequired: true,
       publishStartDate: "2026-08-01",
       publishEndDate: "2026-08-31",
       dueDate: "2026-08-15",
-    });
+    };
+    vi.mocked(createAnnouncementRecord).mockResolvedValue(
+      announcement(inputWithNewFields)
+    );
 
-    const updated = await getAnnouncementByIdForHelpdesk(created.id);
-    expect(updated?.actionRequired).toBe(true);
-    expect(updated?.publishStartDate).toBe("2026-08-01");
-    expect(updated?.publishEndDate).toBe("2026-08-31");
-    expect(updated?.dueDate).toBe("2026-08-15");
-  });
-});
+    const result = await createAnnouncement(inputWithNewFields);
 
-describe("公開期間による表示制御", () => {
-  function isoDateOffset(days: number): string {
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    return date.toISOString().slice(0, 10);
-  }
-
-  it("公開期間が未設定の場合は常に表示される", async () => {
-    const created = await createAnnouncement({
-      title: "常時公開テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-    });
-
-    const result = await getAnnouncementById(created.id);
-    expect(result?.id).toBe(created.id);
-  });
-
-  it("公開開始日が未来の場合、申請者側取得関数から除外されヘルプデスク向けには表示される", async () => {
-    const created = await createAnnouncement({
-      title: "開始前テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      publishStartDate: isoDateOffset(5),
-    });
-
-    expect(await getAnnouncementById(created.id)).toBeNull();
-    const helpdeskResult = await getAnnouncementByIdForHelpdesk(created.id);
-    expect(helpdeskResult?.id).toBe(created.id);
-  });
-
-  it("公開終了日が過去の場合、申請者側取得関数から除外される", async () => {
-    const created = await createAnnouncement({
-      title: "終了後テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      publishEndDate: isoDateOffset(-5),
-    });
-
-    expect(await getAnnouncementById(created.id)).toBeNull();
-  });
-
-  it("公開期間内の場合は表示される", async () => {
-    const created = await createAnnouncement({
-      title: "期間内テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      publishStartDate: isoDateOffset(-5),
-      publishEndDate: isoDateOffset(5),
-    });
-
-    const result = await getAnnouncementById(created.id);
-    expect(result?.id).toBe(created.id);
-  });
-
-  it("getAllAnnouncementsは公開期間に関わらず全件を返す", async () => {
-    const created = await createAnnouncement({
-      title: "全件確認用",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      publishStartDate: isoDateOffset(5),
-    });
-
-    const all = await getAllAnnouncements();
-    expect(all.some((item) => item.id === created.id)).toBe(true);
-  });
-
-  it("getRecentAnnouncementsは公開期間外のお知らせを除外する", async () => {
-    const created = await createAnnouncement({
-      title: "ウィジェット除外テスト",
-      body: "本文",
-      category: "other",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      publishStartDate: isoDateOffset(5),
-    });
-
-    const recent = await getRecentAnnouncements({ limit: 100 });
-    expect(recent.some((item) => item.id === created.id)).toBe(false);
+    expect(createAnnouncementRecord).toHaveBeenCalledWith(inputWithNewFields);
+    expect(result.publishStartDate).toBe("2026-08-01");
+    expect(result.publishEndDate).toBe("2026-08-31");
+    expect(result.dueDate).toBe("2026-08-15");
   });
 });

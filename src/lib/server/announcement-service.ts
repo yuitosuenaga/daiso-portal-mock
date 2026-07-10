@@ -35,6 +35,31 @@ function visibleToCountryWhere(country: string): Prisma.AnnouncementWhereInput {
   };
 }
 
+function parseDateOnlyStartOfDay(isoDate: string): Date {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
+function parseDateOnlyEndOfDay(isoDate: string): Date {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day, 23, 59, 59, 999);
+}
+
+/** 公開開始日・終了日を基準に、現在時刻が公開期間内かどうかを判定する。 */
+function isWithinPublishPeriod(announcement: Announcement, referenceDate: Date): boolean {
+  if (announcement.publishStartDate) {
+    if (referenceDate < parseDateOnlyStartOfDay(announcement.publishStartDate)) {
+      return false;
+    }
+  }
+  if (announcement.publishEndDate) {
+    if (referenceDate > parseDateOnlyEndOfDay(announcement.publishEndDate)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** 配信対象（`targeting`）でスコープされた担当者を、所属会社込みで取得する。 */
 function targetRecipientsWhere(
   announcement: Pick<Announcement, "targeting">
@@ -54,7 +79,8 @@ export async function listAnnouncementsVisibleToCountry(
     orderBy: ORDER_BY_PUBLISHED_AT_DESC,
   });
 
-  return records.map(mapAnnouncement);
+  const now = new Date();
+  return records.map(mapAnnouncement).filter((item) => isWithinPublishPeriod(item, now));
 }
 
 /**
@@ -68,8 +94,12 @@ export async function findAnnouncementVisibleToCountry(
   const record = await prisma.announcement.findFirst({
     where: { id, ...visibleToCountryWhere(country) },
   });
+  if (!record) {
+    return null;
+  }
 
-  return record ? mapAnnouncement(record) : null;
+  const announcement = mapAnnouncement(record);
+  return isWithinPublishPeriod(announcement, new Date()) ? announcement : null;
 }
 
 /** 配信対象による絞り込みを行わず、お知らせ全件を公開日の降順で取得する。 */
@@ -88,6 +118,10 @@ export async function findAnnouncementById(id: string): Promise<Announcement | n
   return record ? mapAnnouncement(record) : null;
 }
 
+function dateOnlyToColumn(value: string | null | undefined): Date | null {
+  return value ? new Date(value) : null;
+}
+
 /** お知らせを新規作成する。公開日時は保存操作を行った時刻とする。 */
 export async function createAnnouncementRecord(
   input: CreateAnnouncementInput
@@ -99,6 +133,9 @@ export async function createAnnouncementRecord(
       category: input.category,
       actionRequired: input.actionRequired,
       ...targetingToColumns(input.targeting),
+      publishStartDate: dateOnlyToColumn(input.publishStartDate),
+      publishEndDate: dateOnlyToColumn(input.publishEndDate),
+      dueDate: dateOnlyToColumn(input.dueDate),
     },
   });
 
@@ -119,6 +156,9 @@ export async function updateAnnouncementRecord(
         category: input.category,
         actionRequired: input.actionRequired,
         ...targetingToColumns(input.targeting),
+        publishStartDate: dateOnlyToColumn(input.publishStartDate),
+        publishEndDate: dateOnlyToColumn(input.publishEndDate),
+        dueDate: dateOnlyToColumn(input.dueDate),
       },
     });
 

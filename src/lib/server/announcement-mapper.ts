@@ -36,6 +36,10 @@ export function targetingToColumns(targeting: AnnouncementTargeting): {
   return { targetingScope: "all", targetingCountries: [] };
 }
 
+function mapDateOnly(value: Date | null): string | null {
+  return value ? value.toISOString().slice(0, 10) : null;
+}
+
 export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
   return {
     id: record.id,
@@ -45,6 +49,9 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
     body: record.body,
     targeting: mapTargeting(record),
     actionRequired: record.actionRequired,
+    publishStartDate: mapDateOnly(record.publishStartDate),
+    publishEndDate: mapDateOnly(record.publishEndDate),
+    dueDate: mapDateOnly(record.dueDate),
   };
 }
 

@@ -85,6 +85,10 @@ describe("createAnnouncementAction", () => {
   });
 
   it("日付フィールドがnullで渡されても保存できる", async () => {
+    vi.mocked(createAnnouncement).mockResolvedValue(
+      announcement({ publishStartDate: null, publishEndDate: null, dueDate: null })
+    );
+
     const created = await createAnnouncementAction({
       title: "日付nullテスト",
       body: "本文",

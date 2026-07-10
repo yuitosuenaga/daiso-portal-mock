@@ -47,6 +47,9 @@ function baseAnnouncementRecord(
     actionRequired: boolean;
     targetingScope: "all" | "countries";
     targetingCountries: string[];
+    publishStartDate: Date | null;
+    publishEndDate: Date | null;
+    dueDate: Date | null;
   }> = {}
 ) {
   return {
@@ -58,8 +61,17 @@ function baseAnnouncementRecord(
     actionRequired: false,
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
+    publishStartDate: null,
+    publishEndDate: null,
+    dueDate: null,
     ...overrides,
   };
+}
+
+function isoDateOffset(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function recipientRecord(
@@ -111,6 +123,56 @@ describe("listAnnouncementsVisibleToCountry", () => {
       })
     );
   });
+
+  it("公開期間が未設定の場合は常に含まれる", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({ id: "1" }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN");
+
+    expect(result.map((item) => item.id)).toEqual(["1"]);
+  });
+
+  it("公開開始日が未来の場合は除外される", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        publishStartDate: new Date(`${isoDateOffset(5)}T00:00:00.000Z`),
+      }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN");
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("公開終了日が過去の場合は除外される", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        publishEndDate: new Date(`${isoDateOffset(-5)}T00:00:00.000Z`),
+      }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN");
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("公開期間内の場合は含まれる", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        publishStartDate: new Date(`${isoDateOffset(-5)}T00:00:00.000Z`),
+        publishEndDate: new Date(`${isoDateOffset(5)}T00:00:00.000Z`),
+      }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN");
+
+    expect(result.map((item) => item.id)).toEqual(["1"]);
+  });
 });
 
 describe("findAnnouncementVisibleToCountry", () => {
@@ -135,6 +197,19 @@ describe("findAnnouncementVisibleToCountry", () => {
 
     expect(result).toBeNull();
   });
+
+  it("公開開始日が未来の場合はnullを返す", async () => {
+    vi.mocked(prisma.announcement.findFirst).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        publishStartDate: new Date(`${isoDateOffset(5)}T00:00:00.000Z`),
+      }) as never
+    );
+
+    const result = await findAnnouncementVisibleToCountry("1", "VN");
+
+    expect(result).toBeNull();
+  });
 });
 
 describe("listAllAnnouncements / findAnnouncementById", () => {
@@ -149,12 +224,38 @@ describe("listAllAnnouncements / findAnnouncementById", () => {
     expect(result.map((item) => item.id)).toEqual(["1", "2"]);
   });
 
+  it("公開期間に関わらず全件を返す", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        publishStartDate: new Date(`${isoDateOffset(5)}T00:00:00.000Z`),
+      }),
+    ] as never);
+
+    const result = await listAllAnnouncements();
+
+    expect(result.map((item) => item.id)).toEqual(["1"]);
+  });
+
   it("存在しないIDはnullを返す", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
 
     const result = await findAnnouncementById("missing");
 
     expect(result).toBeNull();
+  });
+
+  it("公開開始日が未来でも取得できる", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        publishStartDate: new Date(`${isoDateOffset(5)}T00:00:00.000Z`),
+      }) as never
+    );
+
+    const result = await findAnnouncementById("1");
+
+    expect(result?.id).toBe("1");
   });
 });
 
@@ -185,6 +286,66 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       })
     );
     expect(result.targeting).toEqual({ scope: "countries", countries: ["JP"] });
+  });
+
+  it("公開期間・対応期限を列に変換して作成する", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        actionRequired: true,
+        publishStartDate: new Date("2026-08-01T00:00:00.000Z"),
+        publishEndDate: new Date("2026-08-31T00:00:00.000Z"),
+        dueDate: new Date("2026-08-15T00:00:00.000Z"),
+      }) as never
+    );
+
+    const result = await createAnnouncementRecord({
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+      actionRequired: true,
+      publishStartDate: "2026-08-01",
+      publishEndDate: "2026-08-31",
+      dueDate: "2026-08-15",
+    });
+
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          publishStartDate: new Date("2026-08-01"),
+          publishEndDate: new Date("2026-08-31"),
+          dueDate: new Date("2026-08-15"),
+        }),
+      })
+    );
+    expect(result.publishStartDate).toBe("2026-08-01");
+    expect(result.publishEndDate).toBe("2026-08-31");
+    expect(result.dueDate).toBe("2026-08-15");
+  });
+
+  it("公開期間・対応期限を未指定で作成した場合はnullを列に渡す", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+
+    await createAnnouncementRecord({
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          publishStartDate: null,
+          publishEndDate: null,
+          dueDate: null,
+        }),
+      })
+    );
   });
 
   it("存在しないIDの更新はAnnouncementNotFoundErrorを送出する", async () => {
