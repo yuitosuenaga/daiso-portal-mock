@@ -5,8 +5,8 @@ import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { BackLink } from "@/components/ui/back-link";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
-import { Link } from "@/i18n/navigation";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
   const [t, tCategories, tAnnouncements, locale] = await Promise.all([
@@ -16,14 +16,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     getLocale(),
   ]);
 
-  const backToListLink = (
-    <Link
-      href="/announcements"
-      className="text-sm text-primary underline-offset-4 hover:underline"
-    >
-      {t("backToList")}
-    </Link>
-  );
+  const backToListLink = <BackLink href="/announcements" label={t("backToList")} />;
 
   let announcement;
   try {
@@ -31,12 +24,12 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   } catch {
     return (
       <div className="space-y-4">
+        {backToListLink}
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("error")}</p>
           </CardContent>
         </Card>
-        {backToListLink}
       </div>
     );
   }
@@ -44,12 +37,12 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   if (!announcement) {
     return (
       <div className="space-y-4">
+        {backToListLink}
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
           </CardContent>
         </Card>
-        {backToListLink}
       </div>
     );
   }
@@ -61,6 +54,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
+      {backToListLink}
       <Card>
         <CardHeader className="space-y-3">
           <CardTitle>{announcement.title}</CardTitle>
@@ -107,7 +101,6 @@ export async function AnnouncementDetail({ id }: { id: string }) {
           </p>
         </CardContent>
       </Card>
-      {backToListLink}
     </div>
   );
 }
@@ -115,6 +108,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
 export function AnnouncementDetailSkeleton() {
   return (
     <div className="space-y-4">
+      <Skeleton className="h-4 w-24" />
       <Card>
         <CardHeader className="space-y-3">
           <Skeleton className="h-7 w-3/4" />
@@ -129,7 +123,6 @@ export function AnnouncementDetailSkeleton() {
           <Skeleton className="h-4 w-2/3" />
         </CardContent>
       </Card>
-      <Skeleton className="h-4 w-24" />
     </div>
   );
 }
