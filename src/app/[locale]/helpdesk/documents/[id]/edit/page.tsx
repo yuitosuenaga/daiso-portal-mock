@@ -1,6 +1,6 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "@/i18n/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { DocumentDetailPanel } from "@/components/features/helpdesk-documents/DocumentDetailPanel";
 import { getDocumentByIdForHelpdesk } from "@/lib/api/documents";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
@@ -24,12 +24,7 @@ export default async function HelpdeskDocumentEditPage({
   ]);
 
   const backToListLink = (
-    <Link
-      href="/helpdesk/documents"
-      className="inline-block text-sm text-primary underline-offset-4 hover:underline"
-    >
-      {t("backToList")}
-    </Link>
+    <BackLink href="/helpdesk/documents" label={t("backToList")} />
   );
 
   const document = await getDocumentByIdForHelpdesk(params.id);
@@ -37,12 +32,12 @@ export default async function HelpdeskDocumentEditPage({
   if (!document) {
     return (
       <div className="max-w-2xl space-y-4">
+        {backToListLink}
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
           </CardContent>
         </Card>
-        {backToListLink}
       </div>
     );
   }

@@ -388,6 +388,7 @@
     "title": "Inquiry / Request Form",
     "description": "Fill in the selection fields and free text, then submit your inquiry or request.",
     "requiredMark": "Required",
+    "backToList": "Back to list",
     "fields": {
       "category": {
         "label": "Category",

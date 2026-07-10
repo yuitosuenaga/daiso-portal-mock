@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Link } from "@/i18n/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/ui/back-link";
 import { formatFileSize } from "@/lib/attachment-utils";
 import { targetingLabel } from "@/lib/document-utils";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
@@ -91,6 +91,7 @@ export function DocumentDetailPanel({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/helpdesk/documents" label={backToListLabel} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">
           {mode === "view" ? detailTitleLabel : editTitleLabel}
@@ -162,13 +163,6 @@ export function DocumentDetailPanel({
           </Button>
         </div>
       )}
-
-      <Link
-        href="/helpdesk/documents"
-        className="inline-block text-sm text-primary underline-offset-4 hover:underline"
-      >
-        {backToListLabel}
-      </Link>
     </div>
   );
 }

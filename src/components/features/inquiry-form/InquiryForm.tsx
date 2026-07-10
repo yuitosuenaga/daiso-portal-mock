@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/ui/back-link";
 import { InquiryDetailsSection } from "@/components/features/inquiry-form/InquiryDetailsSection";
 import { InquiryDescriptionSection } from "@/components/features/inquiry-form/InquiryDescriptionSection";
 import { ApplicantInfoSection } from "@/components/features/inquiry-form/ApplicantInfoSection";
@@ -70,6 +71,7 @@ export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
 
   return (
     <div className="max-w-4xl">
+      <BackLink href={listHref} label={t("backToList")} className="mb-4" />
       <h1 className="text-2xl font-semibold text-foreground mb-2">
         {t("title")}
       </h1>
