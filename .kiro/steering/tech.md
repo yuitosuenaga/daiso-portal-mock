@@ -23,13 +23,27 @@
 - **バージョン管理**: GitHub（PRベース開発、main直push禁止）
 - **CI**: GitHub Actions（lint / typecheck / build を将来的に整備。現フェーズでは lint・typecheck・build の確認を優先）
 
-## 将来のバックエンド（フェーズ3以降・今は未実装）
+### バックエンド・DB版の検証用デプロイ（2026-07-10追加）
+
+`spec/backend-db-foundation`ブランチでPostgreSQL・Prisma・Auth.jsによるバックエンド実装が完了（`main`へのマージ・Cursorレビューは未完了）。動作確認のため、`main`/`release`由来の既存モック版Cloud Runサービス（`portal-mock`）とは別に、検証専用のCloud Runサービスを新設した。
+
+- **サービス名**: `portal-mock-backend`（既存の`portal-mock`とは完全に独立、既存サービスへの影響なし）
+- **デプロイ元**: `spec/backend-db-foundation`ブランチを`main`マージ前に直接`gcloud run deploy --source .`
+- **DB**: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（`asia-northeast1`、最小構成）。Cloud Run→Cloud SQLはCloud Run組み込みのCloud SQL Auth Proxy（`--add-cloudsql-instances`）経由、Unixソケット接続
+- **秘匿値**: Secret Managerは使わず、`gcloud run deploy --set-env-vars`でCloud Runの環境変数に直接設定（検証目的の簡易運用のため）
+- **コスト管理**: Cloud SQLインスタンスはCloud Runと異なり常時課金が発生するため、検証が一段落したら手動で停止（`gcloud sql instances patch --activation-policy=NEVER`）または削除する運用とし、自動停止の仕組みは設けていない
+- 本番反映（`main`→`release`マージ、既存`portal-mock`サービスの更新）は、この検証・Cursorレビューが完了し、ユーザーから明示的に指示があった場合にのみ行う
+
+## 将来のバックエンド（フェーズ3以降・`main`では今は未実装）
+
+`spec/backend-db-foundation`ブランチでは以下を実装済み（上記検証用デプロイ参照）。`main`にはまだ未マージのため、`main`ベースの本番モック版（`portal-mock`）には反映されていない。
 
 | 項目 | 技術選定 |
 |---|---|
-| API | Node.js (TypeScript) または FastAPI（要検討、フロント確定後に決定） |
-| DB | Cloud SQL for PostgreSQL |
-| 自由記述の翻訳処理 | Google Cloud Translation API |
+| API | Next.js Route Handlers / Server Actions（`src/app/api/`・`src/lib/actions/`） |
+| 認証 | Auth.js（NextAuth）v5、Credentials Provider、JWTセッション |
+| DB | Cloud SQL for PostgreSQL（Prisma ORM） |
+| 自由記述の翻訳処理 | Google Cloud Translation API（未実装、引き続き将来対応） |
 
 ## 多言語対応方針
 
