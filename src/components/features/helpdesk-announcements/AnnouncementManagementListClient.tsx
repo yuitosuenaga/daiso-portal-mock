@@ -25,6 +25,10 @@ export interface AnnouncementManagementListClientProps {
   targetingAllLabel: string;
   targetingCountriesLabel: string;
   actionRequiredBadgeLabel: string;
+  publishPeriodAlwaysLabel: string;
+  publishPeriodLabel: string;
+  publishPeriodToSeparator: string;
+  dueDateLabel: string;
   editLinkLabel: string;
   deleteButtonLabel: string;
   deleteConfirmMessage: string;
@@ -46,6 +50,10 @@ export function AnnouncementManagementListClient({
   targetingAllLabel,
   targetingCountriesLabel,
   actionRequiredBadgeLabel,
+  publishPeriodAlwaysLabel,
+  publishPeriodLabel,
+  publishPeriodToSeparator,
+  dueDateLabel,
   editLinkLabel,
   deleteButtonLabel,
   deleteConfirmMessage,
@@ -67,6 +75,24 @@ export function AnnouncementManagementListClient({
     return `${targetingCountriesLabel}: ${announcement.targeting.countries
       .map((code) => countryLabels[code] ?? code)
       .join(", ")}`;
+  }
+
+  function formatDate(value: string): string {
+    return new Date(value).toLocaleDateString(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function publishPeriodText(announcement: Announcement): string {
+    const { publishStartDate, publishEndDate } = announcement;
+    if (!publishStartDate && !publishEndDate) {
+      return publishPeriodAlwaysLabel;
+    }
+    const start = publishStartDate ? formatDate(publishStartDate) : "";
+    const end = publishEndDate ? formatDate(publishEndDate) : "";
+    return `${publishPeriodLabel}: ${start} ${publishPeriodToSeparator} ${end}`.trim();
   }
 
   return (
@@ -102,6 +128,12 @@ export function AnnouncementManagementListClient({
                     )}
                   </time>
                   <span>{targetingLabel(announcement)}</span>
+                  <span>{publishPeriodText(announcement)}</span>
+                  {announcement.actionRequired && announcement.dueDate && (
+                    <span>
+                      {dueDateLabel}: {formatDate(announcement.dueDate)}
+                    </span>
+                  )}
                 </div>
                 <AnnouncementTrackingBadge
                   announcementId={announcement.id}

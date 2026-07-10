@@ -15,8 +15,8 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "Overseas Sales Agent Portal",
-  description: "海外販社代理店ポータル",
+  title: "海外運用ポータル",
+  description: "海外運用ポータル",
 };
 
 export default function RootLayout({

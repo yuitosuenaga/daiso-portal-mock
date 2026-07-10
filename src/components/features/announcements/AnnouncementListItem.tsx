@@ -15,11 +15,21 @@ export interface AnnouncementListItemProps {
    */
   actionRequiredBadgeLabel?: string;
   /**
+   * 対応期限のラベル文言。未指定の場合は対応期限を表示しない（ダッシュボードのプレビュー等、
+   * 表示が不要な文脈のため省略可能）。
+   */
+  dueDateLabel?: string;
+  /**
    * 自社宛に未対応のままリマインドが送信されているかどうか。
    * 未指定の場合はリマインド受信バッジを表示しない（ダッシュボードのプレビュー等、
    * バッジ表示が不要な文脈のため省略可能）。
    */
   isReminderPending?: boolean;
+  /**
+   * タイトルとバッジ行の間に本文（`announcement.body`）の要約を2行まで表示するかどうか。
+   * 未指定の場合は表示しない（一覧画面等、既存の見た目を維持する文脈のため省略可能）。
+   */
+  showBodyExcerpt?: boolean;
   /** 公開日のロケール整形に使用する現在のロケール */
   locale: string;
 }
@@ -32,7 +42,9 @@ export function AnnouncementListItem({
   announcement,
   categoryLabel,
   actionRequiredBadgeLabel,
+  dueDateLabel,
   isReminderPending,
+  showBodyExcerpt,
   locale,
 }: AnnouncementListItemProps) {
   return (
@@ -44,12 +56,27 @@ export function AnnouncementListItem({
         >
           {announcement.title}
         </Link>
+        {showBodyExcerpt && (
+          <p className="line-clamp-2 text-sm text-muted-foreground">
+            {announcement.body}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={announcement.category}>{categoryLabel}</Badge>
           {announcement.actionRequired && actionRequiredBadgeLabel && (
             <Badge variant="default">{actionRequiredBadgeLabel}</Badge>
           )}
           {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
+          {announcement.actionRequired && announcement.dueDate && dueDateLabel && (
+            <span className="text-xs text-muted-foreground">
+              {dueDateLabel}:{" "}
+              {new Date(announcement.dueDate).toLocaleDateString(locale, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
           <time
             dateTime={announcement.publishedAt}
             className="text-xs text-muted-foreground"

@@ -78,6 +78,7 @@ export async function AnnouncementList() {
               categoryLabels={categoryLabels}
               categoryOptions={categoryOptions}
               actionRequiredBadgeLabel={t("actionRequiredBadge")}
+              dueDateLabel={t("dueDateLabel")}
               reminderPendingByAnnouncementId={reminderPendingByAnnouncementId}
               locale={locale}
             />

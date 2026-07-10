@@ -89,6 +89,18 @@ export async function AnnouncementDetail({ id }: { id: string }) {
                 {tAnnouncements("actionRequiredBadge")}
               </Badge>
             )}
+            {announcement.actionRequired && announcement.dueDate && (
+              <span>
+                {tAnnouncements("dueDateLabel")}:{" "}
+                <time dateTime={announcement.dueDate}>
+                  {new Date(announcement.dueDate).toLocaleDateString(locale, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </time>
+              </span>
+            )}
             {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
           </div>
         </CardHeader>

@@ -15,17 +15,19 @@
     }
   },
   "header": {
-    "title": "海外販社代理店ポータル",
-    "switchToHelpdesk": "日本管理者側画面へ"
+    "portalName": "海外運用ポータル",
+    "screenName": "海外販社代理店画面",
+    "switchToHelpdesk": "日本大創側画面へ"
   },
   "helpdeskHeader": {
-    "title": "ヘルプデスクポータル",
-    "badge": "ヘルプデスク",
-    "switchToApplicant": "海外販社側画面へ"
+    "portalName": "海外運用ポータル",
+    "screenName": "日本大創側画面",
+    "switchToApplicant": "海外販社代理店画面へ"
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",
     "home": "ダッシュボード",
+    "inquiryForm": "申請",
     "inquiries": "問い合わせ管理",
     "templates": "テンプレート管理",
     "links": "リンク集",
@@ -79,7 +81,11 @@
         "sizeExceeded": "ファイルサイズが上限（20MB）を超えています",
         "typeNotAllowed": "許可されていないファイル形式です（PDFのみ）",
         "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
-      }
+      },
+      "detailTitle": "ドキュメント詳細",
+      "editButton": "編集",
+      "cancelButton": "キャンセル",
+      "downloadLink": "ダウンロード"
     }
   },
   "helpdeskAnnouncements": {
@@ -96,6 +102,10 @@
       "targetingAllLabel": "全体一律",
       "targetingCountriesLabel": "配信対象国",
       "actionRequiredBadge": "要対応",
+      "publishPeriodAlwaysLabel": "常時公開",
+      "publishPeriodLabel": "公開期間",
+      "publishPeriodToSeparator": "〜",
+      "dueDateLabel": "対応期限",
       "filter": {
         "keywordLabel": "タイトル検索",
         "keywordPlaceholder": "タイトルに含まれる語句",
@@ -128,11 +138,17 @@
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {
         "required": "この項目は必須です",
-        "countriesRequired": "1つ以上の国・地域を選択してください"
+        "countriesRequired": "1つ以上の国・地域を選択してください",
+        "publishEndDateBeforeStart": "終了日は開始日以降の日付を指定してください",
+        "dueDateRequired": "対応が必要な場合は対応期限を入力してください"
       },
       "actionRequiredLabel": "対応要否",
       "actionRequiredTrueOption": "対応が必要",
-      "actionRequiredFalseOption": "対応不要"
+      "actionRequiredFalseOption": "対応不要",
+      "publishStartDateLabel": "公開開始日",
+      "publishEndDateLabel": "公開終了日",
+      "publishPeriodHint": "未入力の場合は常時公開になります",
+      "dueDateLabel": "対応期限"
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",
@@ -270,11 +286,11 @@
     },
     "announcements": {
       "title": "お知らせ",
-      "description": "ヘルプデスクからの周知事項を確認できます。"
+      "description": "本社からの周知事項を確認できます。"
     },
     "documents": {
       "title": "ドキュメント",
-      "description": "ヘルプデスクが公開している業務ドキュメントを確認できます。"
+      "description": "本社が公開している業務ドキュメントを確認できます。"
     },
     "links": {
       "title": "リンク",
@@ -322,8 +338,8 @@
       "description": "ドキュメントの一覧・作成・編集・削除を行えます。"
     },
     "inquiryForm": {
-      "title": "申請フォーム",
-      "description": "申請者向けの問い合わせ・申請フォームの内容を確認できます。"
+      "title": "申請",
+      "description": "問い合わせ・申請を新規作成できます。"
     },
     "links": {
       "title": "リンク",
@@ -340,7 +356,7 @@
   "announcements": {
     "list": {
       "title": "お知らせ",
-      "description": "ヘルプデスクからの周知事項を一覧で確認できます。",
+      "description": "本社からの周知事項を一覧で確認できます。",
       "empty": "お知らせはありません",
       "error": "お知らせの取得に失敗しました",
       "noResults": "該当するお知らせがありません"
@@ -360,6 +376,7 @@
     },
     "actionRequiredBadge": "要対応",
     "reminderBadge": "リマインドが届いています",
+    "dueDateLabel": "対応期限",
     "filter": {
       "keywordLabel": "タイトル検索",
       "keywordPlaceholder": "タイトルに含まれる語句",
@@ -374,21 +391,12 @@
   "documents": {
     "list": {
       "title": "ドキュメント",
-      "description": "ヘルプデスクが公開している業務ドキュメントを確認できます。",
+      "description": "本社が公開している業務ドキュメントを確認できます。",
       "empty": "ドキュメントはありません",
       "error": "ドキュメントの取得に失敗しました",
-      "viewLink": "表示",
       "downloadLink": "ダウンロード",
       "fileSizeLabel": "ファイルサイズ",
       "uploadedAtLabel": "アップロード日"
-    },
-    "detail": {
-      "notFound": "ドキュメントが見つかりません",
-      "error": "ドキュメントの取得に失敗しました",
-      "backToList": "一覧へ戻る",
-      "uploadedAtLabel": "アップロード日",
-      "fileSizeLabel": "ファイルサイズ",
-      "downloadLink": "ダウンロード"
     }
   },
   "inquiryForm": {

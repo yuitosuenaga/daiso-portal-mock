@@ -31,10 +31,12 @@ function renderHelpdeskHeader() {
 }
 
 describe("HelpdeskHeader", () => {
-  it("ヘルプデスクであることを示すバッジとタイトルが表示される", () => {
+  it("タイトルが表示される", () => {
     renderHelpdeskHeader();
-    expect(screen.getByText(messages.helpdeskHeader.title)).toBeTruthy();
-    expect(screen.getByText(messages.helpdeskHeader.badge)).toBeTruthy();
+    expect(screen.getByText(messages.helpdeskHeader.portalName)).toBeTruthy();
+    expect(
+      screen.getByText(`/ ${messages.helpdeskHeader.screenName}`)
+    ).toBeTruthy();
   });
 
   it("申請者側画面への切り替えリンクが表示される", () => {

@@ -20,7 +20,7 @@ export function HelpdeskAppShell({ children }: HelpdeskAppShellProps) {
       </div>
       <button
         onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-        className="hidden md:flex lg:hidden fixed top-14 left-0 z-20 w-16 items-center justify-center py-2 text-sidebar-foreground hover:text-white bg-sidebar"
+        className="hidden md:flex lg:hidden fixed top-16 left-0 z-20 w-16 items-center justify-center py-2 text-sidebar-foreground hover:text-white bg-sidebar"
         aria-label={isSidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"}
         aria-expanded={!isSidebarCollapsed}
         aria-controls="helpdesk-sidebar"
@@ -33,13 +33,13 @@ export function HelpdeskAppShell({ children }: HelpdeskAppShellProps) {
       </button>
       <main
         className={[
-          "pt-14 min-h-screen transition-all duration-200",
+          "pt-16 min-h-screen transition-all duration-200",
           "pl-0",
           isSidebarCollapsed ? "md:pl-16" : "md:pl-60",
           "lg:pl-60",
         ].join(" ")}
       >
-        <div className="p-6">{children}</div>
+        <div className="p-4">{children}</div>
       </main>
     </div>
   );

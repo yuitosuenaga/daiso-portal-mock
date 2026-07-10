@@ -15,17 +15,19 @@
     }
   },
   "header": {
-    "title": "Overseas Sales Agent Portal",
-    "switchToHelpdesk": "Switch to Japan Admin View"
+    "portalName": "Overseas Operations Portal",
+    "screenName": "Overseas Sales Agent View",
+    "switchToHelpdesk": "Switch to Japan Daiso View"
   },
   "helpdeskHeader": {
-    "title": "Helpdesk Portal",
-    "badge": "Helpdesk",
+    "portalName": "Overseas Operations Portal",
+    "screenName": "Japan Daiso View",
     "switchToApplicant": "Switch to Overseas Sales Agent View"
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",
     "home": "Dashboard",
+    "inquiryForm": "Application",
     "inquiries": "Inquiry Management",
     "templates": "Template Management",
     "links": "Links",
@@ -79,7 +81,11 @@
         "sizeExceeded": "The file size exceeds the limit (20MB)",
         "typeNotAllowed": "This file type is not allowed (PDF only)",
         "readFailed": "Failed to read the file. Please try again."
-      }
+      },
+      "detailTitle": "Document Details",
+      "editButton": "Edit",
+      "cancelButton": "Cancel",
+      "downloadLink": "Download"
     }
   },
   "helpdeskAnnouncements": {
@@ -96,6 +102,10 @@
       "targetingAllLabel": "All countries",
       "targetingCountriesLabel": "Target countries",
       "actionRequiredBadge": "Action required",
+      "publishPeriodAlwaysLabel": "Always published",
+      "publishPeriodLabel": "Publish period",
+      "publishPeriodToSeparator": "to",
+      "dueDateLabel": "Due date",
       "filter": {
         "keywordLabel": "Search title",
         "keywordPlaceholder": "Words in the title",
@@ -128,11 +138,17 @@
       "submitError": "Failed to save. Please try again later.",
       "validation": {
         "required": "This field is required",
-        "countriesRequired": "Select at least one country or region"
+        "countriesRequired": "Select at least one country or region",
+        "publishEndDateBeforeStart": "The end date must be on or after the start date",
+        "dueDateRequired": "Enter a due date when action is required"
       },
       "actionRequiredLabel": "Action required",
       "actionRequiredTrueOption": "Action required",
-      "actionRequiredFalseOption": "No action required"
+      "actionRequiredFalseOption": "No action required",
+      "publishStartDateLabel": "Publish start date",
+      "publishEndDateLabel": "Publish end date",
+      "publishPeriodHint": "Leave blank to publish at all times",
+      "dueDateLabel": "Due date"
     },
     "tracking": {
       "confirmedCount": "Confirmed {confirmed}/{total}",
@@ -270,11 +286,11 @@
     },
     "announcements": {
       "title": "Announcements",
-      "description": "View announcements from the help desk."
+      "description": "View announcements from head office."
     },
     "documents": {
       "title": "Documents",
-      "description": "View business documents published by the help desk."
+      "description": "View business documents published by head office."
     },
     "links": {
       "title": "Links",
@@ -322,8 +338,8 @@
       "description": "View, create, edit, and delete documents."
     },
     "inquiryForm": {
-      "title": "Inquiry Form",
-      "description": "View the inquiry and request form used by applicants."
+      "title": "Application",
+      "description": "Create a new inquiry or request."
     },
     "links": {
       "title": "Links",
@@ -340,7 +356,7 @@
   "announcements": {
     "list": {
       "title": "Announcements",
-      "description": "View announcements from the help desk.",
+      "description": "View announcements from head office.",
       "empty": "No announcements",
       "error": "Failed to load announcements",
       "noResults": "No matching announcements"
@@ -360,6 +376,7 @@
     },
     "actionRequiredBadge": "Action required",
     "reminderBadge": "A reminder has been sent",
+    "dueDateLabel": "Due date",
     "filter": {
       "keywordLabel": "Search title",
       "keywordPlaceholder": "Words in the title",
@@ -374,21 +391,12 @@
   "documents": {
     "list": {
       "title": "Documents",
-      "description": "View business documents published by the help desk.",
+      "description": "View business documents published by head office.",
       "empty": "No documents",
       "error": "Failed to load documents",
-      "viewLink": "View",
       "downloadLink": "Download",
       "fileSizeLabel": "File size",
       "uploadedAtLabel": "Uploaded"
-    },
-    "detail": {
-      "notFound": "Document not found",
-      "error": "Failed to load the document",
-      "backToList": "Back to list",
-      "uploadedAtLabel": "Uploaded",
-      "fileSizeLabel": "File size",
-      "downloadLink": "Download"
     }
   },
   "inquiryForm": {

@@ -1,12 +1,10 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
-import { DocumentForm } from "@/components/features/helpdesk-documents/DocumentForm";
-import { DeleteDocumentButton } from "@/components/features/helpdesk-documents/DeleteDocumentButton";
+import { DocumentDetailPanel } from "@/components/features/helpdesk-documents/DocumentDetailPanel";
 import { getDocumentByIdForHelpdesk } from "@/lib/api/documents";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
-import type { DocumentFormValues } from "@/lib/validation/document";
 
 type HelpdeskDocumentEditPageProps = {
   params: {
@@ -17,11 +15,12 @@ type HelpdeskDocumentEditPageProps = {
 export default async function HelpdeskDocumentEditPage({
   params,
 }: HelpdeskDocumentEditPageProps) {
-  const [t, tListLabels, tCountries, tInquiryForm] = await Promise.all([
+  const [t, tListLabels, tCountries, tInquiryForm, locale] = await Promise.all([
     getTranslations("helpdeskDocuments.form"),
     getTranslations("helpdeskDocuments.list"),
     getTranslations("inquiryForm.options.country"),
     getTranslations("inquiryForm"),
+    getLocale(),
   ]);
 
   const backToListLink = (
@@ -37,7 +36,7 @@ export default async function HelpdeskDocumentEditPage({
 
   if (!document) {
     return (
-      <div className="max-w-xl space-y-4">
+      <div className="max-w-2xl space-y-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
@@ -58,60 +57,71 @@ export default async function HelpdeskDocumentEditPage({
     label: `${tCountries(option.country)} - ${option.companyName}`,
   }));
 
+  const countryLabels = INQUIRY_COUNTRY_CODES.reduce(
+    (labels, code) => {
+      labels[code] = tCountries(code);
+      return labels;
+    },
+    {} as Record<string, string>
+  );
+
+  const companyLabels = DOCUMENT_COMPANY_OPTIONS.reduce(
+    (labels, option) => {
+      labels[option.code] = `${option.companyName} (${countryLabels[option.country] ?? option.country})`;
+      return labels;
+    },
+    {} as Record<string, string>
+  );
+
   return (
-    <div className="max-w-xl space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">
-          {t("editTitle")}
-        </h1>
-        <DeleteDocumentButton
-          documentId={document.id}
-          deleteButtonLabel={tListLabels("deleteButton")}
-          confirmMessage={tListLabels("deleteConfirm")}
-          errorMessage={tListLabels("deleteError")}
-        />
-      </div>
-      <DocumentForm
-        mode="edit"
-        documentId={document.id}
-        defaultValues={{
-          title: document.title,
-          description: document.description ?? "",
-          fileName: document.fileName,
-          fileType: document.fileType,
-          fileSize: document.fileSize,
-          dataUrl: document.dataUrl,
-          // `Document.targeting`はドメイン型として`string[]`だが、保存済みデータは常に
-          // `documentFormSchema`で検証済みのため、フォームの厳密な型へ安全に絞り込める。
-          targeting: document.targeting as DocumentFormValues["targeting"],
+    <div className="max-w-2xl space-y-4">
+      <DocumentDetailPanel
+        document={document}
+        locale={locale}
+        detailTitleLabel={t("detailTitle")}
+        editTitleLabel={t("editTitle")}
+        editButtonLabel={t("editButton")}
+        cancelButtonLabel={t("cancelButton")}
+        backToListLabel={t("backToList")}
+        fileSizeLabel={tListLabels("fileSizeLabel")}
+        uploadedAtLabel={tListLabels("uploadedAtLabel")}
+        downloadLinkLabel={t("downloadLink")}
+        targetingAllLabel={tListLabels("targetingAllLabel")}
+        targetingCountriesLabel={tListLabels("targetingCountriesLabel")}
+        targetingCompaniesLabel={tListLabels("targetingCompaniesLabel")}
+        countryLabels={countryLabels}
+        companyLabels={companyLabels}
+        deleteButtonLabel={tListLabels("deleteButton")}
+        deleteConfirmMessage={tListLabels("deleteConfirm")}
+        deleteErrorMessage={tListLabels("deleteError")}
+        formProps={{
+          countryOptions,
+          companyOptions,
+          titleLabel: t("titleLabel"),
+          titlePlaceholder: t("titlePlaceholder"),
+          descriptionLabel: t("descriptionLabel"),
+          descriptionPlaceholder: t("descriptionPlaceholder"),
+          targetingLabel: t("targetingLabel"),
+          targetingAllOption: t("targetingAllOption"),
+          targetingCountriesOption: t("targetingCountriesOption"),
+          targetingCompaniesOption: t("targetingCompaniesOption"),
+          countriesLabel: t("countriesLabel"),
+          companiesLabel: t("companiesLabel"),
+          fileLabel: t("fileLabel"),
+          fileHint: t("fileHint"),
+          removeFileButtonLabel: t("removeButtonLabel"),
+          submitButtonLabel: t("submitButton"),
+          requiredErrorMessage: t("validation.required"),
+          countriesRequiredErrorMessage: t("validation.countriesRequired"),
+          companiesRequiredErrorMessage: t("validation.companiesRequired"),
+          fileRequiredErrorMessage: t("validation.fileRequired"),
+          sizeExceededMessage: t("validation.sizeExceeded"),
+          typeNotAllowedMessage: t("validation.typeNotAllowed"),
+          readFailedMessage: t("validation.readFailed"),
+          requiredIndicator: tInquiryForm("requiredMark"),
+          submitErrorMessage: t("submitError"),
         }}
-        countryOptions={countryOptions}
-        companyOptions={companyOptions}
-        titleLabel={t("titleLabel")}
-        titlePlaceholder={t("titlePlaceholder")}
-        descriptionLabel={t("descriptionLabel")}
-        descriptionPlaceholder={t("descriptionPlaceholder")}
-        targetingLabel={t("targetingLabel")}
-        targetingAllOption={t("targetingAllOption")}
-        targetingCountriesOption={t("targetingCountriesOption")}
-        targetingCompaniesOption={t("targetingCompaniesOption")}
-        countriesLabel={t("countriesLabel")}
-        companiesLabel={t("companiesLabel")}
-        fileLabel={t("fileLabel")}
-        fileHint={t("fileHint")}
-        removeFileButtonLabel={t("removeButtonLabel")}
-        submitButtonLabel={t("submitButton")}
-        requiredErrorMessage={t("validation.required")}
-        countriesRequiredErrorMessage={t("validation.countriesRequired")}
-        companiesRequiredErrorMessage={t("validation.companiesRequired")}
-        fileRequiredErrorMessage={t("validation.fileRequired")}
-        sizeExceededMessage={t("validation.sizeExceeded")}
-        typeNotAllowedMessage={t("validation.typeNotAllowed")}
-        readFailedMessage={t("validation.readFailed")}
-        requiredIndicator={tInquiryForm("requiredMark")}
-        submitErrorMessage={t("submitError")}
       />
-      {backToListLink}
     </div>
   );
 }

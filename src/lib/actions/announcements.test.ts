@@ -83,6 +83,23 @@ describe("createAnnouncementAction", () => {
 
     expect(createAnnouncement).not.toHaveBeenCalled();
   });
+
+  it("日付フィールドがnullで渡されても保存できる", async () => {
+    const created = await createAnnouncementAction({
+      title: "日付nullテスト",
+      body: "本文",
+      category: "other",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      publishStartDate: null,
+      publishEndDate: null,
+      dueDate: null,
+    });
+
+    expect(created.publishStartDate).toBeNull();
+    expect(created.publishEndDate).toBeNull();
+    expect(created.dueDate).toBeNull();
+  });
 });
 
 describe("updateAnnouncementAction / deleteAnnouncementAction", () => {

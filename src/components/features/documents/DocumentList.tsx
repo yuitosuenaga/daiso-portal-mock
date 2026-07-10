@@ -34,28 +34,32 @@ export async function DocumentList() {
     );
   }
 
+  if (documents.length === 0) {
+    return (
+      <div>
+        {heading}
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{t("empty")}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div>
       {heading}
-      <Card>
-        <CardContent className="pt-6">
-          {documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("empty")}</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {documents.map((document) => (
-                <DocumentListItem
-                  key={document.id}
-                  document={document}
-                  locale={locale}
-                  viewLinkLabel={t("viewLink")}
-                  downloadLinkLabel={t("downloadLink")}
-                />
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {documents.map((document) => (
+          <DocumentListItem
+            key={document.id}
+            document={document}
+            locale={locale}
+            downloadLinkLabel={t("downloadLink")}
+          />
+        ))}
+      </div>
     </div>
   );
 }

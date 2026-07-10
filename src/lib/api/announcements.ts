@@ -18,8 +18,8 @@ export interface GetRecentAnnouncementsOptions {
 }
 
 /**
- * 自社（ログイン中の申請者セッションが所属する会社）に配信対象が及ぶお知らせのうち、
- * 最新のものを返す。
+ * 自社（ログイン中の申請者セッションが所属する会社）に配信対象が及び、かつ公開期間内の
+ * お知らせのうち、最新のものを返す。
  */
 export async function getRecentAnnouncements(
   options?: GetRecentAnnouncementsOptions
@@ -32,8 +32,8 @@ export async function getRecentAnnouncements(
 }
 
 /**
- * 自社（ログイン中の申請者セッションが所属する会社）に配信対象が及ぶお知らせ全件を
- * 公開日の降順で返す。
+ * 自社（ログイン中の申請者セッションが所属する会社）に配信対象が及び、かつ公開期間内の
+ * お知らせ全件を公開日の降順で返す。
  */
 export async function getAnnouncements(): Promise<Announcement[]> {
   const { claims } = await requireApplicantSession();
@@ -42,8 +42,8 @@ export async function getAnnouncements(): Promise<Announcement[]> {
 }
 
 /**
- * 指定したIDのお知らせを1件返す。自社に配信対象が及ばない、または該当データが
- * 存在しない場合はnullを解決する。
+ * 指定したIDのお知らせを1件返す。自社に配信対象が及ばない、公開期間外、または
+ * 該当データが存在しない場合はnullを解決する。
  */
 export async function getAnnouncementById(id: string): Promise<Announcement | null> {
   const { claims } = await requireApplicantSession();

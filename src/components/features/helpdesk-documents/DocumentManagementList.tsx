@@ -6,31 +6,9 @@ import { getAllDocuments } from "@/lib/api/documents";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
 import { formatFileSize } from "@/lib/attachment-utils";
+import { targetingLabel } from "@/lib/document-utils";
 import { DeleteDocumentButton } from "@/components/features/helpdesk-documents/DeleteDocumentButton";
-import type { Document, DocumentTargeting } from "@/types/document";
-
-function targetingLabel(
-  targeting: DocumentTargeting,
-  labels: {
-    allLabel: string;
-    countriesLabel: string;
-    companiesLabel: string;
-    countryLabels: Record<string, string>;
-    companyLabels: Record<string, string>;
-  }
-): string {
-  if (targeting.scope === "all") {
-    return labels.allLabel;
-  }
-  if (targeting.scope === "countries") {
-    return `${labels.countriesLabel}: ${targeting.countries
-      .map((code) => labels.countryLabels[code] ?? code)
-      .join(", ")}`;
-  }
-  return `${labels.companiesLabel}: ${targeting.companyCodes
-    .map((code) => labels.companyLabels[code] ?? code)
-    .join(", ")}`;
-}
+import type { Document } from "@/types/document";
 
 export async function DocumentManagementList() {
   const [t, tCountries, locale] = await Promise.all([

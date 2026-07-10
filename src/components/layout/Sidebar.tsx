@@ -50,7 +50,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
       id="sidebar"
       aria-label={t("sidebarLabel")}
       className={cn(
-        "fixed top-14 left-0 bottom-0 z-20 flex flex-col bg-sidebar transition-all duration-200",
+        "fixed top-16 left-0 bottom-0 z-20 flex flex-col bg-sidebar transition-all duration-200",
         isCollapsed ? "w-16" : "w-60",
         // PC: 常に展開幅（タブレットでの折りたたみ状態に関わらず）
         "lg:w-60"
@@ -69,7 +69,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+                    "flex items-center gap-3 rounded-md px-2 py-2.5 text-base transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground font-semibold"
                       : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
@@ -77,7 +77,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                   aria-current={isActive ? "page" : undefined}
                   aria-label={isCollapsed ? t(item.translationKey) : undefined}
                 >
-                  <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
                   <span
                     className={cn(
                       "truncate",

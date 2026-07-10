@@ -40,10 +40,10 @@ export function NavigationCard({
       <Card className="h-full transition-colors group-hover:border-primary group-hover:bg-accent">
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary group-hover:bg-card">
-              <Icon className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-primary group-hover:bg-card">
+              <Icon className="h-6 w-6" aria-hidden="true" />
             </span>
-            <CardTitle className="text-base">{title}</CardTitle>
+            <CardTitle className="text-lg">{title}</CardTitle>
           </div>
           {showBadge ? (
             <Badge variant={badge.variant} aria-hidden="true">
@@ -52,7 +52,7 @@ export function NavigationCard({
           ) : null}
         </CardHeader>
         <CardContent className="pt-0">
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-base text-muted-foreground">{description}</p>
         </CardContent>
       </Card>
     </Link>
