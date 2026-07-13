@@ -692,3 +692,195 @@ messages/
 - **Integration Tests**:
   - 下書き状態のお知らせIDを直接指定した場合、詳細画面が「見つかりません」表示になること
   - 下書き状態のお知らせが一覧・ダッシュボードウィジェットのいずれにも表示されないこと
+
+---
+
+## 追加ラウンド（2026-07-13）: 対応状況の自己記録（確認済み自動記録・対応完了ボタン）
+
+### Overview（追加分）
+お知らせ詳細画面を開いた時点で自社の確認済み状態を自動的に記録し、`actionRequired`が真のお知らせについては「対応完了にする」ボタンで自社の実施済み状態を記録できるようにする。記録した状態は詳細画面・一覧画面の両方にバッジとして表示する。**Purpose**: `announcements-management`spec側の確認済み・実施済み人数表示（要件13）を、シードデータの固定値ではなく海外販社側の実際の閲覧・操作の結果にする。**Impact**: `AnnouncementDetail`・`AnnouncementList`・`AnnouncementListClient`・`AnnouncementListItem`に、`announcements-management`spec側が提供する読み取り・記録関数（要件23）への呼び出しを追加する。既存のレイアウト・操作性は維持し、新規のクライアントコンポーネント（`AnnouncementSelfReportPanel`）を1つ追加する。
+
+### Goals（追加分）
+- 詳細画面を開くと、自社の確認済み状態が自動的に記録される（追加の操作を要しない）
+- `actionRequired`が真のお知らせについて、「対応完了にする」ボタンで自社の実施済み状態を記録できる
+- 記録済みの確認済み・対応完了の状態が、一覧・詳細の両方でバッジとして分かる
+- 一覧画面の表示だけでは確認済み状態を記録しない（詳細画面を開いたときのみ記録する）
+
+### Non-Goals（追加分）
+- 個人単位（ログインユーザー単位）の識別・記録（要件15のスコープ外、`announcements-management`要件23参照）
+- 記録の取り消し・変更履歴の保持
+- ヘルプデスク側の確認済み・実施済み人数表示・未対応者一覧自体の変更（`announcements-management`spec所有、本ラウンドは参照のみ）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- お知らせ詳細画面における確認済み自動記録のトリガー・「対応完了にする」ボタンのUI（`AnnouncementSelfReportPanel`）
+- お知らせ一覧・詳細画面における確認済み・対応完了バッジの表示
+
+**Out of Boundary（追加）**
+- 確認済み・実施済み状態の記録先データ（`AnnouncementRecipientStatus`）・会社単位の記録関数・可視性チェック自体（`announcements-management`spec所有。本specはServer Actionsを呼び出すのみ）
+- ヘルプデスク側の確認済み・実施済み人数表示・未対応者一覧（`announcements-management`spec所有）
+
+**Allowed Dependencies（追加）**
+- `announcements-management`spec所有の`confirmAnnouncementAction`・`completeAnnouncementAction`（`lib/actions/announcement-tracking.ts`、Server Actions）
+- `announcements-management`spec所有の`getAnnouncementSelfStatus`（`lib/api/announcement-tracking.ts`、読み取り専用）・`AnnouncementSelfStatus`型（`types/announcement-recipient.ts`）
+
+**Revalidation Triggers（追加）**
+- `confirmAnnouncementAction`/`completeAnnouncementAction`/`getAnnouncementSelfStatus`の関数シグネチャ・戻り値の意味が変更された場合、本ラウンドの表示・呼び出しロジックを再確認する必要がある
+
+### Architecture（追加分）
+`AnnouncementDetail`（Server Component）が、既存の`isReminderPendingForCompany`呼び出しと並行して`getAnnouncementSelfStatus(announcement.id)`を呼び出し、結果を新設の`AnnouncementSelfReportPanel`（Client Component）に初期値として渡す。`AnnouncementSelfReportPanel`はマウント時に未確認であれば`confirmAnnouncementAction`を呼び出し、`actionRequired`が真の場合は「対応完了にする」ボタンから`completeAnnouncementAction`を呼び出す。一覧側（`AnnouncementList`）は読み取りのみを行い、既存の`reminderPendingByAnnouncementId`と同型のマップを`AnnouncementListItem`まで伝播させてバッジ表示のみを行う（記録トリガーは持たない）。
+
+```mermaid
+graph TB
+    Detail[AnnouncementDetail]
+    Panel[AnnouncementSelfReportPanel]
+    List[AnnouncementList]
+    ListClient[AnnouncementListClient]
+    ListItem[AnnouncementListItem]
+    TrackingApi[announcement-tracking Api existing extended]
+    TrackingActions[announcement-tracking Actions existing extended]
+
+    Detail --> TrackingApi
+    Detail --> Panel
+    Panel --> TrackingActions
+    List --> TrackingApi
+    List --> ListClient
+    ListClient --> ListItem
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 詳細画面は「Server Componentが初期状態を取得 → Client Componentがマウント時にServer Actionで記録・状態更新」という構成、一覧画面は既存の`ReminderBadge`と同じ「Server Componentが読み取り専用関数を呼び出し、値をプレゼンテーショナルコンポーネントに渡す」構成をそのまま踏襲する
+- ドメイン境界: 記録処理・記録先データは一切本spec側に持たず、`announcements-management`spec提供のServer Actions/APIを呼び出すのみとする（既存のリマインド受信表示と同じ境界の引き方）
+- 新規コンポーネントの理由: `AnnouncementSelfReportPanel`はマウント時の副作用（Server Action呼び出し）とボタン操作という、既存のプレゼンテーショナルコンポーネント（`CategoryBadge`・`ReminderBadge`）にはないクライアント状態境界を持つため独立コンポーネントとする
+- 主要な設計判断（詳細は`research.md`参照）: 確認済みの自動記録は、Server Componentのレンダリング中ではなくクライアント側`useEffect`（マウント時）で行う。Next.jsの`<Link>`プリフェッチにより、実際に開いていない詳細ページのレンダリングが先行実行され得るため、レンダリング中に記録するとプリフェッチのみで「確認済み」になってしまう恐れがあるための回避
+- Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由という既存規約を維持
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし（既存のReact `useEffect`・`useState`、Server Actionsのみを使用。新規外部依存はない）。
+
+### File Structure Plan（追加分）
+
+```
+src/components/features/announcements/
+├── AnnouncementSelfReportPanel.tsx   # 新規Client: 確認済み自動記録・対応完了ボタン・状態バッジ
+├── AnnouncementDetail.tsx            # 変更: getAnnouncementSelfStatusを取得し、AnnouncementSelfReportPanelへ初期値として渡す
+├── AnnouncementList.tsx              # 変更: 各お知らせについてgetAnnouncementSelfStatusを取得し、Clientへマップとして渡す
+├── AnnouncementListClient.tsx        # 変更: selfStatusByAnnouncementIdを受け取りAnnouncementListItemへ伝播
+└── AnnouncementListItem.tsx          # 変更: 確認済み・対応完了バッジの表示（読み取りのみ、記録トリガーは持たない）
+
+messages/
+├── ja.json                           # 変更: announcements.selfReport名前空間を追加
+└── en.json                           # 同上
+```
+
+### Modified Files（追加分）
+- `src/components/features/announcements/AnnouncementDetail.tsx` — `isReminderPendingForCompany`と並行して`getAnnouncementSelfStatus(announcement.id)`を取得し、`<AnnouncementSelfReportPanel announcementId={announcement.id} actionRequired={announcement.actionRequired} initialStatus={selfStatus} />`をカード内に配置する
+- `src/components/features/announcements/AnnouncementList.tsx` — 既存の`reminderPendingEntries`と同型の並行処理で各お知らせの`getAnnouncementSelfStatus(id)`を取得し、`selfStatusByAnnouncementId: Record<string, AnnouncementSelfStatus>`として`AnnouncementListClient`に渡す
+- `src/components/features/announcements/AnnouncementListClient.tsx` — `selfStatusByAnnouncementId`を受け取り、各`AnnouncementListItem`へ`selfConfirmed={status.confirmedAt !== null}`・`selfCompleted={status.completedAt !== null}`として渡す
+- `src/components/features/announcements/AnnouncementListItem.tsx` — `selfConfirmed`/`selfCompleted`（いずれも省略可能な`boolean`）propsを追加し、`selfConfirmed`が真のときのみ確認済みバッジ、`announcement.actionRequired && selfCompleted`が真のときのみ対応完了バッジを表示する
+- `messages/ja.json` / `messages/en.json` — `announcements.selfReport`名前空間（確認済み表示・対応完了ボタン・対応完了済み表示のラベル）を追加
+
+### System Flows（追加分）
+
+```mermaid
+sequenceDiagram
+    participant User as 販社担当者
+    participant DetailPage as 詳細ページ
+    participant Panel as AnnouncementSelfReportPanel
+    participant Action as confirmAnnouncementAction
+
+    User->>DetailPage: 詳細画面へ実際に遷移する
+    DetailPage->>Panel: マウント（initialStatus付きでレンダリング）
+    Panel->>Panel: initialStatus.confirmedAtがnullかどうか判定
+    alt 未確認
+        Panel->>Action: confirmAnnouncementAction(announcementId)
+        Action-->>Panel: 最新のAnnouncementSelfStatus
+        Panel->>Panel: 状態を更新し「確認済み」表示に切り替え
+    else 既に確認済み
+        Panel->>Panel: 何もしない（Action呼び出し自体を行わない）
+    end
+```
+
+- 「対応完了にする」ボタン押下時も同様に`completeAnnouncementAction`を呼び出し、成功時に返却された`AnnouncementSelfStatus`でローカル状態を更新する（別図省略、記録フローと同型）。
+- Next.jsの`<Link>`プリフェッチは詳細ページのServer Componentレンダリングを先行実行させる場合があるが、記録処理はクライアント側`useEffect`（実マウント時のみ発火）に置いているため、プリフェッチのみでは記録されない。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 15.1〜15.4 | 確認済みの自動記録・表示 | AnnouncementSelfReportPanel, AnnouncementDetail | Service（`confirmAnnouncementAction`/`getAnnouncementSelfStatus`） | 記録フロー |
+| 15.5〜15.8 | 対応完了ボタン | AnnouncementSelfReportPanel | Service（`completeAnnouncementAction`） | 記録フローと同型 |
+| 15.9〜15.11 | 一覧バッジ表示 | AnnouncementList, AnnouncementListClient, AnnouncementListItem | Service（`getAnnouncementSelfStatus`読み取り） | — |
+| 15.12〜15.13 | 多言語対応・記録経路の一元化 | 全新規/変更コンポーネント | — | — |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| AnnouncementSelfReportPanel | UI/Client | マウント時の確認済み自動記録、対応完了ボタン操作、状態バッジ表示 | 15.1〜15.8 | confirmAnnouncementAction (P0), completeAnnouncementAction (P0) | State |
+| AnnouncementDetail（差分） | Feature/Server | 自社の自己申告状態を取得し`AnnouncementSelfReportPanel`へ渡す | 15.4, 15.7 | getAnnouncementSelfStatus (P0) | Service |
+| AnnouncementList/ListClient/ListItem（差分） | Feature/Server・UI | 自己申告状態の読み取り専用バッジ表示 | 15.9〜15.11 | getAnnouncementSelfStatus (P0) | Service |
+
+#### AnnouncementSelfReportPanel
+
+| Field | Detail |
+|-------|--------|
+| Intent | お知らせ詳細画面で、確認済み状態の自動記録と対応完了操作を行い、現在の状態をバッジ・ボタンとして表示する |
+| Requirements | 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8 |
+
+**Responsibilities & Constraints**
+- `"use client"`コンポーネントとし、props（`announcementId: string`, `actionRequired: boolean`, `initialStatus: AnnouncementSelfStatus`）を受け取る
+- マウント時（`useEffect`、依存配列は空）に、`initialStatus.confirmedAt`が`null`の場合のみ`confirmAnnouncementAction(announcementId)`を呼び出し、返却値でローカル状態を更新する。既に確認済みの場合は呼び出さない（要件15.3）
+- `actionRequired`が真かつローカル状態の`completedAt`が`null`のときのみ「対応完了にする」ボタンを表示する。押下時に`completeAnnouncementAction(announcementId)`を呼び出し、返却値でローカル状態を更新する
+- 一覧画面（`AnnouncementListItem`）には本コンポーネントを配置しない（要件15.2、自動記録のトリガーを詳細画面表示に限定するため）
+
+**Dependencies**
+- Outbound: `confirmAnnouncementAction`（P0, `announcements-management`spec提供）
+- Outbound: `completeAnnouncementAction`（P0, `announcements-management`spec提供）
+
+**Contracts**: Service [x] / State [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementSelfReportPanelProps {
+  announcementId: string;
+  actionRequired: boolean;
+  initialStatus: AnnouncementSelfStatus;
+}
+```
+- Preconditions: `initialStatus`はサーバー側で取得済みの、当該お知らせに対する自社の最新状態
+- Postconditions: マウント完了後、`initialStatus.confirmedAt`が`null`だった場合は記録が試行され、成功時にUIが「確認済み」表示に切り替わる
+- Invariants: 記録の呼び出しはマウントごとに最大1回（`useEffect`の空依存配列により再実行されない）
+
+##### State Management
+- State model: ローカルの`AnnouncementSelfStatus`（`confirmedAt`/`completedAt`）を`useState`で保持し、Server Actionの戻り値で更新する
+- Persistence & consistency: 真の永続状態は`announcements-management`spec側のDBが保持する。本コンポーネントの状態は表示用のキャッシュであり、ページ再読み込み時はサーバー側の最新値（`initialStatus`）で再初期化される
+
+**Implementation Notes**
+- Integration: `confirmAnnouncementAction`/`completeAnnouncementAction`はいずれも未認証時に例外を送出しうるため、呼び出しを`try/catch`し、失敗時はローカル状態を変更せず静かに失敗する（ユーザー体験上、詳細画面の閲覧自体は継続できることを優先する）
+- Validation: 該当なし（サーバー側の可視性チェック・セッションチェックに委譲する）
+- Risks: マウント時の自動呼び出しがネットワーク遅延中に複数回のマウント/アンマウント（高速な画面遷移）で重複実行される可能性があるが、サーバー側が「既に記録済みなら上書きしない」（要件23.6）ため、UI上の不整合は発生しない
+
+#### Presentation Components（サマリーのみ）
+- **AnnouncementListItem（差分）**: `selfConfirmed`が真のときのみ「確認済み」バッジ、`announcement.actionRequired && selfCompleted`が真のときのみ「対応完了」バッジを表示する読み取り専用の表示追加（既存の`CategoryBadge`/`ReminderBadge`と並べて表示）。
+
+### Data Models（追加分）
+本specは新規のデータモデルを追加しない。`announcements-management`spec所有の`AnnouncementSelfStatus`（`{ confirmedAt: string | null; completedAt: string | null }`）を読み取り専用で参照する。
+
+### Error Handling（追加分）
+`confirmAnnouncementAction`/`completeAnnouncementAction`の呼び出し失敗（未認証等）は、`AnnouncementSelfReportPanel`内で捕捉し、ローカル状態を変更せずに静かに失敗する。詳細画面自体の表示（既存の`AnnouncementDetail`のエラー・見つからないハンドリング）には影響しない。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `AnnouncementSelfReportPanel`が、`initialStatus.confirmedAt`が`null`のときのみマウント時に`confirmAnnouncementAction`を呼び出すこと（既に確認済みのときは呼び出さないこと）
+  - `actionRequired`が偽のとき、「対応完了にする」ボタンが表示されないこと
+  - `AnnouncementListItem`が`selfConfirmed`/`selfCompleted`の真偽に応じてバッジの表示・非表示を切り替えること
+- **Integration Tests**:
+  - 詳細画面を開くと、ヘルプデスク側の確認済み人数（`announcements-management`要件13）が1増えること
+  - 「対応完了にする」を押下すると、ヘルプデスク側の実施済み人数が増え、未対応者一覧（要件14）から自社の担当者が除外されること
+  - 一覧画面を表示するだけでは確認済み人数が変化しないこと（要件15.2の検証）
+- **E2E/UI Tests**:
+  - 日本語・英語両方で確認済み表示・対応完了ボタン・対応完了済み表示の文言が翻訳されること
+  - タブレット幅（768px）でボタン・バッジが横スクロールを発生させずに表示されること

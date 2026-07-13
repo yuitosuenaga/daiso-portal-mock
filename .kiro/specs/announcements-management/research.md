@@ -131,3 +131,37 @@
 - `src/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar.tsx` — フィルタバーの実装パターン
 - `src/components/features/helpdesk-inquiries/HelpdeskInquiryListClient.tsx` — クライアント側フィルタ結線パターン
 - `src/lib/helpdesk-inquiry-list.ts` — フィルタ型・フィルタ関数のパターン
+
+## Research Log（2026-07-13追加ラウンド: 会社単位の自己申告記録機能）
+
+### 認証状態の再確認（`MOCK_CURRENT_COMPANY`前提の陳腐化）
+- **Context**: 要件執筆時点では「フェーズ1は認証未実装」という前提で会社単位の記録を設計しようとしたが、実装コードを確認した結果その前提が誤りだった
+- **Sources Consulted**: `src/lib/server/auth-session.ts`（`requireApplicantSession`/`requireHelpdeskStaffSession`）、`src/types/session.ts`（`ApplicantSessionClaims`）、`src/lib/api/announcements.ts`（`getAnnouncements`等が既に`requireApplicantSession()`のクレームを使用）
+- **Findings**: `backend-db-foundation`spec統合により、申請者側は`ApplicantSessionClaims`（`applicantUserId`・`companyId`・`companyCode`・`country`）を持つ実ログイン機能を既に備えている。一方、確認済み・実施済みの追跡対象である`AnnouncementRecipient`（Prismaモデル）は`ApplicantUser`とは無関係の別テーブルで、氏名のみを持つモック担当者マスタのままである
+- **Implications**: 個人単位（`applicantUserId`）での記録は技術的に可能だが、`AnnouncementRecipient`マスタとの統合という別の大きな設計課題を伴う。本ラウンドは既存の追跡モデルとの整合を優先し会社単位を維持する。ただし`companyCode`は`MOCK_CURRENT_COMPANY`ではなく`requireApplicantSession()`のクレームから取得する（実装済みの認証を無視して古い固定定数を使う理由がないため）
+
+### Design Decisions（追加分）
+
+#### Decision: 確認済みの自動記録トリガーをServer Componentレンダリングではなくクライアント`useEffect`にする
+- **Context**: 「詳細画面を開いたら自動的に確認済みを記録する」をどこで実行するか
+- **Alternatives Considered**: 1. `AnnouncementDetail`（Server Component）のレンダリング中に直接記録関数を呼び出す 2. クライアントコンポーネントの`useEffect`でマウント時にServer Actionを呼び出す（Option A）
+- **Selected Approach**: Option A
+- **Rationale**: Next.jsの`<Link>`はデフォルトでビューポート内リンクをプリフェッチし、ユーザーが実際にクリックしなくても詳細ページのRSCペイロードが取得されうる。Server Componentのレンダリング中に記録処理を行うと、一覧をスクロールしただけで「確認済み」が記録されてしまう恐れがある。クライアント側`useEffect`はコンポーネントが実際にマウントされた（＝実際に詳細画面へ遷移した）ときのみ発火するため、この誤発火を避けられる
+- **Trade-offs**: Server Componentのみで完結する既存パターン（`ReminderBadge`等）に比べ、1つクライアントコンポーネントが増える
+- **Follow-up**: なし
+
+#### Decision: `companyCode`をクライアント入力ではなくセッションクレーム由来に限定する
+- **Context**: 会社単位の記録関数に渡す`companyCode`をどこから取得するか
+- **Alternatives Considered**: 1. クライアント（Server Action呼び出し時の引数）から受け取る 2. サーバー側で`requireApplicantSession()`のクレームから取得する（Option A）
+- **Selected Approach**: Option A
+- **Rationale**: 書き込み操作であるため、クライアント入力を信頼すると他社になりすまして記録できてしまう。既存の`isReminderPendingForCompany`は読み取り専用のため呼び出し側が`companyCode`を渡す設計だが、書き込みには同じ設計を適用しない
+- **Trade-offs**: なし
+- **Follow-up**: なし
+
+### Risks & Mitigations（追加分）
+- 将来`AnnouncementRecipient`マスタを`ApplicantUser`と統合する場合、本ラウンドで追加する会社単位の記録関数は個人単位の関数に置き換わる可能性がある — 現時点ではAPI層（`confirmAnnouncementForCurrentCompany`等）のインターフェースは変更せず、内部実装のみ差し替えられるように、呼び出し元（`announcements`spec）には会社単位か個人単位かを意識させない設計とする
+
+### References（追加分）
+- `src/lib/server/auth-session.ts` — 実装済みの申請者・ヘルプデスクセッションガード
+- `src/lib/api/announcements.ts` — `findAnnouncementVisibleToCountry`による可視性判定の既存実装
+- `src/lib/actions/announcement-tracking.ts` — `sendAnnouncementRemindersAction`の`revalidatePath`パターン
