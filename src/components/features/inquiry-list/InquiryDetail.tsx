@@ -58,7 +58,7 @@ export async function InquiryDetail({ id }: { id: string }) {
       {backToListLink}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>{inquiry.title}</CardTitle>
+          <CardTitle>{inquiry.title || t("untitled")}</CardTitle>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span>
               {t("categoryLabel")}: {tCategories(inquiry.category)}

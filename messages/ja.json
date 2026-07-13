@@ -534,7 +534,8 @@
       "title": "問い合わせ一覧",
       "description": "自社が送信した問い合わせ・申請の一覧と対応状況を確認できます。",
       "empty": "問い合わせはありません",
-      "error": "問い合わせの取得に失敗しました"
+      "error": "問い合わせの取得に失敗しました",
+      "untitled": "(タイトル未設定)"
     },
     "status": {
       "new": "新規",
@@ -553,7 +554,8 @@
       "error": "問い合わせの取得に失敗しました",
       "backToList": "一覧へ戻る",
       "inProgressBadge": "対応中",
-      "attachmentsLabel": "添付ファイル"
+      "attachmentsLabel": "添付ファイル",
+      "untitled": "(タイトル未設定)"
     },
     "history": {
       "title": "対応履歴",

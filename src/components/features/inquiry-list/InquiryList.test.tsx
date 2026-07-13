@@ -88,6 +88,30 @@ describe("InquiryList", () => {
     expect(screen.getAllByText("問い合わせ一覧")).toHaveLength(1);
   });
 
+  it("titleが空文字の問い合わせでも代替ラベルでリンクが表示される", async () => {
+    getInquiriesMock.mockResolvedValueOnce([
+      {
+        id: "inquiry-002",
+        title: "",
+        category: "order",
+        urgency: "medium",
+        storeRegion: "West Coast",
+        originalText: "追加発注をお願いしたいです。",
+        originalLanguage: "ja",
+        status: "new",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Test Company", country: "US" },
+      },
+    ]);
+
+    const jsx = await InquiryList();
+    render(jsx);
+
+    const link = screen.getByRole("link", { name: "(タイトル未設定)" });
+    expect(link).toBeTruthy();
+    expect(link.getAttribute("href")).toBe("/inquiry/inquiry-002");
+  });
+
   it("空状態とエラー状態は異なるメッセージで表示される", async () => {
     getInquiriesMock.mockResolvedValueOnce([]);
     const { unmount } = render(await InquiryList());

@@ -151,6 +151,32 @@ describe("InquiryDetail", () => {
     ).toBeTruthy();
   });
 
+  it("titleが空文字のとき代替ラベルを見出しとして表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-002",
+      title: "",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "West Coast",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "US",
+      },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-002" });
+    render(jsx);
+
+    expect(
+      screen.getByRole("heading", { name: "(タイトル未設定)" })
+    ).toBeTruthy();
+  });
+
   it("対応中の問い合わせでは対応中バッジを表示し、担当者名は表示しない", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",

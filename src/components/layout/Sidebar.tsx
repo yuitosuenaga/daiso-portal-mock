@@ -37,6 +37,28 @@ const NAV_ITEMS: NavItem[] = [
   { translationKey: "faq", href: "/faq", icon: HelpCircle },
 ];
 
+/**
+ * 現在のパスに一致するナビゲーション項目のうち、hrefが最も長い（＝最も具体的な）
+ * 項目のみをアクティブとする。例えば`/inquiry/new`は`inquiryForm`(`/inquiry/new`)・
+ * `inquiryList`(`/inquiry`)の両方にプレフィックス一致するが、より具体的な
+ * `inquiryForm`のみがアクティブになるべきである。
+ */
+function resolveActiveHref(pathname: string, items: NavItem[]): string | undefined {
+  const matches = items.filter(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== "/" && pathname.startsWith(`${item.href}/`))
+  );
+
+  if (matches.length === 0) {
+    return undefined;
+  }
+
+  return matches.reduce((longest, item) =>
+    item.href.length > longest.href.length ? item : longest
+  ).href;
+}
+
 interface SidebarProps {
   isCollapsed: boolean;
 }
@@ -44,6 +66,7 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const t = useTranslations("nav");
   const pathname = usePathname();
+  const activeHref = resolveActiveHref(pathname, NAV_ITEMS);
 
   return (
     <aside
@@ -59,9 +82,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
           {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+            const isActive = item.href === activeHref;
             const Icon = item.icon;
 
             return (
