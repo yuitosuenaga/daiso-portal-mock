@@ -12,7 +12,9 @@
     "validation": {
       "emailRequired": "メールアドレスを入力してください",
       "passwordRequired": "パスワードを入力してください"
-    }
+    },
+    "switchToHelpdeskLogin": "日本大創側のログインへ",
+    "switchToApplicantLogin": "海外販社代理店側のログインへ"
   },
   "header": {
     "portalName": "海外運用ポータル",

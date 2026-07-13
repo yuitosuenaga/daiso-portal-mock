@@ -1296,3 +1296,41 @@ interface ReplyTemplateService {
 ### Testing Strategy（追加分）
 - **Unit Tests**: `announcement-service.test.ts`に、公開期間フィルタ（開始日未到来・終了日超過・両方未設定・期間内の各パターン）と、ヘルプデスク側関数が公開期間に関わらず全件を返すことを検証するテストケースを追加する
 - **Integration Tests**: `src/lib/api/announcements.test.ts`は既存のセッション委譲パターン（`@/lib/server/announcement-service`を`vi.fn()`でモック）を維持し、公開期間フィルタ自体の検証はサービス層のテストに委譲する
+
+## 追加ラウンド（2026-07-13）: ログイン画面間の相互リンク
+
+### Overview（追加分）
+DB・セッション・認証ロジックへの変更は無く、ログイン画面（`page.tsx`）2箇所にUIリンクを1つずつ追加するのみの変更。ユーザー指示により、リンクは画面右上（既存の`Header`/`HelpdeskHeader`のポータル切り替えリンクと同じ視覚的position）に配置する。ログイン画面はヘッダーを持たないため、`LoginForm`内部ではなく各`page.tsx`側にリンクを配置する。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Data Models |
+|---|---|---|---|---|
+| 27.1-27.2 | 申請者側・ヘルプデスク側ログイン画面への相互リンク表示 | ApplicantLoginPage, HelpdeskLoginPage | — | — |
+| 27.3 | ロケールを維持した遷移 | ApplicantLoginPage, HelpdeskLoginPage | — | — |
+| 27.4 | 既存ポータル切り替えリンクとの文言・スタイル一貫性 | ApplicantLoginPage, HelpdeskLoginPage | — | — |
+
+### Components and Interfaces（追加分）
+
+#### LoginSwitchLink (`src/components/features/auth/LoginSwitchLink.tsx`、新規)
+
+| Field | Detail |
+|-------|--------|
+| Intent | 画面右上に固定表示する、もう一方のロールのログイン画面への遷移リンク |
+| Requirements | 27.1, 27.2, 27.3, 27.4 |
+
+**Responsibilities & Constraints**
+- Props: `targetHref: "/login" \| "/helpdesk/login"`, `label: string`
+- `fixed top-4 right-4 z-10`で画面右上に固定表示する（`Header.tsx`が採用する`fixed`パターンに合わせ、親コンテナ側の`position`変更を不要にする）
+- 遷移には`@/i18n/navigation`の`Link`コンポーネントを使用し、現在のロケールを維持する（`Header.tsx`/`HelpdeskHeader.tsx`が既に採用しているパターンと同一）
+- 見た目は`Header.tsx`/`HelpdeskHeader.tsx`のポータル切り替えリンクと同じスタイル（`text-primary underline-offset-4 hover:underline`、`ArrowLeftRight`アイコン）を踏襲する
+- コンポーネント単体でテスト可能にすることで、非同期Server Componentである`page.tsx`を直接テストする必要を無くす
+
+**Dependencies**
+- Outbound: `@/i18n/navigation`(Link) (P0)
+- Inbound: `src/app/[locale]/login/page.tsx`（`targetHref="/helpdesk/login"`で使用）, `src/app/[locale]/helpdesk/login/page.tsx`（`targetHref="/login"`で使用）。`LoginForm`自体は変更しない
+
+**Contracts**: Service [ ] / API [ ] / Event [ ] / Batch [ ] / State [ ]
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `LoginSwitchLink.test.tsx`に、`targetHref`・`label`に応じたリンクが正しくレンダリングされることを検証するテストケースを追加する

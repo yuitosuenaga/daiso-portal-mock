@@ -15,6 +15,8 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 
 追加決定事項（2026-07-09 続き4）: links-page完了後、次の対象を`reply-templates`（ヘルプデスク担当者の返信テンプレート、`helpdesk-inquiry-management`specが依存）とする。`reply-templates`はヘルプデスク側限定の機能（申請者側からの参照・操作は無い）であり、`ReplyTemplate.category`は既存の`Inquiry`カテゴリ（`InquiryCategory`Enum）を再利用する。`lib/api/reply-templates.ts`の既存エクスポート関数（`getReplyTemplates`・`getReplyTemplatesByCategory`・`getReplyTemplateById`・`createReplyTemplate`・`updateReplyTemplate`。既存モックに削除機能は無い）のシグネチャを維持したまま内部実装のみをPrisma経由のDBアクセスに置き換える。ヘルプデスク側限定機能のため、announcements/documents領域で確立したパターンに合わせ`requireHelpdeskStaffSession()`による検証を内部実装に追加する。本ラウンドの完了により、backend-db-foundation specが対象とする全ドメイン（inquiry, announcements, documents, faq, links-page, reply-templates）の実DB化が完了する。
 
+追加決定事項（2026-07-13）: 申請者側ログイン画面（`/[locale]/login`）とヘルプデスク側ログイン画面（`/[locale]/helpdesk/login`）の間で、ログイン前のユーザーが誤ってアクセスした場合にもう一方のログイン画面へ遷移できるよう、相互リンクを追加する。認証・DBスキーマ・セッション仕様への変更は無く、ログイン画面のUI（`LoginForm`コンポーネント）への追加のみを対象とする。
+
 ## はじめに
 
 本specは、フェーズ1でモックAPI・固定値（`MOCK_CURRENT_COMPANY`・`MOCK_CURRENT_STAFF_NAME`・`getGlobalMockStore`によるインメモリストア）に依存していたヘルプデスクポータルに、開発環境で実際に動作するバックエンド（Next.js Route Handlers）とDB（PostgreSQL、Prisma管理）を導入するための基盤仕様です。あわせて、これまで存在しなかった認証・ログイン機能（申請者側企業ユーザー、ヘルプデスク担当者）を導入し、問い合わせ・申請領域（`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`）のデータを実際にDBへ永続化・スコープ制御できるようにします。開発環境ではDocker Compose上のPostgreSQLをDBeaverで直接確認できるようにし、将来の本番環境（Cloud SQL for PostgreSQL）へ接続先を切り替えるだけで移行できる拡張性を持たせます。
@@ -50,6 +52,8 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
   - 返信テンプレート（`ReplyTemplate`：カテゴリ・テンプレート名・本文）に相当するDBスキーマの追加。`category`は既存の`InquiryCategory`Enumを再利用する
   - `lib/api/reply-templates.ts`の既存エクスポート関数（`getReplyTemplates`・`getReplyTemplatesByCategory`・`getReplyTemplateById`・`createReplyTemplate`・`updateReplyTemplate`）のシグネチャを維持したまま、内部実装をPrisma経由のDBアクセスに置き換えること
   - `reply-templates`はヘルプデスク側限定機能のため、全関数の呼び出し前にヘルプデスク側セッションを検証すること
+- **ログイン画面間の相互リンク（2026-07-13追加）**:
+  - 申請者側ログイン画面（`/[locale]/login`）・ヘルプデスク側ログイン画面（`/[locale]/helpdesk/login`）の`LoginForm`コンポーネントへ、もう一方のログイン画面へ遷移するリンクを追加すること
 - **対象外**:
   - 自由記述の翻訳処理（Google Cloud Translation API連携）
   - 添付ファイルの実ファイルストレージ・CDN化（本specでは添付ファイルの実体はDBにデータとして保持する。外部ストレージ連携は将来対応）
@@ -468,4 +472,19 @@ links-page領域の実DB化完了を受け、次の対象を`reply-templates`（
 
 1. The プロジェクト shall `main`ブランチの`src/types/announcement.ts`・`src/lib/validation/announcement.ts`が定義する型・zodスキーマ（`publishStartDate`/`publishEndDate`/`dueDate`の入出力契約、終了日が開始日以降であることの検証、対応要否が真の場合の対応期限必須検証）をそのまま採用する。
 2. The プロジェクト shall シードデータ（`prisma/seed.ts`・`prisma/seed.sql`）に、`main`ブランチのモックデータと同一の公開期間・対応期限の値を既存5件のお知らせへ設定し、公開期間フィルタの動作確認用データ（`seed-announcement-006`、公開開始日が未来に設定された6件目のお知らせ）を追加する。
+
+---
+
+## 追加ラウンド（2026-07-13）: ログイン画面間の相互リンク
+
+### 要件 27: ログイン画面間の相互リンク
+
+**目的:** 販社担当者・ヘルプデスク担当者として、自分がアクセスすべきでないログイン画面に迷い込んだ場合に、もう一方のログイン画面へ簡単に遷移したい。そうすることで、URLを直接編集することなく正しいログイン画面に到達できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall 申請者側ログイン画面（`/[locale]/login`）に、ヘルプデスク側ログイン画面（`/[locale]/helpdesk/login`）へ遷移するリンクを表示する。
+2. The ヘルプデスクポータル shall ヘルプデスク側ログイン画面（`/[locale]/helpdesk/login`）に、申請者側ログイン画面（`/[locale]/login`）へ遷移するリンクを表示する。
+3. When ユーザーがログイン画面間の相互リンクを操作したとき、the ヘルプデスクポータル shall 現在選択中の言語ロケールを維持したまま遷移先のログイン画面を表示する。
+4. The ヘルプデスクポータル shall 既存のポータル切り替えリンク（`Header.tsx`の`switchToHelpdesk`・`HelpdeskHeader.tsx`の`switchToApplicant`）と一貫した文言・スタイルでログイン画面間の相互リンクを表示する。
 3. The プロジェクト shall 既存の`vitest`テストスイートに、公開期間フィルタ（開始日未到来・終了日超過・両方未設定の場合の表示可否、ヘルプデスク側は絞り込みを行わないこと）を検証するテストケースを追加した上で成功する状態を維持する。

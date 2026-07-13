@@ -419,3 +419,31 @@
   - Observable: `git status`がクリーンになり、リモートブランチに反映される
   - _Requirements: 26.1, 26.2, 26.3_
   - _Depends: 32.1_
+
+## 追加ラウンド（2026-07-13）: ログイン画面間の相互リンク
+
+- [x] 33. ログイン画面間の相互リンク実装
+- [x] 33.1 i18nメッセージの追加
+  - `messages/ja.json`・`messages/en.json`の`login`名前空間に`switchToHelpdeskLogin`・`switchToApplicantLogin`キーを、`header`/`helpdeskHeader`名前空間の`switchToHelpdesk`/`switchToApplicant`と整合する文言で追加する
+  - Observable: 両ロケールファイルが有効なJSONとして解釈できる
+  - _Requirements: 27.4_
+
+- [x] 33.2 LoginSwitchLinkコンポーネントの新規作成
+  - `src/components/features/auth/LoginSwitchLink.tsx`を新規作成し、`targetHref`・`label`をpropsに取り、`fixed top-4 right-4 z-10`で画面右上に固定表示する
+  - `Header.tsx`/`HelpdeskHeader.tsx`のポータル切り替えリンクと一貫したスタイル（`text-primary underline-offset-4 hover:underline`、`ArrowLeftRight`アイコン）を採用する
+  - `src/app/[locale]/login/page.tsx`に`targetHref="/helpdesk/login"`で、`src/app/[locale]/helpdesk/login/page.tsx`に`targetHref="/login"`で配置する
+  - Observable: `/[locale]/login`の右上にヘルプデスク側ログインへのリンクが、`/[locale]/helpdesk/login`の右上に申請者側ログインへのリンクがそれぞれ表示される
+  - _Requirements: 27.1, 27.2, 27.3, 27.4_
+  - _Depends: 33.1_
+
+- [x] 33.3 (P) LoginSwitchLink.test.tsxの新規作成
+  - `targetHref`・`label`に応じたリンクが正しくレンダリングされることを検証するテストケースを追加する
+  - Observable: `npx vitest run src/components/features/auth/LoginSwitchLink.test.tsx`が成功する
+  - _Requirements: 27.1, 27.2_
+  - _Depends: 33.2_
+
+- [x] 33.4 全体テスト・型チェックの実行
+  - `npx vitest run --exclude ".claude/worktrees/**"`・`npx tsc --noEmit`・`npm run lint`を実行し、全て成功することを確認する
+  - Observable: 3コマンドが全て成功する
+  - _Requirements: 27.1, 27.2, 27.3, 27.4_
+  - _Depends: 33.3_

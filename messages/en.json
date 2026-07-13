@@ -12,7 +12,9 @@
     "validation": {
       "emailRequired": "Please enter your email address",
       "passwordRequired": "Please enter your password"
-    }
+    },
+    "switchToHelpdeskLogin": "Go to Japan Daiso Login",
+    "switchToApplicantLogin": "Go to Overseas Sales Agent Login"
   },
   "header": {
     "portalName": "Overseas Operations Portal",
