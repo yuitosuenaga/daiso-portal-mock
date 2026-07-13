@@ -17,6 +17,8 @@ export interface InquiryListItemProps {
   urgencyFieldLabel: string;
   /** 送信日時のロケール整形に使用する現在のロケール */
   locale: string;
+  /** inquiry.titleが空文字の場合に表示する代替ラベル */
+  untitledLabel: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export function InquiryListItem({
   statusFieldLabel,
   urgencyFieldLabel,
   locale,
+  untitledLabel,
 }: InquiryListItemProps) {
   return (
     <li className="flex items-start justify-between gap-4 py-3">
@@ -40,7 +43,7 @@ export function InquiryListItem({
           href={`/inquiry/${inquiry.id}`}
           className="text-sm font-medium hover:underline"
         >
-          {inquiry.title}
+          {inquiry.title || untitledLabel}
         </Link>
         <p className="line-clamp-2 text-sm text-muted-foreground">
           {inquiry.originalText}

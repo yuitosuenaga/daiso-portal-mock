@@ -102,6 +102,7 @@ export async function InquiryList() {
                 statusFieldLabel={t("detail.statusLabel")}
                 urgencyFieldLabel={t("detail.urgencyLabel")}
                 locale={locale}
+                untitledLabel={t("list.untitled")}
               />
             ))}
           </ul>

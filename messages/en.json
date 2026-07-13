@@ -534,7 +534,8 @@
       "title": "Inquiry List",
       "description": "View the list of inquiries and requests your company has submitted, along with their status.",
       "empty": "No inquiries",
-      "error": "Failed to load inquiries"
+      "error": "Failed to load inquiries",
+      "untitled": "(No title)"
     },
     "status": {
       "new": "New",
@@ -553,7 +554,8 @@
       "error": "Failed to load the inquiry",
       "backToList": "Back to list",
       "inProgressBadge": "In Progress",
-      "attachmentsLabel": "Attachments"
+      "attachmentsLabel": "Attachments",
+      "untitled": "(No title)"
     },
     "history": {
       "title": "History",
