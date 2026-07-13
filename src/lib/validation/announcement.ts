@@ -31,6 +31,7 @@ export const announcementFormSchema = z
     title: z.string().trim().min(1),
     body: z.string().trim().min(1),
     category: z.enum(ANNOUNCEMENT_CATEGORY_CODES),
+    status: z.enum(["draft", "published"]),
     targeting: announcementTargetingSchema,
     actionRequired: z.boolean(),
     publishStartDate: optionalDateField,

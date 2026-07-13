@@ -25,9 +25,11 @@ export class AnnouncementNotFoundError extends Error {
 }
 
 const ORDER_BY_PUBLISHED_AT_DESC = { publishedAt: "desc" } as const;
+const ORDER_BY_CREATED_AT_DESC = { createdAt: "desc" } as const;
 
 function visibleToCountryWhere(country: string): Prisma.AnnouncementWhereInput {
   return {
+    status: "published",
     OR: [
       { targetingScope: "all" },
       { targetingScope: "countries", targetingCountries: { has: country } },
@@ -102,10 +104,13 @@ export async function findAnnouncementVisibleToCountry(
   return isWithinPublishPeriod(announcement, new Date()) ? announcement : null;
 }
 
-/** 配信対象による絞り込みを行わず、お知らせ全件を公開日の降順で取得する。 */
+/**
+ * 配信対象による絞り込みを行わず、お知らせ全件を作成日時の降順で取得する。
+ * 下書きは`publishedAt`が未設定のため、公開日ではなく作成日時を並び順の基準とする。
+ */
 export async function listAllAnnouncements(): Promise<Announcement[]> {
   const records = await prisma.announcement.findMany({
-    orderBy: ORDER_BY_PUBLISHED_AT_DESC,
+    orderBy: ORDER_BY_CREATED_AT_DESC,
   });
 
   return records.map(mapAnnouncement);
@@ -122,7 +127,10 @@ function dateOnlyToColumn(value: string | null | undefined): Date | null {
   return value ? new Date(value) : null;
 }
 
-/** お知らせを新規作成する。公開日時は保存操作を行った時刻とする。 */
+/**
+ * お知らせを新規作成する。公開状態が「公開」の場合、公開日時は保存操作を行った時刻とする。
+ * 「下書き」の場合、公開日時は未設定のまま保存する。
+ */
 export async function createAnnouncementRecord(
   input: CreateAnnouncementInput
 ): Promise<Announcement> {
@@ -131,6 +139,8 @@ export async function createAnnouncementRecord(
       title: input.title,
       body: input.body,
       category: input.category,
+      status: input.status,
+      publishedAt: input.status === "published" ? new Date() : null,
       actionRequired: input.actionRequired,
       ...targetingToColumns(input.targeting),
       publishStartDate: dateOnlyToColumn(input.publishStartDate),
@@ -142,11 +152,25 @@ export async function createAnnouncementRecord(
   return mapAnnouncement(record);
 }
 
-/** 既存お知らせの内容を更新する。存在しない場合は`AnnouncementNotFoundError`を送出する。 */
+/**
+ * 既存お知らせの内容を更新する。存在しない場合は`AnnouncementNotFoundError`を送出する。
+ * 公開状態が「下書き」から「公開」へ変わったときのみ、公開日時を保存操作を行った時刻で
+ * 上書きする。それ以外（公開のまま、または公開から下書きへの差し戻し）では公開日時を変更しない。
+ */
 export async function updateAnnouncementRecord(
   id: string,
   input: CreateAnnouncementInput
 ): Promise<Announcement> {
+  const current = await prisma.announcement.findUnique({
+    where: { id },
+    select: { status: true },
+  });
+  if (!current) {
+    throw new AnnouncementNotFoundError(id);
+  }
+
+  const shouldStampPublishedAt = current.status !== "published" && input.status === "published";
+
   try {
     const record = await prisma.announcement.update({
       where: { id },
@@ -154,6 +178,8 @@ export async function updateAnnouncementRecord(
         title: input.title,
         body: input.body,
         category: input.category,
+        status: input.status,
+        ...(shouldStampPublishedAt ? { publishedAt: new Date() } : {}),
         actionRequired: input.actionRequired,
         ...targetingToColumns(input.targeting),
         publishStartDate: dateOnlyToColumn(input.publishStartDate),

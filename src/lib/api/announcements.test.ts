@@ -59,11 +59,14 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
   return {
     id: "announcement-1",
     title: "タイトル",
+    status: "published",
     publishedAt: "2026-07-01T00:00:00.000Z",
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
   };
 }
@@ -187,6 +190,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
     title: "新規作成テスト",
     body: "本文",
     category: "other",
+    status: "published",
     targeting: { scope: "all" },
     actionRequired: false,
   };

@@ -71,6 +71,24 @@ export function AnnouncementFilterBar({
           }
         />
       </div>
+      <div className="space-y-1">
+        <Label htmlFor="announcement-filter-status">{t("statusLabel")}</Label>
+        <Select
+          id="announcement-filter-status"
+          value={filters.status}
+          options={[
+            { value: "", label: t("statusAll") },
+            { value: "draft", label: t("statusDraft") },
+            { value: "published", label: t("statusPublished") },
+          ]}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              status: event.target.value as HelpdeskAnnouncementFilters["status"],
+            })
+          }
+        />
+      </div>
       <div className="flex items-end">
         <Button type="button" variant="outline" onClick={onClear}>
           {t("clearButton")}

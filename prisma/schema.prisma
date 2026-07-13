@@ -124,18 +124,26 @@ enum AnnouncementTargetingScope {
   countries
 }
 
+enum AnnouncementStatus {
+  draft
+  published
+}
+
 model Announcement {
   id                 String                        @id @default(cuid())
   title              String
   body               String
   category           AnnouncementCategory
-  publishedAt        DateTime                      @default(now())
+  status             AnnouncementStatus            @default(published)
+  publishedAt        DateTime?
   actionRequired     Boolean                       @default(false)
   targetingScope     AnnouncementTargetingScope    @default(all)
   targetingCountries String[]                      @default([])
   publishStartDate   DateTime?                     @db.Date
   publishEndDate     DateTime?                     @db.Date
   dueDate            DateTime?                     @db.Date
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
   recipientStatuses  AnnouncementRecipientStatus[]
 }
 

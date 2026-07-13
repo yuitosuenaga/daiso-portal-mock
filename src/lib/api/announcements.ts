@@ -74,7 +74,8 @@ export async function getAnnouncementByIdForHelpdesk(
 }
 
 /**
- * お知らせを新規作成する。公開日時は保存操作を行った時刻とする。
+ * お知らせを新規作成する。公開状態が「公開」の場合、公開日時は保存操作を行った時刻とする。
+ * 「下書き」の場合、公開日時は未設定のまま保存する。
  */
 export async function createAnnouncement(
   input: CreateAnnouncementInput

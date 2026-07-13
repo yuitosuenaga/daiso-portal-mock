@@ -78,10 +78,10 @@ export function AnnouncementListItem({
             </span>
           )}
           <time
-            dateTime={announcement.publishedAt}
+            dateTime={announcement.publishedAt!}
             className="text-xs text-muted-foreground"
           >
-            {new Date(announcement.publishedAt).toLocaleDateString(locale, {
+            {new Date(announcement.publishedAt!).toLocaleDateString(locale, {
               year: "numeric",
               month: "short",
               day: "numeric",

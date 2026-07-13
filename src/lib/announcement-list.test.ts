@@ -10,11 +10,14 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
   return {
     id: "announcement-x",
     title: "サンプルのお知らせ",
+    status: "published",
     publishedAt: "2026-06-01T00:00:00.000Z",
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };
 }

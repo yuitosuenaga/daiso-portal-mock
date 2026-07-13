@@ -62,11 +62,14 @@ function makeAnnouncement(
   return {
     id,
     title,
+    status: "published",
     publishedAt: "2026-07-01T09:00:00Z",
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: true,
+    createdAt: "2026-07-01T09:00:00Z",
+    updatedAt: "2026-07-01T09:00:00Z",
     ...overrides,
   };
 }

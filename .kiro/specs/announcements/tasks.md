@@ -253,3 +253,15 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 12.4_
   - _Depends: 13.2_
+
+---
+
+## 追加ラウンド（2026-07-10）: 下書きの非表示化
+
+- [ ] 15. 検証: 下書き非表示化が反映されていることを確認する
+- [ ] 15.1 下書き状態のお知らせが非表示化されていることを確認する
+  - `announcements-management`spec側の`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`の変更（公開状態フィルタ）により、本spec側のコード変更なしに下書き状態のお知らせが一覧・詳細・ダッシュボードウィジェットから除外されることをブラウザで確認する
+  - 下書き状態のお知らせIDを直接URLで指定すると「見つかりません」表示になることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 14.1, 14.2, 14.3, 14.4_
+  - _Depends: announcements-management#17.1_

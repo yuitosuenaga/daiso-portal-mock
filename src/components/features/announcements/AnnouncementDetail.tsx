@@ -70,8 +70,8 @@ export async function AnnouncementDetail({ id }: { id: string }) {
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span>
               {t("publishedAtLabel")}:{" "}
-              <time dateTime={announcement.publishedAt}>
-                {new Date(announcement.publishedAt).toLocaleDateString(locale, {
+              <time dateTime={announcement.publishedAt!}>
+                {new Date(announcement.publishedAt!).toLocaleDateString(locale, {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
