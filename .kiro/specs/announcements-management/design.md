@@ -858,3 +858,142 @@ function isWithinPublishPeriod(announcement: Announcement, referenceDate: Date):
   - 対応要否を「対応が必要」から「対応不要」に変更すると、対応期限欄がクリア・無効化されること
 - **E2E/UI Tests**:
   - 公開期間・対応期限の入力欄が日本語・英語で表示されること
+
+---
+
+## 追加ラウンド（2026-07-10）: 下書き機能の追加
+
+### Overview（追加分）
+`Announcement`に公開状態（`status`: `draft` | `published`）を追加し、内容を検討中のお知らせを海外販社側から完全に隠す下書き機能を実装する。**Purpose**: ヘルプデスク担当者が誤って未完成の周知事項を公開してしまうことを防ぎ、内容を練ってから明示的に公開する運用フローを可能にする。**Impact**: `Announcement`型・`announcementFormSchema`・`AnnouncementForm`・`AnnouncementManagementListClient`・`AnnouncementFilterBar`・`lib/helpdesk-announcement-list.ts`を変更する。新規コンポーネントの追加はない。
+
+> **前提の変更点**: 本ラウンド以前の設計は`globalThis`共有モックストア（`getGlobalMockStore`）を前提に記述されているが、`backend-db-foundation`specにより実装はPrisma + PostgreSQLへ移行済みである（`prisma/schema.prisma`の`Announcement`モデル、`src/lib/server/announcement-service.ts`、`src/lib/api/announcements.ts`の`requireHelpdeskStaffSession()`/`requireApplicantSession()`ガード）。本ラウンドはこの現行のDBベース実装を対象に設計する。過去ラウンドの記述（モックストア）は当時の設計判断の記録として変更しない。
+
+### Goals（追加分）
+- お知らせごとに公開状態（下書き/公開）を設定でき、新規作成時は下書きが既定値である
+- 下書き状態のお知らせは、配信対象・公開期間の条件を満たしていても海外販社側に一切表示されない
+- 公開状態は編集フォームのセレクトで自由に切り替えられる（公開→下書きへの差し戻しも同じ操作で行える）
+- 実際に公開された日時（`publishedAt`）が、下書き→公開へ遷移した瞬間を正しく反映する
+
+### Non-Goals（追加分）
+- 公開日時を指定した予約公開（自動的に下書きから公開へ切り替える機能）
+- 公開状態の変更履歴の記録
+- 下書き専用のプレビュー画面
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `Announcement.status`（`AnnouncementStatus`: `draft` | `published`）フィールドの追加・マイグレーション
+- `Announcement.publishedAt`のnullable化と、下書き→公開遷移時の打刻ロジック
+- `Announcement.createdAt`/`updatedAt`の追加（ヘルプデスク側一覧のソートキーとして新設）
+- お知らせ作成・編集フォームでの公開状態セレクト
+- お知らせ管理一覧の下書きバッジ表示・公開状態による絞り込み
+- 下書き状態のお知らせに対するリマインド送信・確認済み人数表示の抑止
+
+**Out of Boundary（追加）**
+- 申請者側（`announcements`spec）の一覧・詳細・ダッシュボードウィジェットにおける下書き除外の表示ロジック自体（本specは`status`フィールドと、それを反映した読み取り関数の絞り込みを提供する。`announcements`spec側は要件14として本フィールドを参照するのみで、UIコンポーネント自体の変更はない）
+
+**Allowed Dependencies（追加）**: 変更なし（既存の`prisma`クライアント・`announcementFormSchema`・`AnnouncementForm`の拡張のみ）
+
+**Revalidation Triggers（追加）**
+- `Announcement.status`/`publishedAt`（nullable化）の型・意味の変更（`announcements`specが再確認する必要がある）
+
+### Architecture（追加分）
+新規コンポーネント・新規フローは発生しない。既存の可視性フィルタ（`visibleToCountryWhere` + `isWithinPublishPeriod`、`src/lib/server/announcement-service.ts`）に`status: "published"`のAND条件を追加し、既存の`AnnouncementForm`・`AnnouncementManagementListClient`・`AnnouncementFilterBar`にフィールドを追加する形で対応する。
+
+**Architecture Integration（追加分）**:
+- 既存パターン踏襲: 可視性判定は`listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`の`where`条件に`status: "published"`を追加する形で拡張し、`isWithinPublishPeriod`によるフィルタとは独立したAND条件として合成する。申請者側の関数シグネチャ（引数・戻り値の型）は変更しない
+- `updateAnnouncementRecord`は、更新前のレコードを取得して現在の`status`を確認し、「`draft` → `published`」への遷移時のみ`publishedAt`を現在時刻で上書きする（それ以外は`publishedAt`を変更しない）
+- 新規コンポーネントを作らない理由: 入力欄1つ（セレクト）・表示バッジ1つ・絞り込み条件1つの追加のみであり、既存コンポーネントの責務範囲に収まるため
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし（既存の`react-hook-form` + `zod`、Prisma、既存の`Select`/`Badge`UIプリミティブのみを使用）。
+
+### File Structure Plan（追加分）
+新規ファイルなし。以下を変更する。
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `Announcement`に`status AnnouncementStatus @default(published)`、`AnnouncementStatus`列挙型（`draft`/`published`）、`createdAt DateTime @default(now())`、`updatedAt DateTime @updatedAt`を追加。`publishedAt`を`DateTime?`（nullable）に変更
+- `prisma/migrations/` — 上記スキーマ変更を反映する新規マイグレーション（既存行は`status: published`として後方互換を維持）
+- `src/types/announcement.ts` — `AnnouncementStatus`型（`"draft" | "published"`）、`Announcement.status`、`Announcement.createdAt`/`updatedAt: string`を追加。`publishedAt: string`を`publishedAt: string | null`に変更
+- `src/lib/validation/announcement.ts` — `announcementFormSchema`に`status: z.enum(["draft", "published"])`を追加（既定値は`AnnouncementForm`側でハンドルする新規作成時の初期表示値として扱う）
+- `src/lib/server/announcement-service.ts` — `visibleToCountryWhere`に`status: "published"`のAND条件を追加、`ORDER_BY_PUBLISHED_AT_DESC`はヘルプデスク側一覧（`listAllAnnouncements`）専用に`createdAt desc`へ切り替え、`updateAnnouncementRecord`に「`draft`→`published`遷移時のみ`publishedAt`を打刻」ロジックを追加、`createAnnouncementRecord`は`status`に応じて`publishedAt`を`now()`または`null`で保存
+- `src/components/features/helpdesk-announcements/AnnouncementForm.tsx` — 公開状態（下書き/公開）の`Select`フィールドを追加。新規作成時の初期値は`"draft"`
+- `src/components/features/helpdesk-announcements/AnnouncementManagementListClient.tsx` — 各行に下書きバッジ（`status === "draft"`のときのみ）を表示。`publishedAt`が`null`の行は公開日表示をフォールバック（例: `—`）にする
+- `src/components/features/helpdesk-announcements/AnnouncementFilterBar.tsx` — 公開状態（すべて/下書き/公開）の`Select`を追加
+- `src/lib/helpdesk-announcement-list.ts` — `HelpdeskAnnouncementFilters`に`status: "" | "draft" | "published"`を追加し、`filterAnnouncementsForHelpdesk`でAND条件として絞り込む
+- `src/components/features/helpdesk-announcements/AnnouncementTrackingBadge.tsx` / `AnnouncementRecipientDialog.tsx` — `status === "draft"`のお知らせについては人数表示・リマインド送信操作を提供しない（非表示または無効化）
+- `messages/ja.json` / `messages/en.json` — `helpdeskAnnouncements.form.status*`、`helpdeskAnnouncements.list.statusBadgeDraft`、`helpdeskAnnouncements.list.filter.status*`の翻訳キー追加
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 18.1〜18.5 | 公開状態フィールドの追加 | AnnouncementForm, Announcement型, announcement-service | State/Service | — |
+| 19.1〜19.5 | 公開日時の記録タイミング | announcement-service（createAnnouncementRecord/updateAnnouncementRecord） | Service | — |
+| 20.1〜20.4 | 下書きの可視性制御 | announcement-service（visibleToCountryWhere） | Service | — |
+| 21.1〜21.3 | 管理一覧での公開状態の表示・絞り込み | AnnouncementManagementListClient, AnnouncementFilterBar, filterAnnouncementsForHelpdesk | State | — |
+| 22.1 | 下書き状態でのリマインド送信の抑止 | AnnouncementTrackingBadge, AnnouncementRecipientDialog | State | — |
+
+### Components and Interfaces（追加分）
+
+#### announcement-service（差分）
+
+**Responsibilities & Constraints（追加）**
+- `visibleToCountryWhere`の戻り値に`status: "published"`をトップレベルのAND条件として合成する（`isWithinPublishPeriod`のフィルタとは独立して適用する）
+- `updateAnnouncementRecord`は更新対象の現在の`status`を`findAnnouncementById`相当で取得し、`previousStatus !== "published" && input.status === "published"`のときのみ`publishedAt: new Date()`をセットする。それ以外は`publishedAt`をデータに含めない（既存値を保持）
+- `createAnnouncementRecord`は`input.status === "published"`のとき`publishedAt: new Date()`、`"draft"`のとき`publishedAt: null`を保存する
+- `listAllAnnouncements`（ヘルプデスク側）は`orderBy: { createdAt: "desc" }`に変更する（下書きは`publishedAt`が`null`になり得るため）
+
+```typescript
+function visibleToCountryWhere(country: string): Prisma.AnnouncementWhereInput {
+  return {
+    status: "published",
+    OR: [
+      { targetingScope: "all" },
+      { targetingScope: "countries", targetingCountries: { has: country } },
+    ],
+  };
+}
+```
+- Preconditions: `country`は自社の国コード
+- Postconditions: `listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`は`status === "published"`かつ配信対象条件かつ公開期間内のお知らせのみを返す
+- Invariants: `status === "draft"`のお知らせは申請者側のいかなる読み取り関数からも返されない
+
+#### AnnouncementForm（差分）
+
+**Responsibilities & Constraints（追加）**
+- 公開状態（下書き/公開）の`Select`フィールドを追加する。新規作成時の初期値は`"draft"`、編集時は既存レコードの`status`を初期表示する
+- 保存ボタンは既存の1つのままとし、選択した`status`の値でそのまま送信する（下書き保存・公開の専用ボタンは設けない）
+
+#### AnnouncementManagementListClient / AnnouncementFilterBar（差分）
+
+**Responsibilities & Constraints（追加）**
+- 各行について、`status === "draft"`のときのみ下書きバッジ（`Badge variant="secondary"`）を表示する
+- `publishedAt`が`null`の行では、公開日表示を`—`等のプレースホルダーに置き換える（例外を発生させない）
+- `AnnouncementFilterBar`に公開状態（すべて/下書き/公開）の`Select`を追加し、`filterAnnouncementsForHelpdesk`が`status`を含むAND条件で絞り込む
+
+### Data Models（追加分）
+
+- `Announcement`（既存、拡張）: `status: "draft" | "published"`を追加（新規作成時の既定値は`"draft"`）。`publishedAt: string | null`に変更（下書き中は`null`）。`createdAt: string`、`updatedAt: string`を追加
+- `CreateAnnouncementInput`は`Announcement`から`id`・`publishedAt`・`createdAt`・`updatedAt`を除いたサブセットのため、`status`は自動的に含まれる（型定義の追加変更は`Omit`対象の見直しのみ）
+
+### Error Handling（追加分）
+既存パターンを維持する。公開状態の値は`zod`の`z.enum(["draft", "published"])`により型レベルで不正値を排除するため、追加のエラーハンドリングは発生しない。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `createAnnouncementRecord`が`status: "draft"`のとき`publishedAt: null`を、`status: "published"`のとき`publishedAt`に現在時刻相当の値を保存すること
+  - `updateAnnouncementRecord`が「`draft`→`published`」遷移時のみ`publishedAt`を更新し、「`published`→`published`」「`published`→`draft`」では既存の`publishedAt`を変更しないこと
+  - `listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`が`status === "draft"`のお知らせを、配信対象・公開期間の条件を満たしていても除外すること
+  - `listAllAnnouncements`（ヘルプデスク側）が`status`に関わらず全件を`createdAt`降順で返すこと
+  - `filterAnnouncementsForHelpdesk`が`status`によるAND条件の絞り込みに対応すること
+  - `announcementFormSchema`が`status`を`"draft" | "published"`のいずれかとして要求すること
+- **Integration Tests**:
+  - 下書きとして新規作成したお知らせが、申請者側の一覧・詳細・ダッシュボードウィジェットのいずれにも表示されないこと
+  - 編集で公開状態を「公開」に変更して保存すると、申請者側に表示され、`publishedAt`が保存操作時刻に更新されること
+  - 公開済みのお知らせを「下書き」に差し戻すと、即座に申請者側の表示から除外されること（確認済み・実施済み状態のモックデータは削除されない）
+  - 下書き状態のお知らせについて、確認済み人数表示・リマインド送信操作が提供されない、または操作不可であること
+- **E2E/UI Tests**:
+  - 日本語・英語両方で公開状態セレクト・下書きバッジ・絞り込みラベルが翻訳されること
+  - タブレット幅（768px）でフォーム・一覧が横スクロールを発生させないこと

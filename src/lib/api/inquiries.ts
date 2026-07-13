@@ -1,189 +1,23 @@
 import { InquiryStatusSummary } from "@/types/inquiry-summary";
 import { CreateInquiryInput, Inquiry } from "@/types/inquiry";
-import { getGlobalMockStore } from "@/lib/mock-store";
-import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
+import {
+  requireApplicantSession,
+  requireHelpdeskStaffSession,
+  UnauthorizedSessionError,
+} from "@/lib/server/auth-session";
+import { getSession } from "@/lib/server/get-session";
+import {
+  createInquiryRecord,
+  findInquiryById as findInquiryByIdService,
+  findInquiryForCompany,
+  listAllInquiries as listAllInquiriesService,
+  listInquiriesForCompany,
+  setClaim,
+  updateStatus,
+} from "@/lib/server/inquiry-service";
 
-/**
- * 問い合わせ一覧・詳細表示用の静的モックデータ。
- * `createInquiry` が返す実行時データとは独立しており、対応状況・緊急度・案件種別が一通り確認できる内容にしている。
- * Server Actionsからの変更がRSCレンダリングに反映されるよう、`globalThis`上に保持する
- * （`lib/mock-store.ts`参照）。
- */
-const MOCK_INQUIRIES: Inquiry[] = getGlobalMockStore("inquiries", () => [
-  {
-    id: "inquiry-001",
-    category: "defect",
-    urgency: "high",
-    storeRegion: "Kanto",
-    originalText:
-      "店舗に納品された商品の一部に破損が見られます。至急対応をお願いします。",
-    originalLanguage: "ja",
-    status: "new",
-    createdAt: "2026-06-28T09:15:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Japan Trading Co.",
-      country: "JP",
-    },
-  },
-  {
-    id: "inquiry-002",
-    category: "order",
-    urgency: "medium",
-    storeRegion: "West Coast",
-    originalText:
-      "We would like to place an additional order for next month's shipment.",
-    originalLanguage: "en",
-    translatedText: "来月分の配送に向けて追加発注をお願いしたいです。",
-    status: "in_progress",
-    createdAt: "2026-06-25T14:30:00.000Z",
-    submittedBy: {
-      companyName: "Daiso USA Inc.",
-      country: "US",
-    },
-  },
-  {
-    id: "inquiry-003",
-    category: "system",
-    urgency: "high",
-    storeRegion: "Seoul",
-    originalText: "포털 시스템에 로그인할 수 없는 문제가 발생하고 있습니다.",
-    originalLanguage: "ko",
-    translatedText: "ポータルシステムにログインできない問題が発生しています。",
-    status: "new",
-    createdAt: "2026-06-29T02:45:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Korea Co., Ltd.",
-      country: "KR",
-    },
-  },
-  {
-    id: "inquiry-004",
-    category: "other",
-    urgency: "low",
-    storeRegion: "Bangkok",
-    originalText:
-      "次回の販促キャンペーンに関する資料の共有をお願いしたいです。",
-    originalLanguage: "ja",
-    status: "resolved",
-    createdAt: "2026-06-10T06:00:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Thailand Co., Ltd.",
-      country: "TH",
-    },
-  },
-  {
-    id: "inquiry-005",
-    category: "defect",
-    urgency: "medium",
-    storeRegion: "Taipei",
-    originalText: "部分商品外包裝有輕微破損，請確認是否需要更換。",
-    originalLanguage: "zh",
-    translatedText:
-      "一部商品の外装に軽微な破損が見られます。交換の必要があるかご確認ください。",
-    status: "in_progress",
-    createdAt: "2026-06-20T11:20:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Taiwan Co., Ltd.",
-      country: "TW",
-    },
-  },
-  {
-    id: "inquiry-006",
-    category: "order",
-    urgency: "low",
-    storeRegion: "Singapore",
-    originalText:
-      "Could you confirm the estimated delivery date for order #4821?",
-    originalLanguage: "en",
-    translatedText: "注文番号#4821の配送予定日をご確認いただけますでしょうか。",
-    status: "resolved",
-    createdAt: "2026-05-30T08:10:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Singapore Pte. Ltd.",
-      country: "SG",
-    },
-  },
-  {
-    id: "inquiry-007",
-    category: "system",
-    urgency: "low",
-    storeRegion: "Ho Chi Minh City",
-    originalText:
-      "Trang cổng thông tin hiển thị chậm khi tải danh sách đơn hàng.",
-    originalLanguage: "vi",
-    translatedText:
-      "ポータルサイトで注文一覧を読み込む際の表示が遅くなっています。",
-    status: "new",
-    createdAt: "2026-06-27T13:05:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Vietnam Co., Ltd.",
-      country: "VN",
-    },
-  },
-  {
-    id: "inquiry-008",
-    category: "other",
-    urgency: "medium",
-    storeRegion: "Jakarta",
-    originalText:
-      "Kami ingin menanyakan mengenai perpanjangan kontrak distribusi.",
-    originalLanguage: "id",
-    translatedText: "販売契約の更新についてお伺いしたいです。",
-    status: "in_progress",
-    createdAt: "2026-06-15T05:40:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Indonesia Co., Ltd.",
-      country: "ID",
-    },
-  },
-  {
-    id: "inquiry-009",
-    category: "order",
-    urgency: "medium",
-    storeRegion: "Da Nang",
-    originalText:
-      "Chúng tôi muốn đặt thêm hàng cho đợt giao tháng sau.",
-    originalLanguage: "vi",
-    translatedText: "来月分の配送に向けて追加発注をお願いしたいです。",
-    status: "in_progress",
-    createdAt: "2026-06-22T09:30:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Vietnam Co., Ltd.",
-      country: "VN",
-    },
-  },
-  {
-    id: "inquiry-010",
-    category: "defect",
-    urgency: "high",
-    storeRegion: "Hanoi",
-    originalText: "Sản phẩm giao đến bị lỗi, đã được đổi trả và xử lý xong.",
-    originalLanguage: "vi",
-    translatedText:
-      "納品された商品に不具合があり、交換・対応は既に完了しております。",
-    status: "resolved",
-    createdAt: "2026-06-05T02:15:00.000Z",
-    submittedBy: {
-      companyName: "Daiso Vietnam Co., Ltd.",
-      country: "VN",
-    },
-  },
-]);
-
-function sortByCreatedAtDesc(inquiries: Inquiry[]): Inquiry[] {
-  return [...inquiries].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-}
-
-/**
- * 自社（`MOCK_CURRENT_COMPANY`）の問い合わせをステータス別に集計するモックAPI関数。
- * `getInquiries` と同じ絞り込み対象から動的に算出する。
- */
-export async function getInquiryStatusSummary(): Promise<InquiryStatusSummary> {
-  const ownCompanyInquiries = await getInquiries();
-
-  return ownCompanyInquiries.reduce<InquiryStatusSummary>(
+function summarize(inquiries: Inquiry[]): InquiryStatusSummary {
+  return inquiries.reduce<InquiryStatusSummary>(
     (summary, inquiry) => {
       summary[inquiry.status] += 1;
       return summary;
@@ -193,103 +27,91 @@ export async function getInquiryStatusSummary(): Promise<InquiryStatusSummary> {
 }
 
 /**
- * 全社（自社限定なし）の問い合わせをステータス別に集計するモックAPI関数。
- * `getAllInquiries` と同じ絞り込み対象（絞り込みなし）から動的に算出する。
- */
-export async function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary> {
-  const allInquiries = await getAllInquiries();
-
-  return allInquiries.reduce<InquiryStatusSummary>(
-    (summary, inquiry) => {
-      summary[inquiry.status] += 1;
-      return summary;
-    },
-    { new: 0, in_progress: 0, resolved: 0 }
-  );
-}
-
-/**
- * 問い合わせ・申請を送信するモックAPI関数。
- * フェーズ1では一意なIDを付与した `Inquiry` を常に解決する。
- * 実APIへの移行時はこの関数の内部実装のみを差し替える想定。
+ * 問い合わせ・申請を送信する。ログイン中の申請者セッションが所属する`Company`の
+ * IDを永続化し、`submittedBy`はフォーム入力値のまま表示用フィールドとして保存する。
  */
 export async function createInquiry(input: CreateInquiryInput): Promise<Inquiry> {
-  const inquiry: Inquiry = {
-    id: crypto.randomUUID(),
-    ...input,
-  };
+  const { claims } = await requireApplicantSession();
 
-  return Promise.resolve(inquiry);
+  return createInquiryRecord({ data: input, companyId: claims.companyId });
 }
 
 /**
- * 自社（`MOCK_CURRENT_COMPANY`）の問い合わせ全件を送信日時（`createdAt`）の降順で
- * 取得するモックAPI関数。実APIへの移行時は認証済みユーザーの所属会社で絞り込む
- * 実装に差し替える想定。
+ * ログイン中の申請者セッションが所属する会社の問い合わせ全件を取得する。
  */
 export async function getInquiries(): Promise<Inquiry[]> {
-  const ownCompanyInquiries = MOCK_INQUIRIES.filter(
-    (inquiry) => inquiry.submittedBy.companyName === MOCK_CURRENT_COMPANY.companyName
-  );
+  const { claims } = await requireApplicantSession();
 
-  return Promise.resolve(sortByCreatedAtDesc(ownCompanyInquiries));
+  return listInquiriesForCompany(claims.companyId);
 }
 
 /**
- * 全社分の問い合わせ全件を送信日時（`createdAt`）の降順で取得するモックAPI関数。
- * ヘルプデスク側の後続機能（ヘルプデスク問い合わせ管理）が利用する想定で、
- * 本specの時点では画面上への一覧表示は行わない。
+ * 全社分の問い合わせ全件を取得する。ヘルプデスク担当者のセッションを要求する。
  */
 export async function getAllInquiries(): Promise<Inquiry[]> {
-  return Promise.resolve(sortByCreatedAtDesc(MOCK_INQUIRIES));
+  await requireHelpdeskStaffSession();
+
+  return listAllInquiriesService();
 }
 
 /**
- * 指定されたIDの問い合わせを1件取得するモックAPI関数。
- * 該当データが存在しない場合は例外をthrowせず `null` を解決する。
+ * 指定されたIDの問い合わせを1件取得する。申請者セッションでは自社スコープに
+ * 限定し、ヘルプデスクセッションでは全社の問い合わせを取得できる。
  */
 export async function getInquiryById(id: string): Promise<Inquiry | null> {
-  const found = MOCK_INQUIRIES.find((inquiry) => inquiry.id === id);
-
-  return Promise.resolve(found ?? null);
-}
-
-function findInquiryOrThrow(id: string): Inquiry {
-  const inquiry = MOCK_INQUIRIES.find((item) => item.id === id);
-  if (!inquiry) {
-    throw new Error(`Inquiry not found: ${id}`);
+  const session = await getSession();
+  if (!session?.claims) {
+    throw new UnauthorizedSessionError("Session required");
   }
-  return inquiry;
+
+  if (session.claims.role === "applicant") {
+    return findInquiryForCompany(id, session.claims.companyId);
+  }
+
+  return findInquiryByIdService(id);
 }
 
 /**
- * ヘルプデスク側の対応中フラグ（二重対応防止）を設定・解除するモックAPI関数。
- * `staffName` に `null` を渡すと解除する。`MOCK_INQUIRIES` の該当要素のみを更新する。
+ * 対応中フラグを設定・解除する。`staffName`引数はシグネチャ互換のために残すが、
+ * 実際の担当者情報はログイン中のヘルプデスクセッションから解決する
+ * （クライアントが自称する氏名を信用しない）。
  */
 export async function setInquiryClaim(
   id: string,
   staffName: string | null
 ): Promise<Inquiry> {
-  const inquiry = findInquiryOrThrow(id);
+  const { claims } = await requireHelpdeskStaffSession();
 
-  inquiry.claim = staffName
-    ? { staffName, claimedAt: new Date().toISOString() }
-    : null;
-
-  return Promise.resolve(inquiry);
+  return setClaim(
+    id,
+    staffName
+      ? { staffId: claims.staffId, displayName: claims.displayName }
+      : null
+  );
 }
 
 /**
- * ヘルプデスク側から問い合わせの対応状況（`status`）を変更するモックAPI関数。
- * `MOCK_INQUIRIES` の該当要素のみを更新するため、申請者側の参照結果にも反映される。
+ * 問い合わせの対応状況（status）を変更する。ヘルプデスク担当者のセッションを要求する。
  */
 export async function updateInquiryStatus(
   id: string,
   status: Inquiry["status"]
 ): Promise<Inquiry> {
-  const inquiry = findInquiryOrThrow(id);
+  await requireHelpdeskStaffSession();
 
-  inquiry.status = status;
+  return updateStatus(id, status);
+}
 
-  return Promise.resolve(inquiry);
+/** 自社の問い合わせをステータス別に集計する。 */
+export async function getInquiryStatusSummary(): Promise<InquiryStatusSummary> {
+  const ownCompanyInquiries = await getInquiries();
+
+  return summarize(ownCompanyInquiries);
+}
+
+/** 全社の問い合わせをステータス別に集計する。 */
+export async function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary> {
+  const allInquiries = await getAllInquiries();
+
+  return summarize(allInquiries);
 }

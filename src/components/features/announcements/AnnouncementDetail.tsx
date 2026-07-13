@@ -1,7 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncementById } from "@/lib/api/announcements";
 import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
-import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
+import { requireApplicantSession } from "@/lib/server/auth-session";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,10 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   const backToListLink = <BackLink href="/announcements" label={t("backToList")} />;
 
   let announcement;
+  let companyCode: string;
   try {
+    const { claims } = await requireApplicantSession();
+    companyCode = claims.companyCode;
     announcement = await getAnnouncementById(id);
   } catch {
     return (
@@ -49,7 +52,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
 
   const isReminderPending = await isReminderPendingForCompany(
     announcement.id,
-    MOCK_CURRENT_COMPANY.companyCode
+    companyCode
   );
 
   return (
@@ -61,8 +64,8 @@ export async function AnnouncementDetail({ id }: { id: string }) {
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span>
               {t("publishedAtLabel")}:{" "}
-              <time dateTime={announcement.publishedAt}>
-                {new Date(announcement.publishedAt).toLocaleDateString(locale, {
+              <time dateTime={announcement.publishedAt!}>
+                {new Date(announcement.publishedAt!).toLocaleDateString(locale, {
                   year: "numeric",
                   month: "short",
                   day: "numeric",

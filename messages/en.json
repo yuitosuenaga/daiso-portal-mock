@@ -1,4 +1,19 @@
 {
+  "login": {
+    "applicantTitle": "Applicant Login",
+    "helpdeskTitle": "Helpdesk Staff Login",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email address",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Log In",
+    "submitting": "Logging in...",
+    "errorInvalidCredentials": "The email address or password is incorrect.",
+    "validation": {
+      "emailRequired": "Please enter your email address",
+      "passwordRequired": "Please enter your password"
+    }
+  },
   "header": {
     "portalName": "Overseas Operations Portal",
     "screenName": "Overseas Sales Agent View",
@@ -91,6 +106,7 @@
       "publishPeriodLabel": "Publish period",
       "publishPeriodToSeparator": "to",
       "dueDateLabel": "Due date",
+      "statusBadgeDraft": "Draft",
       "filter": {
         "keywordLabel": "Search title",
         "keywordPlaceholder": "Words in the title",
@@ -100,6 +116,10 @@
         "actionRequiredAll": "All",
         "actionRequiredTrue": "Action required only",
         "actionRequiredFalse": "No action required only",
+        "statusLabel": "Publish status",
+        "statusAll": "All",
+        "statusDraft": "Draft",
+        "statusPublished": "Published",
         "clearButton": "Clear",
         "noResults": "No matching announcements"
       }
@@ -115,6 +135,9 @@
       "bodyPlaceholder": "Enter the announcement body",
       "categoryLabel": "Category",
       "categoryPlaceholder": "Select a category",
+      "statusLabel": "Publish status",
+      "statusDraftOption": "Draft",
+      "statusPublishedOption": "Published",
       "targetingLabel": "Distribution target",
       "targetingAllOption": "All countries",
       "targetingCountriesOption": "Specify countries/regions",
@@ -390,6 +413,10 @@
     "requiredMark": "Required",
     "backToList": "Back to list",
     "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "Enter a title for your inquiry"
+      },
       "category": {
         "label": "Category",
         "placeholder": "Select a category"

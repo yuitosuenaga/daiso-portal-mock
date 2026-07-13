@@ -13,7 +13,7 @@ import { InquiryDetailsSection } from "@/components/features/inquiry-form/Inquir
 import { InquiryDescriptionSection } from "@/components/features/inquiry-form/InquiryDescriptionSection";
 import { ApplicantInfoSection } from "@/components/features/inquiry-form/ApplicantInfoSection";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
-import { createInquiry } from "@/lib/api/inquiries";
+import { createInquiryAction } from "@/lib/actions/inquiry";
 import { toCreateInquiryInput } from "@/lib/inquiry-form-mapper";
 import {
   inquiryFormSchema,
@@ -60,7 +60,7 @@ export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
 
   const onSubmit = async (values: InquiryFormValues) => {
     try {
-      await createInquiry(toCreateInquiryInput(values));
+      await createInquiryAction(toCreateInquiryInput(values));
       setSubmissionState("success");
       reset();
       setAttachmentFieldResetKey((key) => key + 1);

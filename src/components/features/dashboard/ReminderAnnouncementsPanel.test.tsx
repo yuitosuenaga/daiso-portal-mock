@@ -31,6 +31,19 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
     isReminderPendingForCompanyMock(...args),
 }));
 
+vi.mock("@/lib/server/auth-session", () => ({
+  requireApplicantSession: async () => ({
+    claims: {
+      role: "applicant",
+      applicantUserId: "applicant-1",
+      companyId: "company-1",
+      companyName: "Test Co.",
+      companyCode: "test-co",
+      country: "JP",
+    },
+  }),
+}));
+
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace: string) => (key: string) =>
     `${namespace}.${key}`,
@@ -49,11 +62,14 @@ function makeAnnouncement(
   return {
     id,
     title,
+    status: "published",
     publishedAt: "2026-07-01T09:00:00Z",
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: true,
+    createdAt: "2026-07-01T09:00:00Z",
+    updatedAt: "2026-07-01T09:00:00Z",
     ...overrides,
   };
 }

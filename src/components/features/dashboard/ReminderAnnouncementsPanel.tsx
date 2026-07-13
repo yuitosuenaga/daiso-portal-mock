@@ -4,7 +4,7 @@ import { AnnouncementListItem } from "@/components/features/announcements/Announ
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAnnouncements } from "@/lib/api/announcements";
 import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
-import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
+import { requireApplicantSession } from "@/lib/server/auth-session";
 import type { Announcement } from "@/types/announcement";
 
 /**
@@ -18,10 +18,11 @@ import type { Announcement } from "@/types/announcement";
 export async function ReminderAnnouncementsPanel() {
   let reminderAnnouncements: Announcement[];
   try {
+    const { claims } = await requireApplicantSession();
     const announcements = await getAnnouncements();
     const pendingFlags = await Promise.all(
       announcements.map((announcement) =>
-        isReminderPendingForCompany(announcement.id, MOCK_CURRENT_COMPANY.companyCode)
+        isReminderPendingForCompany(announcement.id, claims.companyCode)
       )
     );
     reminderAnnouncements = announcements.filter((_, index) => pendingFlags[index]);

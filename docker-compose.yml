@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-portal_mock}
+      POSTGRES_USER: ${POSTGRES_USER:-portal_mock}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portal_mock}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

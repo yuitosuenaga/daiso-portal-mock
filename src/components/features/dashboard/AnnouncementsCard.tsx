@@ -22,7 +22,7 @@ function countRecentAnnouncements(
 ): number {
   const cutoff = Date.now() - recentDays * MS_PER_DAY;
   return announcements.filter(
-    (announcement) => new Date(announcement.publishedAt).getTime() >= cutoff
+    (announcement) => new Date(announcement.publishedAt!).getTime() >= cutoff
   ).length;
 }
 

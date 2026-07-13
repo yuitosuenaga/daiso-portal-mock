@@ -88,6 +88,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("存在するIDの場合は詳細情報と各セクションを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "テストタイトル",
       category: "defect",
       urgency: "high",
       storeRegion: "Kanto",
@@ -114,6 +115,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("問い合わせ本文に添付ファイルがある場合、プレビュー・ダウンロードリンクを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "テストタイトル",
       category: "defect",
       urgency: "high",
       storeRegion: "Kanto",
@@ -153,6 +155,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("問い合わせ本文に添付ファイルがない場合、添付ファイルセクションを表示しない", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "テストタイトル",
       category: "defect",
       urgency: "high",
       storeRegion: "Kanto",
@@ -178,6 +181,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("外国語原文かつ日本語訳が設定されている場合、日本語訳をメインに原文を参照として表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-002",
+      title: "テストタイトル",
       category: "order",
       urgency: "medium",
       storeRegion: "West Coast",
@@ -210,6 +214,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("原文が日本語の場合、日本語訳セクションを表示せず原文のみを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "テストタイトル",
       category: "defect",
       urgency: "high",
       storeRegion: "Kanto",
@@ -240,6 +245,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("外国語原文だが日本語訳が未設定の場合、日本語訳セクションを表示せず原文のみを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-003",
+      title: "テストタイトル",
       category: "system",
       urgency: "high",
       storeRegion: "Seoul",
@@ -270,6 +276,7 @@ describe("HelpdeskInquiryDetail", () => {
   it("申請者からのメッセージを対応履歴に表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-009",
+      title: "テストタイトル",
       category: "order",
       urgency: "medium",
       storeRegion: "Da Nang",

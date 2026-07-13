@@ -55,6 +55,22 @@
 - 送信済みメッセージの編集・削除
 - 対応履歴とは別の専用メッセージスレッド画面（既存タイムラインへの統合表示のみを対象とする）
 
+### 追加要望（2026-07-10）: 一覧・詳細でのタイトル表示と本文プレビュー、余白改善
+問い合わせ一覧（`/inquiry`）の各行が案件種別（`category`、4値のみ）をリンク見出しとして表示するのみで、他は対応状況・緊急度バッジ、地域、送信日時のみのため、同じ種別の問い合わせが複数あると一覧から中身を区別できないという課題が挙がった。また`InquiryList`はページ見出し（h1）と`Card`内`CardHeader`/`CardTitle`の両方に同じ「問い合わせ一覧」文言を重複表示しており、隣接する`announcements`仕様の`AnnouncementList`（`Card`+`CardContent className="pt-6"`のみで見出しを重複させない構成）と比べて余白が目立つ状態になっている。
+
+壁打ちの結果、(1) `inquiry-form`仕様に新設される`Inquiry.title`（タイトル・件名）を一覧・詳細の見出しとして表示し種別はバッジ表示に変更する、(2) 自由記述（`originalText`）本文の2行プレビューを一覧行に追加表示する、(3) `InquiryList`の重複見出しを除去し`AnnouncementList`と同じ`Card`+`CardContent pt-6`構成に統一する、という3点で対応することが決まった。`Inquiry.title`フィールド自体の追加は`inquiry-form`仕様側の追加要望として扱われ、本仕様はこれを読み取り専用の依存として表示するのみである。
+
+要件:
+- 一覧行のリンク見出しを、現在の案件種別ラベルから`Inquiry.title`に変更する
+- 案件種別は、対応状況・緊急度と同様にバッジとして一覧行に表示する
+- 一覧行のタイトルの直下に、自由記述（`originalText`）の2行までのプレビュー（`line-clamp-2`）を表示する
+- 問い合わせ詳細画面に`Inquiry.title`を見出しとして表示する（既存の案件種別・緊急度等のフィールド一覧表示は維持する）
+- `InquiryList`の一覧表示（成功・空・エラーの3状態すべて）から、`Card`内の重複した見出し（`CardHeader`/`CardTitle`）を除去し、`AnnouncementList`と同じ`Card`+`CardContent className="pt-6"`構成に統一する
+
+スコープ外:
+- `Inquiry.title`フィールド自体の追加・フォームでの入力（`inquiry-form`spec所有）
+- ヘルプデスク側管理画面（`HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`）でのタイトル表示（`helpdesk-inquiry-management`spec、別画面のため今回は対象外）
+
 ## はじめに
 
 海外販社向けヘルプデスクポータルの「問い合わせ一覧」機能に関する要件定義書です。本機能は、販社担当者が自社の問い合わせ・申請の一覧（`/inquiry`）とその対応状況を確認し、個々の詳細を参照できるようにすることを対象とします。フェーズ1ではモックAPIを介したフロントエンドのみの実装とし、認証機能が未実装であるためモックデータ全件を「自社の問い合わせ」として扱います。ヘルプデスク側からの対応状況の変更・返信機能は対象外とします。
@@ -63,7 +79,7 @@
 
 - **対象**: 問い合わせ一覧ページ（`/inquiry`）、問い合わせ詳細画面（対応履歴・返信内容・対応中バッジ・添付ファイルの表示、追加メッセージの送信フォームを含む）、一覧・詳細取得のモックAPI（`lib/api/inquiries.ts`への後方互換な追加）、追加メッセージ送信用のServer Action
 - **対象外**: ヘルプデスク担当者向けの対応状況の変更・返信・コメント機能（記録・操作自体は`helpdesk-inquiry-management`spec所有）、他社（自社以外）の問い合わせの参照、問い合わせの検索・絞り込み・並び替えのカスタマイズ（フェーズ1は送信日時降順の固定表示のみ）、認証・ログイン機能（フェーズ1では未実装のため対象外）、新着返信・新着メッセージの通知・未読管理、添付ファイルの型・検証ロジック・選択UI・アップロード操作、`InquiryHistoryEntryType`の型定義自体の変更・ヘルプデスク側タイムラインでの表示（`helpdesk-inquiry-management`spec所有）
-- **隣接仕様との境界**: `Inquiry`型・`CreateInquiryInput`型・`createInquiry`関数・`getInquiryStatusSummary`関数・`InquiryAttachment`型は`inquiry-form`仕様が所有し、本仕様はこれらを変更せず参照のみ行う。`/inquiry`ルート・サイドバーナビゲーション項目・全体レイアウトは`dashboard`仕様が実装済みであり、本仕様はこれらを変更せず利用するのみとする。`InquiryHistoryEntry`型・`InquiryHistoryEntryType`・`getInquiryHistory`/`appendInquiryHistoryEntry`関数・対応中フラグ（`claim`）を記録する操作系ロジック・`AttachmentPreviewList`コンポーネントは`helpdesk-inquiry-management`spec所有であり、本仕様は型定義を変更せず、`appendInquiryHistoryEntry`（既存の公開関数）を新規Server Actionから呼び出す形で利用する
+- **隣接仕様との境界**: `Inquiry`型・`CreateInquiryInput`型・`createInquiry`関数・`getInquiryStatusSummary`関数・`InquiryAttachment`型・`Inquiry.title`フィールドは`inquiry-form`仕様が所有し、本仕様はこれらを変更せず参照のみ行う。`/inquiry`ルート・サイドバーナビゲーション項目・全体レイアウトは`dashboard`仕様が実装済みであり、本仕様はこれらを変更せず利用するのみとする。`InquiryHistoryEntry`型・`InquiryHistoryEntryType`・`getInquiryHistory`/`appendInquiryHistoryEntry`関数・対応中フラグ（`claim`）を記録する操作系ロジック・`AttachmentPreviewList`コンポーネントは`helpdesk-inquiry-management`spec所有であり、本仕様は型定義を変更せず、`appendInquiryHistoryEntry`（既存の公開関数）を新規Server Actionから呼び出す形で利用する
 
 ## 要件
 
@@ -206,3 +222,17 @@
 6. The ヘルプデスクポータル shall 送信した自分自身のメッセージを、既存の対応履歴表示セクションに他の履歴種別と時系列で混在させて表示する。
 7. If 追加メッセージの送信に失敗したとき、the ヘルプデスクポータル shall エラーメッセージを表示し、入力内容（本文・添付ファイル）を保持する。
 8. The ヘルプデスクポータル shall 追加メッセージの送信によって、問い合わせの`status`・対応中フラグ（`claim`）を変更しない。
+
+---
+
+### 要件 12: 一覧・詳細でのタイトル表示と本文プレビュー、余白改善（追加・2026-07-10）
+
+**目的:** 販社担当者として、一覧から各問い合わせの中身をひと目で区別したい。そうすることで、目的の問い合わせを探すために毎回詳細画面を開く手間を減らせる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall 問い合わせ一覧の各行のリンク見出しに、案件種別ラベルではなく`Inquiry.title`を表示する。
+2. The ヘルプデスクポータル shall 問い合わせ一覧の各行で、案件種別を対応状況・緊急度と同様にバッジとして表示する。
+3. The ヘルプデスクポータル shall 問い合わせ一覧の各行のタイトル直下に、自由記述（`originalText`）の2行までのプレビューを表示する。
+4. The ヘルプデスクポータル shall 問い合わせ詳細画面に`Inquiry.title`を見出しとして表示する。
+5. The ヘルプデスクポータル shall 問い合わせ一覧の`Card`表示（成功・空・エラーの3状態）から重複した見出し（`CardHeader`/`CardTitle`）を除去し、ページ見出し（h1）のみで一覧タイトルを表示する。

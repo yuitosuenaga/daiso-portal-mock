@@ -1,7 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncements } from "@/lib/api/announcements";
 import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
-import { MOCK_CURRENT_COMPANY } from "@/lib/constants/current-company";
+import { requireApplicantSession } from "@/lib/server/auth-session";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
@@ -22,7 +22,10 @@ export async function AnnouncementList() {
   );
 
   let announcements: Announcement[];
+  let companyCode: string;
   try {
+    const { claims } = await requireApplicantSession();
+    companyCode = claims.companyCode;
     announcements = await getAnnouncements();
   } catch {
     return (
@@ -55,10 +58,7 @@ export async function AnnouncementList() {
       async (announcement) =>
         [
           announcement.id,
-          await isReminderPendingForCompany(
-            announcement.id,
-            MOCK_CURRENT_COMPANY.companyCode
-          ),
+          await isReminderPendingForCompany(announcement.id, companyCode),
         ] as const
     )
   );

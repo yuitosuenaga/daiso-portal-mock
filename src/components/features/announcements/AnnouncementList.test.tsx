@@ -25,6 +25,19 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
   isReminderPendingForCompany: async () => false,
 }));
 
+vi.mock("@/lib/server/auth-session", () => ({
+  requireApplicantSession: async () => ({
+    claims: {
+      role: "applicant",
+      applicantUserId: "applicant-1",
+      companyId: "company-1",
+      companyName: "Test Co.",
+      companyCode: "test-co",
+      country: "JP",
+    },
+  }),
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;
@@ -51,11 +64,14 @@ vi.mock("next-intl", () => ({
 const ANNOUNCEMENT: Announcement = {
   id: "1",
   title: "テストお知らせ",
+  status: "published",
   publishedAt: "2026-07-01T09:00:00Z",
   category: "maintenance",
   body: "本文テキスト",
   targeting: { scope: "all" },
   actionRequired: false,
+  createdAt: "2026-07-01T09:00:00Z",
+  updatedAt: "2026-07-01T09:00:00Z",
 };
 
 describe("AnnouncementList", () => {

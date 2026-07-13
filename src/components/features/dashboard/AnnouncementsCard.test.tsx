@@ -43,11 +43,14 @@ function makeAnnouncement(
   return {
     id,
     title: `お知らせ${id}`,
+    status: "published",
     publishedAt,
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    createdAt: publishedAt,
+    updatedAt: publishedAt,
   };
 }
 

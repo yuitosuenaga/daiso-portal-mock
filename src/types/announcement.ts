@@ -4,6 +4,9 @@
 /** お知らせの種別（category）。ヒアリング後に選択肢が変更される前提の仮値。 */
 export type AnnouncementCategory = "maintenance" | "policy" | "incident" | "other";
 
+/** お知らせの公開状態。下書き中は海外販社側に一切表示されない。 */
+export type AnnouncementStatus = "draft" | "published";
+
 /**
  * お知らせの配信対象。全体一律、または特定の国・地域（ISO 3166-1 alpha-2）を
  * 1件以上指定するかを判別可能なユニオン型で表す。
@@ -15,7 +18,10 @@ export type AnnouncementTargeting =
 export interface Announcement {
   id: string;
   title: string;
-  publishedAt: string; // ISO 8601 形式
+  /** 公開状態。下書き中は`publishedAt`が`null`となり、海外販社側には表示されない。 */
+  status: AnnouncementStatus;
+  /** 公開日時（ISO 8601形式）。下書き中は`null`。下書き→公開へ遷移した時点で記録される。 */
+  publishedAt: string | null;
   category: AnnouncementCategory;
   /** 本文（フェーズ1はプレーンテキスト） */
   body: string;
@@ -28,10 +34,17 @@ export interface Announcement {
   publishEndDate?: string | null;
   /** 対応期限（ISO日付 YYYY-MM-DD）。actionRequiredが真の場合のみ設定される。 */
   dueDate?: string | null;
+  /** 作成日時（ISO 8601形式）。ヘルプデスク側一覧の並び順に使用する。 */
+  createdAt: string;
+  /** 更新日時（ISO 8601形式）。 */
+  updatedAt: string;
 }
 
 /**
  * お知らせ作成・編集時のAPI入力契約。
- * `Announcement` から `id`（API側で生成）と `publishedAt`（保存時刻を採番）を除いたサブセット。
+ * `Announcement` から `id`・`publishedAt`（保存時刻から採番）・`createdAt`・`updatedAt`（DB側で管理）を除いたサブセット。
  */
-export type CreateAnnouncementInput = Omit<Announcement, "id" | "publishedAt">;
+export type CreateAnnouncementInput = Omit<
+  Announcement,
+  "id" | "publishedAt" | "createdAt" | "updatedAt"
+>;

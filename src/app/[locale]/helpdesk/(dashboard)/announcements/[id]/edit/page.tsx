@@ -76,6 +76,7 @@ export default async function HelpdeskAnnouncementEditPage({
           title: announcement.title,
           body: announcement.body,
           category: announcement.category,
+          status: announcement.status,
           // `Announcement.targeting.countries`はドメイン型として`string[]`だが、
           // 保存済みデータは常に`announcementFormSchema`で検証済みのため、
           // フォームの厳密な国コード型へ安全に絞り込める。
@@ -93,6 +94,9 @@ export default async function HelpdeskAnnouncementEditPage({
         bodyPlaceholder={t("bodyPlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
+        statusLabel={t("statusLabel")}
+        statusDraftOption={t("statusDraftOption")}
+        statusPublishedOption={t("statusPublishedOption")}
         actionRequiredLabel={t("actionRequiredLabel")}
         actionRequiredTrueOption={t("actionRequiredTrueOption")}
         actionRequiredFalseOption={t("actionRequiredFalseOption")}

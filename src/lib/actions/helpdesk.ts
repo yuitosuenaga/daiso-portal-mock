@@ -14,7 +14,7 @@ import {
   createReplyTemplate,
   updateReplyTemplate,
 } from "@/lib/api/reply-templates";
-import { MOCK_CURRENT_STAFF_NAME } from "@/lib/constants/helpdesk";
+import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
 import { replyTemplateFormSchema } from "@/lib/validation/reply-template";
 import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
@@ -43,12 +43,13 @@ function revalidateInquiryRoutes() {
  */
 export async function claimInquiryAction(inquiryId: string): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
+  const { claims } = await requireHelpdeskStaffSession();
 
-  await setInquiryClaim(id, MOCK_CURRENT_STAFF_NAME);
+  await setInquiryClaim(id, claims.displayName);
   await appendInquiryHistoryEntry({
     inquiryId: id,
     type: "claimed",
-    actorName: MOCK_CURRENT_STAFF_NAME,
+    actorName: claims.displayName,
     occurredAt: new Date().toISOString(),
   });
   revalidateInquiryRoutes();
@@ -61,12 +62,13 @@ export async function releaseInquiryClaimAction(
   inquiryId: string
 ): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
+  const { claims } = await requireHelpdeskStaffSession();
 
   await setInquiryClaim(id, null);
   await appendInquiryHistoryEntry({
     inquiryId: id,
     type: "released",
-    actorName: MOCK_CURRENT_STAFF_NAME,
+    actorName: claims.displayName,
     occurredAt: new Date().toISOString(),
   });
   revalidateInquiryRoutes();
@@ -82,6 +84,7 @@ export async function changeInquiryStatusAction(
 ): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
   const validatedStatus = statusSchema.parse(status);
+  const { claims } = await requireHelpdeskStaffSession();
 
   const previous = await getInquiryById(id);
   const previousStatus = previous?.status;
@@ -96,7 +99,7 @@ export async function changeInquiryStatusAction(
   await appendInquiryHistoryEntry({
     inquiryId: id,
     type: "status_changed",
-    actorName: MOCK_CURRENT_STAFF_NAME,
+    actorName: claims.displayName,
     occurredAt: new Date().toISOString(),
     detail,
   });
@@ -115,11 +118,12 @@ export async function sendInquiryReplyAction(
   const id = inquiryIdSchema.parse(inquiryId);
   const body = replyBodySchema.parse(replyBody);
   const validatedAttachments = inquiryAttachmentsArraySchema.parse(attachments);
+  const { claims } = await requireHelpdeskStaffSession();
 
   await appendInquiryHistoryEntry({
     inquiryId: id,
     type: "reply_sent",
-    actorName: MOCK_CURRENT_STAFF_NAME,
+    actorName: claims.displayName,
     occurredAt: new Date().toISOString(),
     detail: body,
     attachments:

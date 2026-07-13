@@ -1,4 +1,19 @@
 {
+  "login": {
+    "applicantTitle": "販社担当者ログイン",
+    "helpdeskTitle": "ヘルプデスク担当者ログイン",
+    "emailLabel": "メールアドレス",
+    "emailPlaceholder": "メールアドレスを入力してください",
+    "passwordLabel": "パスワード",
+    "passwordPlaceholder": "パスワードを入力してください",
+    "submit": "ログイン",
+    "submitting": "ログイン中…",
+    "errorInvalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+    "validation": {
+      "emailRequired": "メールアドレスを入力してください",
+      "passwordRequired": "パスワードを入力してください"
+    }
+  },
   "header": {
     "portalName": "海外運用ポータル",
     "screenName": "海外販社代理店画面",
@@ -91,6 +106,7 @@
       "publishPeriodLabel": "公開期間",
       "publishPeriodToSeparator": "〜",
       "dueDateLabel": "対応期限",
+      "statusBadgeDraft": "下書き",
       "filter": {
         "keywordLabel": "タイトル検索",
         "keywordPlaceholder": "タイトルに含まれる語句",
@@ -100,6 +116,10 @@
         "actionRequiredAll": "すべて",
         "actionRequiredTrue": "要対応のみ",
         "actionRequiredFalse": "対応不要のみ",
+        "statusLabel": "公開状態",
+        "statusAll": "すべて",
+        "statusDraft": "下書き",
+        "statusPublished": "公開",
         "clearButton": "クリア",
         "noResults": "該当するお知らせがありません"
       }
@@ -115,6 +135,9 @@
       "bodyPlaceholder": "お知らせの本文を入力してください",
       "categoryLabel": "種別",
       "categoryPlaceholder": "種別を選択してください",
+      "statusLabel": "公開状態",
+      "statusDraftOption": "下書き",
+      "statusPublishedOption": "公開",
       "targetingLabel": "配信対象",
       "targetingAllOption": "全体一律",
       "targetingCountriesOption": "特定の国・地域を指定",
@@ -390,6 +413,10 @@
     "requiredMark": "必須",
     "backToList": "一覧へ戻る",
     "fields": {
+      "title": {
+        "label": "タイトル",
+        "placeholder": "タイトル（件名）を入力してください"
+      },
       "category": {
         "label": "案件種別",
         "placeholder": "案件種別を選択してください"

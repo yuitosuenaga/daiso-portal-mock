@@ -40,6 +40,9 @@ export default async function HelpdeskAnnouncementNewPage() {
         bodyPlaceholder={t("bodyPlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
+        statusLabel={t("statusLabel")}
+        statusDraftOption={t("statusDraftOption")}
+        statusPublishedOption={t("statusPublishedOption")}
         actionRequiredLabel={t("actionRequiredLabel")}
         actionRequiredTrueOption={t("actionRequiredTrueOption")}
         actionRequiredFalseOption={t("actionRequiredFalseOption")}

@@ -8,6 +8,8 @@ import type { InquiryAttachment } from "@/types/attachment";
  */
 export type Inquiry = {
   id: string;
+  /** タイトル（件名） */
+  title: string;
   category: "defect" | "order" | "system" | "other";
   urgency: "high" | "medium" | "low";
   storeRegion: string;

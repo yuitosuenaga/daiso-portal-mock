@@ -1,5 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/server/document-service", () => ({
+  createDocumentRecord: vi.fn(),
+  deleteDocumentRecord: vi.fn(),
+  findDocumentById: vi.fn(),
+  findDocumentVisibleTo: vi.fn(),
+  listAllDocuments: vi.fn(),
+  listDocumentsVisibleTo: vi.fn(),
+  updateDocumentRecord: vi.fn(),
+}));
+
+import { getSession } from "@/lib/server/get-session";
+import {
+  createDocumentRecord,
+  deleteDocumentRecord,
+  findDocumentById as findDocumentByIdService,
+  findDocumentVisibleTo,
+  listAllDocuments as listAllDocumentsService,
+  listDocumentsVisibleTo,
+  updateDocumentRecord,
+} from "@/lib/server/document-service";
 import {
   createDocument,
   deleteDocument,
@@ -9,135 +31,171 @@ import {
   getDocuments,
   updateDocument,
 } from "@/lib/api/documents";
-import type { CreateDocumentInput } from "@/types/document";
+import type { CreateDocumentInput, Document } from "@/types/document";
 
-const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
+const applicantSession = {
+  claims: {
+    id: "applicant-1",
+    role: "applicant" as const,
+    applicantUserId: "applicant-1",
+    companyId: "company-1",
+    companyName: "Test Co.",
+    companyCode: "vn-daiso-vietnam",
+    country: "VN",
+  },
+};
 
-function buildInput(
-  overrides: Partial<CreateDocumentInput> = {}
-): CreateDocumentInput {
+const helpdeskSession = {
+  claims: {
+    id: "staff-1",
+    role: "helpdesk" as const,
+    staffId: "staff-1",
+    displayName: "田中 太郎",
+  },
+};
+
+function document(overrides: Partial<Document> = {}): Document {
   return {
-    title: "テストドキュメント",
+    id: "document-1",
+    title: "タイトル",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: SAMPLE_PDF_DATA_URL,
+    dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
+    uploadedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
   };
 }
 
-describe("getDocuments（自社可視性フィルタ）", () => {
-  it("アップロード日（uploadedAt）の降順で返す", async () => {
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("getDocuments", () => {
+  it("申請者セッションのcountry・companyCodeでlistDocumentsVisibleToに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listDocumentsVisibleTo).mockResolvedValue([document()]);
+
     const result = await getDocuments();
 
-    const sortedIds = [...result]
-      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
-      .map((item) => item.id);
-
-    expect(result.map((item) => item.id)).toEqual(sortedIds);
+    expect(listDocumentsVisibleTo).toHaveBeenCalledWith("VN", "vn-daiso-vietnam");
+    expect(result).toHaveLength(1);
   });
 
-  it("全体公開・自社国・自社販社のいずれかを満たすドキュメントのみを返す", async () => {
-    const result = await getDocuments();
+  it("ヘルプデスクセッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
-    expect(result.map((item) => item.id).sort()).toEqual(["1", "2", "3"]);
+    await expect(getDocuments()).rejects.toThrow();
   });
 
-  it("自社国・自社販社を含まないドキュメントは取得結果から除外される", async () => {
-    const result = await getDocuments();
+  it("未ログインのとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
 
-    expect(result.some((item) => item.id === "4")).toBe(false);
-    expect(result.some((item) => item.id === "5")).toBe(false);
+    await expect(getDocuments()).rejects.toThrow();
   });
 });
 
 describe("getDocumentById", () => {
-  it("自社に公開されたドキュメントを返す", async () => {
-    const result = await getDocumentById("1");
+  it("申請者セッションのcountry・companyCodeでfindDocumentVisibleToに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findDocumentVisibleTo).mockResolvedValue(document());
 
-    expect(result?.id).toBe("1");
+    const result = await getDocumentById("document-1");
+
+    expect(findDocumentVisibleTo).toHaveBeenCalledWith(
+      "document-1",
+      "VN",
+      "vn-daiso-vietnam"
+    );
+    expect(result?.id).toBe("document-1");
   });
 
-  it("自社に非公開のドキュメントIDに対してnullを返す", async () => {
-    const result = await getDocumentById("4");
+  it("未ログインのとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
 
-    expect(result).toBeNull();
-  });
-
-  it("存在しないIDに対してnullを返す", async () => {
-    const result = await getDocumentById("does-not-exist");
-
-    expect(result).toBeNull();
+    await expect(getDocumentById("document-1")).rejects.toThrow();
   });
 });
 
-describe("getAllDocuments / getDocumentByIdForHelpdesk", () => {
-  it("絞り込みなしで全件を返す", async () => {
+describe("getAllDocuments", () => {
+  it("ヘルプデスクセッションでlistAllDocumentsに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(listAllDocumentsService).mockResolvedValue([document()]);
+
     const result = await getAllDocuments();
 
-    expect(result.length).toBeGreaterThanOrEqual(5);
-    expect(result.some((item) => item.id === "4")).toBe(true);
+    expect(listAllDocumentsService).toHaveBeenCalled();
+    expect(result).toHaveLength(1);
   });
 
-  it("自社に非公開のドキュメントも取得できる", async () => {
-    const result = await getDocumentByIdForHelpdesk("4");
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    expect(result?.id).toBe("4");
+    await expect(getAllDocuments()).rejects.toThrow();
+  });
+});
+
+describe("getDocumentByIdForHelpdesk", () => {
+  it("ヘルプデスクセッションでfindDocumentByIdに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(findDocumentByIdService).mockResolvedValue(document());
+
+    const result = await getDocumentByIdForHelpdesk("document-1");
+
+    expect(findDocumentByIdService).toHaveBeenCalledWith("document-1");
+    expect(result?.id).toBe("document-1");
+  });
+
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(getDocumentByIdForHelpdesk("document-1")).rejects.toThrow();
   });
 });
 
 describe("createDocument / updateDocument / deleteDocument", () => {
-  it("作成したドキュメントがgetAllDocumentsに反映される", async () => {
-    const created = await createDocument(buildInput({ title: "新規作成テスト" }));
+  const input: CreateDocumentInput = {
+    title: "新規作成テスト",
+    fileName: "test.pdf",
+    fileType: "application/pdf",
+    fileSize: 1024,
+    dataUrl: "data:application/pdf;base64,AAAA",
+    targeting: { scope: "all" },
+  };
 
-    expect(created.id).toBeTruthy();
-    expect(typeof created.uploadedAt).toBe("string");
+  it("ヘルプデスクセッションでcreateDocumentRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(createDocumentRecord).mockResolvedValue(document());
 
-    const all = await getAllDocuments();
-    expect(all.some((item) => item.id === created.id)).toBe(true);
+    const result = await createDocument(input);
+
+    expect(createDocumentRecord).toHaveBeenCalledWith(input);
+    expect(result.id).toBe("document-1");
   });
 
-  it("自社を含まない公開範囲で作成したドキュメントはgetDocumentsから除外される", async () => {
-    const created = await createDocument(
-      buildInput({
-        title: "他国向けドキュメント",
-        targeting: { scope: "countries", countries: ["US"] },
-      })
-    );
+  it("申請者セッションでのcreateDocumentは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    const scoped = await getDocuments();
-    const all = await getAllDocuments();
-
-    expect(scoped.some((item) => item.id === created.id)).toBe(false);
-    expect(all.some((item) => item.id === created.id)).toBe(true);
+    await expect(createDocument(input)).rejects.toThrow();
   });
 
-  it("更新した内容がgetDocumentByIdForHelpdeskに反映される", async () => {
-    const created = await createDocument(buildInput({ title: "更新前タイトル" }));
+  it("ヘルプデスクセッションでupdateDocumentRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(updateDocumentRecord).mockResolvedValue(document({ title: "更新後" }));
 
-    await updateDocument(created.id, buildInput({ title: "更新後タイトル" }));
+    const result = await updateDocument("document-1", input);
 
-    const result = await getDocumentByIdForHelpdesk(created.id);
-    expect(result?.title).toBe("更新後タイトル");
+    expect(updateDocumentRecord).toHaveBeenCalledWith("document-1", input);
+    expect(result.title).toBe("更新後");
   });
 
-  it("削除したドキュメントはgetAllDocumentsから除去される", async () => {
-    const created = await createDocument(buildInput({ title: "削除テスト" }));
+  it("ヘルプデスクセッションでdeleteDocumentRecordに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(deleteDocumentRecord).mockResolvedValue(undefined);
 
-    await deleteDocument(created.id);
+    await deleteDocument("document-1");
 
-    const all = await getAllDocuments();
-    expect(all.some((item) => item.id === created.id)).toBe(false);
-  });
-
-  it("存在しないIDのupdateDocumentはエラーになる", async () => {
-    await expect(
-      updateDocument("does-not-exist", buildInput())
-    ).rejects.toThrow();
-  });
-
-  it("存在しないIDのdeleteDocumentはエラーになる", async () => {
-    await expect(deleteDocument("does-not-exist")).rejects.toThrow();
+    expect(deleteDocumentRecord).toHaveBeenCalledWith("document-1");
   });
 });

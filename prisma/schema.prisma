@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InquiryCategory {
+  defect
+  order
+  system
+  other
+}
+
+enum InquiryUrgency {
+  high
+  medium
+  low
+}
+
+enum InquiryStatus {
+  new
+  in_progress
+  resolved
+}
+
+enum InquiryHistoryEntryType {
+  claimed
+  released
+  status_changed
+  reply_sent
+  requester_message
+}
+
+model Company {
+  id                     String                  @id @default(cuid())
+  name                   String
+  country                String
+  companyCode            String                  @unique
+  createdAt              DateTime                @default(now())
+  applicantUsers         ApplicantUser[]
+  inquiries              Inquiry[]
+  announcementRecipients AnnouncementRecipient[]
+}
+
+model ApplicantUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model HelpdeskStaff {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  displayName      String
+  createdAt        DateTime  @default(now())
+  claimedInquiries Inquiry[]
+}
+
+model Inquiry {
+  id                     String                @id @default(cuid())
+  title                  String                @default("")
+  category               InquiryCategory
+  urgency                InquiryUrgency
+  storeRegion            String
+  originalText           String
+  originalLanguage       String
+  translatedText         String?
+  status                 InquiryStatus         @default(new)
+  createdAt              DateTime              @default(now())
+  companyId              String
+  company                Company               @relation(fields: [companyId], references: [id])
+  submittedByCompanyName String
+  submittedByCountry     String
+  claimedByStaffId       String?
+  claimedByStaff         HelpdeskStaff?        @relation(fields: [claimedByStaffId], references: [id])
+  claimedAt              DateTime?
+  attachments            InquiryAttachment[]
+  history                InquiryHistoryEntry[]
+
+  @@index([companyId])
+}
+
+model InquiryHistoryEntry {
+  id          String                  @id @default(cuid())
+  inquiryId   String
+  inquiry     Inquiry                 @relation(fields: [inquiryId], references: [id])
+  type        InquiryHistoryEntryType
+  actorName   String
+  occurredAt  DateTime
+  detail      String?
+  attachments InquiryAttachment[]
+
+  @@index([inquiryId])
+}
+
+model InquiryAttachment {
+  id             String               @id @default(cuid())
+  fileName       String
+  fileType       String
+  fileSize       Int
+  dataUrl        String
+  inquiryId      String?
+  inquiry        Inquiry?             @relation(fields: [inquiryId], references: [id])
+  historyEntryId String?
+  historyEntry   InquiryHistoryEntry? @relation(fields: [historyEntryId], references: [id])
+}
+
+enum AnnouncementCategory {
+  maintenance
+  policy
+  incident
+  other
+}
+
+enum AnnouncementTargetingScope {
+  all
+  countries
+}
+
+enum AnnouncementStatus {
+  draft
+  published
+}
+
+model Announcement {
+  id                 String                        @id @default(cuid())
+  title              String
+  body               String
+  category           AnnouncementCategory
+  status             AnnouncementStatus            @default(published)
+  publishedAt        DateTime?
+  actionRequired     Boolean                       @default(false)
+  targetingScope     AnnouncementTargetingScope    @default(all)
+  targetingCountries String[]                      @default([])
+  publishStartDate   DateTime?                     @db.Date
+  publishEndDate     DateTime?                     @db.Date
+  dueDate            DateTime?                     @db.Date
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  recipientStatuses  AnnouncementRecipientStatus[]
+}
+
+model AnnouncementRecipient {
+  id          String                        @id @default(cuid())
+  companyId   String
+  company     Company                       @relation(fields: [companyId], references: [id])
+  contactName String
+  statuses    AnnouncementRecipientStatus[]
+
+  @@index([companyId])
+}
+
+model AnnouncementRecipientStatus {
+  id             String                @id @default(cuid())
+  announcementId String
+  announcement   Announcement          @relation(fields: [announcementId], references: [id])
+  recipientId    String
+  recipient      AnnouncementRecipient @relation(fields: [recipientId], references: [id])
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+  reminderSentAt DateTime?
+
+  @@unique([announcementId, recipientId])
+  @@index([announcementId])
+}
+
+enum DocumentTargetingScope {
+  all
+  countries
+  companies
+}
+
+model Document {
+  id                    String                 @id @default(cuid())
+  title                 String
+  description           String?
+  fileName              String
+  fileType              String                 @default("application/pdf")
+  fileSize              Int
+  dataUrl               String
+  uploadedAt            DateTime               @default(now())
+  targetingScope        DocumentTargetingScope @default(all)
+  targetingCountries    String[]               @default([])
+  targetingCompanyCodes String[]               @default([])
+}
+
+enum FaqCategory {
+  inquiry_method
+  form_input
+  status
+  other
+}
+
+model Faq {
+  id        String      @id @default(cuid())
+  category  FaqCategory
+  question  String
+  answer    String
+  createdAt DateTime    @default(now())
+}
+
+enum LinkCategory {
+  internal
+  external
+  document
+  other
+}
+
+model Link {
+  id          String       @id @default(cuid())
+  title       String
+  url         String
+  category    LinkCategory
+  description String?
+  createdAt   DateTime     @default(now())
+}
+
+model ReplyTemplate {
+  id        String          @id @default(cuid())
+  category  InquiryCategory
+  name      String
+  body      String
+  createdAt DateTime        @default(now())
+}

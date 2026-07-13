@@ -33,6 +33,7 @@ vi.mock("next-intl/server", () => ({
 
 function makeInquiry(overrides: Partial<Inquiry> & { id: string }): Inquiry {
   return {
+    title: "テストタイトル",
     category: "defect",
     urgency: "high",
     storeRegion: "Tokyo",

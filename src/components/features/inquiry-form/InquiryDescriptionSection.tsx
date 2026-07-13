@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { INQUIRY_ORIGINAL_LANGUAGE_CODES } from "@/lib/constants/inquiry-options";
 import {
@@ -37,6 +38,29 @@ export function InquiryDescriptionSection() {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <FormField
+        label={t("fields.title.label")}
+        required
+        requiredIndicator={t("requiredMark")}
+        htmlFor="title"
+        className="md:col-span-2"
+        error={
+          errors.title
+            ? errors.title.type === "too_big"
+              ? t("validation.maxLength")
+              : t("validation.required")
+            : undefined
+        }
+      >
+        <Input
+          id="title"
+          type="text"
+          placeholder={t("fields.title.placeholder")}
+          aria-invalid={errors.title ? true : undefined}
+          {...register("title")}
+        />
+      </FormField>
+
       <FormField
         label={t("fields.originalText.label")}
         required

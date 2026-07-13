@@ -18,8 +18,8 @@ vi.mock("@/i18n/navigation", () => ({
 
 const createInquiryMock = vi.fn();
 
-vi.mock("@/lib/api/inquiries", () => ({
-  createInquiry: (...args: unknown[]) => createInquiryMock(...args),
+vi.mock("@/lib/actions/inquiry", () => ({
+  createInquiryAction: (...args: unknown[]) => createInquiryMock(...args),
 }));
 
 beforeEach(() => {
@@ -35,6 +35,7 @@ function renderInquiryForm() {
 }
 
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText(/タイトル/), "商品破損についての問い合わせ");
   await user.selectOptions(screen.getByLabelText(/案件種別/), "defect");
   await user.selectOptions(screen.getByLabelText(/緊急度/), "high");
   await user.type(screen.getByLabelText(/店舗・地域/), "Tokyo");
@@ -63,6 +64,7 @@ describe("InquiryForm", () => {
   it("送信成功時に完了バナーを表示しフォームをリセットする", async () => {
     createInquiryMock.mockResolvedValueOnce({
       id: "test-id",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "Tokyo",
@@ -91,6 +93,7 @@ describe("InquiryForm", () => {
   it("添付ファイルを選択して送信すると、送信データに添付ファイルが含まれる", async () => {
     createInquiryMock.mockResolvedValueOnce({
       id: "test-id",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "Tokyo",
@@ -129,6 +132,7 @@ describe("InquiryForm", () => {
   it("添付ファイルのエラー表示後に送信成功すると、エラーメッセージが残らない", async () => {
     createInquiryMock.mockResolvedValueOnce({
       id: "test-id",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "Tokyo",

@@ -41,11 +41,14 @@ function makeAnnouncement(
   return {
     id,
     title,
+    status: "published",
     publishedAt,
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    createdAt: publishedAt,
+    updatedAt: publishedAt,
     ...overrides,
   };
 }

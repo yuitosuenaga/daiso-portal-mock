@@ -252,3 +252,48 @@
   - _Requirements: 11.4, 11.5, 11.6_
   - _Depends: 19.2_
   - _Depends: 13.1_
+
+---
+
+## 追加ラウンド（2026-07-10）: タイトル表示・本文プレビュー・余白改善
+
+> 本ラウンドは`inquiry-form`spec側のタスク10（title列のスキーマ・型・バリデーション・翻訳キー追加）と対になっている。本ラウンドのタスクは同spec側のタスク10・12完了後に着手すること。
+
+- [x] 20. (P) InquiryListItemにタイトル見出し・種別バッジ・本文プレビューを追加する
+  - リンク見出しのテキストを`categoryLabel`から`inquiry.title`に変更する
+  - 案件種別を、既存のstatus/urgencyバッジと同様のバッジとして追加表示する
+  - タイトルリンクの直下に、`originalText`の`line-clamp-2`プレビュー段落を追加する（`AnnouncementListItem`の`showBodyExcerpt`実装と同じパターン）
+  - ブラウザで`/inquiry`を開くと各行にタイトル・種別バッジ・本文の2行プレビューが表示されることで完了とする
+  - _Requirements: 12.1, 12.2, 12.3_
+  - _Boundary: InquiryListItem_
+  - _Depends: inquiry-form spec タスク10, 12_
+
+- [x] 21. (P) InquiryDetailにタイトル見出しを追加する
+  - 既存のフィールド一覧表示はそのまま維持し、`inquiry.title`を見出しとして追加表示する
+  - ブラウザで問い合わせ詳細画面を開くとタイトルが見出しとして表示されることで完了とする
+  - _Requirements: 12.4_
+  - _Boundary: InquiryDetail_
+  - _Depends: inquiry-form spec タスク10, 12_
+
+- [x] 22. InquiryListの重複見出しを除去し余白を整理する
+  - 成功・空・エラーの3状態すべてで、`<Card><CardHeader><CardTitle>{t("list.title")}</CardTitle></CardHeader><CardContent>`を`<Card><CardContent className="pt-6">`に置き換える（`AnnouncementList`と同じ構成）
+  - `InquiryListSkeleton`は変更しない
+  - ブラウザで`/inquiry`を開くと、ページ見出し（h1）のみが表示され`Card`内に重複した見出しが表示されないことで完了とする
+  - _Requirements: 12.5_
+  - _Boundary: InquiryList_
+
+---
+
+- [x] 23. 検証（タイトル表示・本文プレビュー・余白改善）
+- [x] 23.1 InquiryList・InquiryDetailの統合テストを更新する
+  - `InquiryList.test.tsx`が重複見出し除去後も既存のテストが通ることを確認する
+  - `InquiryListItem`のタイトルリンク・種別バッジ・本文プレビューの描画を検証するテストを追加する（`InquiryList.test.tsx`内、または新規`InquiryListItem.test.tsx`）
+  - `InquiryDetail.test.tsx`の既存リテラルに`title`を追加し、タイトルが見出しとして表示されることを検証するテストが通ることで完了とする
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+  - _Depends: 20, 21, 22_
+
+- [ ] 23.2 * タイトル表示・本文プレビュー・余白改善のE2E確認を行う
+  - `/inquiry`で各行にタイトル・種別バッジ・本文の2行プレビューが表示され、`Card`上部の重複見出しが表示されないことを日本語・英語の両方で確認する
+  - `/inquiry/[id]`でタイトルが見出しとして表示されることを確認する
+  - _Requirements: 12.1, 12.4, 12.5_
+  - _Depends: 23.1_
