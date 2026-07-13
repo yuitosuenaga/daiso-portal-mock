@@ -23,21 +23,21 @@
 - **バージョン管理**: GitHub（PRベース開発、main直push禁止）
 - **CI**: GitHub Actions（lint / typecheck / build を将来的に整備。現フェーズでは lint・typecheck・build の確認を優先）
 
-### バックエンド・DB版への統合（2026-07-13変更）
+### バックエンド・DB版への統合（2026-07-13）
 
-`spec/backend-db-foundation`ブランチでPostgreSQL・Prisma・Auth.jsによるバックエンド実装が完了し、検証用に別サービス`portal-mock-backend`で動作確認を行っていたが（2026-07-10〜）、動作確認が取れたためユーザーの指示により`portal-mock`（公開サービス）側に統合し、`portal-mock-backend`サービスは削除した。
+PostgreSQL・Prisma・Auth.jsによるバックエンド実装（`spec/backend-db-foundation`）はPR #32で`main`にマージ済み。以降、`portal-mock`は常に**`main`ブランチの最新状態**からデプロイする通常運用に戻っている（デプロイ実体とGit `main`の乖離はない）。
 
-- **デプロイ元**: `spec/backend-db-foundation`ブランチ（`origin/main`の最新をマージ済み）を、`main`へのGitマージを行わずに直接`gcloud run deploy --source .`で`portal-mock`へデプロイ
-  - **重要**: これはCloud Runへのデプロイのみの変更であり、Gitの`main`ブランチはバックエンド未実装のままである。デプロイされている実体（`portal-mock`）とGit `main`の内容は乖離している。今後`main`に機能追加する際はこの乖離を踏まえて判断すること
-  - Cursorレビュー未完了のまま、ユーザーの明示的な指示により本統合を実施（通常の機能PRレビュー運用の例外）
+- **デプロイ手順**: `main`へのマージ後、`main`をチェックアウトした状態で以下を実行
+  ```
+  gcloud run deploy portal-mock --source . --region asia-northeast1 --project rvp-ai-proto-camp
+  ```
+  - 環境変数（`DATABASE_URL`・`AUTH_SECRET`・`AUTH_TRUST_HOST`・`AUTH_URL`等）やCloud SQL接続設定（`--add-cloudsql-instances`）は前リビジョンから引き継がれるため、変更が不要な限り`--set-env-vars`等は付けない
+  - 秘匿値を変更する場合のみ`gcloud run services update portal-mock --update-env-vars ...`等で個別に更新する
 - **DB**: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（`asia-northeast1`、最小構成）に`portal-mock`から接続。Cloud Run→Cloud SQLはCloud Run組み込みのCloud SQL Auth Proxy（`--add-cloudsql-instances`）経由、Unixソケット接続
-- **秘匿値**: Secret Managerは使わず、`gcloud run deploy --set-env-vars`/`gcloud run services update --update-env-vars`でCloud Runの環境変数に直接設定（`DATABASE_URL`・`AUTH_SECRET`・`AUTH_TRUST_HOST`・`AUTH_URL`）
-  - `AUTH_URL`はCloud Run経由のリクエストだとAuth.jsが内部ホスト（`localhost:8080`）を誤検出しログイン後リダイレクトが壊れるため、`portal-mock`の公開URLを明示的に設定している（2026-07-13追加）
-- **コスト管理**: Cloud SQLインスタンスは`portal-mock`（公開サービス）の本番DBとなったため、停止すると公開サービスが使えなくなる。運用方針（常時起動に切り替えるか、引き続き`db-start`/`db-end`による手動起動・停止で運用するか）は2026-07-13時点で未確定・要相談。当面は従来通り手動運用を継続する
+  - `AUTH_URL`はCloud Run経由のリクエストだとAuth.jsが内部ホスト（`localhost:8080`）を誤検出しログイン後リダイレクトが壊れるため、`portal-mock`の公開URLを明示的に設定している
+- **コスト管理**: Cloud SQLインスタンスは`portal-mock`（公開サービス）の本番DBのため、停止すると公開サービスが使えなくなる。`db-start`/`db-end`スキルによる手動起動・停止で運用（デプロイ自体はDB停止中でも実行可能だが、DBアクセスを伴う画面確認にはインスタンス起動が必要）
 
-## バックエンド（`portal-mock`にデプロイ済み、Gitの`main`には未マージ）
-
-`spec/backend-db-foundation`ブランチで以下を実装済みで、上記の通り`portal-mock`サービスにデプロイ済み。ただしGitの`main`ブランチにはまだマージされていない（上記「重要」参照）。
+## バックエンド（`portal-mock`にデプロイ済み、Gitの`main`にマージ済み）
 
 | 項目 | 技術選定 |
 |---|---|
