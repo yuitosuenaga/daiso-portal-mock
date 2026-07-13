@@ -1,12 +1,16 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncements } from "@/lib/api/announcements";
-import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
+import {
+  getAnnouncementSelfStatus,
+  isReminderPendingForCompany,
+} from "@/lib/api/announcement-tracking";
 import { requireApplicantSession } from "@/lib/server/auth-session";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { AnnouncementListClient } from "@/components/features/announcements/AnnouncementListClient";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
 
 export async function AnnouncementList() {
   const [t, locale] = await Promise.all([
@@ -65,6 +69,15 @@ export async function AnnouncementList() {
   const reminderPendingByAnnouncementId: Record<string, boolean> =
     Object.fromEntries(reminderPendingEntries);
 
+  const selfStatusEntries = await Promise.all(
+    announcements.map(
+      async (announcement) =>
+        [announcement.id, await getAnnouncementSelfStatus(announcement.id)] as const
+    )
+  );
+  const selfStatusByAnnouncementId: Record<string, AnnouncementSelfStatus> =
+    Object.fromEntries(selfStatusEntries);
+
   return (
     <div>
       {heading}
@@ -80,6 +93,7 @@ export async function AnnouncementList() {
               actionRequiredBadgeLabel={t("actionRequiredBadge")}
               dueDateLabel={t("dueDateLabel")}
               reminderPendingByAnnouncementId={reminderPendingByAnnouncementId}
+              selfStatusByAnnouncementId={selfStatusByAnnouncementId}
               locale={locale}
             />
           )}

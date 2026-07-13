@@ -10,6 +10,12 @@ import {
 import { AnnouncementFilterBar } from "@/components/features/announcements/AnnouncementFilterBar";
 import { AnnouncementListItem } from "@/components/features/announcements/AnnouncementListItem";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
+
+const EMPTY_SELF_STATUS: AnnouncementSelfStatus = {
+  confirmedAt: null,
+  completedAt: null,
+};
 
 export interface AnnouncementListClientProps {
   /** 公開日降順・自社配信対象で整列済みのお知らせ */
@@ -20,6 +26,8 @@ export interface AnnouncementListClientProps {
   dueDateLabel: string;
   /** お知らせIDごとの、自社宛リマインド受信有無 */
   reminderPendingByAnnouncementId: Record<string, boolean>;
+  /** お知らせIDごとの、自社の確認済み・実施済み状態（読み取り専用） */
+  selfStatusByAnnouncementId: Record<string, AnnouncementSelfStatus>;
   locale: string;
 }
 
@@ -34,6 +42,7 @@ export function AnnouncementListClient({
   actionRequiredBadgeLabel,
   dueDateLabel,
   reminderPendingByAnnouncementId,
+  selfStatusByAnnouncementId,
   locale,
 }: AnnouncementListClientProps) {
   const t = useTranslations("announcements.list");
@@ -56,17 +65,23 @@ export function AnnouncementListClient({
         <p className="text-sm text-muted-foreground">{t("noResults")}</p>
       ) : (
         <ul className="divide-y divide-border">
-          {filteredAnnouncements.map((item) => (
-            <AnnouncementListItem
-              key={item.id}
-              announcement={item}
-              categoryLabel={categoryLabels[item.category]}
-              actionRequiredBadgeLabel={actionRequiredBadgeLabel}
-              dueDateLabel={dueDateLabel}
-              isReminderPending={reminderPendingByAnnouncementId[item.id] ?? false}
-              locale={locale}
-            />
-          ))}
+          {filteredAnnouncements.map((item) => {
+            const selfStatus =
+              selfStatusByAnnouncementId[item.id] ?? EMPTY_SELF_STATUS;
+            return (
+              <AnnouncementListItem
+                key={item.id}
+                announcement={item}
+                categoryLabel={categoryLabels[item.category]}
+                actionRequiredBadgeLabel={actionRequiredBadgeLabel}
+                dueDateLabel={dueDateLabel}
+                isReminderPending={reminderPendingByAnnouncementId[item.id] ?? false}
+                selfConfirmed={selfStatus.confirmedAt !== null}
+                selfCompleted={selfStatus.completedAt !== null}
+                locale={locale}
+              />
+            );
+          })}
         </ul>
       )}
     </div>

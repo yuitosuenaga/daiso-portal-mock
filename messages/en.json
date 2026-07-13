@@ -387,6 +387,11 @@
     "actionRequiredBadge": "Action required",
     "reminderBadge": "A reminder has been sent",
     "dueDateLabel": "Due date",
+    "selfReport": {
+      "confirmed": "Confirmed",
+      "completeButton": "Mark as completed",
+      "completed": "Completed"
+    },
     "filter": {
       "keywordLabel": "Search title",
       "keywordPlaceholder": "Words in the title",

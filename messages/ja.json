@@ -387,6 +387,11 @@
     "actionRequiredBadge": "要対応",
     "reminderBadge": "リマインドが届いています",
     "dueDateLabel": "対応期限",
+    "selfReport": {
+      "confirmed": "確認済み",
+      "completeButton": "対応完了にする",
+      "completed": "対応完了"
+    },
     "filter": {
       "keywordLabel": "タイトル検索",
       "keywordPlaceholder": "タイトルに含まれる語句",

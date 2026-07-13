@@ -1,12 +1,16 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncementById } from "@/lib/api/announcements";
-import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
+import {
+  getAnnouncementSelfStatus,
+  isReminderPendingForCompany,
+} from "@/lib/api/announcement-tracking";
 import { requireApplicantSession } from "@/lib/server/auth-session";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { BackLink } from "@/components/ui/back-link";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
+import { AnnouncementSelfReportPanel } from "@/components/features/announcements/AnnouncementSelfReportPanel";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
   const [t, tCategories, tAnnouncements, locale] = await Promise.all([
@@ -50,10 +54,10 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     );
   }
 
-  const isReminderPending = await isReminderPendingForCompany(
-    announcement.id,
-    companyCode
-  );
+  const [isReminderPending, selfStatus] = await Promise.all([
+    isReminderPendingForCompany(announcement.id, companyCode),
+    getAnnouncementSelfStatus(announcement.id),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -97,6 +101,11 @@ export async function AnnouncementDetail({ id }: { id: string }) {
             )}
             {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
           </div>
+          <AnnouncementSelfReportPanel
+            announcementId={announcement.id}
+            actionRequired={announcement.actionRequired}
+            initialStatus={selfStatus}
+          />
         </CardHeader>
         <CardContent>
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
