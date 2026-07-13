@@ -6,7 +6,10 @@ import {
   INQUIRY_STATUS_CODES,
   INQUIRY_URGENCY_CODES,
 } from "@/lib/constants/inquiry-options";
-import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
+import {
+  inquiryAttachmentsArraySchema,
+  TITLE_MAX_LENGTH,
+} from "@/lib/validation/inquiry";
 import { getSession } from "@/lib/server/get-session";
 import { toErrorResponse } from "@/lib/server/api-errors";
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
@@ -17,6 +20,7 @@ import {
 } from "@/lib/server/inquiry-service";
 
 const createInquirySchema = z.object({
+  title: z.string().trim().min(1).max(TITLE_MAX_LENGTH),
   category: z.enum(INQUIRY_CATEGORY_CODES),
   urgency: z.enum(INQUIRY_URGENCY_CODES),
   storeRegion: z.string().trim().min(1),

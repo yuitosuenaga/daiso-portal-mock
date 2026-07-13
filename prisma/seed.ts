@@ -672,6 +672,7 @@ async function seedReplyTemplates(): Promise<void> {
 const ADDITIONAL_INQUIRY_SEEDS = [
   {
     id: "inquiry-001",
+    title: "納品商品の一部破損について",
     category: "defect" as const,
     urgency: "high" as const,
     storeRegion: "Kanto",
@@ -684,6 +685,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-002",
+    title: "Additional order request for next shipment",
     category: "order" as const,
     urgency: "medium" as const,
     storeRegion: "West Coast",
@@ -696,6 +698,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-003",
+    title: "포털 시스템 로그인 불가 문제",
     category: "system" as const,
     urgency: "high" as const,
     storeRegion: "Seoul",
@@ -708,6 +711,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-004",
+    title: "販促キャンペーン資料の共有依頼",
     category: "other" as const,
     urgency: "low" as const,
     storeRegion: "Bangkok",
@@ -720,6 +724,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-005",
+    title: "部分商品外包裝輕微破損",
     category: "defect" as const,
     urgency: "medium" as const,
     storeRegion: "Taipei",
@@ -732,6 +737,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-006",
+    title: "Delivery date confirmation for order #4821",
     category: "order" as const,
     urgency: "low" as const,
     storeRegion: "Singapore",
@@ -744,6 +750,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-007",
+    title: "Cổng thông tin tải chậm khi xem đơn hàng",
     category: "system" as const,
     urgency: "low" as const,
     storeRegion: "Ho Chi Minh City",
@@ -756,6 +763,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-008",
+    title: "Pertanyaan perpanjangan kontrak distribusi",
     category: "other" as const,
     urgency: "medium" as const,
     storeRegion: "Jakarta",
@@ -768,6 +776,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-009",
+    title: "Đặt thêm hàng cho đợt giao tháng sau",
     category: "order" as const,
     urgency: "medium" as const,
     storeRegion: "Da Nang",
@@ -780,6 +789,7 @@ const ADDITIONAL_INQUIRY_SEEDS = [
   },
   {
     id: "inquiry-010",
+    title: "Sản phẩm lỗi đã đổi trả - đã xử lý xong",
     category: "defect" as const,
     urgency: "high" as const,
     storeRegion: "Hanoi",
@@ -804,6 +814,7 @@ async function seedAdditionalInquiries(
       update: {},
       create: {
         id: seed.id,
+        title: seed.title,
         category: seed.category,
         urgency: seed.urgency,
         storeRegion: seed.storeRegion,
@@ -852,6 +863,7 @@ async function main() {
     update: {},
     create: {
       id: "seed-inquiry-001",
+      title: "納品商品の破損について（至急）",
       category: "defect",
       urgency: "high",
       storeRegion: "Ho Chi Minh City",

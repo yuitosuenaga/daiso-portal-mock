@@ -32,6 +32,7 @@ import {
 
 const baseInquiryRecord = {
   id: "inquiry-1",
+  title: "商品破損についての問い合わせ",
   category: "defect",
   urgency: "high",
   storeRegion: "Kanto",
@@ -59,6 +60,7 @@ describe("createInquiryRecord", () => {
 
     const result = await createInquiryRecord({
       data: {
+        title: "商品破損についての問い合わせ",
         category: "defect",
         urgency: "high",
         storeRegion: "Kanto",

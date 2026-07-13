@@ -57,6 +57,37 @@ describe("InquiryList", () => {
     expect(screen.getByText("問い合わせの取得に失敗しました")).toBeTruthy();
   });
 
+  it("取得成功時に各行のタイトル・種別バッジ・本文プレビューを表示する", async () => {
+    getInquiriesMock.mockResolvedValueOnce([
+      {
+        id: "inquiry-001",
+        title: "商品破損についての問い合わせ",
+        category: "defect",
+        urgency: "high",
+        storeRegion: "関東",
+        originalText: "納品された商品の一部に破損が見られます。至急対応をお願いします。",
+        originalLanguage: "ja",
+        status: "new",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Test Company", country: "JP" },
+      },
+    ]);
+
+    const jsx = await InquiryList();
+    render(jsx);
+
+    expect(
+      screen.getByRole("link", { name: "商品破損についての問い合わせ" })
+    ).toBeTruthy();
+    expect(screen.getByText("不具合")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "納品された商品の一部に破損が見られます。至急対応をお願いします。"
+      )
+    ).toBeTruthy();
+    expect(screen.getAllByText("問い合わせ一覧")).toHaveLength(1);
+  });
+
   it("空状態とエラー状態は異なるメッセージで表示される", async () => {
     getInquiriesMock.mockResolvedValueOnce([]);
     const { unmount } = render(await InquiryList());

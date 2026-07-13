@@ -63,6 +63,7 @@ describe("POST /api/inquiries", () => {
 
     const response = await POST(
       jsonRequest({
+        title: "商品破損についての問い合わせ",
         category: "defect",
         urgency: "high",
         storeRegion: "Kanto",

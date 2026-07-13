@@ -404,6 +404,10 @@
     "description": "Fill in the selection fields and free text, then submit your inquiry or request.",
     "requiredMark": "Required",
     "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "Enter a title for your inquiry"
+      },
       "category": {
         "label": "Category",
         "placeholder": "Select a category"
