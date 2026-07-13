@@ -44,7 +44,8 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
   return {
     id: record.id,
     title: record.title,
-    publishedAt: record.publishedAt.toISOString(),
+    status: record.status,
+    publishedAt: record.publishedAt ? record.publishedAt.toISOString() : null,
     category: record.category,
     body: record.body,
     targeting: mapTargeting(record),
@@ -52,6 +53,8 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
     publishStartDate: mapDateOnly(record.publishStartDate),
     publishEndDate: mapDateOnly(record.publishEndDate),
     dueDate: mapDateOnly(record.dueDate),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
   };
 }
 

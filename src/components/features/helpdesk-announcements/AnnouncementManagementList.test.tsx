@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AnnouncementManagementList } from "@/components/features/helpdesk-announcements/AnnouncementManagementList";
@@ -43,6 +43,7 @@ function resolveMessage(namespace: string, key: string): string {
       targetingAllLabel: "全体一律",
       targetingCountriesLabel: "配信対象国",
       actionRequiredBadge: "要対応",
+      statusBadgeDraft: "下書き",
     },
     "helpdeskAnnouncements.list.filter": {
       keywordLabel: "タイトル検索",
@@ -53,6 +54,10 @@ function resolveMessage(namespace: string, key: string): string {
       actionRequiredAll: "すべて",
       actionRequiredTrue: "要対応のみ",
       actionRequiredFalse: "対応不要のみ",
+      statusLabel: "公開状態",
+      statusAll: "すべて",
+      statusDraft: "下書き",
+      statusPublished: "公開",
       clearButton: "クリア",
       noResults: "該当するお知らせがありません",
     },
@@ -85,11 +90,14 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
   return {
     id: "1",
     title: "テストお知らせ",
+    status: "published",
     publishedAt: "2026-07-01T09:00:00Z",
     category: "maintenance",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    createdAt: "2026-07-01T09:00:00Z",
+    updatedAt: "2026-07-01T09:00:00Z",
     ...overrides,
   };
 }
@@ -138,5 +146,28 @@ describe("AnnouncementManagementList", () => {
       "/helpdesk/announcements/1/edit",
       "/helpdesk/announcements/2/edit",
     ]);
+  });
+
+  it("下書き状態のお知らせには下書きバッジを表示し、公開済みには表示しない", async () => {
+    getAllAnnouncementsMock.mockResolvedValueOnce([
+      buildAnnouncement({ id: "1", title: "公開中のお知らせ", status: "published" }),
+      buildAnnouncement({
+        id: "2",
+        title: "下書き中のお知らせ",
+        status: "draft",
+        publishedAt: null,
+      }),
+    ]);
+
+    const jsx = await AnnouncementManagementList();
+    render(jsx);
+
+    const publishedItem = screen.getByText("公開中のお知らせ").closest("li");
+    const draftItem = screen.getByText("下書き中のお知らせ").closest("li");
+
+    expect(publishedItem).not.toBeNull();
+    expect(draftItem).not.toBeNull();
+    expect(within(publishedItem as HTMLElement).queryByText("下書き")).toBeNull();
+    expect(within(draftItem as HTMLElement).getByText("下書き")).toBeTruthy();
   });
 });

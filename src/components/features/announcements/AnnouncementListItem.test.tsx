@@ -17,6 +17,7 @@ vi.mock("@/i18n/navigation", () => ({
 const BASE_ANNOUNCEMENT: Announcement = {
   id: "1",
   title: "テストお知らせ",
+  status: "published",
   publishedAt: "2026-07-01T09:00:00Z",
   category: "maintenance",
   body: "本文",
@@ -25,6 +26,8 @@ const BASE_ANNOUNCEMENT: Announcement = {
   publishStartDate: null,
   publishEndDate: null,
   dueDate: null,
+  createdAt: "2026-07-01T09:00:00Z",
+  updatedAt: "2026-07-01T09:00:00Z",
 };
 
 describe("AnnouncementListItem", () => {

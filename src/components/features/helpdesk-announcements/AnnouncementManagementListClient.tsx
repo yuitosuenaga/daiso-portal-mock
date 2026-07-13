@@ -25,6 +25,7 @@ export interface AnnouncementManagementListClientProps {
   targetingAllLabel: string;
   targetingCountriesLabel: string;
   actionRequiredBadgeLabel: string;
+  statusBadgeDraftLabel: string;
   publishPeriodAlwaysLabel: string;
   publishPeriodLabel: string;
   publishPeriodToSeparator: string;
@@ -50,6 +51,7 @@ export function AnnouncementManagementListClient({
   targetingAllLabel,
   targetingCountriesLabel,
   actionRequiredBadgeLabel,
+  statusBadgeDraftLabel,
   publishPeriodAlwaysLabel,
   publishPeriodLabel,
   publishPeriodToSeparator,
@@ -115,18 +117,25 @@ export function AnnouncementManagementListClient({
               <div className="flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium">{announcement.title}</p>
+                  {announcement.status === "draft" && (
+                    <Badge variant="muted">{statusBadgeDraftLabel}</Badge>
+                  )}
                   {announcement.actionRequired && (
                     <Badge variant="default">{actionRequiredBadgeLabel}</Badge>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>{categoryLabels[announcement.category]}</span>
-                  <time dateTime={announcement.publishedAt}>
-                    {new Date(announcement.publishedAt).toLocaleDateString(
-                      locale,
-                      { year: "numeric", month: "short", day: "numeric" }
-                    )}
-                  </time>
+                  {announcement.publishedAt ? (
+                    <time dateTime={announcement.publishedAt}>
+                      {new Date(announcement.publishedAt).toLocaleDateString(
+                        locale,
+                        { year: "numeric", month: "short", day: "numeric" }
+                      )}
+                    </time>
+                  ) : (
+                    <span>—</span>
+                  )}
                   <span>{targetingLabel(announcement)}</span>
                   <span>{publishPeriodText(announcement)}</span>
                   {announcement.actionRequired && announcement.dueDate && (
@@ -135,13 +144,15 @@ export function AnnouncementManagementListClient({
                     </span>
                   )}
                 </div>
-                <AnnouncementTrackingBadge
-                  announcementId={announcement.id}
-                  actionRequired={announcement.actionRequired}
-                  recipientStatuses={
-                    recipientStatusesByAnnouncementId[announcement.id] ?? []
-                  }
-                />
+                {announcement.status === "published" && (
+                  <AnnouncementTrackingBadge
+                    announcementId={announcement.id}
+                    actionRequired={announcement.actionRequired}
+                    recipientStatuses={
+                      recipientStatusesByAnnouncementId[announcement.id] ?? []
+                    }
+                  />
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Link

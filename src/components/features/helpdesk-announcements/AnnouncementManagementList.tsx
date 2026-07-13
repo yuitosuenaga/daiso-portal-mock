@@ -118,6 +118,7 @@ export async function AnnouncementManagementList() {
             targetingAllLabel={t("targetingAllLabel")}
             targetingCountriesLabel={t("targetingCountriesLabel")}
             actionRequiredBadgeLabel={t("actionRequiredBadge")}
+            statusBadgeDraftLabel={t("statusBadgeDraft")}
             publishPeriodAlwaysLabel={t("publishPeriodAlwaysLabel")}
             publishPeriodLabel={t("publishPeriodLabel")}
             publishPeriodToSeparator={t("publishPeriodToSeparator")}

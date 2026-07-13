@@ -10,11 +10,14 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
   return {
     id: "announcement-x",
     title: "サンプルのお知らせ",
+    status: "published",
     publishedAt: "2026-06-01T00:00:00.000Z",
     category: "other",
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };
 }
@@ -39,6 +42,14 @@ describe("filterAnnouncementsForHelpdesk", () => {
       category: "incident",
       actionRequired: true,
     }),
+    buildAnnouncement({
+      id: "4",
+      title: "下書き中のお知らせ",
+      category: "other",
+      actionRequired: false,
+      status: "draft",
+      publishedAt: null,
+    }),
   ];
 
   it("条件を指定しない場合は全件を順序を維持して返す", () => {
@@ -46,6 +57,24 @@ describe("filterAnnouncementsForHelpdesk", () => {
       announcements,
       EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS
     );
+
+    expect(result.map((item) => item.id)).toEqual(["1", "2", "3", "4"]);
+  });
+
+  it("公開状態『下書き』で絞り込む", () => {
+    const result = filterAnnouncementsForHelpdesk(announcements, {
+      ...EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS,
+      status: "draft",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["4"]);
+  });
+
+  it("公開状態『公開』で絞り込む", () => {
+    const result = filterAnnouncementsForHelpdesk(announcements, {
+      ...EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS,
+      status: "published",
+    });
 
     expect(result.map((item) => item.id)).toEqual(["1", "2", "3"]);
   });
@@ -83,7 +112,7 @@ describe("filterAnnouncementsForHelpdesk", () => {
       actionRequired: "false",
     });
 
-    expect(result.map((item) => item.id)).toEqual(["2"]);
+    expect(result.map((item) => item.id)).toEqual(["2", "4"]);
   });
 
   it("複数条件はAND条件で適用される", () => {

@@ -31,6 +31,9 @@ const labels = {
   bodyPlaceholder: "本文を入力してください",
   categoryLabel: "種別",
   categoryPlaceholder: "種別を選択してください",
+  statusLabel: "公開状態",
+  statusDraftOption: "下書き",
+  statusPublishedOption: "公開",
   actionRequiredLabel: "対応要否",
   actionRequiredTrueOption: "対応が必要",
   actionRequiredFalseOption: "対応不要",
@@ -93,6 +96,7 @@ describe("AnnouncementForm", () => {
         title: "新規お知らせ",
         body: "本文テキスト",
         category: "maintenance",
+        status: "draft",
         targeting: { scope: "all" },
         actionRequired: false,
         publishStartDate: null,
@@ -101,6 +105,34 @@ describe("AnnouncementForm", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
+  });
+
+  it("公開状態の初期値は「下書き」であり、「公開」に変更して送信するとその内容で送信される", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    expect(
+      (screen.getByLabelText("公開状態") as HTMLSelectElement).value
+    ).toBe("draft");
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.change(screen.getByLabelText("公開状態"), {
+      target: { value: "published" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createAnnouncementActionMock).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "published" })
+      );
+    });
   });
 
   it("特定の国・地域を指定したまま0件選択で送信すると送信がブロックされる", async () => {
@@ -164,6 +196,7 @@ describe("AnnouncementForm", () => {
         title: "新規お知らせ",
         body: "本文テキスト",
         category: "maintenance",
+        status: "draft",
         targeting: { scope: "countries", countries: ["JP", "VN"] },
         actionRequired: false,
         publishStartDate: null,
@@ -182,6 +215,7 @@ describe("AnnouncementForm", () => {
           title: "既存タイトル",
           body: "既存本文",
           category: "policy",
+          status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
         }}
@@ -205,12 +239,43 @@ describe("AnnouncementForm", () => {
           title: "編集後タイトル",
           body: "既存本文",
           category: "policy",
+          status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
           publishStartDate: null,
           publishEndDate: null,
           dueDate: null,
         }
+      );
+    });
+  });
+
+  it("編集モードで公開状態を「下書き」に変更して送信すると、その内容でupdateAnnouncementActionが呼ばれる", async () => {
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "all" },
+          actionRequired: false,
+        }}
+        {...labels}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("公開状態"), {
+      target: { value: "draft" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(updateAnnouncementActionMock).toHaveBeenCalledWith(
+        "existing-id",
+        expect.objectContaining({ status: "draft" })
       );
     });
   });

@@ -8,6 +8,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
     });
@@ -20,6 +21,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
       actionRequired: true,
       dueDate: "2026-08-01",
@@ -33,6 +35,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: "yes",
     });
@@ -45,6 +48,7 @@ describe("announcementFormSchema", () => {
       title: "",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
     });
 
@@ -56,6 +60,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
     });
 
@@ -67,6 +72,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "not-a-real-category",
+      status: "published",
       targeting: { scope: "all" },
     });
 
@@ -78,6 +84,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "countries", countries: [] },
     });
 
@@ -89,6 +96,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
     });
@@ -106,6 +114,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
       publishStartDate: "2026-08-10",
@@ -120,6 +129,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
       publishStartDate: "2026-08-01",
@@ -134,6 +144,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: true,
     });
@@ -146,6 +157,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
     });
@@ -158,6 +170,7 @@ describe("announcementFormSchema", () => {
       title: "テストタイトル",
       body: "テスト本文",
       category: "maintenance",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
       dueDate: "2026-08-01",
@@ -167,5 +180,43 @@ describe("announcementFormSchema", () => {
     if (result.success) {
       expect(result.data.dueDate).toBeNull();
     }
+  });
+
+  it("公開状態が下書きの場合は検証を通過する", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "draft",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("公開状態が不正な値の場合はエラーになる", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "not-a-real-status",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("公開状態が未指定の場合はエラーになる", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(result.success).toBe(false);
   });
 });

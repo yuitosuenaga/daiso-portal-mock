@@ -43,13 +43,16 @@ function baseAnnouncementRecord(
     title: string;
     body: string;
     category: "maintenance" | "policy" | "incident" | "other";
-    publishedAt: Date;
+    status: "draft" | "published";
+    publishedAt: Date | null;
     actionRequired: boolean;
     targetingScope: "all" | "countries";
     targetingCountries: string[];
     publishStartDate: Date | null;
     publishEndDate: Date | null;
     dueDate: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
   }> = {}
 ) {
   return {
@@ -57,6 +60,7 @@ function baseAnnouncementRecord(
     title: "タイトル",
     body: "本文",
     category: "other" as const,
+    status: "published" as const,
     publishedAt: new Date("2026-07-01T09:00:00.000Z"),
     actionRequired: false,
     targetingScope: "all" as const,
@@ -64,6 +68,8 @@ function baseAnnouncementRecord(
     publishStartDate: null,
     publishEndDate: null,
     dueDate: null,
+    createdAt: new Date("2026-07-01T09:00:00.000Z"),
+    updatedAt: new Date("2026-07-01T09:00:00.000Z"),
     ...overrides,
   };
 }
@@ -115,6 +121,7 @@ describe("listAnnouncementsVisibleToCountry", () => {
     expect(prisma.announcement.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          status: "published",
           OR: [
             { targetingScope: "all" },
             { targetingScope: "countries", targetingCountries: { has: "VN" } },
@@ -213,7 +220,7 @@ describe("findAnnouncementVisibleToCountry", () => {
 });
 
 describe("listAllAnnouncements / findAnnouncementById", () => {
-  it("絞り込みなしで全件を取得する", async () => {
+  it("絞り込みなしで全件を作成日時の降順で取得する", async () => {
     vi.mocked(prisma.announcement.findMany).mockResolvedValue([
       baseAnnouncementRecord({ id: "1" }),
       baseAnnouncementRecord({ id: "2" }),
@@ -222,6 +229,20 @@ describe("listAllAnnouncements / findAnnouncementById", () => {
     const result = await listAllAnnouncements();
 
     expect(result.map((item) => item.id)).toEqual(["1", "2"]);
+    expect(prisma.announcement.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: "desc" } })
+    );
+  });
+
+  it("下書き・公開済みが混在していても公開状態に関わらず全件を返す", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }),
+      baseAnnouncementRecord({ id: "2", status: "published" }),
+    ] as never);
+
+    const result = await listAllAnnouncements();
+
+    expect(result.map((item) => item.status)).toEqual(["draft", "published"]);
   });
 
   it("公開期間に関わらず全件を返す", async () => {
@@ -273,6 +294,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       title: "タイトル",
       body: "本文",
       category: "other",
+      status: "published",
       targeting: { scope: "countries", countries: ["JP"] },
       actionRequired: false,
     });
@@ -303,6 +325,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       title: "タイトル",
       body: "本文",
       category: "other",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: true,
       publishStartDate: "2026-08-01",
@@ -333,6 +356,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       title: "タイトル",
       body: "本文",
       category: "other",
+      status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
     });
@@ -349,6 +373,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
   });
 
   it("存在しないIDの更新はAnnouncementNotFoundErrorを送出する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.announcement.update).mockRejectedValue(new Error("not found"));
 
     await expect(
@@ -356,10 +381,105 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
         title: "t",
         body: "b",
         category: "other",
+        status: "published",
         targeting: { scope: "all" },
         actionRequired: false,
       })
     ).rejects.toThrow(AnnouncementNotFoundError);
+  });
+
+  it("下書き→公開への更新では公開日時を現在時刻で打刻する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(prisma.announcement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ publishedAt: expect.any(Date) }),
+      })
+    );
+  });
+
+  it("公開済みのまま更新した場合は公開日時を変更しない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル（更新）",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(prisma.announcement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ publishedAt: expect.anything() }),
+      })
+    );
+  });
+
+  it("公開済みから下書きへ差し戻した場合は公開日時を変更しない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "draft",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(prisma.announcement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ publishedAt: expect.anything() }),
+      })
+    );
+  });
+
+  it("下書きとして新規作成した場合は公開日時をnullで保存する", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+
+    const result = await createAnnouncementRecord({
+      title: "下書きタイトル",
+      body: "本文",
+      category: "other",
+      status: "draft",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "draft", publishedAt: null }),
+      })
+    );
+    expect(result.publishedAt).toBeNull();
   });
 
   it("存在しないIDの削除はAnnouncementNotFoundErrorを送出する", async () => {

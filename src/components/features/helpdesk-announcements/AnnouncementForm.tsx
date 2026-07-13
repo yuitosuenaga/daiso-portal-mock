@@ -32,6 +32,9 @@ export interface AnnouncementFormProps {
   bodyPlaceholder: string;
   categoryLabel: string;
   categoryPlaceholder: string;
+  statusLabel: string;
+  statusDraftOption: string;
+  statusPublishedOption: string;
   actionRequiredLabel: string;
   actionRequiredTrueOption: string;
   actionRequiredFalseOption: string;
@@ -67,6 +70,9 @@ export function AnnouncementForm({
   bodyPlaceholder,
   categoryLabel,
   categoryPlaceholder,
+  statusLabel,
+  statusDraftOption,
+  statusPublishedOption,
   actionRequiredLabel,
   actionRequiredTrueOption,
   actionRequiredFalseOption,
@@ -101,6 +107,7 @@ export function AnnouncementForm({
       title: "",
       body: "",
       category: "" as unknown as AnnouncementFormValues["category"],
+      status: "draft",
       targeting: { scope: "all" },
       actionRequired: false,
       publishStartDate: "",
@@ -108,6 +115,11 @@ export function AnnouncementForm({
       dueDate: "",
     },
   });
+
+  const statusOptions: SelectOption[] = [
+    { value: "draft", label: statusDraftOption },
+    { value: "published", label: statusPublishedOption },
+  ];
 
   const actionRequiredOptions: SelectOption[] = [
     { value: "false", label: actionRequiredFalseOption },
@@ -181,6 +193,25 @@ export function AnnouncementForm({
           placeholder={categoryPlaceholder}
           aria-invalid={errors.category ? true : undefined}
           {...register("category")}
+        />
+      </FormField>
+
+      <FormField label={statusLabel} htmlFor="announcement-status">
+        <Controller
+          control={control}
+          name="status"
+          render={({ field }) => (
+            <Select
+              id="announcement-status"
+              options={statusOptions}
+              value={field.value}
+              onChange={(event) =>
+                field.onChange(
+                  event.target.value as AnnouncementFormValues["status"]
+                )
+              }
+            />
+          )}
         />
       </FormField>
 

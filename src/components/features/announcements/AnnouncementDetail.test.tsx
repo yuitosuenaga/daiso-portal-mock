@@ -59,11 +59,14 @@ vi.mock("next-intl/server", () => ({
 const ANNOUNCEMENT: Announcement = {
   id: "1",
   title: "テストお知らせ詳細",
+  status: "published",
   publishedAt: "2026-07-01T09:00:00Z",
   category: "incident",
   body: "詳細本文テキスト",
   targeting: { scope: "all" },
   actionRequired: false,
+  createdAt: "2026-07-01T09:00:00Z",
+  updatedAt: "2026-07-01T09:00:00Z",
 };
 
 describe("AnnouncementDetail", () => {

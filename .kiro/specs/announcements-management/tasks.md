@@ -407,3 +407,128 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 15.1, 17.6_
   - _Depends: 14.2, 14.3_
+
+---
+
+## 追加ラウンド（2026-07-10）: 下書き機能の追加
+
+- [x] 16. 基盤: スキーマ・型・バリデーション・翻訳キーの追加
+- [x] 16.1 Prismaスキーマに公開状態・作成日時・更新日時を追加する
+  - `AnnouncementStatus`列挙型（`draft`/`published`）を追加し、`Announcement`に`status AnnouncementStatus @default(published)`、`createdAt DateTime @default(now())`、`updatedAt DateTime @updatedAt`を追加する
+  - `publishedAt`を`DateTime?`（nullable）に変更する
+  - 上記変更を反映するマイグレーションを作成し、既存行が`status: published`として移行されることを確認する
+  - `npx prisma migrate dev`が成功し、既存のシードデータ・テストが引き続き通ることで完了とする
+  - _Requirements: 18.1, 19.1_
+  - _Boundary: prisma/schema.prisma_
+
+- [x] 16.2 (P) `Announcement`型・`CreateAnnouncementInput`を更新する
+  - `AnnouncementStatus`型（`"draft" | "published"`）、`Announcement.status`、`Announcement.createdAt`/`updatedAt: string`を追加する
+  - `Announcement.publishedAt`を`string | null`に変更する
+  - 型チェックがパスすることで完了とする
+  - _Requirements: 18.1_
+  - _Boundary: types/announcement.ts_
+  - _Depends: 16.1_
+
+- [x] 16.3 (P) バリデーションスキーマに公開状態を追加する
+  - `announcementFormSchema`に`status: z.enum(["draft", "published"])`を追加する
+  - 不正な値（`"draft"`/`"published"`以外）が拒否されることを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 18.1_
+  - _Boundary: lib/validation/announcement.ts_
+  - _Depends: 16.2_
+
+- [x] 16.4 (P) 公開状態関連の翻訳キーを追加する
+  - `helpdeskAnnouncements`名前空間に、公開状態セレクトのラベル・選択肢（下書き/公開）、一覧の下書きバッジ、絞り込みのラベル・選択肢を追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 18.2, 21.1, 21.2_
+  - _Boundary: i18n messages_
+
+---
+
+- [x] 17. コア: サービス層（可視性ゲート・公開日時打刻・並び順）の実装
+- [x] 17.1 申請者側の可視性判定に公開状態フィルタを追加する
+  - `visibleToCountryWhere`（`src/lib/server/announcement-service.ts`）に`status: "published"`を配信対象条件とのAND条件として追加する
+  - `listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`が、公開期間・配信対象の条件を満たしていても`status: "draft"`のお知らせを返さないことで完了とする
+  - _Requirements: 20.1, 20.2, 20.3_
+  - _Boundary: announcement-service.ts_
+  - _Depends: 16.1, 16.2_
+
+- [x] 17.2 公開日時の記録タイミングを実装する
+  - `createAnnouncementRecord`が`status: "draft"`のとき`publishedAt: null`、`status: "published"`のとき`publishedAt`に保存時刻を設定するよう修正する
+  - `updateAnnouncementRecord`が更新前のレコードを取得し、`status`が「`draft`→`published`」に変わったときのみ`publishedAt`を保存時刻で上書きし、それ以外（`published`のまま、または`published`→`draft`）では既存の`publishedAt`を変更しないよう修正する
+  - 上記3パターン（新規下書き作成・下書き→公開・公開のまま更新）が期待どおり`publishedAt`を扱うことで完了とする
+  - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
+  - _Boundary: announcement-service.ts_
+  - _Depends: 16.1, 16.2_
+
+- [x] 17.3 (P) ヘルプデスク側一覧の並び順を作成日時基準に変更する
+  - `listAllAnnouncements`の`orderBy`を`publishedAt desc`から`createdAt desc`に変更する（下書きは`publishedAt`が`null`になり得るため）
+  - 下書き・公開が混在する一覧が、公開状態に関わらず作成日時の降順で表示されることで完了とする
+  - _Requirements: 20.4_
+  - _Boundary: announcement-service.ts_
+  - _Depends: 16.1_
+
+---
+
+- [x] 18. コア: フォーム・一覧・フィルタ・リマインド抑止への結線
+- [x] 18.1 `AnnouncementForm`に公開状態セレクトを追加する
+  - 公開状態（下書き/公開）を選択する`Select`フィールドを追加し、新規作成時の初期値を「下書き」とする
+  - 編集時は既存レコードの`status`を初期表示し、変更して保存すると選択した値がそのまま送信されることをブラウザで確認する
+  - _Requirements: 18.2, 18.3, 18.4, 18.5_
+  - _Boundary: AnnouncementForm_
+  - _Depends: 16.3, 16.4_
+
+- [x] 18.2 (P) `AnnouncementManagementListClient`に下書きバッジと公開日フォールバック表示を追加する
+  - `status === "draft"`の行にのみ下書きバッジを表示する
+  - `publishedAt`が`null`の行では、公開日表示をプレースホルダー（例: `—`）に置き換え、例外が発生しないようにする
+  - ブラウザで管理一覧を開き、下書き・公開の行が正しく見分けられることで完了とする
+  - _Requirements: 21.1, 21.3_
+  - _Boundary: AnnouncementManagementListClient_
+  - _Depends: 16.2, 16.4_
+
+- [x] 18.3 (P) 公開状態による絞り込みを追加する
+  - `HelpdeskAnnouncementFilters`に`status: "" | "draft" | "published"`を追加し、`filterAnnouncementsForHelpdesk`が既存の条件とのAND条件で絞り込むようにする
+  - `AnnouncementFilterBar`に公開状態（すべて/下書き/公開）の`Select`を追加する
+  - ブラウザで公開状態の絞り込みを操作し、一覧が期待どおり絞り込まれることで完了とする
+  - _Requirements: 21.2_
+  - _Boundary: helpdesk-announcement-list.ts, AnnouncementFilterBar_
+  - _Depends: 16.4_
+
+- [x] 18.4 (P) 下書き状態でのリマインド送信・確認済み人数表示を抑止する
+  - `AnnouncementTrackingBadge`・`AnnouncementRecipientDialog`について、対象のお知らせが`status === "draft"`のときは人数表示・未対応者一覧・リマインド送信操作を提供しない（非表示または無効化）
+  - ブラウザで下書き状態のお知らせの管理一覧行を確認し、確認済み人数表示・リマインド操作が現れないことで完了とする
+  - _Requirements: 22.1_
+  - _Boundary: AnnouncementTrackingBadge, AnnouncementRecipientDialog_
+  - _Depends: 16.2, 18.2_
+
+---
+
+- [ ] 19. 検証: 単体テスト・統合/多言語確認
+- [x] 19.1 (P) サービス層（可視性ゲート・公開日時打刻・並び順）の単体テストを実装する
+  - `listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`が`status: "draft"`のお知らせを配信対象・公開期間の条件に関わらず除外することを検証するテストを実装する
+  - `createAnnouncementRecord`/`updateAnnouncementRecord`が公開日時打刻の3パターン（新規下書き・下書き→公開・公開のまま更新）を正しく扱うことを検証するテストを実装する
+  - `listAllAnnouncements`が`createdAt`降順で全件（下書き含む）を返すことを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5, 20.1, 20.2, 20.3, 20.4_
+  - _Depends: 17.1, 17.2, 17.3_
+
+- [x] 19.2 (P) フィルタ・フォームバリデーションの単体テストを実装する
+  - `filterAnnouncementsForHelpdesk`が公開状態によるAND条件の絞り込みに対応することを検証するテストを実装する
+  - `announcementFormSchema`が`status`を`"draft" | "published"`のいずれかとして要求することを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 21.2_
+  - _Depends: 16.3, 18.3_
+
+- [ ]* 19.3 (P) 下書き→公開の可視性遷移の統合テストを実装する
+  - 下書きとして新規作成したお知らせが申請者側の一覧・詳細・ダッシュボードウィジェットに表示されないこと、編集で「公開」に変更すると表示されるようになることを検証するテストを実装する
+  - 公開済みのお知らせを「下書き」に差し戻すと、即座に申請者側の表示から除外されることを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 20.1, 20.2, 20.3_
+  - _Depends: 17.1, 18.1_
+
+- [ ] 19.4 (P) 多言語表示・レスポンシブ表示を確認する
+  - 日本語・英語両ロケールで公開状態セレクト・下書きバッジ・絞り込みラベルが正しく切り替わることを確認する
+  - タブレット幅（768px）でフォーム・一覧が横スクロールを発生させないことを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 18.2, 21.1, 21.2_
+  - _Depends: 18.1, 18.2, 18.3_

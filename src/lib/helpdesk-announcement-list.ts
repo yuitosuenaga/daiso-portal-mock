@@ -9,16 +9,18 @@ export interface HelpdeskAnnouncementFilters {
   keyword: string;
   category: string;
   actionRequired: "" | "true" | "false";
+  status: "" | "draft" | "published";
 }
 
 export const EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS: HelpdeskAnnouncementFilters = {
   keyword: "",
   category: "",
   actionRequired: "",
+  status: "",
 };
 
 /**
- * タイトル（部分一致・大文字小文字を区別しない）・種別・対応要否のAND条件で
+ * タイトル（部分一致・大文字小文字を区別しない）・種別・対応要否・公開状態のAND条件で
  * お知らせを絞り込む。引数の配列の順序は変更しない。
  */
 export function filterAnnouncementsForHelpdesk(
@@ -38,6 +40,9 @@ export function filterAnnouncementsForHelpdesk(
       return false;
     }
     if (filters.actionRequired === "false" && announcement.actionRequired) {
+      return false;
+    }
+    if (filters.status && announcement.status !== filters.status) {
       return false;
     }
     return true;

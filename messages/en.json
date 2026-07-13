@@ -106,6 +106,7 @@
       "publishPeriodLabel": "Publish period",
       "publishPeriodToSeparator": "to",
       "dueDateLabel": "Due date",
+      "statusBadgeDraft": "Draft",
       "filter": {
         "keywordLabel": "Search title",
         "keywordPlaceholder": "Words in the title",
@@ -115,6 +116,10 @@
         "actionRequiredAll": "All",
         "actionRequiredTrue": "Action required only",
         "actionRequiredFalse": "No action required only",
+        "statusLabel": "Publish status",
+        "statusAll": "All",
+        "statusDraft": "Draft",
+        "statusPublished": "Published",
         "clearButton": "Clear",
         "noResults": "No matching announcements"
       }
@@ -130,6 +135,9 @@
       "bodyPlaceholder": "Enter the announcement body",
       "categoryLabel": "Category",
       "categoryPlaceholder": "Select a category",
+      "statusLabel": "Publish status",
+      "statusDraftOption": "Draft",
+      "statusPublishedOption": "Published",
       "targetingLabel": "Distribution target",
       "targetingAllOption": "All countries",
       "targetingCountriesOption": "Specify countries/regions",

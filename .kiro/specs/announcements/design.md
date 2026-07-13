@@ -637,3 +637,58 @@ messages/
   - 公開期間外のお知らせIDを直接指定した場合、詳細画面が「見つかりません」表示になること
 - **E2E/UI Tests**:
   - 日本語・英語両方で対応期限ラベルが翻訳されること
+
+---
+
+## 追加ラウンド（2026-07-10）: 下書きの非表示化
+
+### Overview（追加分）
+`announcements-management`spec側で追加される`Announcement.status`（公開状態: `draft`/`published`）による絞り込みは、既存の可視性判定関数（`listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`、`announcements-management`spec所有）に実装されるため、本specは追加のフィルタ処理を実装しない（既存の呼び出しのままで下書きのお知らせは戻り値に含まれなくなる）。**Purpose**: 販社担当者が未確定の下書き情報を一切目にしないようにする。**Impact**: データ取得の戻り値が変わるのみで、本spec所有のコンポーネント・レイアウト・操作性に変更はない。
+
+### Goals（追加分）
+- 下書き状態のお知らせが一覧・詳細・ダッシュボードウィジェットに表示されなくなる（データ層の変更のみで実現し、本spec側のロジック追加は不要）
+
+### Non-Goals（追加分）
+- 公開状態フィールド自体の追加、作成・編集フォームでの設定操作（`announcements-management`spec側で実装）
+- 下書き除外の算出ロジック自体（`announcements-management`spec側の可視性判定関数に実装。本specは戻り値をそのまま利用するのみ）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- なし（データ層の変更のみで完結するため、本spec側でのコンポーネント変更は発生しない）
+
+**Out of Boundary（追加）**
+- `Announcement.status`の型定義・バリデーション・絞り込みロジック（`announcements-management`spec所有）
+
+**Allowed Dependencies（追加）**
+- `announcements-management`spec側で拡張される`Announcement.status`（読み取りのみ、間接的に可視性判定の戻り値経由で反映される）
+
+**Revalidation Triggers（追加）**
+- `Announcement.status`のフィールド名・値・意味が変更された場合
+
+### Architecture（追加分）
+新規コンポーネント・新規フローは発生しない。既存の`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`（`announcements-management`spec所有）の戻り値から、`status === "draft"`のお知らせが既に除外された状態で返るため、本spec側の`AnnouncementList`・`AnnouncementDetail`・`AnnouncementWidget`は変更不要。
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし。
+
+### File Structure Plan（追加分）
+新規ファイルなし。変更ファイルなし。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 14.1〜14.4 | 下書き状態のお知らせの非表示化 | （データ層のみ、`announcements-management`spec所有） | — |
+
+### Components and Interfaces（追加分）
+新規コンポーネントなし。既存コンポーネントの変更もなし（データ取得関数の戻り値が変わるのみ）。
+
+### Data Models（追加分）
+本specはデータモデルを追加しない。`announcements-management`spec所有の`Announcement.status`を間接的に（可視性判定の結果として）参照する。
+
+### Testing Strategy（追加分）
+
+- **Integration Tests**:
+  - 下書き状態のお知らせIDを直接指定した場合、詳細画面が「見つかりません」表示になること
+  - 下書き状態のお知らせが一覧・ダッシュボードウィジェットのいずれにも表示されないこと

@@ -64,11 +64,14 @@ vi.mock("next-intl", () => ({
 const ANNOUNCEMENT: Announcement = {
   id: "1",
   title: "テストお知らせ",
+  status: "published",
   publishedAt: "2026-07-01T09:00:00Z",
   category: "maintenance",
   body: "本文テキスト",
   targeting: { scope: "all" },
   actionRequired: false,
+  createdAt: "2026-07-01T09:00:00Z",
+  updatedAt: "2026-07-01T09:00:00Z",
 };
 
 describe("AnnouncementList", () => {
