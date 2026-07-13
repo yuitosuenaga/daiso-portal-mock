@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
 import {
   ANNOUNCEMENT_CATEGORY_CODES,
@@ -26,6 +26,7 @@ export default async function HelpdeskAnnouncementNewPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
+      <BackLink href="/helpdesk/announcements" label={t("backToList")} />
       <h1 className="text-2xl font-semibold text-foreground">
         {t("createTitle")}
       </h1>
@@ -61,12 +62,6 @@ export default async function HelpdeskAnnouncementNewPage() {
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
       />
-      <Link
-        href="/helpdesk/announcements"
-        className="inline-block text-sm text-primary underline-offset-4 hover:underline"
-      >
-        {t("backToList")}
-      </Link>
     </div>
   );
 }

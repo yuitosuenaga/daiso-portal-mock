@@ -3,7 +3,7 @@ import { getInquiryById } from "@/lib/api/inquiries";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@/i18n/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHistoryList";
 import { ApplicantMessageForm } from "@/components/features/inquiry-list/ApplicantMessageForm";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
@@ -20,14 +20,7 @@ export async function InquiryDetail({ id }: { id: string }) {
       getLocale(),
     ]);
 
-  const backToListLink = (
-    <Link
-      href="/inquiry"
-      className="text-sm text-primary underline-offset-4 hover:underline"
-    >
-      {t("backToList")}
-    </Link>
-  );
+  const backToListLink = <BackLink href="/inquiry" label={t("backToList")} />;
 
   let inquiry;
   try {
@@ -35,12 +28,12 @@ export async function InquiryDetail({ id }: { id: string }) {
   } catch {
     return (
       <div className="space-y-4">
+        {backToListLink}
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("error")}</p>
           </CardContent>
         </Card>
-        {backToListLink}
       </div>
     );
   }
@@ -48,12 +41,12 @@ export async function InquiryDetail({ id }: { id: string }) {
   if (!inquiry) {
     return (
       <div className="space-y-4">
+        {backToListLink}
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
           </CardContent>
         </Card>
-        {backToListLink}
       </div>
     );
   }
@@ -62,6 +55,7 @@ export async function InquiryDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
+      {backToListLink}
       <Card>
         <CardHeader className="space-y-3">
           <CardTitle>{inquiry.title}</CardTitle>
@@ -165,7 +159,6 @@ export async function InquiryDetail({ id }: { id: string }) {
           />
         </CardContent>
       </Card>
-      {backToListLink}
     </div>
   );
 }
@@ -173,6 +166,7 @@ export async function InquiryDetail({ id }: { id: string }) {
 export function InquiryDetailSkeleton() {
   return (
     <div className="space-y-4">
+      <Skeleton className="h-4 w-24" />
       <Card>
         <CardHeader className="space-y-3">
           <Skeleton className="h-7 w-3/4" />
@@ -192,7 +186,6 @@ export function InquiryDetailSkeleton() {
           <Skeleton className="h-4 w-1/2" />
         </CardContent>
       </Card>
-      <Skeleton className="h-4 w-24" />
     </div>
   );
 }

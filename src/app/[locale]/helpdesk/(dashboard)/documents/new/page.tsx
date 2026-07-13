@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { DocumentForm } from "@/components/features/helpdesk-documents/DocumentForm";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
@@ -23,6 +23,7 @@ export default async function HelpdeskDocumentNewPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
+      <BackLink href="/helpdesk/documents" label={t("backToList")} />
       <h1 className="text-2xl font-semibold text-foreground">
         {t("createTitle")}
       </h1>
@@ -54,12 +55,6 @@ export default async function HelpdeskDocumentNewPage() {
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
       />
-      <Link
-        href="/helpdesk/documents"
-        className="inline-block text-sm text-primary underline-offset-4 hover:underline"
-      >
-        {t("backToList")}
-      </Link>
     </div>
   );
 }

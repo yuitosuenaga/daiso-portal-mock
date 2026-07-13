@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "@/i18n/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
 import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
 import { getAnnouncementByIdForHelpdesk } from "@/lib/api/announcements";
@@ -27,12 +27,7 @@ export default async function HelpdeskAnnouncementEditPage({
     ]);
 
   const backToListLink = (
-    <Link
-      href="/helpdesk/announcements"
-      className="inline-block text-sm text-primary underline-offset-4 hover:underline"
-    >
-      {t("backToList")}
-    </Link>
+    <BackLink href="/helpdesk/announcements" label={t("backToList")} />
   );
 
   const announcement = await getAnnouncementByIdForHelpdesk(params.id);
@@ -40,12 +35,12 @@ export default async function HelpdeskAnnouncementEditPage({
   if (!announcement) {
     return (
       <div className="max-w-2xl space-y-4">
+        {backToListLink}
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("notFound")}</p>
           </CardContent>
         </Card>
-        {backToListLink}
       </div>
     );
   }
@@ -62,6 +57,7 @@ export default async function HelpdeskAnnouncementEditPage({
 
   return (
     <div className="max-w-2xl space-y-4">
+      {backToListLink}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">
           {t("editTitle")}
@@ -120,7 +116,6 @@ export default async function HelpdeskAnnouncementEditPage({
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
       />
-      {backToListLink}
     </div>
   );
 }

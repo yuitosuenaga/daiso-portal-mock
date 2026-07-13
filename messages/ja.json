@@ -411,6 +411,7 @@
     "title": "問い合わせ・申請フォーム",
     "description": "選択式項目と自由記述を入力し、問い合わせ・申請を送信してください。",
     "requiredMark": "必須",
+    "backToList": "一覧へ戻る",
     "fields": {
       "title": {
         "label": "タイトル",
