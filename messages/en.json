@@ -1,7 +1,7 @@
 {
   "login": {
-    "applicantTitle": "Applicant Login",
-    "helpdeskTitle": "Helpdesk Staff Login",
+    "applicantTitle": "Overseas Sales Agent Login",
+    "helpdeskTitle": "Japan Daiso Login",
     "emailLabel": "Email",
     "emailPlaceholder": "Enter your email address",
     "passwordLabel": "Password",

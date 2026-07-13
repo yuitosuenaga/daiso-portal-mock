@@ -1,7 +1,7 @@
 {
   "login": {
-    "applicantTitle": "販社担当者ログイン",
-    "helpdeskTitle": "ヘルプデスク担当者ログイン",
+    "applicantTitle": "海外販社代理店ログイン",
+    "helpdeskTitle": "日本大創側ログイン",
     "emailLabel": "メールアドレス",
     "emailPlaceholder": "メールアドレスを入力してください",
     "passwordLabel": "パスワード",
