@@ -16,27 +16,28 @@
 
 ## ホスティング
 
-- **モックアップ公開**: Cloud Run（`gcloud run deploy --source .` による手動デプロイ）
+- **公開サービス**: Cloud Run サービス`portal-mock`（`gcloud run deploy --source .` による手動デプロイ）
   - Firebase App Hostingはバックエンド作成時に必ずGitHubリポジトリ連携（Cloud Build GitHub Appのブラウザ認可）が必要になるため、GitHub連携なしで最小コスト・最小手順を優先し、Cloud Runへの直接デプロイを採用（2026-07-08変更）
   - リージョン: `asia-northeast1`、`min-instances=0`（アイドル時ゼロスケール）でコストを最小化
-  - 更新時はmainマージ後に `gcloud run deploy` を再実行する運用（自動デプロイ・PRプレビューはなし）
+  - IAM: `allUsers`にinvoker権限を付与し一般公開
 - **バージョン管理**: GitHub（PRベース開発、main直push禁止）
 - **CI**: GitHub Actions（lint / typecheck / build を将来的に整備。現フェーズでは lint・typecheck・build の確認を優先）
 
-### バックエンド・DB版の検証用デプロイ（2026-07-10追加）
+### バックエンド・DB版への統合（2026-07-13変更）
 
-`spec/backend-db-foundation`ブランチでPostgreSQL・Prisma・Auth.jsによるバックエンド実装が完了（`main`へのマージ・Cursorレビューは未完了）。動作確認のため、`main`/`release`由来の既存モック版Cloud Runサービス（`portal-mock`）とは別に、検証専用のCloud Runサービスを新設した。
+`spec/backend-db-foundation`ブランチでPostgreSQL・Prisma・Auth.jsによるバックエンド実装が完了し、検証用に別サービス`portal-mock-backend`で動作確認を行っていたが（2026-07-10〜）、動作確認が取れたためユーザーの指示により`portal-mock`（公開サービス）側に統合し、`portal-mock-backend`サービスは削除した。
 
-- **サービス名**: `portal-mock-backend`（既存の`portal-mock`とは完全に独立、既存サービスへの影響なし）
-- **デプロイ元**: `spec/backend-db-foundation`ブランチを`main`マージ前に直接`gcloud run deploy --source .`
-- **DB**: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（`asia-northeast1`、最小構成）。Cloud Run→Cloud SQLはCloud Run組み込みのCloud SQL Auth Proxy（`--add-cloudsql-instances`）経由、Unixソケット接続
-- **秘匿値**: Secret Managerは使わず、`gcloud run deploy --set-env-vars`でCloud Runの環境変数に直接設定（検証目的の簡易運用のため）
-- **コスト管理**: Cloud SQLインスタンスはCloud Runと異なり常時課金が発生するため、検証が一段落したら手動で停止（`gcloud sql instances patch --activation-policy=NEVER`）または削除する運用とし、自動停止の仕組みは設けていない
-- 本番反映（`main`→`release`マージ、既存`portal-mock`サービスの更新）は、この検証・Cursorレビューが完了し、ユーザーから明示的に指示があった場合にのみ行う
+- **デプロイ元**: `spec/backend-db-foundation`ブランチ（`origin/main`の最新をマージ済み）を、`main`へのGitマージを行わずに直接`gcloud run deploy --source .`で`portal-mock`へデプロイ
+  - **重要**: これはCloud Runへのデプロイのみの変更であり、Gitの`main`ブランチはバックエンド未実装のままである。デプロイされている実体（`portal-mock`）とGit `main`の内容は乖離している。今後`main`に機能追加する際はこの乖離を踏まえて判断すること
+  - Cursorレビュー未完了のまま、ユーザーの明示的な指示により本統合を実施（通常の機能PRレビュー運用の例外）
+- **DB**: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（`asia-northeast1`、最小構成）に`portal-mock`から接続。Cloud Run→Cloud SQLはCloud Run組み込みのCloud SQL Auth Proxy（`--add-cloudsql-instances`）経由、Unixソケット接続
+- **秘匿値**: Secret Managerは使わず、`gcloud run deploy --set-env-vars`/`gcloud run services update --update-env-vars`でCloud Runの環境変数に直接設定（`DATABASE_URL`・`AUTH_SECRET`・`AUTH_TRUST_HOST`・`AUTH_URL`）
+  - `AUTH_URL`はCloud Run経由のリクエストだとAuth.jsが内部ホスト（`localhost:8080`）を誤検出しログイン後リダイレクトが壊れるため、`portal-mock`の公開URLを明示的に設定している（2026-07-13追加）
+- **コスト管理**: Cloud SQLインスタンスは`portal-mock`（公開サービス）の本番DBとなったため、停止すると公開サービスが使えなくなる。運用方針（常時起動に切り替えるか、引き続き`db-start`/`db-end`による手動起動・停止で運用するか）は2026-07-13時点で未確定・要相談。当面は従来通り手動運用を継続する
 
-## 将来のバックエンド（フェーズ3以降・`main`では今は未実装）
+## バックエンド（`portal-mock`にデプロイ済み、Gitの`main`には未マージ）
 
-`spec/backend-db-foundation`ブランチでは以下を実装済み（上記検証用デプロイ参照）。`main`にはまだ未マージのため、`main`ベースの本番モック版（`portal-mock`）には反映されていない。
+`spec/backend-db-foundation`ブランチで以下を実装済みで、上記の通り`portal-mock`サービスにデプロイ済み。ただしGitの`main`ブランチにはまだマージされていない（上記「重要」参照）。
 
 | 項目 | 技術選定 |
 |---|---|

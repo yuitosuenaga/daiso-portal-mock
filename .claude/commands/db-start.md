@@ -1,5 +1,5 @@
 ---
-description: 検証用Cloud SQLインスタンス（portal-mock-backend-db）を始業時に起動する
+description: Cloud SQLインスタンス（portal-mock-backend-db）を始業時に起動する
 allowed-tools: Bash
 ---
 
@@ -7,7 +7,8 @@ allowed-tools: Bash
 
 <background_information>
 - 対象: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（プロジェクト `rvp-ai-proto-camp`、リージョン `asia-northeast1`）
-- 目的: 作業を開始する際にインスタンスを起動し、`portal-mock-backend`（Cloud Run）や開発環境からDB接続できる状態にする
+- 目的: 作業を開始する際にインスタンスを起動し、DB接続できる状態にする
+- **重要（2026-07-13変更）**: 検証用サービス`portal-mock-backend`は廃止され、公開サービス`portal-mock`がこのインスタンスに直結する本番DBとして利用している。このインスタンスが停止していると`portal-mock`（公開中のサービス）自体が利用できなくなる
 - 起動・停止は完全手動運用（自動スケジュールは設けていない）。ユーザーがこのコマンドを実行した時点を「始業」とみなす
 </background_information>
 
