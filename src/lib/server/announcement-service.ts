@@ -14,6 +14,7 @@ import type {
 } from "@/types/announcement";
 import type {
   AnnouncementRecipientStatusView,
+  AnnouncementSelfStatus,
   AnnouncementTrackingSummary,
 } from "@/types/announcement-recipient";
 
@@ -298,4 +299,120 @@ export async function sendAnnouncementReminders(
       })
     )
   );
+}
+
+/**
+ * 指定した会社かつ、お知らせの配信対象（`targeting`）に含まれる担当者のみを取得する。
+ * 該当お知らせが存在しない場合は空配列を返す。
+ */
+async function findTargetRecipientsForCompany(
+  announcement: Pick<Announcement, "targeting">,
+  announcementId: string,
+  companyCode: string
+) {
+  return prisma.announcementRecipient.findMany({
+    where: {
+      AND: [targetRecipientsWhere(announcement), { company: { companyCode } }],
+    },
+    include: {
+      statuses: { where: { announcementId } },
+    },
+  });
+}
+
+/**
+ * 指定した会社かつ配信対象に含まれる担当者全員について、`field`が未記録のものにのみ
+ * 現在時刻を記録する。既に記録済みの担当者は上書きしない。
+ */
+async function recordCompanyStatus(
+  announcementId: string,
+  companyCode: string,
+  field: "confirmedAt" | "completedAt"
+): Promise<void> {
+  const announcement = await findAnnouncementById(announcementId);
+  if (!announcement) {
+    return;
+  }
+
+  const recipients = await findTargetRecipientsForCompany(
+    announcement,
+    announcementId,
+    companyCode
+  );
+  const unrecorded = recipients.filter((recipient) => !recipient.statuses[0]?.[field]);
+
+  const recordedAt = new Date();
+  await Promise.all(
+    unrecorded.map((recipient) =>
+      prisma.announcementRecipientStatus.upsert({
+        where: {
+          announcementId_recipientId: { announcementId, recipientId: recipient.id },
+        },
+        update: { [field]: recordedAt },
+        create: { announcementId, recipientId: recipient.id, [field]: recordedAt },
+      })
+    )
+  );
+}
+
+/**
+ * 指定した会社かつ配信対象に含まれる担当者全員について、確認済み日時が未記録の
+ * ものにのみ現在時刻を記録する。既に確認済みの担当者の記録時刻は上書きしない。
+ * 配信対象に指定会社が含まれない場合、対象0件で何も記録しない。
+ */
+export async function recordCompanyConfirmation(
+  announcementId: string,
+  companyCode: string
+): Promise<void> {
+  await recordCompanyStatus(announcementId, companyCode, "confirmedAt");
+}
+
+/**
+ * 対応要否（`actionRequired`）が真のお知らせについてのみ、指定した会社かつ配信対象に
+ * 含まれる担当者全員の実施済み日時を記録する。対応要否が偽のお知らせに対しては
+ * 何も記録しない。既に実施済みの担当者の記録時刻は上書きしない。
+ */
+export async function recordCompanyCompletion(
+  announcementId: string,
+  companyCode: string
+): Promise<void> {
+  const announcement = await findAnnouncementById(announcementId);
+  if (!announcement?.actionRequired) {
+    return;
+  }
+
+  await recordCompanyStatus(announcementId, companyCode, "completedAt");
+}
+
+/**
+ * 指定した会社かつ配信対象に含まれる担当者全員が確認済み（または実施済み）のときのみ、
+ * 対応する日時を返す。1人でも未記録の担当者がいる場合、または対象担当者が
+ * 1人も存在しない場合はnullを返す。
+ */
+export async function getAnnouncementSelfStatusForCompany(
+  announcementId: string,
+  companyCode: string
+): Promise<AnnouncementSelfStatus> {
+  const announcement = await findAnnouncementById(announcementId);
+  if (!announcement) {
+    return { confirmedAt: null, completedAt: null };
+  }
+
+  const recipients = await findTargetRecipientsForCompany(
+    announcement,
+    announcementId,
+    companyCode
+  );
+  if (recipients.length === 0) {
+    return { confirmedAt: null, completedAt: null };
+  }
+
+  const statuses = recipients.map((recipient) => recipient.statuses[0]);
+  const allConfirmed = statuses.every((status) => status?.confirmedAt);
+  const allCompleted = statuses.every((status) => status?.completedAt);
+
+  return {
+    confirmedAt: allConfirmed ? statuses[0]!.confirmedAt!.toISOString() : null,
+    completedAt: allCompleted ? statuses[0]!.completedAt!.toISOString() : null,
+  };
 }

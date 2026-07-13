@@ -29,10 +29,13 @@ import {
   findAnnouncementById,
   findAnnouncementVisibleToCountry,
   getAnnouncementRecipientStatuses,
+  getAnnouncementSelfStatusForCompany,
   getAnnouncementTrackingSummary,
   isReminderPendingForCompany,
   listAllAnnouncements,
   listAnnouncementsVisibleToCountry,
+  recordCompanyCompletion,
+  recordCompanyConfirmation,
   sendAnnouncementReminders,
   updateAnnouncementRecord,
 } from "@/lib/server/announcement-service";
@@ -663,5 +666,279 @@ describe("sendAnnouncementReminders", () => {
   it("空配列を渡した場合は何もせず正常終了する", async () => {
     await expect(sendAnnouncementReminders("1", [])).resolves.toBeUndefined();
     expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("recordCompanyConfirmation", () => {
+  it("指定会社かつ配信対象に含まれる担当者のみを絞り込んで取得する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+    ] as never);
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+
+    await recordCompanyConfirmation("1", "vn-daiso-vietnam");
+
+    expect(prisma.announcementRecipient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { company: { country: { in: ["VN"] } } },
+            { company: { companyCode: "vn-daiso-vietnam" } },
+          ],
+        },
+      })
+    );
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { announcementId_recipientId: { announcementId: "1", recipientId: "r1" } },
+        update: { confirmedAt: expect.any(Date) },
+        create: { announcementId: "1", recipientId: "r1", confirmedAt: expect.any(Date) },
+      })
+    );
+  });
+
+  it("未確認の担当者のみを記録対象とする", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "jp-daiso-japan-trading", "JP", [
+        { confirmedAt: new Date("2026-01-01T00:00:00.000Z"), completedAt: null, reminderSentAt: null },
+      ]),
+      recipientRecord("r2", "jp-daiso-japan-trading", "JP"),
+    ] as never);
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+
+    await recordCompanyConfirmation("1", "jp-daiso-japan-trading");
+
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { announcementId_recipientId: { announcementId: "1", recipientId: "r2" } },
+      })
+    );
+  });
+
+  it("既に確認済みの担当者は再度記録されない（記録時刻を上書きしない）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "jp-daiso-japan-trading", "JP", [
+        { confirmedAt: new Date("2026-01-01T00:00:00.000Z"), completedAt: null, reminderSentAt: null },
+      ]),
+    ] as never);
+
+    await recordCompanyConfirmation("1", "jp-daiso-japan-trading");
+
+    expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+  });
+
+  it("配信対象に指定会社が含まれない場合、対象0件で何も記録しない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([] as never);
+
+    await recordCompanyConfirmation("1", "jp-daiso-japan-trading");
+
+    expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+  });
+
+  it("他社・他のお知らせには影響しない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+    ] as never);
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+
+    await recordCompanyConfirmation("1", "vn-daiso-vietnam");
+
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { announcementId_recipientId: { announcementId: "1", recipientId: "r1" } },
+      })
+    );
+  });
+
+  it("存在しないお知らせIDに対しては何もしない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
+
+    await recordCompanyConfirmation("missing", "vn-daiso-vietnam");
+
+    expect(prisma.announcementRecipient.findMany).not.toHaveBeenCalled();
+    expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("recordCompanyCompletion", () => {
+  it("対応要否が真のお知らせに対し、未実施の担当者のみ実施済み日時を記録する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", actionRequired: true }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+    ] as never);
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+
+    await recordCompanyCompletion("1", "vn-daiso-vietnam");
+
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: { completedAt: expect.any(Date) },
+        create: { announcementId: "1", recipientId: "r1", completedAt: expect.any(Date) },
+      })
+    );
+  });
+
+  it("対応要否が偽のお知らせに対しては何も記録しない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", actionRequired: false }) as never
+    );
+
+    await recordCompanyCompletion("1", "vn-daiso-vietnam");
+
+    expect(prisma.announcementRecipient.findMany).not.toHaveBeenCalled();
+    expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+  });
+
+  it("既に実施済みの担当者は再度記録されない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", actionRequired: true }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN", [
+        { confirmedAt: new Date(), completedAt: new Date("2026-01-01T00:00:00.000Z"), reminderSentAt: null },
+      ]),
+    ] as never);
+
+    await recordCompanyCompletion("1", "vn-daiso-vietnam");
+
+    expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("getAnnouncementSelfStatusForCompany", () => {
+  it("対象担当者全員が確認済みのときのみ確認済み日時を返す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN", [
+        { confirmedAt: new Date("2026-01-01T00:00:00.000Z"), completedAt: null, reminderSentAt: null },
+      ]),
+      recipientRecord("r2", "vn-daiso-vietnam", "VN", [
+        { confirmedAt: new Date("2026-01-02T00:00:00.000Z"), completedAt: null, reminderSentAt: null },
+      ]),
+    ] as never);
+
+    const result = await getAnnouncementSelfStatusForCompany("1", "vn-daiso-vietnam");
+
+    expect(result.confirmedAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(result.completedAt).toBeNull();
+  });
+
+  it("1人でも未記録の担当者がいる場合はnullを返す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN", [
+        { confirmedAt: new Date("2026-01-01T00:00:00.000Z"), completedAt: null, reminderSentAt: null },
+      ]),
+      recipientRecord("r2", "vn-daiso-vietnam", "VN"),
+    ] as never);
+
+    const result = await getAnnouncementSelfStatusForCompany("1", "vn-daiso-vietnam");
+
+    expect(result.confirmedAt).toBeNull();
+  });
+
+  it("対象担当者が1人も存在しない場合はnullを返す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([] as never);
+
+    const result = await getAnnouncementSelfStatusForCompany("1", "jp-daiso-japan-trading");
+
+    expect(result).toEqual({ confirmedAt: null, completedAt: null });
+  });
+
+  it("存在しないお知らせIDに対してはnullを返す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
+
+    const result = await getAnnouncementSelfStatusForCompany("missing", "vn-daiso-vietnam");
+
+    expect(result).toEqual({ confirmedAt: null, completedAt: null });
+  });
+});
+
+describe("会社単位の記録が既存の集計・未対応者一覧に反映される（統合確認）", () => {
+  it("確認済み記録後、getAnnouncementTrackingSummaryの確認済み人数に反映される", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", actionRequired: false }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+    ] as never);
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+
+    await recordCompanyConfirmation("1", "vn-daiso-vietnam");
+
+    // 記録後は同一テーブルを参照するgetAnnouncementRecipientStatuses/Summaryに
+    // 反映される前提のため、記録済み状態を模したfindManyの戻り値で確認する。
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN", [
+        { confirmedAt: new Date(), completedAt: null, reminderSentAt: null },
+      ]),
+    ] as never);
+
+    const summary = await getAnnouncementTrackingSummary("1");
+
+    expect(summary.confirmedCount).toBe(1);
+  });
+
+  it("実施済み記録後、未対応者一覧（getAnnouncementRecipientStatuses）から対象会社が除外される", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", actionRequired: true }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+    ] as never);
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+
+    await recordCompanyCompletion("1", "vn-daiso-vietnam");
+
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN", [
+        { confirmedAt: null, completedAt: new Date(), reminderSentAt: null },
+      ]),
+    ] as never);
+
+    const statuses = await getAnnouncementRecipientStatuses("1");
+    const unresolved = statuses.filter(
+      (status) => status.companyCode === "vn-daiso-vietnam" && status.completedAt === null
+    );
+
+    expect(unresolved).toHaveLength(0);
   });
 });
