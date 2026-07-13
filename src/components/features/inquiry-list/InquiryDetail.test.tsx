@@ -104,6 +104,7 @@ describe("InquiryDetail", () => {
   it("取得成功時にも一覧へ戻るリンクを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",
@@ -124,9 +125,36 @@ describe("InquiryDetail", () => {
     expect(screen.getByText("一覧へ戻る")).toBeTruthy();
   });
 
+  it("取得成功時にタイトルを見出しとして表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: {
+        companyName: "Test Company",
+        country: "JP",
+      },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(
+      screen.getByRole("heading", { name: "商品破損についての問い合わせ" })
+    ).toBeTruthy();
+  });
+
   it("対応中の問い合わせでは対応中バッジを表示し、担当者名は表示しない", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",
@@ -155,6 +183,7 @@ describe("InquiryDetail", () => {
   it("対応中でない問い合わせでは対応中バッジを表示しない", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",
@@ -179,6 +208,7 @@ describe("InquiryDetail", () => {
   it("対応履歴セクションを表示し、返信内容を確認できる", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",
@@ -213,6 +243,7 @@ describe("InquiryDetail", () => {
   it("問い合わせ本文に添付ファイルがあるとき、添付ファイルラベルとダウンロードリンクを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",
@@ -249,6 +280,7 @@ describe("InquiryDetail", () => {
   it("問い合わせ本文に添付ファイルがないとき、本文セクションには添付ファイルラベルを表示しない", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",
@@ -273,6 +305,7 @@ describe("InquiryDetail", () => {
   it("取得成功時に追加メッセージの送信フォームを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
       category: "defect",
       urgency: "high",
       storeRegion: "関東",

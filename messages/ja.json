@@ -412,6 +412,10 @@
     "description": "選択式項目と自由記述を入力し、問い合わせ・申請を送信してください。",
     "requiredMark": "必須",
     "fields": {
+      "title": {
+        "label": "タイトル",
+        "placeholder": "タイトル（件名）を入力してください"
+      },
       "category": {
         "label": "案件種別",
         "placeholder": "案件種別を選択してください"

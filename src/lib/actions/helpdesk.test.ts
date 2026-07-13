@@ -71,6 +71,7 @@ const helpdeskSession = {
 function inquiry(overrides: Partial<Inquiry> = {}): Inquiry {
   return {
     id: "inquiry-1",
+    title: "商品破損についての問い合わせ",
     category: "defect",
     urgency: "high",
     storeRegion: "Kanto",

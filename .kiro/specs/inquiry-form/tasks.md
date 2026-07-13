@@ -226,3 +226,60 @@
   - 画像ファイル選択時のサムネイル表示、PDF等非画像ファイル選択時のファイル名表示、複数ファイルの同時選択、上限超過時のエラーメッセージ表示を日本語・英語の両方で確認する
   - _Requirements: 10.1, 10.2, 10.5_
   - _Depends: 8.1_
+
+---
+
+## 追加ラウンド（2026-07-10）: 問い合わせタイトルの追加
+
+> 本ラウンドは`inquiry-list`spec側の一覧・詳細でのタイトル表示・本文プレビュー・余白改善タスクと対になっている。`inquiry-list`側のタスクは本ラウンドのタスク10完了後に着手すること。
+
+- [x] 10. 基盤: title列のスキーマ・型・バリデーション・翻訳キーを追加する
+  - `prisma/schema.prisma`の`model Inquiry`に`title String @default("")`を追加し、`prisma migrate dev --name add_inquiry_title`でマイグレーションを生成・適用する
+  - `src/types/inquiry.ts`の`Inquiry`に`title: string`を追加する（`CreateInquiryInput`は`Omit`経由で自動反映されることを確認する）
+  - `src/lib/validation/inquiry.ts`に`TITLE_MAX_LENGTH`（100）定数と`title: z.string().trim().min(1).max(TITLE_MAX_LENGTH)`を追加する
+  - `messages/ja.json`・`messages/en.json`の`inquiryForm.fields`に`title.label`・`title.placeholder`を追加する
+  - マイグレーションが適用され、`inquiryFormSchema`のユニットテストでタイトル必須・最大文字数検証が通ることで完了とする
+  - _Requirements: 11.1, 11.3, 11.4, 11.5_
+
+---
+
+- [x] 11. (P) InquiryDescriptionSectionにタイトル入力欄を追加する
+  - `originalText`欄の直前に1行のタイトル入力欄（`Input`、`md:col-span-2`）を追加する
+  - 既存フィールドと同じ`FormField`パターン（`required`・`requiredIndicator`・`error={errors.title ? t("validation.required") : undefined}`）に従う
+  - ブラウザで`/inquiry/new`を開くとタイトル入力欄が表示され、未入力のまま送信するとエラーが表示されることで完了とする
+  - _Requirements: 11.1, 11.2, 11.5_
+  - _Boundary: InquiryDescriptionSection_
+  - _Depends: 10_
+
+- [x] 12. (P) サーバー側マッピング（inquiry-service・inquiry-mapper）にtitleを配線する
+  - `src/lib/server/inquiry-service.ts`の`createInquiryRecord`内`prisma.inquiry.create({ data: {...} })`に`title: input.data.title`を追加する
+  - `src/lib/server/inquiry-mapper.ts`の`mapInquiry`に`title: record.title`を追加する
+  - `createInquiry`で作成した問い合わせを`getInquiryById`で取得すると、送信した`title`がそのまま読み出せることで完了とする
+  - _Requirements: 11.4_
+  - _Boundary: InquiryService, InquiryMapper_
+  - _Depends: 10_
+
+- [x] 13. prisma/seed.tsの既存シードデータにtitleを追加する
+  - `seed-inquiry-001`と`ADDITIONAL_INQUIRY_SEEDS`（10件）それぞれに、内容を要約した`title`を追加し、`seedAdditionalInquiries`のupsert呼び出しに配線する
+  - シード再投入後、既存の全問い合わせに空でない`title`が設定されていることで完了とする
+  - _Requirements: 11.4_
+  - _Depends: 12_
+
+---
+
+- [x] 14. 検証（問い合わせタイトル）
+- [x] 14.1 バリデーション・サービス層のユニットテストを更新する
+  - `validation/inquiry.test.ts`にタイトル未入力・最大文字数超過のテストケースを追加する
+  - `inquiry-service.test.ts`・`inquiry-form-mapper.test.ts`・`actions/inquiry.test.ts`・`api/inquiries.test.ts`の既存の`Inquiry`/`CreateInquiryInput`リテラルに`title`を追加し、型チェック・既存テストが通ることで完了とする
+  - _Requirements: 11.2, 11.3, 11.4_
+  - _Depends: 10, 12_
+
+- [x] 14.2 InquiryFormの統合テストを更新する
+  - `InquiryForm.test.tsx`のリテラルに`title`を追加し、タイトル未入力時に送信がブロックされること、送信データに`title`が含まれることを検証するテストが通ることで完了とする
+  - _Requirements: 11.1, 11.2_
+  - _Depends: 11_
+
+- [ ] 14.3 * タイトル入力・表示のE2E確認を行う
+  - `/inquiry/new`でタイトルを入力して送信し、一覧・詳細画面（`inquiry-list`spec側）でそのタイトルが表示されることを日本語・英語の両方で確認する
+  - _Requirements: 11.1, 11.4_
+  - _Depends: 14.2_

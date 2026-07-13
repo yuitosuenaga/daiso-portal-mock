@@ -4,6 +4,7 @@ import { toCreateInquiryInput } from "@/lib/inquiry-form-mapper";
 import type { InquiryFormValues } from "@/lib/validation/inquiry";
 
 const FORM_VALUES: InquiryFormValues = {
+  title: "商品破損についての問い合わせ",
   category: "defect",
   urgency: "high",
   storeRegion: "Tokyo",
@@ -33,6 +34,7 @@ describe("toCreateInquiryInput", () => {
   it("category・urgency・storeRegion・originalText・originalLanguage をそのまま引き継ぐ", () => {
     const result = toCreateInquiryInput(FORM_VALUES);
 
+    expect(result.title).toBe(FORM_VALUES.title);
     expect(result.category).toBe(FORM_VALUES.category);
     expect(result.urgency).toBe(FORM_VALUES.urgency);
     expect(result.storeRegion).toBe(FORM_VALUES.storeRegion);

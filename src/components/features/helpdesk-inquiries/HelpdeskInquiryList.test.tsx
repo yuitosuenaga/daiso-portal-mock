@@ -51,6 +51,7 @@ vi.mock("next-intl/server", () => ({
 function buildInquiry(overrides: Partial<Inquiry>): Inquiry {
   return {
     id: "inquiry-1",
+    title: "テストタイトル",
     category: "defect",
     urgency: "high",
     storeRegion: "Kanto",

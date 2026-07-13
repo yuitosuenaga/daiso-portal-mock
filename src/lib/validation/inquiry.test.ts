@@ -5,6 +5,7 @@ import {
   inquiryAttachmentsArraySchema,
   inquiryFormSchema,
   ORIGINAL_TEXT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   type InquiryFormValues,
 } from "@/lib/validation/inquiry";
 import {
@@ -14,6 +15,7 @@ import {
 
 /** バリデーション対象の有効な入力値（各テストのベースとして複製して使用する）。 */
 const VALID_INPUT: InquiryFormValues = {
+  title: "商品破損についての問い合わせ",
   category: "defect",
   urgency: "high",
   storeRegion: "Tokyo",
@@ -26,6 +28,42 @@ const VALID_INPUT: InquiryFormValues = {
 describe("inquiryFormSchema", () => {
   it("有効な入力ではバリデーションが成功する", () => {
     const result = inquiryFormSchema.safeParse(VALID_INPUT);
+
+    expect(result.success).toBe(true);
+  });
+
+  it("title が空文字の場合はエラーになる", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      title: "",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("title が空白のみの場合はエラーになる", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      title: "   ",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("title が最大文字数を超える場合はエラーになる", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      title: "a".repeat(TITLE_MAX_LENGTH + 1),
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("title が最大文字数と等しい場合は成功する", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      title: "a".repeat(TITLE_MAX_LENGTH),
+    });
 
     expect(result.success).toBe(true);
   });

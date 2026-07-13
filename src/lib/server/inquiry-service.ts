@@ -53,6 +53,7 @@ export async function createInquiryRecord(
 ): Promise<Inquiry> {
   const record = await prisma.inquiry.create({
     data: {
+      title: input.data.title,
       category: input.data.category,
       urgency: input.data.urgency,
       storeRegion: input.data.storeRegion,

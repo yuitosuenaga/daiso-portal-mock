@@ -10,6 +10,7 @@ import type { Inquiry } from "@/types/inquiry";
 function buildInquiry(overrides: Partial<Inquiry>): Inquiry {
   return {
     id: "inquiry-x",
+    title: "テストタイトル",
     category: "defect",
     urgency: "low",
     storeRegion: "Tokyo",

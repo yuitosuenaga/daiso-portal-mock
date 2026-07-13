@@ -1,6 +1,6 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getInquiries } from "@/lib/api/inquiries";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   INQUIRY_CATEGORY_CODES,
@@ -41,10 +41,7 @@ export async function InquiryList() {
       <div>
         {heading}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("list.title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("list.error")}</p>
           </CardContent>
         </Card>
@@ -57,10 +54,7 @@ export async function InquiryList() {
       <div>
         {heading}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("list.title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("list.empty")}</p>
           </CardContent>
         </Card>
@@ -96,10 +90,7 @@ export async function InquiryList() {
     <div>
       {heading}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("list.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <ul className="divide-y divide-border">
             {inquiries.map((item) => (
               <InquiryListItem

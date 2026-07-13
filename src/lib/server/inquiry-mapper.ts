@@ -35,6 +35,7 @@ export function mapAttachment(record: PrismaInquiryAttachment): InquiryAttachmen
 export function mapInquiry(record: PrismaInquiryWithRelations): Inquiry {
   return {
     id: record.id,
+    title: record.title,
     category: record.category,
     urgency: record.urgency,
     storeRegion: record.storeRegion,

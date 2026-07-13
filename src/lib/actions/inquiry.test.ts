@@ -37,6 +37,7 @@ const applicantSession = {
 function inquiry(overrides: Partial<Inquiry> = {}): Inquiry {
   return {
     id: "inquiry-1",
+    title: "商品破損についての問い合わせ",
     category: "defect",
     urgency: "high",
     storeRegion: "Kanto",
@@ -60,6 +61,7 @@ describe("createInquiryAction", () => {
     vi.mocked(createInquiryRecord).mockResolvedValue(inquiry());
 
     const input: CreateInquiryInput = {
+      title: "追加発注についての問い合わせ",
       category: "order",
       urgency: "medium",
       storeRegion: "関東",

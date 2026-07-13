@@ -66,6 +66,7 @@ model HelpdeskStaff {
 
 model Inquiry {
   id                     String                @id @default(cuid())
+  title                  String                @default("")
   category               InquiryCategory
   urgency                InquiryUrgency
   storeRegion            String

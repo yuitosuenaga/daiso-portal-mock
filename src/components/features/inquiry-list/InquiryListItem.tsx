@@ -21,7 +21,8 @@ export interface InquiryListItemProps {
 
 /**
  * 問い合わせ一覧の1行分を表示するコンポーネント。
- * 案件種別テキストは詳細画面（/inquiry/[id]）へのリンクとする。
+ * タイトルは詳細画面（/inquiry/[id]）へのリンクとし、直下に本文（originalText）の
+ * 2行プレビューを表示する。案件種別は対応状況・緊急度と同様にバッジとして表示する。
  */
 export function InquiryListItem({
   inquiry,
@@ -39,9 +40,13 @@ export function InquiryListItem({
           href={`/inquiry/${inquiry.id}`}
           className="text-sm font-medium hover:underline"
         >
-          {categoryLabel}
+          {inquiry.title}
         </Link>
+        <p className="line-clamp-2 text-sm text-muted-foreground">
+          {inquiry.originalText}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="muted">{categoryLabel}</Badge>
           <Badge
             variant={`status-${inquiry.status}`}
             aria-label={`${statusFieldLabel}: ${statusLabel}`}

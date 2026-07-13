@@ -64,8 +64,11 @@ export async function InquiryDetail({ id }: { id: string }) {
     <div className="space-y-4">
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>{tCategories(inquiry.category)}</CardTitle>
+          <CardTitle>{inquiry.title}</CardTitle>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              {t("categoryLabel")}: {tCategories(inquiry.category)}
+            </span>
             <span className="flex items-center gap-2">
               {t("urgencyLabel")}:{" "}
               <Badge variant={`urgency-${inquiry.urgency}`}>
