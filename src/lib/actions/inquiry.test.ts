@@ -80,6 +80,38 @@ describe("createInquiryAction", () => {
     });
     expect(result.id).toBe("inquiry-1");
   });
+
+  it("proxyCompanyIdを渡したとき、ヘルプデスク経由でcreateInquiryへ引き渡す", async () => {
+    const helpdeskSession = {
+      claims: {
+        id: "staff-1",
+        role: "helpdesk" as const,
+        staffId: "staff-1",
+        displayName: "田中 太郎",
+      },
+    };
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(createInquiryRecord).mockResolvedValue(inquiry());
+
+    const input: CreateInquiryInput = {
+      title: "電話で受けた問い合わせ",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-07-01T00:00:00.000Z",
+      submittedBy: { companyName: "Test Company", country: "JP" },
+    };
+
+    await createInquiryAction(input, "target-company-1");
+
+    expect(createInquiryRecord).toHaveBeenCalledWith({
+      data: input,
+      companyId: "target-company-1",
+    });
+  });
 });
 
 describe("sendApplicantMessageAction", () => {

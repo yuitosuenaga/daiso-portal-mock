@@ -29,6 +29,11 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) =>
+    (key: string) => resolveMessage(namespace, key),
+}));
+
 const DOCUMENT: Document = {
   id: "1",
   title: "テストドキュメント",
@@ -69,5 +74,35 @@ describe("DocumentList", () => {
     const iframe = screen.getByTitle("テストドキュメント");
     expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
     expect(screen.getByText("ダウンロード")).toBeTruthy();
+  });
+
+  it("キーワードで絞り込むと一覧が即時に絞り込まれ、0件時はメッセージを表示する", async () => {
+    const otherDocument: Document = {
+      ...DOCUMENT,
+      id: "2",
+      title: "Onboarding Guide",
+    };
+    getDocumentsMock.mockResolvedValueOnce([DOCUMENT, otherDocument]);
+
+    const jsx = await DocumentList();
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    render(jsx);
+
+    expect(screen.getByText("テストドキュメント")).toBeTruthy();
+    expect(screen.getByText("Onboarding Guide")).toBeTruthy();
+
+    await user.type(
+      screen.getByLabelText("キーワード検索"),
+      "存在しないキーワード"
+    );
+
+    expect(screen.getByText("該当するドキュメントがありません")).toBeTruthy();
+    expect(screen.queryByText("テストドキュメント")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "条件をクリア" }));
+
+    expect(screen.getByText("テストドキュメント")).toBeTruthy();
+    expect(screen.getByText("Onboarding Guide")).toBeTruthy();
   });
 });

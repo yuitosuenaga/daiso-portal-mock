@@ -139,3 +139,26 @@
 ### References（追加分）
 - `.kiro/specs/announcements-management/design.md`「追加ラウンド（2026-07-07）」— フィルタパターンの参照元
 - `src/components/features/inquiry-list/InquiryDetail.tsx` — 条件付きバッジ表示パターン
+
+## Research Log（2026-07-13追加ラウンド: 対応状況の自己記録）
+
+### 確認済み自動記録のトリガー位置
+- **Context**: 「詳細画面を開いたら自動的に確認済みを記録する」という要件（15.1）を、Server Component（`AnnouncementDetail`）とClient Component（新設パネル）のどちらで実行するか
+- **Sources Consulted**: `src/components/features/announcements/AnnouncementDetail.tsx`（既存、async Server Component）、Next.js `<Link>`のプリフェッチ挙動に関する既知の仕様（ビューポート内リンクはデフォルトでプリフェッチされ、対象ページのレンダリングが先行実行されうる）
+- **Findings**: `AnnouncementDetail`はサーバーコンポーネントであり、レンダリングされること自体が「ユーザーが実際に開いた」ことを保証しない（一覧画面での`<Link>`プリフェッチにより、スクロールで表示範囲に入るだけでレンダリングが先行実行される可能性がある）
+- **Implications**: 記録処理はサーバーコンポーネントのレンダリング内では行わず、実際にブラウザにマウントされたときのみ発火するクライアント側`useEffect`から呼び出す設計とする（`AnnouncementSelfReportPanel`）
+
+### `announcements-management`要件23が提供する関数の呼び出し方針
+- **Context**: 記録・読み取り関数の実体は`announcements-management`spec側にあるため、本spec側からの呼び出し方式を検討した
+- **Sources Consulted**: 既存の`isReminderPendingForCompany`呼び出しパターン（`AnnouncementDetail`/`AnnouncementList`、読み取り専用）
+- **Findings**: 既存のリマインド受信表示は「読み取り専用関数をServer Componentから直接呼び出す」だけで済んでいたが、今回は書き込み（記録）を伴うため、クライアントから呼び出せるServer Actionが必要。`announcements-management`spec側が新設する`confirmAnnouncementAction`/`completeAnnouncementAction`（Server Actions）をそのまま利用する
+- **Implications**: 本specはServer Actionsの実装を持たず、呼び出し元（Client Component）としてのみ関わる。境界の引き方は既存のリマインド受信表示と同一（データ・ロジックは`announcements-management`側、UIトリガーは本spec側）
+
+### Risks & Mitigations（追加分）
+- `announcements-management`spec側の`confirmAnnouncementAction`/`completeAnnouncementAction`/`getAnnouncementSelfStatus`の実装が先に完了していないと、本specの`AnnouncementSelfReportPanel`が参照する関数が存在せず型エラーになる — 両specの実装順序を揃える、または`announcements-management`側のスタブ実装を先に用意してから本spec側の結線を行う
+- マウント時の自動記録が失敗（ネットワークエラー・未認証）した場合にユーザーへエラーを表示すると、詳細画面の閲覧自体を妨げる体験になる — 失敗時はローカル状態を変更せず静かに失敗させ、詳細画面の閲覧自体は継続できるようにする（要件15の目的は「実態に近い浸透状況の可視化」であり、記録失敗を理由に閲覧を止める必要はない）
+
+### References（追加分）
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 既存の`isReminderPendingForCompany`呼び出しパターン
+- `src/components/features/announcements/AnnouncementList.tsx` — `reminderPendingEntries`の並行取得パターン
+- `.kiro/specs/announcements-management/design.md`「追加ラウンド（2026-07-13）」— `confirmAnnouncementAction`等の提供元設計

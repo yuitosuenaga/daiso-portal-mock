@@ -283,3 +283,58 @@
   - `/inquiry/new`でタイトルを入力して送信し、一覧・詳細画面（`inquiry-list`spec側）でそのタイトルが表示されることを日本語・英語の両方で確認する
   - _Requirements: 11.1, 11.4_
   - _Depends: 14.2_
+
+---
+
+## 追加ラウンド（2026-07-13）: ヘルプデスク代理登録対応
+
+- [x] 15. 基盤: `createInquiry`のセッション分岐
+- [x] 15.1 `createInquiry`にヘルプデスク経路を追加する
+  - `src/lib/api/inquiries.ts`の`createInquiry`を、`getSession()`で取得したロールに応じて分岐させる（`applicant`→既存動作、`helpdesk`+`proxyCompanyId`引数→`requireHelpdeskStaffSession()`を要求し指定`companyId`で作成、いずれでもない場合→`UnauthorizedSessionError`）
+  - 既存の`createInquiry(input)`（引数1つ）の呼び出しが変更なしに動作すること、ヘルプデスクセッション+`proxyCompanyId`で会社IDが正しく設定されること、いずれの条件も満たさない場合に例外が送出されることを検証する単体テストが通ることで完了とする
+  - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - _Boundary: InquiryService (createInquiry)_
+
+---
+
+- [x] 16. コア: 対象会社選択欄の追加
+- [x] 16.1 (P) 会社選択欄の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`に`inquiryForm.fields.targetCompany`（ラベル・プレースホルダー・未選択時のバリデーションエラー）を追加する
+  - `ja.json`で定義した新規キーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 12.9_
+  - _Boundary: i18n messages_
+
+- [x] 16.2 `InquiryForm`/`ApplicantInfoSection`に`mode`/`companies`propと対象会社選択欄を追加する
+  - `InquiryForm`に`mode?: "self" | "helpdeskProxy"`（既定`"self"`）・`companies?: { id: string; name: string; country: string }[]`propを追加し、`ApplicantInfoSection`へ伝播する
+  - `ApplicantInfoSection`は`mode === "helpdeskProxy"`のときのみ、既存の会社名・国欄の下に対象会社`Select`（`companies`をoptionsとする）を表示する
+  - `mode`未指定（既定値`"self"`）のときに既存の`/inquiry/new`の表示が変化しないことを検証する回帰テストが通ることで完了とする
+  - _Requirements: 12.5, 12.6_
+  - _Boundary: InquiryForm, ApplicantInfoSection_
+  - _Depends: 16.1_
+
+- [x] 16.3 `inquiryFormSchema`に`mode`依存のバリデーションを追加する
+  - `mode === "helpdeskProxy"`のときのみ対象会社（`targetCompanyId`）を必須とする条件付きバリデーションを追加する（`mode === "self"`では既存のバリデーションを変更しない）
+  - 未選択のまま送信をブロックすること、`mode="self"`では既存の検証結果が変わらないことを検証する単体テストが通ることで完了とする
+  - _Requirements: 12.7_
+  - _Boundary: InquiryFormSchema_
+  - _Depends: 16.2_
+
+- [x] 16.4 送信ハンドラを対象会社IDの振り分けに対応させる
+  - `InquiryForm`の送信ハンドラで、`mode === "helpdeskProxy"`のとき選択された会社の`id`を`createInquiryAction`/`createInquiry`の第2引数（`proxyCompanyId`）として渡し、`mode === "self"`のときは第2引数を渡さない
+  - `toCreateInquiryInput`（`inquiry-form-mapper.ts`）は`targetCompanyId`を`CreateInquiryInput`本体に含めないことを確認する
+  - 統合テストで、`mode="helpdeskProxy"`で選択した会社IDが`createInquiry`に渡ることを検証し、通ることで完了とする
+  - _Requirements: 12.8_
+  - _Boundary: InquiryForm_
+  - _Depends: 16.3_
+
+---
+
+- [x] 17. 検証（ヘルプデスク代理登録対応）
+- [x] 17.1 `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する
+  - _Requirements: 12.1〜12.9_
+  - _Depends: 15.1, 16.4_
+
+- [ ]* 17.2 代理登録フローのE2E確認を行う（`helpdesk-inquiry-management`spec側の画面結線と合わせて実施）
+  - ヘルプデスク側の代理登録画面（`helpdesk-inquiry-management`spec 要件15所有）から会社を選択して送信すると、指定した会社の問い合わせとして`getAllInquiries`に反映されることを確認する
+  - _Requirements: 12.3, 12.4, 12.8_
+  - _Depends: 17.1_

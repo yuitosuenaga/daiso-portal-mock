@@ -1,6 +1,10 @@
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
+import {
+  CompletedStatusBadge,
+  ConfirmedStatusBadge,
+} from "@/components/features/announcements/SelfReportStatusBadges";
 import type { Announcement } from "@/types/announcement";
 
 export interface AnnouncementListItemProps {
@@ -26,6 +30,18 @@ export interface AnnouncementListItemProps {
    */
   isReminderPending?: boolean;
   /**
+   * 自社が既に確認済みかどうか（読み取り専用）。
+   * 未指定の場合は確認済みバッジを表示しない（ダッシュボードのプレビュー等、
+   * バッジ表示が不要な文脈のため省略可能）。本コンポーネントはこの値の記録トリガーを持たない。
+   */
+  selfConfirmed?: boolean;
+  /**
+   * 自社が既に対応完了済みかどうか（読み取り専用）。`announcement.actionRequired`が
+   * 真の場合のみバッジ表示に使用する。未指定の場合は対応完了バッジを表示しない。
+   * 本コンポーネントはこの値の記録トリガーを持たない。
+   */
+  selfCompleted?: boolean;
+  /**
    * タイトルとバッジ行の間に本文（`announcement.body`）の要約を2行まで表示するかどうか。
    * 未指定の場合は表示しない（一覧画面等、既存の見た目を維持する文脈のため省略可能）。
    */
@@ -44,6 +60,8 @@ export function AnnouncementListItem({
   actionRequiredBadgeLabel,
   dueDateLabel,
   isReminderPending,
+  selfConfirmed,
+  selfCompleted,
   showBodyExcerpt,
   locale,
 }: AnnouncementListItemProps) {
@@ -67,6 +85,10 @@ export function AnnouncementListItem({
             <Badge variant="default">{actionRequiredBadgeLabel}</Badge>
           )}
           {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
+          {selfConfirmed && <ConfirmedStatusBadge isConfirmed={selfConfirmed} />}
+          {announcement.actionRequired && selfCompleted && (
+            <CompletedStatusBadge isCompleted={selfCompleted} />
+          )}
           {announcement.actionRequired && announcement.dueDate && dueDateLabel && (
             <span className="text-xs text-muted-foreground">
               {dueDateLabel}:{" "}

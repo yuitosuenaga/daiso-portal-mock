@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { targetingLabel, validateDocumentFile } from "@/lib/document-utils";
+import {
+  filterDocuments,
+  targetingLabel,
+  validateDocumentFile,
+} from "@/lib/document-utils";
 import { DOCUMENT_MAX_FILE_SIZE_BYTES } from "@/lib/constants/document";
+import type { Document } from "@/types/document";
 
 function buildFile(overrides: { name?: string; type?: string; size?: number }): File {
   const size = overrides.size ?? 100;
@@ -72,5 +77,51 @@ describe("targetingLabel", () => {
     expect(
       targetingLabel({ scope: "countries", countries: ["unknown"] }, LABELS)
     ).toBe("対象国・地域: unknown");
+  });
+});
+
+function buildDocument(overrides: Partial<Document> = {}): Document {
+  return {
+    id: "doc-1",
+    title: "利用規約",
+    description: "各国共通の利用規約です。",
+    fileName: "terms.pdf",
+    fileType: "application/pdf",
+    fileSize: 1000,
+    dataUrl: "data:application/pdf;base64,AAAA",
+    targeting: { scope: "all" },
+    uploadedAt: "2026-07-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("filterDocuments", () => {
+  const documents = [
+    buildDocument({ id: "doc-1", title: "利用規約", description: "共通ルール" }),
+    buildDocument({ id: "doc-2", title: "Onboarding Guide", description: undefined }),
+  ];
+
+  it("キーワードが空のとき、入力配列をそのまま返す", () => {
+    expect(filterDocuments(documents, "")).toEqual(documents);
+  });
+
+  it("キーワードが空白のみのとき、入力配列をそのまま返す", () => {
+    expect(filterDocuments(documents, "   ")).toEqual(documents);
+  });
+
+  it("タイトルの部分一致（大文字小文字を区別しない）で絞り込む", () => {
+    expect(filterDocuments(documents, "onboarding")).toEqual([documents[1]]);
+  });
+
+  it("説明の部分一致で絞り込む", () => {
+    expect(filterDocuments(documents, "共通")).toEqual([documents[0]]);
+  });
+
+  it("説明が未設定のドキュメントでもタイトル一致で絞り込める", () => {
+    expect(filterDocuments(documents, "Guide")).toEqual([documents[1]]);
+  });
+
+  it("一致するドキュメントが無いとき、空配列を返す", () => {
+    expect(filterDocuments(documents, "存在しないキーワード")).toEqual([]);
   });
 });

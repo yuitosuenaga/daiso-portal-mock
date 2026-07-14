@@ -2,7 +2,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { getDocuments } from "@/lib/api/documents";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DocumentListItem } from "@/components/features/documents/DocumentListItem";
+import { DocumentListClient } from "@/components/features/documents/DocumentListClient";
 import type { Document } from "@/types/document";
 
 export async function DocumentList() {
@@ -50,16 +50,11 @@ export async function DocumentList() {
   return (
     <div>
       {heading}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {documents.map((document) => (
-          <DocumentListItem
-            key={document.id}
-            document={document}
-            locale={locale}
-            downloadLinkLabel={t("downloadLink")}
-          />
-        ))}
-      </div>
+      <DocumentListClient
+        documents={documents}
+        locale={locale}
+        downloadLinkLabel={t("downloadLink")}
+      />
     </div>
   );
 }

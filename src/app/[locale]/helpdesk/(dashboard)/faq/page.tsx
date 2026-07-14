@@ -1,11 +1,14 @@
 import { Suspense } from "react";
-import { FaqList, FaqListSkeleton } from "@/components/features/faq/FaqList";
+import {
+  FaqManagementList,
+  FaqManagementListSkeleton,
+} from "@/components/features/helpdesk-faq/FaqManagementList";
 
 export default function HelpdeskFaqPage() {
   return (
-    <div className="max-w-5xl">
-      <Suspense fallback={<FaqListSkeleton />}>
-        <FaqList />
+    <div className="w-full">
+      <Suspense fallback={<FaqManagementListSkeleton />}>
+        <FaqManagementList />
       </Suspense>
     </div>
   );

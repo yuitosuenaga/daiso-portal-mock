@@ -11,7 +11,10 @@ import { Button } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { InquiryDetailsSection } from "@/components/features/inquiry-form/InquiryDetailsSection";
 import { InquiryDescriptionSection } from "@/components/features/inquiry-form/InquiryDescriptionSection";
-import { ApplicantInfoSection } from "@/components/features/inquiry-form/ApplicantInfoSection";
+import {
+  ApplicantInfoSection,
+  type ProxyCompanyOption,
+} from "@/components/features/inquiry-form/ApplicantInfoSection";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { createInquiryAction } from "@/lib/actions/inquiry";
 import { toCreateInquiryInput } from "@/lib/inquiry-form-mapper";
@@ -26,12 +29,23 @@ type SubmissionState = "idle" | "success" | "error";
 interface InquiryFormProps {
   /** 送信成功後に遷移先として表示する問い合わせ一覧のパス */
   listHref?: string;
+  /**
+   * 既定値は`"self"`（申請者本人による送信、既存動作）。
+   * `"helpdeskProxy"`のときのみ対象会社選択欄を表示し、選択会社に紐付けて代理登録する。
+   */
+  mode?: "self" | "helpdeskProxy";
+  /** `mode === "helpdeskProxy"`のときのみ使用する選択可能な会社一覧。 */
+  companies?: ProxyCompanyOption[];
 }
 
 /**
  * 問い合わせ・申請フォーム全体の状態管理・バリデーション・送信処理を統括するコンポーネント。
  */
-export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
+export function InquiryForm({
+  listHref = "/inquiry",
+  mode = "self",
+  companies = [],
+}: InquiryFormProps) {
   const t = useTranslations("inquiryForm");
   const [submissionState, setSubmissionState] =
     useState<SubmissionState>("idle");
@@ -49,6 +63,14 @@ export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
       originalLanguage: "" as unknown as InquiryFormValues["originalLanguage"],
       country: "" as unknown as InquiryFormValues["country"],
       attachments: [],
+      mode,
+      // "self"モードでは対象会社選択欄自体を表示しないため未設定（undefined）のままとする。
+      // "helpdeskProxy"モードでは、他の必須<select>と同様に空文字を明示設定し、
+      // ブラウザ標準動作による先頭オプションの自動選択（必須検証の素通り）を防ぐ。
+      targetCompanyId:
+        mode === "helpdeskProxy"
+          ? ("" as unknown as InquiryFormValues["targetCompanyId"])
+          : undefined,
     },
   });
 
@@ -60,7 +82,9 @@ export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
 
   const onSubmit = async (values: InquiryFormValues) => {
     try {
-      await createInquiryAction(toCreateInquiryInput(values));
+      const proxyCompanyId =
+        mode === "helpdeskProxy" ? values.targetCompanyId : undefined;
+      await createInquiryAction(toCreateInquiryInput(values), proxyCompanyId);
       setSubmissionState("success");
       reset();
       setAttachmentFieldResetKey((key) => key + 1);
@@ -103,7 +127,7 @@ export function InquiryForm({ listHref = "/inquiry" }: InquiryFormProps) {
         >
           <InquiryDetailsSection />
           <InquiryDescriptionSection />
-          <ApplicantInfoSection />
+          <ApplicantInfoSection mode={mode} companies={companies} />
 
           <Controller
             key={attachmentFieldResetKey}

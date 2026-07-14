@@ -10,3 +10,9 @@ export interface Faq {
   question: string;
   answer: string;
 }
+
+/**
+ * FAQ新規作成・編集時のAPI入力契約。
+ * `Faq`から`id`（API側で生成）を除いたサブセット。
+ */
+export type CreateFaqInput = Omit<Faq, "id">;

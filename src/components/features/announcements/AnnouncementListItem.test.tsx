@@ -14,6 +14,10 @@ vi.mock("@/i18n/navigation", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
+}));
+
 const BASE_ANNOUNCEMENT: Announcement = {
   id: "1",
   title: "テストお知らせ",
@@ -124,5 +128,78 @@ describe("AnnouncementListItem", () => {
     );
 
     expect(screen.queryByText("本文の要約テキスト")).toBeNull();
+  });
+
+  it("selfConfirmedが真のとき確認済みバッジを表示する", () => {
+    render(
+      <AnnouncementListItem
+        announcement={BASE_ANNOUNCEMENT}
+        categoryLabel="メンテナンス"
+        locale="ja"
+        selfConfirmed
+      />
+    );
+
+    expect(
+      screen.getByText("announcements.selfReport.confirmed")
+    ).toBeTruthy();
+  });
+
+  it("selfConfirmedが未指定・偽のとき確認済みバッジを表示しない", () => {
+    render(
+      <AnnouncementListItem
+        announcement={BASE_ANNOUNCEMENT}
+        categoryLabel="メンテナンス"
+        locale="ja"
+      />
+    );
+
+    expect(
+      screen.queryByText("announcements.selfReport.confirmed")
+    ).toBeNull();
+  });
+
+  it("actionRequiredが真かつselfCompletedが真のとき対応完了バッジを表示する", () => {
+    render(
+      <AnnouncementListItem
+        announcement={{ ...BASE_ANNOUNCEMENT, actionRequired: true }}
+        categoryLabel="メンテナンス"
+        locale="ja"
+        selfCompleted
+      />
+    );
+
+    expect(
+      screen.getByText("announcements.selfReport.completed")
+    ).toBeTruthy();
+  });
+
+  it("actionRequiredが偽のときはselfCompletedが真でも対応完了バッジを表示しない", () => {
+    render(
+      <AnnouncementListItem
+        announcement={{ ...BASE_ANNOUNCEMENT, actionRequired: false }}
+        categoryLabel="メンテナンス"
+        locale="ja"
+        selfCompleted
+      />
+    );
+
+    expect(
+      screen.queryByText("announcements.selfReport.completed")
+    ).toBeNull();
+  });
+
+  it("selfCompletedが未指定・偽のとき対応完了バッジを表示しない", () => {
+    render(
+      <AnnouncementListItem
+        announcement={{ ...BASE_ANNOUNCEMENT, actionRequired: true }}
+        categoryLabel="メンテナンス"
+        locale="ja"
+      />
+    );
+
+    expect(
+      screen.queryByText("announcements.selfReport.completed")
+    ).toBeNull();
   });
 });

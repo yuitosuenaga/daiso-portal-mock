@@ -269,9 +269,73 @@
       "bodyPlaceholder": "テンプレート本文を入力してください",
       "submitButton": "保存する",
       "backToList": "一覧へ戻る",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {
         "required": "この項目は必須です",
         "nameTooLong": "テンプレート名は40文字以内で入力してください"
+      }
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "FAQ管理",
+      "description": "海外販社向けのよくある質問と回答を登録・編集・削除できます。",
+      "empty": "FAQはありません",
+      "error": "FAQの取得に失敗しました",
+      "addButton": "新規FAQを追加",
+      "editLink": "編集",
+      "deleteButton": "削除",
+      "deleteConfirm": "このFAQを削除しますか？",
+      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。"
+    },
+    "form": {
+      "createTitle": "FAQの新規作成",
+      "editTitle": "FAQの編集",
+      "notFound": "FAQが見つかりません",
+      "questionLabel": "質問",
+      "questionPlaceholder": "質問を入力してください",
+      "categoryLabel": "カテゴリ",
+      "categoryPlaceholder": "カテゴリを選択してください",
+      "answerLabel": "回答",
+      "answerPlaceholder": "回答を入力してください",
+      "submitButton": "保存する",
+      "backToList": "一覧へ戻る",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です"
+      }
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "リンク集管理",
+      "description": "海外販社向けの業務リンクを登録・編集・削除できます。",
+      "empty": "リンクはありません",
+      "error": "リンクの取得に失敗しました",
+      "addButton": "新規リンクを追加",
+      "editLink": "編集",
+      "deleteButton": "削除",
+      "deleteConfirm": "このリンクを削除しますか？",
+      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。"
+    },
+    "form": {
+      "createTitle": "リンクの新規作成",
+      "editTitle": "リンクの編集",
+      "notFound": "リンクが見つかりません",
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "タイトルを入力してください",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "カテゴリ",
+      "categoryPlaceholder": "カテゴリを選択してください",
+      "descriptionLabel": "説明（任意）",
+      "descriptionPlaceholder": "補足説明を入力してください",
+      "submitButton": "保存する",
+      "backToList": "一覧へ戻る",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です",
+        "invalidUrl": "有効なURLを入力してください"
       }
     }
   },
@@ -387,6 +451,11 @@
     "actionRequiredBadge": "要対応",
     "reminderBadge": "リマインドが届いています",
     "dueDateLabel": "対応期限",
+    "selfReport": {
+      "confirmed": "確認済み",
+      "completeButton": "対応完了にする",
+      "completed": "対応完了"
+    },
     "filter": {
       "keywordLabel": "タイトル検索",
       "keywordPlaceholder": "タイトルに含まれる語句",
@@ -407,6 +476,12 @@
       "downloadLink": "ダウンロード",
       "fileSizeLabel": "ファイルサイズ",
       "uploadedAtLabel": "アップロード日"
+    },
+    "search": {
+      "keywordLabel": "キーワード検索",
+      "keywordPlaceholder": "タイトルや説明に含まれる語句",
+      "clearButton": "条件をクリア",
+      "noResults": "該当するドキュメントがありません"
     }
   },
   "inquiryForm": {
@@ -414,6 +489,7 @@
     "description": "選択式項目と自由記述を入力し、問い合わせ・申請を送信してください。",
     "requiredMark": "必須",
     "backToList": "一覧へ戻る",
+    "loadError": "フォームの表示に必要な情報の取得に失敗しました。時間を置いて再度お試しください。",
     "fields": {
       "title": {
         "label": "タイトル",
@@ -447,6 +523,11 @@
       "country": {
         "label": "国",
         "placeholder": "国を選択してください"
+      },
+      "targetCompany": {
+        "label": "対象会社",
+        "placeholder": "問い合わせを登録する会社を選択してください",
+        "empty": "選択可能な会社が登録されていません。管理者にお問い合わせください。"
       },
       "attachments": {
         "label": "添付ファイル",
@@ -512,6 +593,7 @@
     "validation": {
       "required": "この項目は必須です",
       "maxLength": "文字数の上限を超えています",
+      "targetCompanyRequired": "対象会社を選択してください",
       "attachments": {
         "sizeExceeded": "ファイルサイズが上限（5MB）を超えています",
         "typeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",

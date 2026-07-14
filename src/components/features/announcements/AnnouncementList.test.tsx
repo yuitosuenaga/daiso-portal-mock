@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AnnouncementList } from "@/components/features/announcements/AnnouncementList";
 import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
 import messages from "../../../../messages/ja.json";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -21,8 +22,17 @@ vi.mock("@/lib/api/announcements", () => ({
   getAnnouncements: (...args: unknown[]) => getAnnouncementsMock(...args),
 }));
 
+const getAnnouncementSelfStatusMock = vi.fn(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async (_id: string): Promise<AnnouncementSelfStatus> => ({
+    confirmedAt: null,
+    completedAt: null,
+  })
+);
+
 vi.mock("@/lib/api/announcement-tracking", () => ({
   isReminderPendingForCompany: async () => false,
+  getAnnouncementSelfStatus: (id: string) => getAnnouncementSelfStatusMock(id),
 }));
 
 vi.mock("@/lib/server/auth-session", () => ({
@@ -75,6 +85,10 @@ const ANNOUNCEMENT: Announcement = {
 };
 
 describe("AnnouncementList", () => {
+  beforeEach(() => {
+    getAnnouncementSelfStatusMock.mockClear();
+  });
+
   it("お知らせが0件のとき空状態メッセージを表示する", async () => {
     getAnnouncementsMock.mockResolvedValueOnce([]);
 
@@ -106,5 +120,41 @@ describe("AnnouncementList", () => {
     expect(
       screen.queryByText("お知らせの取得に失敗しました")
     ).toBeNull();
+  });
+
+  it("自社が確認済みのお知らせには確認済みバッジを表示する", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([ANNOUNCEMENT]);
+    getAnnouncementSelfStatusMock.mockResolvedValueOnce({
+      confirmedAt: "2026-07-01T00:00:00Z",
+      completedAt: null,
+    });
+
+    const jsx = await AnnouncementList();
+    render(jsx);
+
+    expect(screen.getByText("確認済み")).toBeTruthy();
+  });
+
+  it("自社が未確認のお知らせには確認済みバッジを表示しない", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([ANNOUNCEMENT]);
+    getAnnouncementSelfStatusMock.mockResolvedValueOnce({
+      confirmedAt: null,
+      completedAt: null,
+    });
+
+    const jsx = await AnnouncementList();
+    render(jsx);
+
+    expect(screen.queryByText("確認済み")).toBeNull();
+  });
+
+  it("一覧を表示するだけではconfirm系のアクションを呼び出さない（記録トリガーを持たない）", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([ANNOUNCEMENT]);
+
+    const jsx = await AnnouncementList();
+    render(jsx);
+
+    // getAnnouncementSelfStatus（読み取り専用）のみ呼ばれ、記録アクションへの依存は一切ない
+    expect(getAnnouncementSelfStatusMock).toHaveBeenCalledWith(ANNOUNCEMENT.id);
   });
 });

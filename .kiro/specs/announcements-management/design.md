@@ -997,3 +997,236 @@ function visibleToCountryWhere(country: string): Prisma.AnnouncementWhereInput {
 - **E2E/UI Tests**:
   - 日本語・英語両方で公開状態セレクト・下書きバッジ・絞り込みラベルが翻訳されること
   - タブレット幅（768px）でフォーム・一覧が横スクロールを発生させないこと
+
+---
+
+## 追加ラウンド（2026-07-13）: 会社単位の自己申告記録機能（`announcements`spec連携）
+
+### Overview（追加分）
+`announcements`spec側に、海外販社担当者がお知らせ詳細画面を開くと自動的に「確認済み」が記録され、`actionRequired`が真のお知らせでは「対応完了にする」ボタン操作で「実施済み」が記録される機能が追加される。本ラウンドは、その自動記録・ボタン操作を受け付けるサーバー側の記録関数（会社単位の一括更新）を`announcement-service.ts`・`lib/api/announcement-tracking.ts`・`lib/actions/announcement-tracking.ts`に追加する。**Purpose**: 既存の確認済み・実施済み人数表示（要件13）が参照するデータを、シードデータの固定値から海外販社側の実際の閲覧・操作の結果に置き換える。**Impact**: 既存の`AnnouncementRecipientStatus`（`confirmedAt`/`completedAt`列）をそのまま書き込み先として再利用するため、スキーマ変更・マイグレーションは発生しない。
+
+> **前提**: `backend-db-foundation`spec統合により申請者側セッション（`ApplicantSessionClaims`、`requireApplicantSession()`）が既に存在し、`companyCode`はクライアント入力ではなくセッションクレームから取得できる。一方、確認済み・実施済みの追跡対象である`AnnouncementRecipient`はログインユーザー（`ApplicantUser`）とは紐づかない別のモック担当者マスタであるため、本ラウンドは個人単位ではなく会社単位（`companyCode`）で記録する（`announcements`要件15参照）。
+
+### Goals（追加分）
+- 海外販社担当者がお知らせ詳細画面を開いた時点で、自社に属する担当者全員の確認済み状態が自動的に記録される
+- `actionRequired`が真のお知らせについて、海外販社担当者の明示的な操作で自社の実施済み状態が記録される
+- 記録された確認済み・実施済み状態が、既存の確認済み・実施済み人数表示（要件13）・未対応者一覧・リマインド機能（要件14）にそのまま反映される（別の集計経路を持たない）
+- 記録操作は、なりすまし（他社の会社コードを騙って記録する操作）ができない
+
+### Non-Goals（追加分）
+- ヘルプデスク側UIの変更（本ラウンドはサーバー側の記録関数の追加のみを対象とする）
+- 個人単位（`ApplicantUser`単位）の識別・記録
+- 記録の取り消し・変更履歴の保持
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- 会社単位の確認済み・実施済み記録関数（`announcement-service.ts`の`recordCompanyConfirmation`・`recordCompanyCompletion`・`getAnnouncementSelfStatusForCompany`）
+- 上記を申請者セッションでラップするAPI層関数（`lib/api/announcement-tracking.ts`の`confirmAnnouncementForCurrentCompany`・`completeAnnouncementForCurrentCompany`・`getAnnouncementSelfStatus`）
+- 上記を呼び出すServer Actions（`lib/actions/announcement-tracking.ts`の`confirmAnnouncementAction`・`completeAnnouncementAction`）とそれに伴う`revalidatePath`
+
+**Out of Boundary（追加）**
+- `announcements`spec側のUI（「確認済みにする」自動記録のトリガー・「対応完了にする」ボタン・一覧/詳細のバッジ表示自体）
+- 既存の`getAnnouncementTrackingSummary`・`getAnnouncementRecipientStatuses`・`isReminderPendingForCompany`・`sendAnnouncementReminders`の変更（本ラウンドはこれらが参照する`AnnouncementRecipientStatus`の書き込み経路を追加するのみで、既存の読み取りロジックは変更しない）
+
+**Allowed Dependencies（追加）**
+- 既存の`AnnouncementRecipientStatus`（`confirmedAt`/`completedAt`列、スキーマ変更なし）
+- 既存の`findAnnouncementById`・`targetRecipientsWhere`（`announcement-service.ts`）
+- 申請者側の`findAnnouncementVisibleToCountry`・`requireApplicantSession`（既存、`lib/api/announcements.ts`・`lib/server/auth-session.ts`）
+
+**Revalidation Triggers（追加）**
+- `AnnouncementRecipientStatus`の書き込み経路が増えることによる、既存の集計関数（要件13・14）の前提（「レコードが存在しない組み合わせは未確認・未実施」）への影響（本ラウンドでは前提を変更しないため影響なしと判断するが、将来的な変更時は再確認する）
+
+### Architecture（追加分）
+新規コンポーネント・新規UIは発生しない。既存の「API層でセッションガード → サービス層でPrismaクエリ」構成に、書き込み系の関数を追加する。`announcements`spec側のClient Component（`AnnouncementSelfReportPanel`、`announcements`spec所有）が本ラウンドで追加するServer Actionsを呼び出す。
+
+```mermaid
+graph TB
+    SelfReportPanel[Announcement Self Report Panel existing spec]
+    ConfirmAction[confirmAnnouncementAction]
+    CompleteAction[completeAnnouncementAction]
+    TrackingApi[Announcement Tracking Api]
+    TrackingService[Announcement Service self report functions]
+    Store[AnnouncementRecipientStatus]
+
+    SelfReportPanel --> ConfirmAction
+    SelfReportPanel --> CompleteAction
+    ConfirmAction --> TrackingApi
+    CompleteAction --> TrackingApi
+    TrackingApi --> TrackingService
+    TrackingService --> Store
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 既存の`sendAnnouncementRemindersAction`と同じ「Client → Server Action → API層（セッションガード）→ サービス層（Prisma）→ `revalidatePath`」構成をそのまま踏襲する
+- ドメイン境界: 会社単位の記録先は既存の`AnnouncementRecipientStatus`（担当者単位）のまま変更せず、「会社に属する担当者全員へ同一操作を一括適用する」というサービス層の関数として表現する。新規テーブル・新規カラムは追加しない
+- セキュリティ上の決定: `companyCode`はクライアントから受け取らず、`requireApplicantSession()`のクレームから取得する（他社になりすました記録を防ぐ。既存の`isReminderPendingForCompany`は読み取り専用のため呼び出し側が`companyCode`を渡す設計だが、本ラウンドは書き込みを伴うため同じ設計を採用しない）
+- 既存パターンの維持: `findAnnouncementVisibleToCountry`（既存、公開状態・公開期間・配信対象の3条件を合成済み）をAPI層の事前チェックとして再利用することで、下書き・配信対象外に対する記録拒否（要件23.3・23.4）を専用の分岐なしに満たす
+- Steering準拠: 表示テキストは本ラウンドでは追加しない（サーバー層のみの変更）
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし（既存のPrisma・Server Actionsのみを使用。新規ライブラリ・新規スキーマの追加はない）。
+
+### File Structure Plan（追加分）
+新規ファイルなし。以下を変更する。
+
+### Modified Files（追加分）
+- `src/lib/server/announcement-service.ts` — `recordCompanyConfirmation(announcementId, companyCode)`・`recordCompanyCompletion(announcementId, companyCode)`・`getAnnouncementSelfStatusForCompany(announcementId, companyCode)`を追加
+- `src/lib/api/announcement-tracking.ts` — `confirmAnnouncementForCurrentCompany(id)`・`completeAnnouncementForCurrentCompany(id)`・`getAnnouncementSelfStatus(id)`を追加（いずれも`requireApplicantSession()`でガードし、`claims.companyCode`をサービス層に渡す）
+- `src/lib/actions/announcement-tracking.ts` — `confirmAnnouncementAction(announcementId)`・`completeAnnouncementAction(announcementId)`を追加（`"use server"`、既存の`sendAnnouncementRemindersAction`と同一の`revalidatePath`対象を再検証し、呼び出し元に最新の`AnnouncementSelfStatus`を返す）
+- `src/types/announcement-recipient.ts` — `AnnouncementSelfStatus`型（`{ confirmedAt: string | null; completedAt: string | null }`）を追加
+
+### System Flows（追加分）
+
+```mermaid
+sequenceDiagram
+    participant Panel as AnnouncementSelfReportPanel（announcements spec）
+    participant Action as confirmAnnouncementAction / completeAnnouncementAction
+    participant Api as announcement-tracking Api
+    participant Service as announcement-service
+    participant DB as AnnouncementRecipientStatus
+
+    Panel->>Action: マウント時（確認済み）または押下時（対応完了）に呼び出す
+    Action->>Api: confirmAnnouncementForCurrentCompany / completeAnnouncementForCurrentCompany
+    Api->>Api: requireApplicantSession()でclaims.companyCode/countryを取得
+    Api->>Api: findAnnouncementVisibleToCountryで下書き・配信対象外・期間外を判定
+    Api->>Service: 判定OKの場合のみrecordCompanyConfirmation/recordCompanyCompletion
+    Service->>DB: 自社の対象担当者全員について、未記録のもののみ現在時刻でupsert
+    Action->>Action: revalidatePath（ヘルプデスク一覧・申請者一覧/詳細）
+    Action-->>Panel: 最新のAnnouncementSelfStatusを返す
+```
+
+- 判定NG（下書き・配信対象外・期間外・`actionRequired`が偽での対応完了操作）の場合、API層は何もせず正常終了する（例外を送出しない。要件23.3・23.4は「記録を受け付けない」＝無害な no-op として実現する）。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 23.1〜23.2 | 会社単位の確認済み・実施済み記録関数 | announcement-service（recordCompanyConfirmation/recordCompanyCompletion） | Service | 記録フロー |
+| 23.3〜23.4 | 下書き・配信対象外での記録拒否 | announcement-tracking Api（findAnnouncementVisibleToCountry事前チェック） | Service | 記録フロー |
+| 23.5 | 既存集計への反映 | announcement-service（既存のgetAnnouncementTrackingSummary等が同一テーブルを参照） | Service | — |
+| 23.6 | 記録済みの上書き防止 | announcement-service（recordCompanyConfirmation/recordCompanyCompletion） | Service | — |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| announcement-service（差分） | Data/Service | 会社単位の確認済み・実施済み記録・自社状態の読み取り | 23.1, 23.2, 23.6 | AnnouncementRecipientStatus (P0) | Service |
+| announcement-tracking Api（差分） | Server API | 申請者セッションで会社を特定し、可視性チェック後にサービス層を呼び出す | 23.3, 23.4 | requireApplicantSession (P0), findAnnouncementVisibleToCountry (P0), announcement-service (P0) | Service |
+| announcement-tracking Actions（差分） | Server Actions | クライアントからの呼び出しを受け、記録後に関連ルートを再検証する | — | announcement-tracking Api (P0) | Service |
+
+#### announcement-service（差分）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 会社単位で確認済み・実施済み状態を一括記録し、自社の集約状態を読み取る |
+| Requirements | 23.1, 23.2, 23.6 |
+
+**Responsibilities & Constraints**
+- `recordCompanyConfirmation`/`recordCompanyCompletion`は、`targetRecipientsWhere(announcement)`と`company.companyCode === companyCode`の両方を満たす担当者（＝配信対象に含まれ、かつ指定会社に属する担当者）のみを更新対象とする（配信対象外の会社を指定した場合、対象0件で何もしない no-op となり、要件23.4の防御としても働く）
+- 既に`confirmedAt`（または`completedAt`）が設定済みの担当者はスキップし、初回記録時刻を上書きしない（要件23.6）
+- `recordCompanyCompletion`は`announcement.actionRequired`が偽のとき何もしない
+- `getAnnouncementSelfStatusForCompany`は、対象担当者が1件でも存在し、かつ全員が`confirmedAt`（または`completedAt`）を持つときのみ、その値（先勝ち・全員が持つ値のうち代表の1件）を返す。それ以外は`null`を返す（「会社として確認済み」は全員一致を条件とする、全員が同時に記録される設計のため実運用では常に一致する）
+
+**Dependencies**
+- Inbound: `announcement-tracking Api`（P0）
+- Outbound: `AnnouncementRecipientStatus`テーブル（P0、Prisma）, `targetRecipientsWhere`（P0、既存）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementSelfStatus {
+  confirmedAt: string | null;
+  completedAt: string | null;
+}
+
+interface AnnouncementSelfReportService {
+  recordCompanyConfirmation(announcementId: string, companyCode: string): Promise<void>;
+  recordCompanyCompletion(announcementId: string, companyCode: string): Promise<void>;
+  getAnnouncementSelfStatusForCompany(
+    announcementId: string,
+    companyCode: string
+  ): Promise<AnnouncementSelfStatus>;
+}
+```
+- Preconditions: `announcementId`は存在するお知らせのID。`companyCode`は呼び出し元（API層）がセッションから取得した値であること（クライアント入力を直接渡さない）
+- Postconditions: `recordCompanyConfirmation`実行後、当該会社かつ配信対象に含まれる担当者全員の`confirmedAt`が非nullになる（`recordCompanyCompletion`も同様に`completedAt`について）
+- Invariants: 既存の`getAnnouncementTrackingSummary`・`getAnnouncementRecipientStatuses`は本関数が書き込んだ値をそのまま参照する（別集計を持たない）
+
+**Implementation Notes**
+- Integration: `targetRecipientsWhere`（既存）をそのまま再利用し、配信対象の判定ロジックを重複させない
+- Validation: 対象担当者が0件（配信対象外の会社を指定した場合）は正常に no-op で終了する
+- Risks: なし（既存テーブル・既存の集計関数への変更を伴わない加算的な変更）
+
+#### announcement-tracking Api（差分）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 申請者セッションから会社を特定し、対象お知らせの可視性を確認した上でサービス層の記録関数を呼び出す |
+| Requirements | 23.3, 23.4 |
+
+**Responsibilities & Constraints**
+- `confirmAnnouncementForCurrentCompany`/`completeAnnouncementForCurrentCompany`/`getAnnouncementSelfStatus`は`requireApplicantSession()`で必須セッションを取得し、`claims.companyCode`・`claims.country`をサービス層の呼び出しに用いる（クライアントから`companyCode`を受け取らない）
+- 記録系の2関数は、実行前に`findAnnouncementVisibleToCountry(id, claims.country)`（既存、`lib/server/announcement-service.ts`）を呼び出し、`null`（下書き・配信対象外・公開期間外・存在しない）の場合は何もせず正常終了する
+- `completeAnnouncementForCurrentCompany`は、取得した対象お知らせの`actionRequired`が偽の場合も何もせず正常終了する
+
+**Dependencies**
+- Inbound: `announcement-tracking Actions`（P0）
+- Outbound: `requireApplicantSession`（P0, 既存）, `findAnnouncementVisibleToCountry`（P0, 既存）, `announcement-service`の自己申告記録関数（P0, 本ラウンド追加）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementTrackingSelfApi {
+  confirmAnnouncementForCurrentCompany(id: string): Promise<AnnouncementSelfStatus>;
+  completeAnnouncementForCurrentCompany(id: string): Promise<AnnouncementSelfStatus>;
+  getAnnouncementSelfStatus(id: string): Promise<AnnouncementSelfStatus>;
+}
+```
+- Preconditions: 呼び出し元は`applicant`ロールの有効なセッションを持つこと（`requireApplicantSession`が例外を送出する場合、呼び出し元がハンドルする）
+- Postconditions: 可視性チェックを通過した場合のみ記録が行われ、いずれの場合も最新の`AnnouncementSelfStatus`を返す
+- Invariants: `companyCode`は常にセッションクレーム由来であり、引数として外部から指定できない
+
+**Implementation Notes**
+- Integration: 既存の`getAnnouncementById`/`findAnnouncementVisibleToCountry`のインポート元（`lib/server/announcement-service.ts`）をそのまま再利用する
+- Validation: 該当なし（可視性チェック自体がバリデーションを兼ねる）
+- Risks: なし
+
+#### announcement-tracking Actions（差分）
+
+**Responsibilities & Constraints（追加）**
+- `confirmAnnouncementAction`・`completeAnnouncementAction`は`"use server"`を付与し、API層を呼び出した後、既存の`sendAnnouncementRemindersAction`と同一の`revalidatePath`対象（ヘルプデスク側一覧・申請者側一覧・詳細）を再検証する
+- 呼び出し元（`AnnouncementSelfReportPanel`）が楽観的UI更新を行えるよう、最新の`AnnouncementSelfStatus`を返り値とする
+
+##### Service Interface
+```typescript
+interface AnnouncementTrackingSelfActions {
+  confirmAnnouncementAction(announcementId: string): Promise<AnnouncementSelfStatus>;
+  completeAnnouncementAction(announcementId: string): Promise<AnnouncementSelfStatus>;
+}
+```
+- Preconditions: なし（未認証時は内部で呼び出す`requireApplicantSession`が例外を送出し、クライアント側でエラー表示にフォールバックする）
+- Postconditions: 成功時、ヘルプデスク側の確認済み・実施済み人数表示が次回アクセス時に最新値を反映する
+- Invariants: 記録に失敗しても他のお知らせ・他社のデータには影響しない
+
+### Data Models（追加分）
+本ラウンドは新規のテーブル・カラムを追加しない。既存の`AnnouncementRecipientStatus.confirmedAt`/`completedAt`を書き込み先として再利用する。`AnnouncementSelfStatus`（`{ confirmedAt: string | null; completedAt: string | null }`）は、既存の複数担当者分のステータスを会社単位に集約するための読み取り専用の型（DB上の実体を持たない）として`types/announcement-recipient.ts`に追加する。
+
+### Error Handling（追加分）
+既存パターンを維持する。未認証時は`requireApplicantSession`が`UnauthorizedSessionError`を送出し、呼び出し元のクライアントコンポーネントがエラー表示にフォールバックする。可視性チェックNG（下書き・配信対象外等）は例外ではなく no-op として扱う（要件23.3・23.4はユーザーへのエラー表示を必要としない「静かな拒否」として実現する。そもそも申請者側はこれらのお知らせを閲覧できないため、この経路がユーザーに到達することは通常ない）。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `recordCompanyConfirmation`/`recordCompanyCompletion`が、指定会社かつ配信対象に含まれる担当者全員の対応する列のみを更新し、他社・他のお知らせに影響しないこと
+  - 既に`confirmedAt`/`completedAt`が設定済みの担当者について、再実行しても値が変わらないこと（初回記録時刻の保持）
+  - `recordCompanyCompletion`が`actionRequired`が偽のお知らせに対しては何もしないこと
+  - `getAnnouncementSelfStatusForCompany`が、対象担当者全員が記録済みのときのみ非nullを返すこと
+  - `confirmAnnouncementForCurrentCompany`/`completeAnnouncementForCurrentCompany`が、下書き・配信対象外・公開期間外のお知らせに対して何もせず正常終了すること
+- **Integration Tests**:
+  - 申請者セッションで詳細画面相当の呼び出しを行うと、自社の担当者全員の確認済み人数が既存の`getAnnouncementTrackingSummary`に反映されること
+  - 「対応完了にする」相当の呼び出し後、未対応者一覧（要件14）から自社の担当者が除外されること
+
+---

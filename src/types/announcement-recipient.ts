@@ -45,3 +45,12 @@ export interface AnnouncementTrackingSummary {
   /** 対応要否（`actionRequired`）が偽のお知らせでは`null`。 */
   completedCount: number | null;
 }
+
+/**
+ * 会社単位に集約した確認済み・実施済み状態。
+ * 対象担当者全員が記録済みのときのみ非nullを返す（DB上の実体を持たない読み取り専用の型）。
+ */
+export interface AnnouncementSelfStatus {
+  confirmedAt: string | null;
+  completedAt: string | null;
+}

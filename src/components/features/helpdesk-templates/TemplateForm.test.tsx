@@ -35,6 +35,7 @@ const labels = {
   submitButtonLabel: "保存する",
   requiredErrorMessage: "この項目は必須です",
   nameTooLongErrorMessage: "テンプレート名は40文字以内で入力してください",
+  submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
 };
 
 describe("TemplateForm", () => {
@@ -93,6 +94,32 @@ describe("TemplateForm", () => {
       ).toBeTruthy();
     });
     expect(createReplyTemplateActionMock).not.toHaveBeenCalled();
+  });
+
+  it("保存操作が失敗したとき送信エラーメッセージを表示し、入力内容を保持する", async () => {
+    createReplyTemplateActionMock.mockRejectedValueOnce(new Error("network error"));
+    render(<TemplateForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("テンプレート名"), {
+      target: { value: "新規テンプレート名" },
+    });
+    fireEvent.change(screen.getByLabelText("案件種別"), {
+      target: { value: "defect" },
+    });
+    fireEvent.change(screen.getByLabelText("本文"), {
+      target: { value: "新規テンプレート本文" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("保存に失敗しました。時間を置いて再度お試しください。")
+      ).toBeTruthy();
+    });
+    expect(
+      (screen.getByLabelText("テンプレート名") as HTMLInputElement).value
+    ).toBe("新規テンプレート名");
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it("編集モードでは既存の値が初期表示され、更新時にupdateReplyTemplateActionが呼ばれる", async () => {

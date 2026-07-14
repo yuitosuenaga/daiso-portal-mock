@@ -183,4 +183,68 @@ describe("InquiryForm", () => {
       (screen.getByLabelText(/店舗・地域/) as HTMLInputElement).value
     ).toBe("Tokyo");
   });
+
+  it("mode指定なし（既定）では対象会社選択欄が表示されない", () => {
+    renderInquiryForm();
+
+    expect(screen.queryByLabelText(/対象会社/)).toBeNull();
+  });
+
+  it("mode=helpdeskProxyのとき対象会社選択欄が表示され、未選択のまま送信すると createInquiry が呼ばれない", async () => {
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="ja" messages={messages}>
+        <InquiryForm
+          mode="helpdeskProxy"
+          companies={[{ id: "company-1", name: "Test Co.", country: "JP" }]}
+        />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getByLabelText(/対象会社/)).toBeTruthy();
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: "送信する" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
+    });
+    expect(createInquiryMock).not.toHaveBeenCalled();
+  });
+
+  it("mode=helpdeskProxyで対象会社を選択して送信すると、選択した会社IDが第2引数として渡される", async () => {
+    createInquiryMock.mockResolvedValueOnce({
+      id: "test-id",
+      title: "商品破損についての問い合わせ",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Tokyo",
+      originalText: "テストの問い合わせ内容です。",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: new Date().toISOString(),
+      submittedBy: { companyName: "Daiso", country: "JP" },
+    });
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="ja" messages={messages}>
+        <InquiryForm
+          mode="helpdeskProxy"
+          companies={[{ id: "company-1", name: "Test Co.", country: "JP" }]}
+        />
+      </NextIntlClientProvider>
+    );
+
+    await fillValidForm(user);
+    await user.selectOptions(screen.getByLabelText(/対象会社/), "company-1");
+    await user.click(screen.getByRole("button", { name: "送信する" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("送信が完了しました")).toBeTruthy();
+    });
+    expect(createInquiryMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "company-1"
+    );
+  });
 });

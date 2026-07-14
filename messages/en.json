@@ -269,9 +269,73 @@
       "bodyPlaceholder": "Enter the template body",
       "submitButton": "Save",
       "backToList": "Back to list",
+      "submitError": "Failed to save. Please try again later.",
       "validation": {
         "required": "This field is required",
         "nameTooLong": "Template name must be 40 characters or less"
+      }
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "FAQ Management",
+      "description": "Register, edit, and delete frequently asked questions for overseas distributors.",
+      "empty": "No FAQs",
+      "error": "Failed to load FAQs",
+      "addButton": "Add new FAQ",
+      "editLink": "Edit",
+      "deleteButton": "Delete",
+      "deleteConfirm": "Delete this FAQ?",
+      "deleteError": "Failed to delete. Please try again later."
+    },
+    "form": {
+      "createTitle": "Create FAQ",
+      "editTitle": "Edit FAQ",
+      "notFound": "FAQ not found",
+      "questionLabel": "Question",
+      "questionPlaceholder": "Enter the question",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select a category",
+      "answerLabel": "Answer",
+      "answerPlaceholder": "Enter the answer",
+      "submitButton": "Save",
+      "backToList": "Back to list",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required"
+      }
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "Link Management",
+      "description": "Register, edit, and delete business links for overseas distributors.",
+      "empty": "No links",
+      "error": "Failed to load links",
+      "addButton": "Add new link",
+      "editLink": "Edit",
+      "deleteButton": "Delete",
+      "deleteConfirm": "Delete this link?",
+      "deleteError": "Failed to delete. Please try again later."
+    },
+    "form": {
+      "createTitle": "Create Link",
+      "editTitle": "Edit Link",
+      "notFound": "Link not found",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter the title",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select a category",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "Enter a description",
+      "submitButton": "Save",
+      "backToList": "Back to list",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required",
+        "invalidUrl": "Please enter a valid URL"
       }
     }
   },
@@ -387,6 +451,11 @@
     "actionRequiredBadge": "Action required",
     "reminderBadge": "A reminder has been sent",
     "dueDateLabel": "Due date",
+    "selfReport": {
+      "confirmed": "Confirmed",
+      "completeButton": "Mark as completed",
+      "completed": "Completed"
+    },
     "filter": {
       "keywordLabel": "Search title",
       "keywordPlaceholder": "Words in the title",
@@ -407,6 +476,12 @@
       "downloadLink": "Download",
       "fileSizeLabel": "File size",
       "uploadedAtLabel": "Uploaded"
+    },
+    "search": {
+      "keywordLabel": "Search keyword",
+      "keywordPlaceholder": "Words in the title or description",
+      "clearButton": "Clear filters",
+      "noResults": "No matching documents found"
     }
   },
   "inquiryForm": {
@@ -414,6 +489,7 @@
     "description": "Fill in the selection fields and free text, then submit your inquiry or request.",
     "requiredMark": "Required",
     "backToList": "Back to list",
+    "loadError": "Failed to load the information required to display this form. Please try again later.",
     "fields": {
       "title": {
         "label": "Title",
@@ -447,6 +523,11 @@
       "country": {
         "label": "Country",
         "placeholder": "Select a country"
+      },
+      "targetCompany": {
+        "label": "Target Company",
+        "placeholder": "Select the company to register this inquiry for",
+        "empty": "No companies are available to select. Please contact an administrator."
       },
       "attachments": {
         "label": "Attachments",
@@ -512,6 +593,7 @@
     "validation": {
       "required": "This field is required",
       "maxLength": "The maximum character limit has been exceeded",
+      "targetCompanyRequired": "Please select a target company",
       "attachments": {
         "sizeExceeded": "The file size exceeds the limit (5MB)",
         "typeNotAllowed": "This file type is not allowed (images or PDF only)",
