@@ -1,11 +1,14 @@
 import { Suspense } from "react";
-import { LinkList, LinkListSkeleton } from "@/components/features/links/LinkList";
+import {
+  LinkManagementList,
+  LinkManagementListSkeleton,
+} from "@/components/features/helpdesk-links/LinkManagementList";
 
 export default function HelpdeskLinksPage() {
   return (
     <div className="w-full">
-      <Suspense fallback={<LinkListSkeleton />}>
-        <LinkList />
+      <Suspense fallback={<LinkManagementListSkeleton />}>
+        <LinkManagementList />
       </Suspense>
     </div>
   );

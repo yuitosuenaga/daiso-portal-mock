@@ -333,3 +333,32 @@ const isActive =
 - `HelpdeskHeader.tsx`: ラップ先を`href="/helpdesk"`とする（`Badge`要素もリンク内に含める）
 
 いずれも既存のロゴ・タイトル・（ヘルプデスク側は）バッジの表示・スタイルはそのまま維持し、クリック可能領域を追加するのみとする。フォーカス可能なリンク要素になるため、追加の`tabIndex`やARIA属性は不要（ネイティブ`<a>`要素のデフォルト挙動に従う）。
+
+## ログアウト導線の追加・HelpdeskAppShell開閉ボタンのi18n化（2026-07-13 追記）
+
+### 対象ファイル
+- `src/components/layout/Header.tsx`（変更: 申請者側ヘッダーにログアウトコントロールを追加）
+- `src/components/layout/HelpdeskHeader.tsx`（変更: ヘルプデスク側ヘッダーにログアウトコントロールを追加）
+- `src/components/layout/HelpdeskAppShell.tsx`（変更: サイドバー開閉ボタンの`aria-label`をi18n化）
+- `messages/ja.json` / `messages/en.json`（変更: ログアウト文言・開閉ボタンの`aria-label`翻訳キーを追加）
+
+### ログアウト導線（Requirement 13）
+`src/auth.ts`が`export const { handlers, auth, signIn, signOut } = NextAuth({...})`で`signOut`をエクスポート済みだが、これを呼び出すUI導線が両ヘッダーに存在しない。両ヘッダーの右側領域（`LanguageSwitcher`・ポータル切り替えリンクと同じ並び）に、ログアウトを実行するコントロールを追加する。
+
+- 実装形態: まずは最小構成として、ヘッダー右側にログアウト用のボタン（アイコン＋アクセシブルな名前）を1つ追加する方針とする。将来的にプロフィール等のメニュー項目が増える場合は、同じ位置をトリガーにしたユーザーメニュー（ドロップダウン）へ拡張できる構造を許容するが、本ラウンドではドロップダウンの新規実装は必須としない。
+- 呼び出し: クライアントコンポーネントから`next-auth/react`の`signOut`（または`src/auth.ts`の`signOut`をラップしたServer Action）を呼び出し、完了後にサインイン画面へリダイレクトする。`signOut`の呼び出し方式（クライアント側`signOut({ callbackUrl })` か Server Action 経由か）は実装時に既存の認証構成（`backend-db-foundation`）に合わせて選択する。
+- 表示文言・`aria-label`は`next-intl`翻訳キー（例: `header.signOut` / `helpdeskHeader.signOut`、または共通の`auth.signOut`）で提供する。
+- 既存のロゴ・言語切替・ポータル切り替えリンク・ヘルプデスクバッジの表示・配置は変更しない（右側領域への要素追加のみ）。
+
+### HelpdeskAppShell開閉ボタンのi18n化（Requirement 14）
+`HelpdeskAppShell.tsx`はクライアントコンポーネント（`useState`でサイドバー折りたたみ状態を保持）だが`next-intl`を利用していない。サイドバー開閉ボタンの`aria-label`が日本語ハードコード（`isSidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"`）になっている。
+
+- `useTranslations`を導入し、`aria-label`を翻訳キー（例: `helpdeskShell.expandSidebar` / `helpdeskShell.collapseSidebar`）から解決するよう変更する。
+- 開閉挙動・折りたたみ状態のロジック・レイアウトは変更しない（`aria-label`の文言取得元のみを変更する）。
+- 申請者側`AppShell`/`Sidebar`に同種のハードコードがある場合は、実装時に同一パターンで併せて是正してよい（本要件のスコープ外だが、`No Hidden Shared Ownership`の観点から同時是正を妨げない）。
+
+### Requirements Traceability（2026-07-13 追記分）
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 13.1〜13.7 | ログアウト導線の追加 | Header, HelpdeskHeader | signOut（`src/auth.ts` / `next-auth/react`） | ログアウト→サインイン画面遷移 |
+| 14.1〜14.4 | HelpdeskAppShell開閉ボタンのi18n化 | HelpdeskAppShell | — | — |

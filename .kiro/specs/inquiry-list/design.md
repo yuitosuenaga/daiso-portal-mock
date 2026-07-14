@@ -482,3 +482,26 @@ function sendApplicantMessageAction(
 - （追加・2026-07-07）添付ファイルは`InquiryAttachment.dataUrl`（Data URL形式）としてクライアントに渡り、`AttachmentPreviewList`が`<a>`要素の`href`/`download`属性、および画像の場合は`<img>`要素の`src`属性としてそのまま使用する。この設計・エスケープ方式は`helpdesk-inquiry-management`spec実装時に確定済みであり、本仕様は既存コンポーネントを変更せず利用するのみのため追加のセキュリティ検討は発生しない
 - （追加・2026-07-07・2）本仕様は初めて外部（申請者）からの書き込み入力（追加メッセージ本文・添付ファイル）を受け付ける。本文はReactの標準エスケープに依拠し`dangerouslySetInnerHTML`を使用しない。添付ファイルはヘルプデスク側の返信と同じ`inquiryAttachmentsArraySchema`（`inquiry-form`spec所有）でサーバー側の形状検証を行うが、これはクライアント検証バイパスに対するUX上のフォールバックであり、なりすまされたMIMEタイプ自体への防御ではない（`inquiry-form`・`helpdesk-inquiry-management`spec既存のdocumented limitationを踏襲）
 - （追加・2026-07-07・2）`actorName`（送信元会社名）はクライアントから受け取らず、サーバー側（`sendApplicantMessageAction`内）で`getInquiryById`により対象問い合わせから解決する。これにより、他社の問い合わせIDを指定して会社名を偽装したメッセージを送信することを防ぐ（フェーズ1は認証未実装のため`inquiryId`自体の正当性検証はできないが、少なくとも会社名の偽装は防止する）
+
+## 追加（2026-07-13）: 問い合わせ一覧の検索・絞り込み
+
+### Overview（追加分）
+申請者側`announcements`spec 要件8で実装済みの「クライアント側の即時フィルタ」パターンを踏襲し、`InquiryList`が取得した一覧に対してキーワード・対応状況・案件種別のAND条件で絞り込むフィルタバーとクライアントコンポーネントを追加する。サーバー側の取得関数（`getInquiries`）は変更せず、全件を取得したうえでクライアント側で絞り込む。並び順（送信日時降順）は絞り込み後も維持する。ページネーションは導入しない（データ小規模のため将来対応）。
+
+### Component Design（追加分）
+- **filterInquiries（純関数）**: `Inquiry[]`とフィルタ条件（`{ keyword: string; status: "" | InquiryStatus; category: "" | InquiryCategory }`）を受け取り、AND条件で絞り込んだ配列を返す。キーワードは`title`・`originalText`への部分一致（`toLowerCase()`で大小文字無視）。各条件が空のときはその条件で絞り込まない。全条件が空のとき入力配列をそのまま（順序維持で）返す。`announcements`spec の`filterAnnouncements`と同じ設計方針とし、両spec間で実装は共有しない（申請者側`inquiry-list`専用）。
+- **InquiryFilterBar（Client）**: キーワード入力・対応状況セレクト・案件種別セレクト・クリアボタンを表示し、変更を親へ通知する。ラベルは`next-intl`翻訳キー経由。
+- **InquiryListClient（Client）**: フィルタ状態を`useState`で保持し、`filterInquiries`で絞り込んだ結果を`InquiryListItem`のリストとして描画する。0件時は「該当する問い合わせがありません」を表示する。既存の`InquiryList`（サーバー）はデータ取得専用に整理し、一覧描画を`InquiryListClient`へ委譲する。
+
+### Modified Files（追加分）
+- `src/components/features/inquiry-list/InquiryList.tsx` — データ取得専用に整理し、取得した`Inquiry[]`を`InquiryListClient`へ渡す
+- `src/components/features/inquiry-list/InquiryListClient.tsx`（新規） — フィルタ状態の保持と絞り込み済み一覧の描画
+- `src/components/features/inquiry-list/InquiryFilterBar.tsx`（新規） — キーワード・対応状況・案件種別の絞り込み入力
+- `src/lib/inquiry-filter.ts`（新規、または既存ユーティリティ配置に合わせる） — `filterInquiries`純関数
+- `messages/ja.json` / `messages/en.json` — `inquiryList.filter`名前空間（検索欄プレースホルダー・対応状況/案件種別の絞り込みラベル・クリア操作・0件メッセージ）を追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 13.1〜13.8 | 問い合わせ一覧の検索・絞り込み | InquiryFilterBar, InquiryListClient, filterInquiries |
+| 13.9 | 検索・絞り込みUIの多言語対応 | i18n messages |

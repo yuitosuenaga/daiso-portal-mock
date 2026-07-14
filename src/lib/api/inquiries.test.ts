@@ -107,6 +107,40 @@ describe("createInquiry", () => {
       createInquiry({} as CreateInquiryInput)
     ).rejects.toThrow();
   });
+
+  it("ヘルプデスクセッション+対象会社IDのとき、指定会社IDを付与してInquiryServiceへ委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(createInquiryRecord).mockResolvedValue(inquiry());
+
+    const input: CreateInquiryInput = {
+      title: "電話で受けた問い合わせ",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-07-01T00:00:00.000Z",
+      submittedBy: { companyName: "Test Company", country: "JP" },
+    };
+
+    const result = await createInquiry(input, "target-company-1");
+
+    expect(createInquiryRecord).toHaveBeenCalledWith({
+      data: input,
+      companyId: "target-company-1",
+    });
+    expect(result.id).toBe("inquiry-1");
+  });
+
+  it("ヘルプデスクセッションでも対象会社IDが渡されないとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+
+    await expect(
+      createInquiry({} as CreateInquiryInput)
+    ).rejects.toThrow();
+    expect(createInquiryRecord).not.toHaveBeenCalled();
+  });
 });
 
 describe("getInquiries", () => {

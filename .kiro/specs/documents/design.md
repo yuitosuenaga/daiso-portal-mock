@@ -268,3 +268,26 @@ interface DocumentsReadOnlyApi {
 |-------------|---------|------------|
 | 10.1〜10.5 | 一覧ページでのPDFプレビュー表示 | DocumentListItem, PdfViewer |
 | 11.1〜11.4 | 一覧ページのグリッドレイアウトとレスポンシブ対応 | DocumentList, PdfViewer |
+
+## 追加ラウンド（2026-07-13）: 書類一覧の検索
+
+### Overview（追加分）
+申請者側`announcements`spec 要件8で実装済みの「クライアント側の即時フィルタ」パターンを踏襲し、`DocumentList`が取得した一覧に対してキーワードで絞り込む検索欄とクライアントコンポーネントを追加する。読み取り専用モック関数（`getDocuments`）は変更せず、全件を取得したうえでクライアント側で絞り込む。並び順（アップロード日降順）・2列グリッドのレイアウトは絞り込み後も維持する。ページネーションは導入しない（データ小規模のため将来対応）。ドキュメントに申請者向けの分類概念が薄いため、絞り込みはキーワード（`title`・`description`の部分一致）のみとする。
+
+### Component Design（追加分）
+- **filterDocuments（純関数）**: `Document[]`とキーワードを受け取り、`title`・`description`への部分一致（`toLowerCase()`で大小文字無視）で絞り込んだ配列を返す。キーワードが空のとき入力配列をそのまま（順序維持で）返す。
+- **DocumentSearchBar（Client）**: キーワード入力欄・クリアボタンを表示し、変更を親へ通知する。ラベルは`next-intl`翻訳キー経由。
+- **DocumentListClient（Client）**: キーワード状態を`useState`で保持し、`filterDocuments`で絞り込んだ結果を既存の2列グリッド（`DocumentListItem`）として描画する。0件時は「該当するドキュメントがありません」を表示する。既存の`DocumentList`（サーバー）はデータ取得専用に整理し、見出し（`h1`＋説明文）とグリッド描画のうち、グリッド描画を`DocumentListClient`へ委譲する（見出しは既存のまま維持）。
+
+### Modified Files（追加分）
+- `src/components/features/documents/DocumentList.tsx` — データ取得専用に整理し、取得した`Document[]`を`DocumentListClient`へ渡す（`h1`＋説明文の見出しは維持）
+- `src/components/features/documents/DocumentListClient.tsx`（新規） — キーワード状態の保持と絞り込み済み2列グリッドの描画
+- `src/components/features/documents/DocumentSearchBar.tsx`（新規） — キーワード検索欄
+- `src/lib/document-utils.ts` — `filterDocuments`純関数を追加（既存の`targetingLabel`等と同じユーティリティに配置）
+- `messages/ja.json` / `messages/en.json` — `documents.search`名前空間（検索欄プレースホルダー・クリア操作・0件メッセージ）を追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 12.1〜12.6 | 書類一覧の検索 | DocumentSearchBar, DocumentListClient, filterDocuments |
+| 12.7 | 検索UIの多言語対応 | i18n messages |

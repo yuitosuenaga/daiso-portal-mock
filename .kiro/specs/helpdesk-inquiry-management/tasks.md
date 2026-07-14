@@ -475,3 +475,53 @@
   - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 7.6, 8.1〜8.6_
   - _Depends: 21, 22, 23_
+
+---
+
+## 追加ラウンド（2026-07-13）: ヘルプデスク代理問い合わせ登録・テンプレートフォームの送信エラーフィードバック
+
+- [x] 25. 基盤: 会社一覧取得関数の追加
+- [x] 25.1 `listCompaniesForHelpdesk`を実装する
+  - `src/lib/server/company-service.ts`（新規、または既存のCompany関連サービスに配置）に、`Company`テーブルの全件を`name`昇順で`{ id, name, country }[]`として返す関数を実装する
+  - 単体テストで、複数会社を`name`昇順で返すことを検証し、通ることで完了とする
+  - _Requirements: 15.5_
+  - _Boundary: ListCompaniesForHelpdesk_
+
+---
+
+- [x] 26. コア: 代理問い合わせ登録画面の結線
+  - `/helpdesk/inquiry/new/page.tsx`を非同期Server Componentに変更し、`listCompaniesForHelpdesk()`の結果と`mode="helpdeskProxy"`を`InquiryForm`（`inquiry-form`spec 要件12）へ渡す
+  - ブラウザでヘルプデスクセッションから`/helpdesk/inquiry/new`を開き、会社選択欄が表示され、会社を選択して送信すると（`UnauthorizedSessionError`が発生せず）送信が成功し、`getAllInquiries`（問い合わせ管理一覧）に選択した会社の問い合わせとして反映されることで完了とする
+  - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.6_
+  - _Boundary: HelpdeskInquiryNewPage_
+  - _Depends: 25.1, inquiry-form#16.4_
+
+---
+
+- [x] 27. コア: テンプレートフォームの送信エラーフィードバック
+- [x] 27.1 (P) 送信エラーメッセージの翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskTemplates`名前空間に送信エラーメッセージのキーを追加する（`helpdeskAnnouncements.submitErrorMessage`と同等の文言パターン）
+  - `ja.json`で定義した新規キーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 8.8_
+  - _Boundary: i18n messages_
+
+- [x] 27.2 `TemplateForm`に送信エラーフィードバックを追加する
+  - `AnnouncementForm`と同型の`hasSubmitError`状態・`try/catch`・`role="status"`のエラー表示・`submitErrorMessage`propを`TemplateForm`に追加する
+  - `templates/new/page.tsx`・`templates/[id]/edit/page.tsx`から`submitErrorMessage`propを配線する
+  - 保存操作が失敗（Server Actionのreject）したときに送信エラーメッセージが表示され、入力内容が保持されたままフォームを操作可能なことを検証する統合テストが通ることで完了とする
+  - _Requirements: 8.7, 8.8_
+  - _Boundary: TemplateForm_
+  - _Depends: 27.1_
+
+---
+
+- [x] 28. 検証（代理登録・テンプレート送信エラーフィードバック）
+- [x] 28.1 `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する
+  - _Requirements: 8.7, 8.8, 15.1〜15.6_
+  - _Depends: 26, 27.2_
+
+- [ ]* 28.2 多言語・レスポンシブ表示を確認する
+  - 日本語・英語両ロケールで会社選択欄・テンプレート送信エラーメッセージの文言が正しく切り替わることを確認する
+  - タブレット幅（768px）で新規画面・エラー表示が横スクロールを起こさないことを確認する
+  - _Requirements: 8.8, 15.5_
+  - _Depends: 28.1_

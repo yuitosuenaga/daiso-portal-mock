@@ -188,3 +188,36 @@
 3. The ヘルプデスクポータル shall タイトルに妥当な最大文字数（100文字）を設け、上限を超えたときはエラーメッセージを表示し送信処理を中断する。
 4. The ヘルプデスクポータル shall `Inquiry`型・`CreateInquiryInput`型に、タイトルを保持するフィールド（`title: string`）を追加する。
 5. The ヘルプデスクポータル shall タイトル入力欄のラベル・プレースホルダー・バリデーションエラーメッセージを next-intl の翻訳キー経由で提供する。
+
+---
+
+### 追記（2026-07-13）: ヘルプデスク代理登録のためのセッション処理・会社選択
+
+コードベースのレビューにより、ヘルプデスク側の代理問い合わせ登録画面（`/helpdesk/inquiry/new`、`helpdesk-inquiry-management`spec 要件15が所有）が送信時に必ず失敗することが判明した。原因は本specが所有する`createInquiry`（`src/lib/api/inquiries.ts`）が無条件に`requireApplicantSession()`を呼び出しており、ヘルプデスクセッション（`role: "helpdesk"`）では常に`UnauthorizedSessionError`となるためである。また、申請者セッションでは`Inquiry.companyId`（実際の会社への紐付け）をセッションの`claims.companyId`から解決しているが、ヘルプデスク担当者は自身のセッションに紐づく会社を持たないため、代理登録時にどの会社の問い合わせとして記録するかを別の手段で指定する必要がある。
+
+**対応方針の検討過程**: 対象会社の特定方法として次の2案を比較した。
+- **(1) 会社選択欄を明示的に追加する（本要件で採用）**: `InquiryForm`にヘルプデスク代理登録モード時のみ表示される会社選択欄（既存の全社一覧から1社を選ぶ`Select`）を追加し、選択結果を`companyId`として`createInquiry`に渡す。既存の会社名・国（`submittedBy.companyName`/`submittedBy.country`、要件4）は表示用フィールドとして維持し、変更しない。
+- **(2) 既存の会社名（自由記述）から会社を自動解決する**: 入力された会社名文字列から`Company.name`を曖昧一致で検索する。表記揺れ・重複会社名により誤った会社に紐付くリスクが高く、確実性に欠けるため不採用とする。
+
+本追記では**(1)**を採用する。会社一覧の取得（`listCompaniesForHelpdesk`）自体は代理登録画面専用のデータのため、`helpdesk-inquiry-management`spec側が提供し、`InquiryForm`へpropとして渡す（本specは`InquiryForm`が会社一覧を受け取って選択欄を表示する口を提供するのみで、一覧取得関数自体は所有しない）。
+
+スコープ外:
+- 会社一覧取得関数（`listCompaniesForHelpdesk`）自体の実装（`helpdesk-inquiry-management`spec 要件15が所有）
+- `/helpdesk/inquiry/new`画面自体・`HelpdeskSidebar`の導線（`helpdesk-inquiry-management`spec 要件15が所有）
+- 代理登録された問い合わせについて、後日その会社の申請者が同一の問い合わせを自社の問い合わせ一覧（`inquiry-list`spec所有）で閲覧できることの追加保証（`companyId`が正しく設定されれば既存の`getInquiries`実装により自然に成立するため、追加の実装は不要と判断する）
+
+### 要件 12: 問い合わせ送信処理のヘルプデスク代理登録対応
+
+**目的:** ヘルプデスク担当者として、申請者セッションを持たない状態でも、指定した会社に紐づく問い合わせを登録したい。そうすることで、ポータル外で受け付けた問い合わせも一元的に問い合わせ管理へ取り込める。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `createInquiry`（`src/lib/api/inquiries.ts`）を、呼び出し時のセッションのロールに応じて分岐させる（現在の無条件な`requireApplicantSession()`呼び出しを廃止する）。
+2. When 申請者セッションから`createInquiry`が呼び出されたとき、the ヘルプデスクポータル shall 既存の挙動（セッションの`claims.companyId`を`Inquiry.companyId`として使用する）を変更しない。
+3. When ヘルプデスクセッションから`createInquiry`が呼び出されたとき、the ヘルプデスクポータル shall `requireHelpdeskStaffSession()`を要求し、呼び出し元から明示的に渡された対象会社のID（`companyId`）を`Inquiry.companyId`として使用する。
+4. If 申請者セッションでもヘルプデスクセッション+対象会社IDでもない状態で`createInquiry`が呼び出されたとき、the ヘルプデスクポータル shall `UnauthorizedSessionError`を送出する。
+5. The ヘルプデスクポータル shall `InquiryForm`に、ヘルプデスク代理登録モード（新規の`mode`prop、既定値は既存動作を維持する値）を追加し、当該モードのときのみ、渡された会社一覧（`{ id, name, country }[]`）から1社を選択する必須の`Select`欄を表示する。
+6. The ヘルプデスクポータル shall ヘルプデスク代理登録モードにおいて、既存の会社名・国（要件4、`submittedBy.companyName`/`submittedBy.country`の自由記述・選択欄）の表示・入力要件を変更しない（対象会社選択欄はこれらに追加する形で表示する）。
+7. When ヘルプデスク代理登録モードで対象会社が未選択のまま送信が試行されたとき、the ヘルプデスクポータル shall 保存操作をブロックし入力を促す。
+8. When ヘルプデスク代理登録モードで送信が成功したとき、the ヘルプデスクポータル shall 選択された会社の`id`を`createInquiry`の`companyId`引数として渡す。
+9. The ヘルプデスクポータル shall 会社選択欄のラベル・プレースホルダー・バリデーションエラーメッセージを next-intl の翻訳キー経由で提供する。

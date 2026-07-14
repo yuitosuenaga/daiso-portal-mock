@@ -13,8 +13,8 @@ import {
 import { getSession } from "@/lib/server/get-session";
 import { toErrorResponse } from "@/lib/server/api-errors";
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
+import { createInquiry } from "@/lib/api/inquiries";
 import {
-  createInquiryRecord,
   listAllInquiries,
   listInquiriesForCompany,
 } from "@/lib/server/inquiry-service";
@@ -45,10 +45,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const input = createInquirySchema.parse(body);
 
-    const created = await createInquiryRecord({
-      data: input,
-      companyId: session.claims.companyId,
-    });
+    const created = await createInquiry(input);
 
     return NextResponse.json(created, { status: 201 });
   } catch (error) {

@@ -29,11 +29,28 @@ function summarize(inquiries: Inquiry[]): InquiryStatusSummary {
 /**
  * 問い合わせ・申請を送信する。ログイン中の申請者セッションが所属する`Company`の
  * IDを永続化し、`submittedBy`はフォーム入力値のまま表示用フィールドとして保存する。
+ *
+ * ヘルプデスク担当者が申請者に代わって代理登録する場合は`proxyCompanyId`を渡す。
+ * この場合はヘルプデスクセッションを要求し、渡された会社IDへ紐付けて登録する
+ * （`claims.companyId`のような自社スコープを持たないため、呼び出し元が対象会社を明示する）。
  */
-export async function createInquiry(input: CreateInquiryInput): Promise<Inquiry> {
-  const { claims } = await requireApplicantSession();
+export async function createInquiry(
+  input: CreateInquiryInput,
+  proxyCompanyId?: string
+): Promise<Inquiry> {
+  const session = await getSession();
 
-  return createInquiryRecord({ data: input, companyId: claims.companyId });
+  if (session?.claims?.role === "applicant") {
+    return createInquiryRecord({ data: input, companyId: session.claims.companyId });
+  }
+
+  if (session?.claims?.role === "helpdesk" && proxyCompanyId) {
+    return createInquiryRecord({ data: input, companyId: proxyCompanyId });
+  }
+
+  throw new UnauthorizedSessionError(
+    "Applicant session, or helpdesk session with a target company, is required"
+  );
 }
 
 /**

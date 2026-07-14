@@ -222,3 +222,43 @@ Requirement 8（テンプレート管理画面）の改訂・追加Acceptance Cr
 4. （変更なし）When ユーザーがテンプレートを追加または編集して保存したとき、the Portal shall 保存内容を問い合わせ詳細画面のテンプレート選択肢に反映する。
 5. （改訂）If 新規テンプレート追加時にカテゴリ・テンプレート名・本文のいずれかが未入力のとき、the Portal shall 保存操作をブロックし入力を促す。
 6. （新規）The Portal shall テンプレートの識別のため、`ReplyTemplate`型に`name`（テンプレート名、上限40文字）フィールドを追加する。
+
+---
+
+### 追加要望（2026-07-13）: ヘルプデスク代理問い合わせ登録
+
+コードベースのレビューにより、ヘルプデスク側の問い合わせ新規作成画面（`/helpdesk/inquiry/new`）が送信時に必ず失敗することが判明した。当該画面は申請者側と共通の`InquiryForm`（`inquiry-form`spec所有）を再利用しており、送信は`createInquiryAction`→`createInquiry`（`src/lib/api/inquiries.ts`）を呼ぶが、`createInquiry`内で`requireApplicantSession()`が呼ばれているため、ヘルプデスクセッション（`role: "helpdesk"`）では`UnauthorizedSessionError`となり送信できない。にもかかわらず`HelpdeskSidebar`にはこの画面への導線（`translationKey: "inquiryForm"`, `href: "/helpdesk/inquiry/new"`）が存在する。この「ヘルプデスク担当者が申請者に代わって問い合わせを登録する」機能は、既存のどのspec（`helpdesk-inquiry-management`・`inquiry-form`のいずれ）にも要件記載が無く、意図された仕様か不明な状態で画面と導線だけが実装されていた。
+
+**対応方針の検討過程**: 次の2案を比較した。
+- **(1) ヘルプデスク代理登録を正式サポートする（本requirementsで採用）**: 画面・導線が既に存在し、`InquiryForm`は申請者情報（会社名・国）の入力欄を持つため代理登録に自然に適合する。電話・メール等ポータル外で受け付けた問い合わせをヘルプデスクが代理登録する運用は業務上妥当である。
+- **(2) 機能自体が不要として導線を削除する**: 代理登録の業務ニーズが確認できない場合はこちらが適切。
+
+本追記では **(1)** を一次判断として採用し、要件化する。ただし業務側が代理登録を不要と判断した場合は、本要件を取り下げ **(2)（`HelpdeskSidebar`の当該項目・`/helpdesk/inquiry/new`ページの削除）** に切り替える余地を残す。ユーザーはこの検討過程を踏まえて最終方針を判断できる。
+
+画面（`/helpdesk/inquiry/new`）はヘルプデスク側画面のため、画面レベルの要件は本spec（ヘルプデスク側問い合わせ画面を所有）が持つ。共通コンポーネント`InquiryForm`と送信関数`createInquiry`のセッション処理の修正は`inquiry-form`spec側が所有する（`inquiry-form`spec 要件12を参照）。
+
+スコープ外:
+- `createInquiry`のセッション分岐・会社紐付けの実装自体（`inquiry-form`spec 要件12で対応）
+- 認証・ロールベースアクセス制御の本格実装（`helpdesk-portal-layout`spec前提を踏襲し、フェーズ3以降）
+- 代理登録時の申請者本人への通知
+
+### Requirement 15: ヘルプデスク代理問い合わせ登録画面
+**Objective:** As a ヘルプデスク担当者, I want ポータル外（電話・メール等）で受け付けた問い合わせを申請者に代わって登録できる, so that すべての問い合わせを一元的に問い合わせ管理へ取り込める
+
+#### Acceptance Criteria
+1. The Portal shall `/helpdesk/inquiry/new`に、ヘルプデスク担当者が申請者に代わって問い合わせを登録するための画面を提供する。
+2. The Portal shall 当該画面で`inquiry-form`spec所有の`InquiryForm`コンポーネントを再利用し、申請者情報（会社名・国）を含む問い合わせ内容を代理入力できるようにする。
+3. When ヘルプデスク担当者（ヘルプデスクセッション）が当該画面から問い合わせを送信したとき、the Portal shall 現在の`requireApplicantSession`起因の失敗を発生させることなく送信を成功させる（セッション処理・会社紐付けの実装は`inquiry-form`spec 要件12が担う）。
+4. When 代理登録が成功したとき、the Portal shall 登録された問い合わせを全社分の問い合わせ一覧（`getAllInquiries`）に通常の問い合わせと同様に反映する。
+5. The Portal shall `HelpdeskSidebar`の既存ナビゲーション項目（`/helpdesk/inquiry/new`）から当該画面へ到達できる状態を維持する。
+6. The Portal shall 当該画面で追加・変更するUI文字列を`next-intl`の翻訳キー経由で提供する。
+
+---
+
+### 追加要望（2026-07-13）: 返信テンプレート編集フォームの送信エラーフィードバック
+
+コードベースのレビューにより、返信テンプレート編集フォーム（`TemplateForm`、`src/components/features/helpdesk-templates/TemplateForm.tsx`）に送信エラー時のフィードバックが存在しないことが判明した。`onSubmit`は`try/catch`を持たず、送信失敗を保持する状態も無いため、`createReplyTemplateAction`/`updateReplyTemplateAction`がreject（保存失敗）した場合、ユーザーに何も表示されない。一方、同種のヘルプデスク側フォームである`AnnouncementForm`は`hasSubmitError`状態＋`try/catch`＋`role="status"`の送信エラーメッセージ＋`submitErrorMessage` propによる送信エラーフィードバックを実装済みである。テンプレート管理画面はRequirement 8が所有するため、本specに追記する。
+
+Requirement 8（テンプレート管理画面）への追加Acceptance Criteria:
+7. （新規）If テンプレートの新規追加または編集の保存操作が失敗したとき（Server Actionがrejectしたとき）、the Portal shall `AnnouncementForm`と同等の送信エラーフィードバック（送信エラーメッセージの表示）を`TemplateForm`上に表示し、入力内容を保持したままフォームを操作可能な状態に戻す。
+8. （新規）The Portal shall 当該送信エラーメッセージを`next-intl`の翻訳キー経由で提供する。

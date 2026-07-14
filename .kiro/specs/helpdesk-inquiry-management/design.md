@@ -213,8 +213,13 @@ next.config.mjs                      # 変更（追加）: experimental.serverAc
 - （追加・2026-07-07・2）`src/types/inquiry-history.ts` — `InquiryHistoryEntryType`に`"requester_message"`を追加する（既存の4種別は変更しない）
 - （追加・2026-07-07・2）`src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx` — `HistoryTimeline`へ渡す`typeLabels`に`requester_message: tHistory("types.requester_message")`を追加する（`HistoryTimeline`自体は`typeLabels`ルックアップ方式のため変更不要）
 - （追加・2026-07-07・2）`messages/ja.json` / `messages/en.json` — `helpdeskInquiries.history.types`に`requester_message`（「申請者からのメッセージ」/"Message from requester"）を追加する
+- （追加・2026-07-13）`src/lib/server/company-service.ts`（新規、または既存のCompany関連サービスファイルに配置） — `listCompaniesForHelpdesk(): Promise<{ id: string; name: string; country: string }[]>`を追加する（`Company`テーブルの全件を`name`昇順で返す）
+- （追加・2026-07-13）`src/app/[locale]/helpdesk/(dashboard)/inquiry/new/page.tsx` — 非同期Server Componentに変更し、`listCompaniesForHelpdesk()`の結果を`InquiryForm`の`companies`propへ、`mode="helpdeskProxy"`を`mode`propへ渡す
+- （追加・2026-07-13）`src/components/features/helpdesk-templates/TemplateForm.tsx` — `AnnouncementForm`と同様の`hasSubmitError`状態・`try/catch`・`submitErrorMessage`propを追加する
+- （追加・2026-07-13）`src/app/[locale]/helpdesk/(dashboard)/templates/new/page.tsx` / `.../templates/[id]/edit/page.tsx` — `TemplateForm`へ`submitErrorMessage`propを配線する
+- （追加・2026-07-13）`messages/ja.json` / `messages/en.json` — `helpdeskTemplates`名前空間に送信エラーメッセージのキーを追加する（`helpdeskAnnouncements`の`submitErrorMessage`と同等の文言パターンを踏襲）
 
-> 申請者側のコンポーネント（`dashboard`・`inquiry-list`・`inquiry-form`所有）は一切変更しない。`claim`フィールドが`Inquiry`に追加されても、これらのコンポーネントは個別フィールドを明示的に参照する既存実装のため表示に影響しない（`research.md`参照）。
+> 申請者側のコンポーネント（`dashboard`・`inquiry-list`・`inquiry-form`所有）は一切変更しない。`claim`フィールドが`Inquiry`に追加されても、これらのコンポーネントは個別フィールドを明示的に参照する既存実装のため表示に影響しない（`research.md`参照）。`InquiryForm`本体・`createInquiry`のセッション分岐ロジックは`inquiry-form`spec 要件12が所有し、本specは`/helpdesk/inquiry/new`ページからの呼び出し（`mode`/`companies`propの配線）と、そのための会社一覧取得関数のみを所有する。
 
 ## System Flows
 
@@ -279,6 +284,8 @@ sequenceDiagram
 | 14.1〜14.5 | 対応履歴への申請者メッセージの統合表示 | HelpdeskInquiryDetail, HistoryTimeline | InquiryHistoryMockApi (Service、`requester_message`種別を読み取るのみ) | — |
 | 7.6 | テンプレート選択肢に名前をラベル表示 | ReplyForm | ReplyTemplatesMockApi (Service) | 対応中フラグの切り替えフローと同型 |
 | 8.6 | `ReplyTemplate`型への`name`フィールド追加 | TemplateList, TemplateForm | ReplyTemplatesMockApi (Service) | — |
+| 8.7〜8.8 | テンプレートフォームの送信エラーフィードバック（追加） | TemplateForm | ReplyTemplatesMockApi (Service) | — |
+| 15.1〜15.6 | ヘルプデスク代理問い合わせ登録画面（追加） | HelpdeskInquiryNewPage, InquiryForm（`inquiry-form`spec所有） | ListCompaniesForHelpdesk (Service), CreateInquiry Service Interface（`inquiry-form`spec 要件12） | 代理登録フロー（`inquiry-form`spec design.md参照） |
 
 ## Components and Interfaces
 
@@ -554,8 +561,74 @@ interface HelpdeskActions {
 - （追加・2026-07-07・2）**E2E/UI Tests**: `inquiry-list`spec側から送信された申請者メッセージが、ヘルプデスク側の対応履歴タイムラインに反映されることを日本語・英語の両方で確認する（`inquiry-list`spec側のE2Eタスクと合わせて実施）
 - （追加・2026-07-07）**Unit/Integration Tests**: `HelpdeskInquiryDetail`が次の3パターンを正しく切り替えること — (1) `originalLanguage`が`ja`以外かつ`translatedText`設定済みのとき日本語訳をメイン・原文を参照として表示、(2) `originalLanguage`が`ja`のとき原文のみ表示（日本語訳セクションなし）、(3) `originalLanguage`が`ja`以外だが`translatedText`未設定のとき原文のみ表示（エラー表示なし）
 - （追加・2026-07-07）**E2E/UI Tests**: 外国語原文を持つ問い合わせの詳細画面で日本語訳が原文より上に表示されること、日本語原文の問い合わせでは日本語訳セクションが表示されないこと、日英両ロケールでラベルが正しく切り替わること
+- （追加・2026-07-13）**Unit Tests**: `listCompaniesForHelpdesk`が全社を`name`昇順で返すこと
+- （追加・2026-07-13）**Integration Tests**: `/helpdesk/inquiry/new`（`mode="helpdeskProxy"`）で会社を選択して送信すると、`getAllInquiries`に指定会社の問い合わせとして反映されること。`TemplateForm`の保存が失敗（Server Actionのreject）したとき、送信エラーメッセージが表示され入力内容が保持されること
+- （追加・2026-07-13）**E2E/UI Tests**: `/helpdesk/inquiry/new`から代理登録した問い合わせが問い合わせ管理一覧に表示されること（ja/en）
 
 ## Security Considerations
 `claim`・対応履歴・テンプレートはヘルプデスク内部情報であり、申請者側画面に表示されてはならない。申請者側コンポーネント（`InquiryDetail`・`RecentInquiriesWidget`等）は個別フィールドを明示的に参照する既存実装のままとし、`Inquiry`オブジェクトを丸ごとクライアントに渡す変更を行わない。認証・アクセス制御は本specの対象外であり、`helpdesk-portal-layout`が定めた「フェーズ3で追加」という前提を踏襲する。
 （追加）返信の添付ファイルはヘルプデスク担当者が入力した内容であり、`inquiry-form`と同様に`inquiryAttachmentSchema`によるサーバー側の形状検証を行うが、これはクライアント検証バイパスに対するUX上のフォールバックであり、なりすまされたMIMEタイプ自体への防御ではない（`inquiry-form`specの既存documented limitationを踏襲）。`AttachmentPreviewList`は`dataUrl`を`<img src>`とダウンロード用の`<a href>`としてのみ使用し、`dangerouslySetInnerHTML`は使用しない。Server Actionのボディサイズ上限緩和（`bodySizeLimit: "40mb"`）は、フェーズ1のモック環境（単一プロセス、認証なし、外部公開なし）を前提とした判断であり、フェーズ3で実バックエンドへ移行する際はインフラ全体（CDN・ロードバランサ等）の制約を踏まえて再検討する。
 （追加・2026-07-07・2）`requester_message`エントリの`actorName`（送信元会社名）は、既にヘルプデスク側の一覧・詳細画面に常時表示されている情報（`Inquiry.submittedBy.companyName`）であり、新たな情報漏洩には当たらない。本specはこのエントリの表示のみを担当し、送信内容自体の検証・サニタイズは呼び出し元（`inquiry-list`spec所有のServer Action）の責務とする。
+（追加・2026-07-13）代理登録画面（`/helpdesk/inquiry/new`）はヘルプデスク側ルート（`helpdesk-portal-layout`前提により認証・アクセス制御はフェーズ3以降）に配置されるため、フェーズ1では申請者が誤ってアクセスできる制約は設けない。`listCompaniesForHelpdesk`は全社の会社名・国のみを返し、問い合わせ内容等の機密情報は含まない。
+
+## 追加ラウンド（2026-07-13）: ヘルプデスク代理問い合わせ登録・テンプレートフォームの送信エラーフィードバック
+
+### 対象ファイル
+- `src/app/[locale]/helpdesk/(dashboard)/inquiry/new/page.tsx`（変更: 会社一覧取得・`InquiryForm`への`mode`/`companies`配線）
+- `src/lib/server/company-service.ts`（新規または既存ファイルへの追加: `listCompaniesForHelpdesk`）
+- `src/components/features/helpdesk-templates/TemplateForm.tsx`（変更: 送信エラーフィードバック追加）
+- `src/app/[locale]/helpdesk/(dashboard)/templates/new/page.tsx` / `.../templates/[id]/edit/page.tsx`（変更: `submitErrorMessage`prop配線）
+- `messages/ja.json` / `messages/en.json`（変更: テンプレート送信エラーメッセージの翻訳キー追加）
+
+### ヘルプデスク代理問い合わせ登録画面（Requirement 15）
+現状の`/helpdesk/inquiry/new/page.tsx`は次の通り、`InquiryForm`をそのまま呼び出すのみで、申請者セッションを前提とした既存の`createInquiry`呼び出しがヘルプデスクセッションでは必ず失敗する。
+
+```typescript
+// 現状（失敗する）
+export default function HelpdeskInquiryNewPage() {
+  return <InquiryForm listHref="/helpdesk/inquiries" />;
+}
+```
+
+これを次のように変更する。`listCompaniesForHelpdesk`（本spec所有）が返す会社一覧を取得し、`inquiry-form`spec 要件12が追加する`mode`/`companies`propへ渡す。
+
+```typescript
+// 変更後
+import { listCompaniesForHelpdesk } from "@/lib/server/company-service";
+
+export default async function HelpdeskInquiryNewPage() {
+  const companies = await listCompaniesForHelpdesk();
+  return (
+    <InquiryForm listHref="/helpdesk/inquiries" mode="helpdeskProxy" companies={companies} />
+  );
+}
+```
+
+`listCompaniesForHelpdesk`は既存の`Company`テーブルを`name`昇順で全件取得する単純な読み取り関数であり、`helpdesk-inquiry-management`spec専用の画面（代理登録画面）からのみ利用されるため本spec側で所有する（`inquiry-form`spec側は会社一覧の取得方法に依存しない、propとして受け取るのみの設計とする）。
+
+### テンプレートフォームの送信エラーフィードバック（Requirement 8 AC7〜8）
+`TemplateForm`は現状`onSubmit`に`try/catch`を持たず、`createReplyTemplateAction`/`updateReplyTemplateAction`が失敗（reject）した場合にユーザーへの表示が一切ない。既存の`AnnouncementForm`（`announcements-management`spec所有、参照実装として踏襲する）と同一のパターンで、`hasSubmitError`状態・`try/catch`・`role="status"`のエラー表示・`submitErrorMessage`propを追加する。
+
+```typescript
+// AnnouncementFormと同型のパターンをTemplateFormに適用
+const [hasSubmitError, setHasSubmitError] = useState(false);
+
+async function onSubmit(values: ReplyTemplateFormValues) {
+  setHasSubmitError(false);
+  try {
+    await onSubmitAction(values);
+  } catch {
+    setHasSubmitError(true);
+  }
+}
+```
+
+```tsx
+{hasSubmitError && (
+  <span role="status" className="text-sm text-destructive">
+    {submitErrorMessage}
+  </span>
+)}
+```
+
+保存成功時はフォームが遷移する既存動作（`templates/new`・`templates/[id]/edit`ページ側のリダイレクト処理）を変更しない。失敗時のみ`hasSubmitError`が真になり、入力内容を保持したままフォームを操作可能な状態を維持する（`onSubmit`が入力値をリセットしないため、既存の`react-hook-form`の状態管理により自然に満たされる）。

@@ -44,27 +44,44 @@ export const inquiryAttachmentsArraySchema = z
  * 問い合わせ・申請フォームの入力値を検証する zod スキーマ。
  * フィールド単位のエラーメッセージは呼び出し側（UI）が翻訳キー経由で表示する。
  */
-export const inquiryFormSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1)
-    .max(TITLE_MAX_LENGTH),
-  category: z.enum(INQUIRY_CATEGORY_CODES),
-  urgency: z.enum(INQUIRY_URGENCY_CODES),
-  storeRegion: z
-    .string()
-    .trim()
-    .min(1),
-  originalText: z
-    .string()
-    .min(1)
-    .max(ORIGINAL_TEXT_MAX_LENGTH),
-  originalLanguage: z.enum(INQUIRY_ORIGINAL_LANGUAGE_CODES),
-  companyName: z.string().trim().min(1),
-  country: z.enum(INQUIRY_COUNTRY_CODES),
-  attachments: inquiryAttachmentsArraySchema.optional(),
-});
+export const inquiryFormSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(TITLE_MAX_LENGTH),
+    category: z.enum(INQUIRY_CATEGORY_CODES),
+    urgency: z.enum(INQUIRY_URGENCY_CODES),
+    storeRegion: z
+      .string()
+      .trim()
+      .min(1),
+    originalText: z
+      .string()
+      .min(1)
+      .max(ORIGINAL_TEXT_MAX_LENGTH),
+    originalLanguage: z.enum(INQUIRY_ORIGINAL_LANGUAGE_CODES),
+    companyName: z.string().trim().min(1),
+    country: z.enum(INQUIRY_COUNTRY_CODES),
+    attachments: inquiryAttachmentsArraySchema.optional(),
+    /**
+     * ヘルプデスク代理登録モードかどうか（要件12）。フォームの表示切り替えにのみ使い、
+     * サーバー側のアクセス制御はセッションのロール検証（`createInquiry`）で行う。
+     */
+    mode: z.enum(["self", "helpdeskProxy"]).optional(),
+    /** ヘルプデスク代理登録モードのときのみ必須の対象会社ID。 */
+    targetCompanyId: z.string().trim().min(1).optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.mode === "helpdeskProxy" && !values.targetCompanyId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetCompanyId"],
+        message: "Target company is required in helpdesk proxy mode",
+      });
+    }
+  });
 
 /**
  * `inquiryFormSchema` から推論されるフォーム入力値の型。

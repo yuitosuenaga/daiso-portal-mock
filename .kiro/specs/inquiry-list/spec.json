@@ -1,22 +1,22 @@
 {
   "feature_name": "inquiry-list",
   "created_at": "2026-07-01T11:20:35Z",
-  "updated_at": "2026-07-10T00:00:00Z",
+  "updated_at": "2026-07-13T00:00:00Z",
   "language": "ja",
-  "phase": "implementation-complete",
+  "phase": "requirements-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "design": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "tasks": {
       "generated": true,
-      "approved": true
+      "approved": false
     }
   },
-  "ready_for_implementation": true
+  "ready_for_implementation": false
 }

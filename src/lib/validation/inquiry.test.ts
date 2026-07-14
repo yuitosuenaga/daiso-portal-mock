@@ -164,6 +164,41 @@ describe("inquiryFormSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("mode未指定（既定の申請者本人送信）ではtargetCompanyIdが無くても成功する", () => {
+    const result = inquiryFormSchema.safeParse(VALID_INPUT);
+
+    expect(result.success).toBe(true);
+  });
+
+  it("mode=helpdeskProxyでtargetCompanyIdが未指定のときエラーになる", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      mode: "helpdeskProxy",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("mode=helpdeskProxyでtargetCompanyIdが空文字のときエラーになる", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      mode: "helpdeskProxy",
+      targetCompanyId: "",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("mode=helpdeskProxyでtargetCompanyIdが指定されていれば成功する", () => {
+    const result = inquiryFormSchema.safeParse({
+      ...VALID_INPUT,
+      mode: "helpdeskProxy",
+      targetCompanyId: "company-1",
+    });
+
+    expect(result.success).toBe(true);
+  });
 });
 
 const VALID_ATTACHMENT = {

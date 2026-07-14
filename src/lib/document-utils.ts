@@ -2,7 +2,7 @@ import {
   DOCUMENT_ALLOWED_MIME_TYPES,
   DOCUMENT_MAX_FILE_SIZE_BYTES,
 } from "@/lib/constants/document";
-import type { DocumentTargeting } from "@/types/document";
+import type { Document, DocumentTargeting } from "@/types/document";
 
 export type DocumentFileValidationResult =
   | { valid: true }
@@ -54,4 +54,28 @@ export function validateDocumentFile(file: File): DocumentFileValidationResult {
     return { valid: false, reason: "size" };
   }
   return { valid: true };
+}
+
+/**
+ * タイトル・説明の部分一致（大文字小文字を区別しない）でドキュメントを絞り込む。
+ * キーワードが空のとき、入力配列をそのまま（順序維持で）返す。
+ */
+export function filterDocuments(
+  documents: Document[],
+  keyword: string
+): Document[] {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+
+  if (!normalizedKeyword) {
+    return documents;
+  }
+
+  return documents.filter((document) => {
+    const title = document.title.toLowerCase();
+    const description = document.description?.toLowerCase() ?? "";
+    return (
+      title.includes(normalizedKeyword) ||
+      description.includes(normalizedKeyword)
+    );
+  });
 }

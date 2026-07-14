@@ -137,3 +137,42 @@
 2. When ユーザーがヘルプデスク側ヘッダー左上のロゴ・タイトル領域をクリックする, the Portal shall ヘルプデスク側ダッシュボード（`/helpdesk`）へ遷移する。
 3. The Portal shall ロゴ・タイトル領域をキーボード操作（Tabフォーカス＋Enter）でも遷移可能なリンクとして実装する。
 4. The Portal shall ロゴ・タイトル領域のクリック可能化によって、既存のヘッダー内の他要素（言語切替・ポータル切り替えリンク・ヘルプデスクバッジ）の表示・配置・挙動を変更しない。
+
+---
+
+### 追記（2026-07-13）: ログアウト導線の追加、HelpdeskAppShellのサイドバー開閉ボタンのi18n化
+
+コードレビューにより、次の2点の欠落・不整合が判明したため、本specが所有する共通レイアウトコンポーネント（申請者側`Header.tsx`・ヘルプデスク側`HelpdeskHeader.tsx`・`HelpdeskAppShell.tsx`）への追記として対応する。いずれも本specが2026-07-08追記で所有を明記済みの共通レイアウトコンポーネントの挙動・表示に関する修正であるため、新規specを作らず本specへ追記する。
+
+1. **ログアウト導線が存在しない**: `next-auth`の`signOut`関数は`src/auth.ts`でエクスポート済みだが、これをUIから呼び出す導線（ヘッダーのユーザーメニュー等）が申請者側・ヘルプデスク側のどちらのヘッダーにも存在しない。両ヘッダー（`Header.tsx`・`HelpdeskHeader.tsx`）はロゴ・（ヘルプデスク側は）バッジ・ポータル切り替えリンク・言語切替のみで構成され、ログイン中のユーザーがセッションを終了する手段がない。申請者側・ヘルプデスク側の両ヘッダーとも本specが所有するため、両側のログアウト導線を本specへ追記する。
+2. **`HelpdeskAppShell`のサイドバー開閉ボタンの`aria-label`が日本語ハードコード**: `HelpdeskAppShell.tsx`のサイドバー折りたたみ/展開ボタンの`aria-label`が`"サイドバーを展開"`/`"サイドバーを折りたたむ"`と直接記述されており、英語ロケール利用時にも日本語のまま読み上げられる。`next-intl`の翻訳キー化が必要。
+
+スコープ外:
+- 認証・ログイン画面自体の実装（`backend-db-foundation`基盤側の責務。本specはサインアウト操作の導線のみを対象とする）
+- 申請者側`Sidebar.tsx`の開閉ボタンの`aria-label`（本ラウンドでは`HelpdeskAppShell.tsx`の開閉ボタンのみを対象とする。申請者側`AppShell`/`Sidebar`側に同種のハードコードがある場合は、実装時に同一パターンで併せて是正してよい）
+- ユーザーのプロフィール編集・アカウント設定等、サインアウト以外のユーザーメニュー機能
+
+### Requirement 13: ログアウト導線の追加
+
+**Objective:** As a ポータル利用者（申請者・ヘルプデスク双方）, I want ヘッダーからログアウトできること, so that 共有端末等で自分のセッションを安全に終了できる
+
+#### Acceptance Criteria
+
+1. The Portal shall 申請者側ヘッダー（`Header.tsx`）に、ログアウト操作を行うコントロール（ボタンまたはユーザーメニュー内の項目）を表示する。
+2. The Portal shall ヘルプデスク側ヘッダー（`HelpdeskHeader.tsx`）に、ログアウト操作を行うコントロールを表示する。
+3. When ユーザーがログアウト操作を実行したとき、the Portal shall `next-auth`の`signOut`を呼び出してセッションを終了する。
+4. When ログアウトが完了したとき、the Portal shall サインイン画面（またはアプリケーションが定めるログアウト後の遷移先）へ遷移する。
+5. The Portal shall ログアウトコントロールの表示文言・アクセシブルな名前（`aria-label`等）を`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する。
+6. The Portal shall ログアウトコントロールの追加によって、既存のヘッダー内の他要素（ロゴ・言語切替・ポータル切り替えリンク・ヘルプデスクバッジ）の表示・配置・挙動を変更しない。
+7. The Portal shall ログアウトコントロールをキーボード操作でフォーカス・実行可能な要素として実装する。
+
+### Requirement 14: HelpdeskAppShellのサイドバー開閉ボタンのi18n化
+
+**Objective:** As a ヘルプデスク担当者（英語ロケール利用者を含む）, I want サイドバー開閉ボタンのアクセシブルな名前が表示言語に追従すること, so that スクリーンリーダー利用時にも自分の言語で操作対象を理解できる
+
+#### Acceptance Criteria
+
+1. The Portal shall `HelpdeskAppShell.tsx`のサイドバー折りたたみ/展開ボタンの`aria-label`を、`next-intl`の翻訳キー経由で提供する。
+2. The Portal shall 折りたたみ状態と展開状態のそれぞれに対応する`aria-label`文言を`messages/ja.json`・`messages/en.json`で管理する。
+3. When 選択された言語の翻訳キーが存在しないとき、the Portal shall 既存と同様に英語（`en`）にフォールバックして表示する。
+4. The Portal shall 本要件による変更で、サイドバーの開閉挙動・レイアウト・折りたたみ状態のロジック自体を変更しない（`aria-label`の文言取得元のみを変更する）。

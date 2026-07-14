@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -32,6 +33,7 @@ export interface TemplateFormProps {
   submitButtonLabel: string;
   requiredErrorMessage: string;
   nameTooLongErrorMessage: string;
+  submitErrorMessage: string;
   categoryOptions?: { value: string; label: string }[];
 }
 
@@ -52,9 +54,11 @@ export function TemplateForm({
   submitButtonLabel,
   requiredErrorMessage,
   nameTooLongErrorMessage,
+  submitErrorMessage,
   categoryOptions,
 }: TemplateFormProps) {
   const router = useRouter();
+  const [hasSubmitError, setHasSubmitError] = useState(false);
   const {
     register,
     handleSubmit,
@@ -77,12 +81,17 @@ export function TemplateForm({
     INQUIRY_CATEGORY_CODES.map((code) => ({ value: code, label: code }));
 
   async function onSubmit(values: ReplyTemplateFormValues) {
-    if (mode === "edit" && templateId) {
-      await updateReplyTemplateAction(templateId, values);
-    } else {
-      await createReplyTemplateAction(values);
+    setHasSubmitError(false);
+    try {
+      if (mode === "edit" && templateId) {
+        await updateReplyTemplateAction(templateId, values);
+      } else {
+        await createReplyTemplateAction(values);
+      }
+      router.push("/helpdesk/templates");
+    } catch {
+      setHasSubmitError(true);
     }
-    router.push("/helpdesk/templates");
   }
 
   return (
@@ -134,10 +143,15 @@ export function TemplateForm({
         />
       </FormField>
 
-      <div>
+      <div className="flex items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
           {submitButtonLabel}
         </Button>
+        {hasSubmitError && (
+          <span role="status" className="text-sm text-destructive">
+            {submitErrorMessage}
+          </span>
+        )}
       </div>
     </form>
   );

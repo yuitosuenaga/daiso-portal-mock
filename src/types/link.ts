@@ -12,3 +12,9 @@ export interface Link {
   /** 補足説明（フェーズ1は任意項目） */
   description?: string;
 }
+
+/**
+ * リンク新規作成・編集時のAPI入力契約。
+ * `Link`から`id`（API側で生成）を除いたサブセット。
+ */
+export type CreateLinkInput = Omit<Link, "id">;

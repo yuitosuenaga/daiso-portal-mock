@@ -23,11 +23,14 @@ const messageBodySchema = z.string().trim().min(1);
  * 問い合わせ・申請フォームの送信を行う。`InquiryForm`（Client Component）から
  * 呼び出すためのServer Action。Prisma（サーバー専用）を安全にクライアントバンドルから
  * 除外するため、`lib/api/inquiries.ts`への直接importの代わりにこの関数を経由する。
+ *
+ * `proxyCompanyId`はヘルプデスクの代理登録時のみ渡される（`inquiry-form`spec 要件12）。
  */
 export async function createInquiryAction(
-  input: CreateInquiryInput
+  input: CreateInquiryInput,
+  proxyCompanyId?: string
 ): Promise<Inquiry> {
-  return createInquiry(input);
+  return createInquiry(input, proxyCompanyId);
 }
 
 /**
