@@ -6,7 +6,7 @@ import {
   INQUIRY_CATEGORY_CODES,
   INQUIRY_URGENCY_CODES,
 } from "@/lib/constants/inquiry-options";
-import { InquiryListItem } from "@/components/features/inquiry-list/InquiryListItem";
+import { InquiryListClient } from "@/components/features/inquiry-list/InquiryListClient";
 import type { Inquiry } from "@/types/inquiry";
 
 const INQUIRY_STATUS_CODES = [
@@ -86,26 +86,33 @@ export async function InquiryList() {
     {} as Record<Inquiry["status"], string>
   );
 
+  const categoryOptions = INQUIRY_CATEGORY_CODES.map((code) => ({
+    value: code,
+    label: categoryLabels[code],
+  }));
+
+  const statusOptions = INQUIRY_STATUS_CODES.map((code) => ({
+    value: code,
+    label: statusLabels[code],
+  }));
+
   return (
     <div>
       {heading}
       <Card>
         <CardContent className="pt-6">
-          <ul className="divide-y divide-border">
-            {inquiries.map((item) => (
-              <InquiryListItem
-                key={item.id}
-                inquiry={item}
-                categoryLabel={categoryLabels[item.category]}
-                urgencyLabel={urgencyLabels[item.urgency]}
-                statusLabel={statusLabels[item.status]}
-                statusFieldLabel={t("detail.statusLabel")}
-                urgencyFieldLabel={t("detail.urgencyLabel")}
-                locale={locale}
-                untitledLabel={t("list.untitled")}
-              />
-            ))}
-          </ul>
+          <InquiryListClient
+            inquiries={inquiries}
+            categoryLabels={categoryLabels}
+            categoryOptions={categoryOptions}
+            statusOptions={statusOptions}
+            urgencyLabels={urgencyLabels}
+            statusLabels={statusLabels}
+            statusFieldLabel={t("detail.statusLabel")}
+            urgencyFieldLabel={t("detail.urgencyLabel")}
+            locale={locale}
+            untitledLabel={t("list.untitled")}
+          />
         </CardContent>
       </Card>
     </div>

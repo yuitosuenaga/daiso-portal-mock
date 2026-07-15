@@ -38,6 +38,11 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) =>
+    (key: string) => resolveMessage(namespace, key),
+}));
+
 describe("InquiryList", () => {
   it("問い合わせが0件のとき空状態メッセージを表示する", async () => {
     getInquiriesMock.mockResolvedValueOnce([]);
@@ -79,7 +84,7 @@ describe("InquiryList", () => {
     expect(
       screen.getByRole("link", { name: "商品破損についての問い合わせ" })
     ).toBeTruthy();
-    expect(screen.getByText("不具合")).toBeTruthy();
+    expect(screen.getByText("不具合", { selector: "span" })).toBeTruthy();
     expect(
       screen.getByText(
         "納品された商品の一部に破損が見られます。至急対応をお願いします。"
