@@ -12,6 +12,10 @@ import {
 import { AnnouncementFilterBar } from "@/components/features/helpdesk-announcements/AnnouncementFilterBar";
 import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
 import { AnnouncementTrackingBadge } from "@/components/features/helpdesk-announcements/AnnouncementTrackingBadge";
+import {
+  ManagementListRow,
+  ManagementListRows,
+} from "@/components/features/helpdesk-shared/ManagementList";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
 import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
 
@@ -108,12 +112,9 @@ export function AnnouncementManagementListClient({
       {filteredAnnouncements.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("noResults")}</p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ManagementListRows>
           {filteredAnnouncements.map((announcement) => (
-            <li
-              key={announcement.id}
-              className="flex items-start justify-between gap-4 py-3"
-            >
+            <ManagementListRow key={announcement.id}>
               <div className="flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium">{announcement.title}</p>
@@ -168,9 +169,9 @@ export function AnnouncementManagementListClient({
                   errorMessage={deleteErrorMessage}
                 />
               </div>
-            </li>
+            </ManagementListRow>
           ))}
-        </ul>
+        </ManagementListRows>
       )}
     </div>
   );
