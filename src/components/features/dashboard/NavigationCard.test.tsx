@@ -53,7 +53,7 @@ describe("NavigationCard", () => {
   it("badgeが指定されている場合バッジの件数を表示する", () => {
     render(
       <NavigationCard
-        title="問い合わせ一覧"
+        title="申請一覧"
         description="自社の問い合わせ状況を確認します"
         href="/inquiry"
         icon={Inbox}

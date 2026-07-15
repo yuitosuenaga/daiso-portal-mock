@@ -30,7 +30,7 @@
     "sidebarLabel": "ヘルプデスクナビゲーション",
     "home": "ダッシュボード",
     "inquiryForm": "申請",
-    "inquiries": "問い合わせ管理",
+    "inquiries": "申請管理",
     "templates": "テンプレート管理",
     "links": "リンク集",
     "faq": "よくある質問",
@@ -196,11 +196,11 @@
   },
   "helpdeskInquiries": {
     "list": {
-      "title": "問い合わせ管理",
-      "description": "全社分の問い合わせを緊急度順に確認できます。",
-      "empty": "問い合わせはありません",
-      "error": "問い合わせの取得に失敗しました",
-      "noResults": "条件に合致する問い合わせはありません"
+      "title": "申請管理",
+      "description": "全社分の申請を緊急度順に確認できます。",
+      "empty": "申請はありません",
+      "error": "申請の取得に失敗しました",
+      "noResults": "条件に合致する申請はありません"
     },
     "detail": {
       "notFound": "問い合わせが見つかりません",
@@ -361,7 +361,7 @@
     "sidebarLabel": "メインナビゲーション",
     "dashboard": "ダッシュボード",
     "inquiryForm": "申請",
-    "inquiryList": "問い合わせ一覧",
+    "inquiryList": "申請一覧",
     "announcements": "お知らせ",
     "links": "リンク集",
     "faq": "よくある質問",
@@ -373,8 +373,8 @@
       "description": "新しい問い合わせ・申請を送信します。"
     },
     "inquiryList": {
-      "title": "問い合わせ一覧",
-      "description": "自社が送信した問い合わせの状況を確認できます。"
+      "title": "申請一覧",
+      "description": "自社が送信した申請の状況を確認できます。"
     },
     "announcements": {
       "title": "お知らせ",
@@ -402,10 +402,10 @@
       "title": "日本側からのリマインド"
     },
     "priorityInquiriesPreview": {
-      "title": "対応が必要な問い合わせ",
-      "empty": "対応が必要な問い合わせはありません。",
-      "error": "問い合わせの取得に失敗しました。",
-      "viewAll": "問い合わせ一覧を見る"
+      "title": "対応が必要な申請",
+      "empty": "対応が必要な申請はありません。",
+      "error": "申請の取得に失敗しました。",
+      "viewAll": "申請一覧を見る"
     }
   },
   "helpdeskDashboard": {
@@ -414,8 +414,8 @@
       "reference": "参考情報"
     },
     "inquiries": {
-      "title": "問い合わせ一覧",
-      "description": "全社から寄せられた、現状対応中の問い合わせを確認できます。"
+      "title": "申請一覧",
+      "description": "全社から寄せられた、現状対応中の申請を確認できます。"
     },
     "templates": {
       "title": "テンプレート管理",
@@ -627,15 +627,15 @@
       "successDescription": "問い合わせ・申請を受け付けました。",
       "errorTitle": "送信に失敗しました",
       "errorDescription": "時間を置いて再度お試しください。",
-      "viewInquiryListLink": "問い合わせ一覧を見る"
+      "viewInquiryListLink": "申請一覧を見る"
     }
   },
   "inquiryList": {
     "list": {
-      "title": "問い合わせ一覧",
+      "title": "申請一覧",
       "description": "自社が送信した問い合わせ・申請の一覧と対応状況を確認できます。",
-      "empty": "問い合わせはありません",
-      "error": "問い合わせの取得に失敗しました",
+      "empty": "申請はありません",
+      "error": "申請の取得に失敗しました",
       "untitled": "(タイトル未設定)"
     },
     "status": {

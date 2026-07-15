@@ -37,7 +37,7 @@
 - `Inquiry`型への`claim`フィールドの追加（後方互換な拡張）
 - 対応履歴（`InquiryHistoryEntry`）・返信テンプレート（`ReplyTemplate`）の型・モックストア・モックAPI
 - 対応中フラグ・ステータス変更・返信送信・テンプレート追加編集を行うServer Actions
-- `HelpdeskSidebar`（`helpdesk-portal-layout`所有）への「問い合わせ管理」「テンプレート管理」ナビゲーション項目の追加
+- `HelpdeskSidebar`（`helpdesk-portal-layout`所有）への「問い合わせ管理」（2026-07-15: 表示文言を「申請管理」に変更、追加要望参照）「テンプレート管理」ナビゲーション項目の追加
 - （追加）`InquiryHistoryEntry`型への`attachments`フィールドの追加、読み取り専用の添付ファイル表示コンポーネント（`AttachmentPreviewList`）、`next.config.mjs`のServer Actionボディサイズ上限設定
 - （追加・2026-07-07）ヘルプデスク側詳細画面での日本語訳（`translatedText`）表示ロジック、フェーズ1モックデータ（`MOCK_INQUIRIES`）への日本語訳ダミー値の追加
 - （追加・2026-07-07・2）`InquiryHistoryEntryType`への`requester_message`種別の追加、ヘルプデスク側対応履歴タイムラインでの申請者メッセージ表示（typeLabel・操作者表示に会社名を用いる表示ロジック）
@@ -185,7 +185,7 @@ src/types/
 └── reply-template.ts                # 新規: ReplyTemplate, CreateReplyTemplateInput型
 
 src/components/layout/
-└── HelpdeskSidebar.tsx               # 変更: ナビゲーション項目に「問い合わせ管理」「テンプレート管理」を追加
+└── HelpdeskSidebar.tsx               # 変更: ナビゲーション項目に「問い合わせ管理」（2026-07-15: 表示文言を「申請管理」に変更）「テンプレート管理」を追加
 
 messages/
 ├── ja.json                          # 変更: helpdeskInquiries, helpdeskTemplates名前空間、helpdeskNavへのキー追加

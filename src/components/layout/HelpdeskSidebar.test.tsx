@@ -47,7 +47,7 @@ describe("HelpdeskSidebar", () => {
     ).toBeTruthy();
   });
 
-  it("問い合わせ管理・テンプレート管理へのナビゲーション項目を表示する", () => {
+  it("申請管理・テンプレート管理へのナビゲーション項目を表示する", () => {
     renderHelpdeskSidebar();
 
     const inquiriesLink = screen.getByRole("link", {
@@ -82,7 +82,7 @@ describe("HelpdeskSidebar", () => {
     expect(faqLink.getAttribute("href")).toBe("/helpdesk/faq");
   });
 
-  it("問い合わせ詳細ページ表示中は問い合わせ管理項目がアクティブになる", () => {
+  it("問い合わせ詳細ページ表示中は申請管理項目がアクティブになる", () => {
     vi.mocked(usePathname).mockReturnValue("/helpdesk/inquiries/inquiry-001");
 
     renderHelpdeskSidebar();

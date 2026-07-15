@@ -50,7 +50,7 @@ describe("InquiryList", () => {
     const jsx = await InquiryList();
     render(jsx);
 
-    expect(screen.getByText("問い合わせはありません")).toBeTruthy();
+    expect(screen.getByText("申請はありません")).toBeTruthy();
   });
 
   it("getInquiriesが例外をthrowしたときエラーメッセージを表示する", async () => {
@@ -59,7 +59,7 @@ describe("InquiryList", () => {
     const jsx = await InquiryList();
     render(jsx);
 
-    expect(screen.getByText("問い合わせの取得に失敗しました")).toBeTruthy();
+    expect(screen.getByText("申請の取得に失敗しました")).toBeTruthy();
   });
 
   it("取得成功時に各行のタイトル・種別バッジ・本文プレビューを表示する", async () => {
@@ -90,7 +90,7 @@ describe("InquiryList", () => {
         "納品された商品の一部に破損が見られます。至急対応をお願いします。"
       )
     ).toBeTruthy();
-    expect(screen.getAllByText("問い合わせ一覧")).toHaveLength(1);
+    expect(screen.getAllByText("申請一覧")).toHaveLength(1);
   });
 
   it("titleが空文字の問い合わせでも代替ラベルでリンクが表示される", async () => {
@@ -120,13 +120,13 @@ describe("InquiryList", () => {
   it("空状態とエラー状態は異なるメッセージで表示される", async () => {
     getInquiriesMock.mockResolvedValueOnce([]);
     const { unmount } = render(await InquiryList());
-    const emptyText = screen.getByText("問い合わせはありません").textContent;
+    const emptyText = screen.getByText("申請はありません").textContent;
     unmount();
 
     getInquiriesMock.mockRejectedValueOnce(new Error("network error"));
     render(await InquiryList());
     const errorText = screen.getByText(
-      "問い合わせの取得に失敗しました"
+      "申請の取得に失敗しました"
     ).textContent;
 
     expect(emptyText).not.toBe(errorText);

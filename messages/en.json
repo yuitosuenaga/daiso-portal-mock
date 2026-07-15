@@ -30,7 +30,7 @@
     "sidebarLabel": "Helpdesk Navigation",
     "home": "Dashboard",
     "inquiryForm": "Application",
-    "inquiries": "Inquiry Management",
+    "inquiries": "Application Management",
     "templates": "Template Management",
     "links": "Links",
     "faq": "FAQ",
@@ -196,11 +196,11 @@
   },
   "helpdeskInquiries": {
     "list": {
-      "title": "Inquiry Management",
-      "description": "View inquiries from all companies, sorted by urgency.",
-      "empty": "No inquiries",
-      "error": "Failed to load inquiries",
-      "noResults": "No inquiries match the selected filters"
+      "title": "Application Management",
+      "description": "View applications from all companies, sorted by urgency.",
+      "empty": "No applications",
+      "error": "Failed to load applications",
+      "noResults": "No applications match the selected filters"
     },
     "detail": {
       "notFound": "Inquiry not found",
@@ -361,7 +361,7 @@
     "sidebarLabel": "Main Navigation",
     "dashboard": "Dashboard",
     "inquiryForm": "New Inquiry",
-    "inquiryList": "My Inquiries",
+    "inquiryList": "My Applications",
     "announcements": "Announcements",
     "links": "Links",
     "faq": "FAQ",
@@ -373,8 +373,8 @@
       "description": "Submit a new inquiry or request."
     },
     "inquiryList": {
-      "title": "My Inquiries",
-      "description": "Check the status of inquiries your company has submitted."
+      "title": "My Applications",
+      "description": "Check the status of applications your company has submitted."
     },
     "announcements": {
       "title": "Announcements",
@@ -402,10 +402,10 @@
       "title": "Reminders from Japan"
     },
     "priorityInquiriesPreview": {
-      "title": "Inquiries Needing Attention",
-      "empty": "There are no inquiries needing attention.",
-      "error": "Failed to load inquiries.",
-      "viewAll": "View all inquiries"
+      "title": "Applications Needing Attention",
+      "empty": "There are no applications needing attention.",
+      "error": "Failed to load applications.",
+      "viewAll": "View all applications"
     }
   },
   "helpdeskDashboard": {
@@ -414,8 +414,8 @@
       "reference": "Reference"
     },
     "inquiries": {
-      "title": "Inquiry List",
-      "description": "View in-progress inquiries submitted by all companies."
+      "title": "Application List",
+      "description": "View in-progress applications submitted by all companies."
     },
     "templates": {
       "title": "Template Management",
@@ -627,15 +627,15 @@
       "successDescription": "Your inquiry or request has been received.",
       "errorTitle": "Submission failed",
       "errorDescription": "Please try again later.",
-      "viewInquiryListLink": "View my inquiries"
+      "viewInquiryListLink": "View my applications"
     }
   },
   "inquiryList": {
     "list": {
-      "title": "Inquiry List",
+      "title": "Application List",
       "description": "View the list of inquiries and requests your company has submitted, along with their status.",
-      "empty": "No inquiries",
-      "error": "Failed to load inquiries",
+      "empty": "No applications",
+      "error": "Failed to load applications",
       "untitled": "(No title)"
     },
     "status": {
