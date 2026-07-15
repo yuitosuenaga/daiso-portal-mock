@@ -219,4 +219,115 @@ describe("announcementFormSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("attachments・linkedDocumentIdsが未指定の場合は空配列として検証を通過する", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.attachments).toEqual([]);
+      expect(result.data.linkedDocumentIds).toEqual([]);
+    }
+  });
+
+  it("添付ファイルが6件以上の場合はエラーになる", () => {
+    const attachments = Array.from({ length: 6 }, (_, i) => ({
+      id: `att-${i}`,
+      fileName: `file-${i}.pdf`,
+      fileType: "application/pdf",
+      fileSize: 1024,
+      dataUrl: "data:application/pdf;base64,AAAA",
+    }));
+
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("添付ファイルの形式が許可されていない場合はエラーになる", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "malicious.exe",
+          fileType: "application/x-msdownload",
+          fileSize: 1024,
+          dataUrl: "data:application/x-msdownload;base64,AAAA",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("添付ファイルのサイズが上限を超える場合はエラーになる", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "large.pdf",
+          fileType: "application/pdf",
+          fileSize: 6 * 1024 * 1024,
+          dataUrl: "data:application/pdf;base64,AAAA",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("紐づけドキュメントIDが6件以上の場合はエラーになる", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      linkedDocumentIds: ["1", "2", "3", "4", "5", "6"],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("紐づけドキュメントIDが5件以下であれば検証を通過する", () => {
+    const result = announcementFormSchema.safeParse({
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      linkedDocumentIds: ["1", "2", "3", "4", "5"],
+    });
+
+    expect(result.success).toBe(true);
+  });
 });

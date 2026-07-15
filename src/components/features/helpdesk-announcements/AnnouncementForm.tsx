@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
+import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
+import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +21,8 @@ import {
   type AnnouncementFormValues,
   type AnnouncementSubmitValues,
 } from "@/lib/validation/announcement";
+import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
+import type { Document } from "@/types/document";
 
 export interface AnnouncementFormProps {
   mode: "create" | "edit";
@@ -26,6 +30,8 @@ export interface AnnouncementFormProps {
   defaultValues?: AnnouncementFormValues;
   categoryOptions: SelectOption[];
   countryOptions: SelectOption[];
+  /** ドキュメント紐づけダイアログの選択候補となる、登録済みドキュメント全件（絞り込みなし）。 */
+  documentOptions: Document[];
   titleLabel: string;
   titlePlaceholder: string;
   bodyLabel: string;
@@ -53,6 +59,24 @@ export interface AnnouncementFormProps {
   countriesRequiredErrorMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
+  attachmentsLabel: string;
+  attachmentsHint: string;
+  attachmentsRemoveButtonLabel: string;
+  attachmentsSizeExceededMessage: string;
+  attachmentsTypeNotAllowedMessage: string;
+  attachmentsCountExceededMessage: string;
+  attachmentsReadFailedMessage: string;
+  linkedDocumentsLabel: string;
+  linkedDocumentsPickButtonLabel: string;
+  linkedDocumentsEmptyMessage: string;
+  linkedDocumentRemoveButtonLabel: string;
+  linkedDocumentsDialogTitle: string;
+  linkedDocumentsDialogConfirmLabel: string;
+  linkedDocumentsDialogCancelLabel: string;
+  linkedDocumentsDialogNoDocumentsMessage: string;
+  linkedDocumentsTargetingAllLabel: string;
+  linkedDocumentsTargetingCountriesPrefixLabel: string;
+  linkedDocumentsTargetingCompaniesPrefixLabel: string;
 }
 
 /**
@@ -64,6 +88,7 @@ export function AnnouncementForm({
   defaultValues,
   categoryOptions,
   countryOptions,
+  documentOptions,
   titleLabel,
   titlePlaceholder,
   bodyLabel,
@@ -91,9 +116,28 @@ export function AnnouncementForm({
   countriesRequiredErrorMessage,
   requiredIndicator,
   submitErrorMessage,
+  attachmentsLabel,
+  attachmentsHint,
+  attachmentsRemoveButtonLabel,
+  attachmentsSizeExceededMessage,
+  attachmentsTypeNotAllowedMessage,
+  attachmentsCountExceededMessage,
+  attachmentsReadFailedMessage,
+  linkedDocumentsLabel,
+  linkedDocumentsPickButtonLabel,
+  linkedDocumentsEmptyMessage,
+  linkedDocumentRemoveButtonLabel,
+  linkedDocumentsDialogTitle,
+  linkedDocumentsDialogConfirmLabel,
+  linkedDocumentsDialogCancelLabel,
+  linkedDocumentsDialogNoDocumentsMessage,
+  linkedDocumentsTargetingAllLabel,
+  linkedDocumentsTargetingCountriesPrefixLabel,
+  linkedDocumentsTargetingCompaniesPrefixLabel,
 }: AnnouncementFormProps) {
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const {
     register,
     handleSubmit,
@@ -113,6 +157,8 @@ export function AnnouncementForm({
       publishStartDate: "",
       publishEndDate: "",
       dueDate: "",
+      attachments: [],
+      linkedDocumentIds: [],
     },
   });
 
@@ -342,6 +388,97 @@ export function AnnouncementForm({
           />
         </FormField>
       )}
+
+      <Controller
+        control={control}
+        name="attachments"
+        render={({ field }) => (
+          <AttachmentField
+            id="announcement-attachments"
+            value={field.value ?? []}
+            onChange={field.onChange}
+            label={attachmentsLabel}
+            hint={attachmentsHint}
+            removeButtonLabel={attachmentsRemoveButtonLabel}
+            sizeExceededMessage={attachmentsSizeExceededMessage}
+            typeNotAllowedMessage={attachmentsTypeNotAllowedMessage}
+            countExceededMessage={attachmentsCountExceededMessage}
+            readFailedMessage={attachmentsReadFailedMessage}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="linkedDocumentIds"
+        render={({ field }) => {
+          const selectedIds = field.value ?? [];
+          const selectedDocuments = selectedIds
+            .map((id) => documentOptions.find((document) => document.id === id))
+            .filter((document): document is Document => document !== undefined);
+
+          return (
+            <FormField label={linkedDocumentsLabel} htmlFor="announcement-linked-documents-button">
+              <div className="flex flex-col gap-2">
+                {selectedDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {linkedDocumentsEmptyMessage}
+                  </p>
+                ) : (
+                  <ul className="flex flex-wrap gap-2">
+                    {selectedDocuments.map((document) => (
+                      <li
+                        key={document.id}
+                        className="flex items-center gap-2 rounded-md border border-input p-2 text-sm"
+                      >
+                        <span className="max-w-[12rem] truncate">
+                          {document.title}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          aria-label={`${linkedDocumentRemoveButtonLabel}: ${document.title}`}
+                          onClick={() =>
+                            field.onChange(
+                              selectedIds.filter((id) => id !== document.id)
+                            )
+                          }
+                        >
+                          {linkedDocumentRemoveButtonLabel}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Button
+                  id="announcement-linked-documents-button"
+                  type="button"
+                  variant="outline"
+                  className="w-fit"
+                  onClick={() => setIsDocumentDialogOpen(true)}
+                >
+                  {linkedDocumentsPickButtonLabel}
+                </Button>
+              </div>
+              <AnnouncementDocumentLinkDialog
+                open={isDocumentDialogOpen}
+                onOpenChange={setIsDocumentDialogOpen}
+                documentOptions={documentOptions}
+                selectedIds={selectedIds}
+                onConfirm={field.onChange}
+                maxCount={ATTACHMENT_MAX_COUNT}
+                dialogTitle={linkedDocumentsDialogTitle}
+                confirmButtonLabel={linkedDocumentsDialogConfirmLabel}
+                cancelButtonLabel={linkedDocumentsDialogCancelLabel}
+                noDocumentsMessage={linkedDocumentsDialogNoDocumentsMessage}
+                targetingAllLabel={linkedDocumentsTargetingAllLabel}
+                targetingCountriesPrefixLabel={linkedDocumentsTargetingCountriesPrefixLabel}
+                targetingCompaniesPrefixLabel={linkedDocumentsTargetingCompaniesPrefixLabel}
+              />
+            </FormField>
+          );
+        }}
+      />
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>

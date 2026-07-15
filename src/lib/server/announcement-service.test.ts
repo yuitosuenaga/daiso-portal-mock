@@ -17,6 +17,9 @@ vi.mock("@/lib/db/prisma", () => ({
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
+    document: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $transaction: vi.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
   },
 }));
@@ -56,6 +59,15 @@ function baseAnnouncementRecord(
     dueDate: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    attachments: {
+      id: string;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      dataUrl: string;
+      announcementId: string;
+    }[];
+    linkedDocuments: { id: string; announcementId: string; documentId: string }[];
   }> = {}
 ) {
   return {
@@ -73,6 +85,15 @@ function baseAnnouncementRecord(
     dueDate: null,
     createdAt: new Date("2026-07-01T09:00:00.000Z"),
     updatedAt: new Date("2026-07-01T09:00:00.000Z"),
+    attachments: [] as {
+      id: string;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      dataUrl: string;
+      announcementId: string;
+    }[],
+    linkedDocuments: [] as { id: string; announcementId: string; documentId: string }[],
     ...overrides,
   };
 }
@@ -300,6 +321,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "countries", countries: ["JP"] },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -334,6 +357,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       publishStartDate: "2026-08-01",
       publishEndDate: "2026-08-31",
       dueDate: "2026-08-15",
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -362,6 +387,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -387,6 +414,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
         status: "published",
         targeting: { scope: "all" },
         actionRequired: false,
+        attachments: [],
+        linkedDocumentIds: [],
       })
     ).rejects.toThrow(AnnouncementNotFoundError);
   });
@@ -406,6 +435,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -430,6 +461,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -454,6 +487,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "draft",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -475,6 +510,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "draft",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -508,6 +545,141 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
     });
     expect(prisma.announcement.delete).toHaveBeenCalledWith({ where: { id: "1" } });
     expect(prisma.$transaction).toHaveBeenCalled();
+  });
+
+  it("作成時に添付ファイル・紐づけドキュメントをネスト書き込みで保存する", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([
+      { id: "doc-1" },
+      { id: "doc-2" },
+    ] as never);
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        attachments: [
+          {
+            id: "att-1",
+            fileName: "manual.pdf",
+            fileType: "application/pdf",
+            fileSize: 1024,
+            dataUrl: "data:application/pdf;base64,AAAA",
+            announcementId: "1",
+          },
+        ],
+        linkedDocuments: [
+          { id: "link-1", announcementId: "1", documentId: "doc-1" },
+          { id: "link-2", announcementId: "1", documentId: "doc-2" },
+        ],
+      }) as never
+    );
+
+    const result = await createAnnouncementRecord({
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "manual.pdf",
+          fileType: "application/pdf",
+          fileSize: 1024,
+          dataUrl: "data:application/pdf;base64,AAAA",
+        },
+      ],
+      linkedDocumentIds: ["doc-1", "doc-2"],
+    });
+
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          attachments: {
+            create: [
+              {
+                fileName: "manual.pdf",
+                fileType: "application/pdf",
+                fileSize: 1024,
+                dataUrl: "data:application/pdf;base64,AAAA",
+              },
+            ],
+          },
+          linkedDocuments: {
+            create: [{ documentId: "doc-1" }, { documentId: "doc-2" }],
+          },
+        }),
+      })
+    );
+    expect(result.attachments).toEqual([
+      {
+        id: "att-1",
+        fileName: "manual.pdf",
+        fileType: "application/pdf",
+        fileSize: 1024,
+        dataUrl: "data:application/pdf;base64,AAAA",
+      },
+    ]);
+    expect(result.linkedDocumentIds).toEqual(["doc-1", "doc-2"]);
+  });
+
+  it("存在しないlinkedDocumentIdsは無言で除外して作成する", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([{ id: "doc-1" }] as never);
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+
+    await createAnnouncementRecord({
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: ["doc-1", "doc-deleted"],
+    });
+
+    expect(prisma.document.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ["doc-1", "doc-deleted"] } },
+      select: { id: true },
+    });
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          linkedDocuments: { create: [{ documentId: "doc-1" }] },
+        }),
+      })
+    );
+  });
+
+  it("更新時に添付ファイル・紐づけドキュメントを全置換する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+    vi.mocked(prisma.document.findMany).mockResolvedValue([{ id: "doc-2" }] as never);
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: ["doc-2"],
+    });
+
+    expect(prisma.announcement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          attachments: { deleteMany: {}, create: [] },
+          linkedDocuments: { deleteMany: {}, create: [{ documentId: "doc-2" }] },
+        }),
+      })
+    );
   });
 });
 

@@ -4,6 +4,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
 import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
 import { getAnnouncementByIdForHelpdesk } from "@/lib/api/announcements";
+import { getAllDocuments } from "@/lib/api/documents";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import type { AnnouncementFormValues } from "@/lib/validation/announcement";
@@ -55,6 +56,8 @@ export default async function HelpdeskAnnouncementEditPage({
     label: tCountries(code),
   }));
 
+  const documentOptions = await getAllDocuments();
+
   return (
     <div className="max-w-2xl space-y-4">
       {backToListLink}
@@ -85,9 +88,15 @@ export default async function HelpdeskAnnouncementEditPage({
           publishStartDate: announcement.publishStartDate ?? "",
           publishEndDate: announcement.publishEndDate ?? "",
           dueDate: announcement.dueDate ?? "",
+          // `Announcement.attachments`の`fileType`はドメイン型として`string`だが、
+          // 保存済みデータは常に`announcementFormSchema`で検証済みのため、
+          // フォームの厳密なMIMEタイプ型へ安全に絞り込める。
+          attachments: announcement.attachments as AnnouncementFormValues["attachments"],
+          linkedDocumentIds: announcement.linkedDocumentIds,
         }}
         categoryOptions={categoryOptions}
         countryOptions={countryOptions}
+        documentOptions={documentOptions}
         titleLabel={t("titleLabel")}
         titlePlaceholder={t("titlePlaceholder")}
         bodyLabel={t("bodyLabel")}
@@ -115,6 +124,28 @@ export default async function HelpdeskAnnouncementEditPage({
         countriesRequiredErrorMessage={t("validation.countriesRequired")}
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
+        attachmentsLabel={t("attachmentsLabel")}
+        attachmentsHint={t("attachmentsHint")}
+        attachmentsRemoveButtonLabel={t("attachmentsRemoveButtonLabel")}
+        attachmentsSizeExceededMessage={t("validation.attachmentsSizeExceeded")}
+        attachmentsTypeNotAllowedMessage={t("validation.attachmentsTypeNotAllowed")}
+        attachmentsCountExceededMessage={t("validation.attachmentsCountExceeded")}
+        attachmentsReadFailedMessage={t("validation.attachmentsReadFailed")}
+        linkedDocumentsLabel={t("linkedDocumentsLabel")}
+        linkedDocumentsPickButtonLabel={t("linkedDocumentsPickButtonLabel")}
+        linkedDocumentsEmptyMessage={t("linkedDocumentsEmptyMessage")}
+        linkedDocumentRemoveButtonLabel={t("linkedDocumentRemoveButtonLabel")}
+        linkedDocumentsDialogTitle={t("linkedDocumentsDialogTitle")}
+        linkedDocumentsDialogConfirmLabel={t("linkedDocumentsDialogConfirmLabel")}
+        linkedDocumentsDialogCancelLabel={t("linkedDocumentsDialogCancelLabel")}
+        linkedDocumentsDialogNoDocumentsMessage={t("linkedDocumentsDialogNoDocumentsMessage")}
+        linkedDocumentsTargetingAllLabel={t("linkedDocumentsTargetingAllLabel")}
+        linkedDocumentsTargetingCountriesPrefixLabel={t(
+          "linkedDocumentsTargetingCountriesPrefixLabel"
+        )}
+        linkedDocumentsTargetingCompaniesPrefixLabel={t(
+          "linkedDocumentsTargetingCompaniesPrefixLabel"
+        )}
       />
     </div>
   );

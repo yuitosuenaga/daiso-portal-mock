@@ -2,6 +2,15 @@ import { z } from "zod";
 
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
+import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
+import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
+
+/**
+ * ドキュメント紐づけ（`linkedDocumentIds`）の検証スキーマ。件数上限は直接アップロード添付と
+ * 同じ`ATTACHMENT_MAX_COUNT`を流用する。`Document`自体の存在確認はサービス層で行い、
+ * ここではID配列としての形状のみを検証する。
+ */
+const linkedDocumentIdsSchema = z.array(z.string().min(1)).max(ATTACHMENT_MAX_COUNT);
 
 const announcementTargetingSchema = z.discriminatedUnion("scope", [
   z.object({ scope: z.literal("all") }),
@@ -37,6 +46,8 @@ export const announcementFormSchema = z
     publishStartDate: optionalDateField,
     publishEndDate: optionalDateField,
     dueDate: optionalDateField,
+    attachments: inquiryAttachmentsArraySchema.default([]),
+    linkedDocumentIds: linkedDocumentIdsSchema.default([]),
   })
   .superRefine((values, ctx) => {
     if (

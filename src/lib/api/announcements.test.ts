@@ -67,6 +67,8 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
     actionRequired: false,
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
+    attachments: [],
+    linkedDocumentIds: [],
     ...overrides,
   };
 }
@@ -193,6 +195,8 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
     status: "published",
     targeting: { scope: "all" },
     actionRequired: false,
+    attachments: [],
+    linkedDocumentIds: [],
   };
 
   it("ヘルプデスクセッションでcreateAnnouncementRecordに委譲する", async () => {

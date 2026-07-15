@@ -1,8 +1,16 @@
 // お知らせ・情報共有機能のドメイン型定義（フェーズ1の仮定義）。
 // category の選択肢はヘルプデスク担当者へのヒアリング後に変更される前提。
 
+import type { InquiryAttachment } from "@/types/attachment";
+
 /** お知らせの種別（category）。ヒアリング後に選択肢が変更される前提の仮値。 */
 export type AnnouncementCategory = "maintenance" | "policy" | "incident" | "other";
+
+/**
+ * お知らせに直接アップロードする添付ファイル。`inquiry-form`spec所有の`InquiryAttachment`と
+ * 同一形状（Base64データURL方式）のため型エイリアスとして再利用する。
+ */
+export type AnnouncementAttachment = InquiryAttachment;
 
 /** お知らせの公開状態。下書き中は海外販社側に一切表示されない。 */
 export type AnnouncementStatus = "draft" | "published";
@@ -38,6 +46,10 @@ export interface Announcement {
   createdAt: string;
   /** 更新日時（ISO 8601形式）。 */
   updatedAt: string;
+  /** 直接アップロードされた添付ファイル（最大5件）。 */
+  attachments: AnnouncementAttachment[];
+  /** `documents-management`spec配下に登録済みのドキュメントへの参照ID（最大5件）。 */
+  linkedDocumentIds: string[];
 }
 
 /**

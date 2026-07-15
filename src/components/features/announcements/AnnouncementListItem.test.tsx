@@ -32,6 +32,8 @@ const BASE_ANNOUNCEMENT: Announcement = {
   dueDate: null,
   createdAt: "2026-07-01T09:00:00Z",
   updatedAt: "2026-07-01T09:00:00Z",
+  attachments: [],
+  linkedDocumentIds: [],
 };
 
 describe("AnnouncementListItem", () => {

@@ -18,6 +18,8 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
     actionRequired: false,
     createdAt: "2026-06-01T00:00:00.000Z",
     updatedAt: "2026-06-01T00:00:00.000Z",
+    attachments: [],
+    linkedDocumentIds: [],
     ...overrides,
   };
 }

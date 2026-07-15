@@ -51,6 +51,8 @@ function makeAnnouncement(
     actionRequired: false,
     createdAt: publishedAt,
     updatedAt: publishedAt,
+    attachments: [],
+    linkedDocumentIds: [],
   };
 }
 

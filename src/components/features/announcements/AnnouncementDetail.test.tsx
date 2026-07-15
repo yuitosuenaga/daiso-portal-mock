@@ -55,6 +55,12 @@ vi.mock("@/lib/actions/announcement-tracking", () => ({
   completeAnnouncementAction: (id: string) => completeAnnouncementActionMock(id),
 }));
 
+const getDocumentByIdMock = vi.fn();
+
+vi.mock("@/lib/api/documents", () => ({
+  getDocumentById: (id: string) => getDocumentByIdMock(id),
+}));
+
 vi.mock("@/lib/server/auth-session", () => ({
   requireApplicantSession: async () => ({
     claims: {
@@ -102,6 +108,8 @@ const ANNOUNCEMENT: Announcement = {
   actionRequired: false,
   createdAt: "2026-07-01T09:00:00Z",
   updatedAt: "2026-07-01T09:00:00Z",
+  attachments: [],
+  linkedDocumentIds: [],
 };
 
 describe("AnnouncementDetail", () => {
@@ -109,6 +117,8 @@ describe("AnnouncementDetail", () => {
     getAnnouncementSelfStatusMock.mockClear();
     confirmAnnouncementActionMock.mockClear();
     completeAnnouncementActionMock.mockClear();
+    getDocumentByIdMock.mockReset();
+    getDocumentByIdMock.mockResolvedValue(null);
   });
 
   it("getAnnouncementByIdがnullを返したとき見つからないメッセージを表示する", async () => {
@@ -238,5 +248,77 @@ describe("AnnouncementDetail", () => {
     await waitFor(() => {
       expect(confirmAnnouncementActionMock).toHaveBeenCalledWith("1");
     });
+  });
+
+  it("添付ファイル・紐づけドキュメントが両方とも0件のとき添付ファイル見出しを表示しない", async () => {
+    getAnnouncementByIdMock.mockResolvedValueOnce(ANNOUNCEMENT);
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.queryByText("添付ファイル")).toBeNull();
+  });
+
+  it("直接アップロードの添付ファイルを常に表示する", async () => {
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "manual.pdf",
+          fileType: "application/pdf",
+          fileSize: 1024,
+          dataUrl: "data:application/pdf;base64,AAAA",
+        },
+      ],
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.getByText("添付ファイル")).toBeTruthy();
+    expect(screen.getByText(/manual\.pdf/)).toBeTruthy();
+  });
+
+  it("閲覧者から見て公開範囲内の紐づけドキュメントをPdfViewerで表示する", async () => {
+    getDocumentByIdMock.mockImplementation(async (id: string) =>
+      id === "doc-1"
+        ? {
+            id: "doc-1",
+            title: "業務マニュアル",
+            fileName: "manual.pdf",
+            fileType: "application/pdf",
+            fileSize: 2048,
+            dataUrl: "data:application/pdf;base64,BBBB",
+            targeting: { scope: "all" },
+            uploadedAt: "2026-07-01T00:00:00Z",
+          }
+        : null
+    );
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      linkedDocumentIds: ["doc-1"],
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.getByText("添付ファイル")).toBeTruthy();
+    expect(screen.getByTitle("業務マニュアル")).toBeTruthy();
+    expect(screen.getByText("ダウンロード")).toBeTruthy();
+  });
+
+  it("公開範囲に含まれない紐づけドキュメントは表示しない", async () => {
+    getDocumentByIdMock.mockResolvedValue(null);
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      linkedDocumentIds: ["doc-not-visible"],
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(getDocumentByIdMock).toHaveBeenCalledWith("doc-not-visible");
+    expect(screen.queryByText("添付ファイル")).toBeNull();
   });
 });

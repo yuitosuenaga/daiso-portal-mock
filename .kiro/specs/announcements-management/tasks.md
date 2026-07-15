@@ -617,37 +617,37 @@
 
 ## 追加ラウンド（2026-07-15）: 添付ファイル（直接アップロード・ドキュメント紐づけ）
 
-- [ ] 25. 基盤: Prismaスキーマ・型の追加
-- [ ] 25.1 `AnnouncementAttachment`・`AnnouncementDocumentLink`のPrismaモデルを追加しマイグレーションする
+- [x] 25. 基盤: Prismaスキーマ・型の追加
+- [x] 25.1 `AnnouncementAttachment`・`AnnouncementDocumentLink`のPrismaモデルを追加しマイグレーションする
   - `prisma/schema.prisma`に両モデルを追加し、`Announcement`・`Document`に逆リレーションを追加する（両FKとも`onDelete: Cascade`）
   - `npx prisma migrate dev --name add_announcement_attachments_and_document_links`を実行し、マイグレーションが成功することで完了とする
   - _Requirements: 24.7_
   - _Boundary: prisma/schema.prisma_
 
-- [ ] 25.2 (P) `Announcement`型に`attachments`・`linkedDocumentIds`を追加する
+- [x] 25.2 (P) `Announcement`型に`attachments`・`linkedDocumentIds`を追加する
   - `types/announcement.ts`に`AnnouncementAttachment`（`InquiryAttachment`のエイリアス）を追加し、`Announcement`・`CreateAnnouncementInput`に`attachments: AnnouncementAttachment[]`・`linkedDocumentIds: string[]`を追加する
   - 型チェックがパスすることで完了とする
   - _Requirements: 24.3, 24.7_
   - _Boundary: types/announcement.ts_
   - _Depends: 25.1_
 
-- [ ] 26. コア: バリデーションスキーマの拡張
-- [ ] 26.1 `announcementFormSchema`に添付・紐づけの検証を追加する
+- [x] 26. コア: バリデーションスキーマの拡張
+- [x] 26.1 `announcementFormSchema`に添付・紐づけの検証を追加する
   - `lib/constants/attachment.ts`の`ATTACHMENT_ALLOWED_MIME_TYPES`・`ATTACHMENT_MAX_FILE_SIZE_BYTES`・`ATTACHMENT_MAX_COUNT`を再利用し、`attachments`（最大5件、形式・サイズ検証）・`linkedDocumentIds`（最大5件のID配列）のzodスキーマを追加する
   - 添付6件以上、不正形式、サイズ超過、紐づけ6件以上の入力がそれぞれバリデーションエラーになることで完了とする
   - _Requirements: 24.2, 24.5_
   - _Boundary: lib/validation/announcement.ts_
   - _Depends: 25.2_
 
-- [ ] 27. コア: サービス層・マッパーの実装
-- [ ] 27.1 `announcement-mapper.ts`に添付・紐づけのマッピングを追加する
+- [x] 27. コア: サービス層・マッパーの実装
+- [x] 27.1 `announcement-mapper.ts`に添付・紐づけのマッピングを追加する
   - Prismaクエリの`include`に`attachments`・`linkedDocuments`を追加し、`mapAnnouncement`が`attachments`・`linkedDocumentIds`（`linkedDocuments`から`documentId`を抽出した配列）を返すようにする
   - 型チェック・既存テストがパスすることで完了とする
   - _Requirements: 24.7_
   - _Boundary: lib/server/announcement-mapper.ts_
   - _Depends: 25.1_
 
-- [ ] 27.2 作成・更新時に添付・紐づけを永続化する
+- [x] 27.2 作成・更新時に添付・紐づけを永続化する
   - `createAnnouncementRecord`で`attachments`・`linkedDocumentIds`をネスト書き込みで保存する。`linkedDocumentIds`は事前に`prisma.document.findMany`で実在確認し、存在しないIDは無言で除外する
   - `updateAnnouncementRecord`で既存の添付・紐づけを`deleteMany`＋`create`で全置換する
   - すべての読み取り系関数（`listAnnouncementsVisibleToCountry`・`findAnnouncementVisibleToCountry`・`listAllAnnouncements`・`findAnnouncementById`）に同じ`include`を追加する
@@ -656,29 +656,29 @@
   - _Boundary: lib/server/announcement-service.ts_
   - _Depends: 27.1, 26.1_
 
-- [ ] 27.3 削除時のカスケード動作を確認する
+- [x] 27.3 削除時のカスケード動作を確認する
   - `deleteAnnouncementRecord`実行後、関連する`AnnouncementAttachment`・`AnnouncementDocumentLink`がカスケード削除されエラーが発生しないことを確認する
   - _Requirements: 24.7_
   - _Boundary: lib/server/announcement-service.ts_
   - _Depends: 27.2_
 
-- [ ] 28. コア: 直接アップロードUIの実装
-- [ ] 28.1 `AnnouncementForm`に直接アップロードフィールドを追加する
+- [x] 28. コア: 直接アップロードUIの実装
+- [x] 28.1 `AnnouncementForm`に直接アップロードフィールドを追加する
   - `inquiry-form`所有の`AttachmentField`を`Controller`経由で組み込み、`attachments`の追加・削除ができるようにする
   - 上限超過・不正形式・サイズ超過時にエラーメッセージが表示されることで完了とする
   - _Requirements: 24.1, 24.2, 24.3, 24.6_
   - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.tsx_
   - _Depends: 26.1_
 
-- [ ] 29. コア: ドキュメント紐づけUIの実装
-- [ ] 29.1 `AnnouncementDocumentLinkDialog`を新規実装する
+- [x] 29. コア: ドキュメント紐づけUIの実装
+- [x] 29.1 `AnnouncementDocumentLinkDialog`を新規実装する
   - `AnnouncementRecipientDialog.tsx`のDialog構成を踏襲し、props経由で受け取った`documentOptions: Document[]`をチェックボックスリスト（タイトル・ファイルサイズ・公開範囲サマリー）として表示する
   - 5件選択済みの状態で追加選択しようとした場合、それ以上選択できないことで完了とする
   - _Requirements: 24.4, 24.5_
   - _Boundary: components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog.tsx_
   - _Depends: 26.1_
 
-- [ ] 29.2 `AnnouncementForm`にドキュメント紐づけダイアログを統合する
+- [x] 29.2 `AnnouncementForm`にドキュメント紐づけダイアログを統合する
   - 「ドキュメントから選択」ボタンでダイアログを開き、確定時に`linkedDocumentIds`を更新する。選択済みドキュメントをチップ表示し、個別に削除できるようにする
   - `new`/`edit`ページから`getAllDocuments()`の結果を`documentOptions`として渡す。編集ページの`defaultValues`に`attachments`・`linkedDocumentIds`を追加する
   - 選択・削除操作後、フォーム送信内容に正しく反映されることで完了とする
@@ -686,8 +686,8 @@
   - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.tsx, app/[locale]/helpdesk/(dashboard)/announcements_
   - _Depends: 29.1, 27.2_
 
-- [ ] 30. 統合: 申請者側詳細画面への表示
-- [ ] 30.1 `AnnouncementDetail`に「添付ファイル」セクションを追加する
+- [x] 30. 統合: 申請者側詳細画面への表示
+- [x] 30.1 `AnnouncementDetail`に「添付ファイル」セクションを追加する
   - 直接アップロード添付は`helpdesk-inquiries`所有の`AttachmentPreviewList`で常に表示する
   - 紐づけドキュメントは各`linkedDocumentIds`を`getDocumentById(id)`（申請者セッションスコープ、可視性フィルタ済み）で解決し、`null`以外の結果のみ`documents`所有の`PdfViewer`でインラインプレビュー表示する
   - 両方とも0件の場合は「添付ファイル」見出し自体を表示しない
@@ -697,27 +697,27 @@
   - _Boundary: components/features/announcements/AnnouncementDetail.tsx_
   - _Depends: 27.2_
 
-- [ ] 31. 検証: 単体テスト
-- [ ] 31.1 (P) バリデーションの単体テストを実装する
+- [x] 31. 検証: 単体テスト
+- [x] 31.1 (P) バリデーションの単体テストを実装する
   - 添付5件超・不正形式・サイズ超過・紐づけ5件超がそれぞれ拒否されることを検証する
   - 全テストがパスすることで完了とする
   - _Requirements: 24.2, 24.5_
   - _Depends: 26.1_
 
-- [ ] 31.2 (P) サービス層の単体テストを実装する
+- [x] 31.2 (P) サービス層の単体テストを実装する
   - 作成・更新での添付・紐づけの永続化・全置換、削除時のカスケード、存在しない`linkedDocumentIds`の無言除外を検証する
   - 全テストがパスすることで完了とする
   - _Requirements: 24.7_
   - _Depends: 27.2, 27.3_
 
-- [ ] 31.3 (P) `AnnouncementDocumentLinkDialog`のコンポーネントテストを実装する
+- [x] 31.3 (P) `AnnouncementDocumentLinkDialog`のコンポーネントテストを実装する
   - 一覧表示、5件上限、公開範囲サマリー表示を検証する
   - 全テストがパスすることで完了とする
   - _Requirements: 24.4, 24.5_
   - _Depends: 29.1_
 
 - [ ] 32. 検証: 統合テスト・実機確認
-- [ ] 32.1 紐づけドキュメントの可視性フィルタの統合テストを実装する
+- [x] 32.1 紐づけドキュメントの可視性フィルタの統合テストを実装する
   - 紐づけドキュメントの公開範囲に閲覧者の会社・国が含まれない場合に詳細画面へ表示されないこと、含まれる場合は`PdfViewer`で表示されることを検証する
   - 全テストがパスすることで完了とする
   - _Requirements: 24.10, 24.11_
