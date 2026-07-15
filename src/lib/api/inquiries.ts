@@ -6,6 +6,7 @@ import {
   UnauthorizedSessionError,
 } from "@/lib/server/auth-session";
 import { getSession } from "@/lib/server/get-session";
+import { createInquirySchema } from "@/lib/validation/inquiry";
 import {
   createInquiryRecord,
   findInquiryById as findInquiryByIdService,
@@ -33,6 +34,10 @@ function summarize(inquiries: Inquiry[]): InquiryStatusSummary {
  * ヘルプデスク担当者が申請者に代わって代理登録する場合は`proxyCompanyId`を渡す。
  * この場合はヘルプデスクセッションを要求し、渡された会社IDへ紐付けて登録する
  * （`claims.companyId`のような自社スコープを持たないため、呼び出し元が対象会社を明示する）。
+ *
+ * `input`は`createInquirySchema`で検証してから永続化する。Server Action経由（クライアント
+ * 検証のバイパスが可能）・`POST /api/inquiries`経由の両方の呼び出し元で共有される関数のため、
+ * ここで検証しないと添付ファイル件数・サイズや不正なenum値が無制限に書き込まれてしまう。
  */
 export async function createInquiry(
   input: CreateInquiryInput,
@@ -41,11 +46,13 @@ export async function createInquiry(
   const session = await getSession();
 
   if (session?.claims?.role === "applicant") {
-    return createInquiryRecord({ data: input, companyId: session.claims.companyId });
+    const data = createInquirySchema.parse(input);
+    return createInquiryRecord({ data, companyId: session.claims.companyId });
   }
 
   if (session?.claims?.role === "helpdesk" && proxyCompanyId) {
-    return createInquiryRecord({ data: input, companyId: proxyCompanyId });
+    const data = createInquirySchema.parse(input);
+    return createInquiryRecord({ data, companyId: proxyCompanyId });
   }
 
   throw new UnauthorizedSessionError(
