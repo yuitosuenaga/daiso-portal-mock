@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { HelpdeskHeader } from "./HelpdeskHeader";
 import { HelpdeskSidebar } from "./HelpdeskSidebar";
 
@@ -11,6 +12,7 @@ interface HelpdeskAppShellProps {
 
 export function HelpdeskAppShell({ children }: HelpdeskAppShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const t = useTranslations("helpdeskAppShell");
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -21,7 +23,7 @@ export function HelpdeskAppShell({ children }: HelpdeskAppShellProps) {
       <button
         onClick={() => setIsSidebarCollapsed((prev) => !prev)}
         className="hidden md:flex lg:hidden fixed top-16 left-0 z-20 w-16 items-center justify-center py-2 text-sidebar-foreground hover:text-white bg-sidebar"
-        aria-label={isSidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"}
+        aria-label={isSidebarCollapsed ? t("expandSidebar") : t("collapseSidebar")}
         aria-expanded={!isSidebarCollapsed}
         aria-controls="helpdesk-sidebar"
       >

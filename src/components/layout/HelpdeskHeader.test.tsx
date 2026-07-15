@@ -1,9 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import { HelpdeskHeader } from "@/components/layout/HelpdeskHeader";
+import { signOut } from "next-auth/react";
 import messages from "../../../messages/ja.json";
+
+vi.mock("next-auth/react", () => ({
+  signOut: vi.fn(),
+}));
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -45,5 +50,15 @@ describe("HelpdeskHeader", () => {
       name: messages.helpdeskHeader.switchToApplicant,
     });
     expect(link.getAttribute("href")).toBe("/");
+  });
+
+  it("ログアウトボタンをクリックするとsignOutが呼ばれる", () => {
+    renderHelpdeskHeader();
+    const button = screen.getByRole("button", {
+      name: messages.helpdeskHeader.logout,
+    });
+    fireEvent.click(button);
+
+    expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/ja/helpdesk/login" });
   });
 });
