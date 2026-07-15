@@ -728,3 +728,45 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 24.1, 24.4, 24.8_
   - _Depends: 30.1_
+
+- [ ] 33. Core: 管理フォーム（AnnouncementForm）へのPDFインラインプレビュー統合
+- [ ] 33.1 直接アップロードのPDF添付にインラインプレビューを追加する
+  - `attachments`のうち`fileType === "application/pdf"`のものについて、既存のチップ表示に加えて`documents`spec所有の`PdfViewer`を1件ずつ描画する。画像添付は既存のサムネイル表示のまま変更しない
+  - フォームでPDFファイルをアップロードした直後に、保存前でもその場でPDFの内容がプレビュー表示されることで完了とする
+  - _Requirements: 25.1, 25.3, 25.8_
+  - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.tsx_
+
+- [ ] 33.2 紐づけドキュメントにインラインプレビューを追加する
+  - 選択済みの`linkedDocumentIds`（`documentOptions`から解決した`Document[]`）それぞれについて、既存のチップ表示に加えて`PdfViewer`を1件ずつ描画する
+  - ドキュメントを紐づけた直後に、保存前でもその場でPDFの内容がプレビュー表示されることで完了とする
+  - _Requirements: 25.2, 25.8_
+  - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.tsx_
+  - _Depends: 33.1_
+
+- [ ] 34. (P) Core: 詳細画面（AnnouncementDetail）へのPDFインラインプレビュー統合
+- [ ] 34.1 (P) 直接アップロード添付をMIMEタイプで振り分けてプレビュー表示する
+  - `announcement.attachments`を画像（`image/*`）とPDF（`application/pdf`）に振り分け、画像は既存どおり`AttachmentPreviewList`にまとめ、PDFは1件ずつ`PdfViewer`で表示する
+  - 紐づけドキュメントの可視性フィルタ・`PdfViewer`表示（既存）は変更しない
+  - 海外販社側詳細画面で、直接アップロードしたPDF添付がダウンロードせずその場で内容確認できることで完了とする
+  - _Requirements: 25.4, 25.5, 25.6, 25.7, 25.8_
+  - _Boundary: components/features/announcements/AnnouncementDetail.tsx_
+
+- [ ] 35. 検証: コンポーネントテスト
+- [ ] 35.1 (P) `AnnouncementForm`のPDFプレビュー表示の単体テストを実装する
+  - PDF添付・紐づけドキュメントを渡したときに件数分のプレビュー要素が描画され、画像添付では描画されないことを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 25.1, 25.2, 25.3_
+  - _Depends: 33.2_
+
+- [ ] 35.2 (P) `AnnouncementDetail`のPDFプレビュー表示の単体テストを実装する
+  - PDF添付を渡したときに`PdfViewer`のダウンロードリンクがファイル名で表示され、画像添付では従来どおり`AttachmentPreviewList`のみが描画されることを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 25.4, 25.5, 25.6_
+  - _Depends: 34.1_
+
+- [ ] 36. 検証: 実機確認
+- [ ] 36.1 日本語・英語両ロケール、タブレット幅（768px）での表示確認
+  - 管理フォーム・詳細画面のPDFプレビューが、両ロケール・タブレット幅で横スクロールを起こさず表示され、ダウンロードリンクが機能することをブラウザで確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 25.1, 25.2, 25.4, 25.6_
+  - _Depends: 33.2, 34.1_

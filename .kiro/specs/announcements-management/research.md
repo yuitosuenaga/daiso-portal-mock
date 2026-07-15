@@ -165,3 +165,31 @@
 - `src/lib/server/auth-session.ts` — 実装済みの申請者・ヘルプデスクセッションガード
 - `src/lib/api/announcements.ts` — `findAnnouncementVisibleToCountry`による可視性判定の既存実装
 - `src/lib/actions/announcement-tracking.ts` — `sendAnnouncementRemindersAction`の`revalidatePath`パターン
+
+## Research Log（2026-07-15追加ラウンド・第2弾: 添付ファイル・紐づけドキュメントのPDFインラインプレビュー）
+
+### 既存のPDFプレビュー実装パターンの調査
+- **Context**: `documents-management`spec側で既に確立されているPDFプレビュー体験を、お知らせの添付・紐づけドキュメントにも広げられないかを調査した
+- **Sources Consulted**: `src/components/features/documents/PdfViewer.tsx`、`src/components/features/helpdesk-documents/DocumentDetailPanel.tsx`、`src/components/features/announcements/AnnouncementDetail.tsx`、`src/components/features/helpdesk-announcements/AnnouncementForm.tsx`、`src/components/features/inquiry-form/AttachmentField.tsx`
+- **Findings**:
+  - `PdfViewer`（iframe＋常設ダウンロードリンク）は既に`documents`spec所有のコンポーネントとして存在し、`AnnouncementDetail`の紐づけドキュメント表示で既に再利用されている
+  - `DocumentDetailPanel`は、`DocumentForm`（フォーム本体）とは別に`PdfViewer`を並べて描画するパターンをとっており、フォームコンポーネント自体は変更していない
+  - `AttachmentField`（`inquiry-form`spec所有）は`InquiryForm`・`ReplyForm`・`ApplicantMessageForm`・`AnnouncementForm`の4箇所から再利用される共有コンポーネントであり、内部実装を変更すると影響範囲が本spec境界を超える
+- **Implications**: `AttachmentField`自体は変更せず、`AnnouncementForm`側で`watch`/`Controller`の`field.value`からPDF形式の添付・紐づけドキュメントを抽出し、`DocumentDetailPanel`と同じ「フォームの外側に`PdfViewer`を並べて描画する」パターンをそのまま適用する
+
+### Design Decisions（追加分）
+
+#### Decision: 共有コンポーネント（`AttachmentField`）を変更せず、プレビューをその外側に追加する
+- **Context**: 管理フォームでPDFプレビューを追加する際、`AttachmentField`内部にプレビューを組み込むか、外側に並べて追加するか
+- **Alternatives Considered**: 1. `AttachmentField`にPDFプレビュー機能を内蔵する 2. `AnnouncementForm`側で`AttachmentField`の外側に`PdfViewer`を並べて描画する（Option A）
+- **Selected Approach**: Option A
+- **Rationale**: `AttachmentField`は4つの機能（問い合わせフォーム・返信フォーム・追加メッセージフォーム・お知らせフォーム）で共有されており、内部変更は本spec境界を超える影響を持つ。`documents-management`specの`DocumentDetailPanel`が確立した「フォームの外側にプレビューを並べる」パターンをそのまま踏襲すれば、共有コンポーネントに一切手を加えずに実現できる
+- **Trade-offs**: チップ表示とプレビューが別々の場所に描画されるため、`DocumentDetailPanel`と同様にやや冗長な見た目になるが、既存踏襲パターンとして許容する
+- **Follow-up**: なし
+
+### Risks & Mitigations（追加分）
+- 添付・紐づけドキュメントが複数件になると、フォーム内に複数の`PdfViewer`（各`h-[50vh]`のiframe）が縦に並び、スクロール量が増える — 既存の`documents`一覧画面・`DocumentDetailPanel`でも同種のトレードオフを許容しており、本ラウンドでも同様に許容する
+
+### References（追加分）
+- `src/components/features/documents/PdfViewer.tsx` — 再利用対象のPDFプレビューコンポーネント
+- `src/components/features/helpdesk-documents/DocumentDetailPanel.tsx` — 「フォームの外側にプレビューを並べる」パターンの参照元

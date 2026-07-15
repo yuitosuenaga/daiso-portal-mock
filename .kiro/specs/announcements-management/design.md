@@ -1383,3 +1383,152 @@ interface AnnouncementTrackingSelfActions {
   - 「対応完了にする」相当の呼び出し後、未対応者一覧（要件14）から自社の担当者が除外されること
 
 ---
+
+## 追加ラウンド（2026-07-15・第2弾）: 添付ファイル・紐づけドキュメントのPDFインラインプレビュー
+
+### Overview（追加分）
+前ラウンド（要件24）で追加した添付ファイル・紐づけドキュメントの表示を拡張し、`documents-management`spec側の詳細/編集画面（`DocumentDetailPanel`）と同様のインラインPDFプレビュー（`PdfViewer`）を、ヘルプデスク側の新規作成・編集フォーム（`AnnouncementForm`）と海外販社側詳細画面（`AnnouncementDetail`）の両方に適用する。**Purpose**: ヘルプデスク担当者・海外販社担当者の双方が、添付・紐づけされたPDFの中身をダウンロードせずその場で確認できるようにする。**Impact**: 新規テーブル・型追加は発生しない。既存の`AnnouncementForm`・`AnnouncementDetail`内の表示分岐のみを変更する純粋なUI拡張である。
+
+### Goals（追加分）
+- `AnnouncementForm`で、直接アップロード済みのPDF添付ファイル・紐づけ済みドキュメント（常にPDF）について、`PdfViewer`によるインラインプレビューを表示する
+- `AnnouncementDetail`で、直接アップロード済みのPDF添付ファイルについて、`PdfViewer`によるインラインプレビューを表示する（紐づけドキュメントは前ラウンドで対応済み）
+- 画像添付の既存のサムネイル表示（`AttachmentField`・`AttachmentPreviewList`が提供する標準動作）は変更しない
+
+### Non-Goals（追加分）
+- `AttachmentField`・`AttachmentPreviewList`・`PdfViewer`自体の実装変更（いずれも読み取り専用で組み合わせて使うのみ）
+- 紐づけドキュメントの公開範囲（`DocumentTargeting`）による可視性フィルタロジックの変更
+- 一覧画面・ダッシュボードウィジェットへのプレビュー表示
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `AnnouncementForm.tsx`における、直接アップロードのPDF添付ファイル・紐づけドキュメントそれぞれに対する`PdfViewer`表示の組み込み（`AttachmentField`本体は変更せず、その外側に並べて表示する）
+- `AnnouncementDetail.tsx`における、直接アップロードの添付ファイルをMIMEタイプで振り分け、PDFは`PdfViewer`、画像は既存の`AttachmentPreviewList`で表示する分岐ロジック
+
+**Out of Boundary（追加）**
+- `inquiry-form`spec所有の`AttachmentField`・`helpdesk-inquiry-management`spec所有の`AttachmentPreviewList`・`documents`spec所有の`PdfViewer`自体の実装（読み取り専用の組み合わせ利用のみ）
+- 紐づけドキュメントの可視性制御（要件24.10・24.11、前ラウンドのまま）
+
+**Allowed Dependencies（追加）**
+- 前ラウンドから変更なし。`documents`spec所有の`PdfViewer`コンポーネントを、直接アップロード添付ファイルの表示にも追加で利用する
+
+**Revalidation Triggers（追加）**
+- なし（新規の型・コンポーネント境界・データ所有権の変更を伴わない表示ロジックのみの変更）
+
+### Architecture（追加分）
+
+```mermaid
+graph TB
+    Form[AnnouncementForm]
+    AttachField[AttachmentField existing inquiry-form]
+    LinkList[Linked documents chip list]
+    PdfViewerForm[PdfViewer existing documents]
+
+    Form --> AttachField
+    Form --> LinkList
+    AttachField -. PDF添付ごとに追加表示 .-> PdfViewerForm
+    LinkList -. 紐づけドキュメントごとに追加表示 .-> PdfViewerForm
+
+    Detail[AnnouncementDetail applicant]
+    PreviewList[AttachmentPreviewList existing helpdesk-inquiries]
+    PdfViewerDetail[PdfViewer existing documents]
+
+    Detail -->|画像添付| PreviewList
+    Detail -->|PDF添付| PdfViewerDetail
+    Detail -->|紐づけドキュメント 前ラウンドで対応済み| PdfViewerDetail
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: `documents-management`spec側の`DocumentDetailPanel`が確立した「フォーム/一覧コンポーネント本体は変更せず、その外側に独立した`PdfViewer`を並べて表示する」パターンをそのまま踏襲する
+- 既存パターンの維持: `AttachmentField`は複数スペックで共有される汎用コンポーネントのため、内部実装は変更せず、`AnnouncementForm`側で`watch`/`field.value`から取得した添付ファイル一覧をもとに、`fileType === "application/pdf"`のものだけを別途`PdfViewer`として描画する
+- ドメイン境界: 振り分けロジック（PDFか画像か）は`AnnouncementForm`・`AnnouncementDetail`それぞれのローカルなプレゼンテーション判定に留め、共有コンポーネント側やドメイン型に新しいフラグを追加しない
+
+### Technology Stack（追加分・差分のみ）
+追加ライブラリなし。既存の`PdfViewer`（`documents`spec）をそのまま再利用する。
+
+### File Structure Plan（追加分）
+
+**Modified Files**
+- `src/components/features/helpdesk-announcements/AnnouncementForm.tsx` — 直接アップロードのPDF添付・紐づけドキュメントそれぞれについて、既存のチップ/ファイル名表示に加えて`PdfViewer`を描画する
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 直接アップロード添付ファイルを`fileType`で振り分け、PDFは`PdfViewer`、画像は既存どおり`AttachmentPreviewList`で表示する
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 25.1, 25.2, 25.3, 25.8 | 管理フォームでのPDFプレビュー | AnnouncementForm | PdfViewer (props経由) | — |
+| 25.4, 25.5, 25.6, 25.8 | 詳細画面でのPDFプレビュー | AnnouncementDetail | PdfViewer (props経由) | — |
+| 25.7 | 可視性制御の維持 | AnnouncementDetail | getDocumentById (既存) | — |
+
+### Components and Interfaces（追加分）
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| AnnouncementForm（差分） | UI | 直接アップロード添付・紐づけドキュメントのうちPDF形式のものをインラインプレビュー表示する | 25.1, 25.2, 25.3, 25.8 | AttachmentField (P0, 既存・変更なし), PdfViewer (P0, documents spec) | State |
+| AnnouncementDetail（差分） | UI | 直接アップロード添付ファイルをMIMEタイプで振り分け、PDFはインラインプレビュー表示する | 25.4, 25.5, 25.6, 25.8 | AttachmentPreviewList (P0, 既存・変更なし), PdfViewer (P0, documents spec) | — |
+
+#### AnnouncementForm（差分）
+
+| Field | Detail |
+|-------|--------|
+| Intent | `attachments`・`linkedDocumentIds`のうちPDF形式のものについて、既存のチップ表示に加えて`PdfViewer`をインラインで描画する |
+| Requirements | 25.1, 25.2, 25.3, 25.8 |
+
+**Responsibilities & Constraints**
+- `Controller name="attachments"`の`render`内で、`field.value`のうち`fileType === "application/pdf"`のものを抽出し、既存のチップ一覧の下に、添付ごとに独立した`PdfViewer`（`dataUrl`・`title`はファイル名、`downloadFileName`はファイル名）を描画する。画像添付（`fileType.startsWith("image/")`）は`AttachmentField`本体の既存サムネイル表示のみとし、追加の`PdfViewer`は描画しない
+- `Controller name="linkedDocumentIds"`の`render`内で、`selectedDocuments`（`documentOptions`から解決済みの`Document[]`）それぞれについて、既存のチップ表示の下に`PdfViewer`（`dataUrl`は`document.dataUrl`、`downloadFileName`は`document.fileName`）を描画する。`documents-management`spec側の制約により`Document`は常にPDF形式のため、フォーマット分岐は不要
+- `AttachmentField`コンポーネント自体（複数spec共有）は変更しない。プレビューは`AnnouncementForm`側で並べて描画する追加要素として実装する
+
+**Dependencies**
+- Inbound: なし（Presentational component）
+- Outbound: `PdfViewer`（P0, `documents`spec） / `AttachmentField`（P0, `inquiry-form`spec, 既存・変更なし）
+
+**Contracts**: State [x]
+
+**Implementation Notes**
+- Integration: `PdfViewer`の`downloadLinkLabel`は、既存の`AnnouncementDetail`と同様に`documents.list`の`downloadLink`翻訳キーを流用するか、`helpdeskAnnouncements.form`配下に同義の翻訳キーを追加するかは実装時に既存の翻訳キー命名規則に合わせて決定する
+- Validation: 該当なし（表示のみの変更、`announcementFormSchema`のバリデーションには影響しない）
+- Risks: 添付・紐づけドキュメントが複数件（最大5件ずつ）ある場合、フォーム内に複数の`PdfViewer`（各`h-[50vh]`のiframe）が縦に並び画面が縦長になる。既存の`documents`一覧画面でも同様のトレードオフを許容しているため、本ラウンドでも同様に許容する
+
+#### AnnouncementDetail（差分）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 直接アップロード添付ファイルをMIMEタイプで振り分け、PDFは`PdfViewer`、画像は既存の`AttachmentPreviewList`で表示する |
+| Requirements | 25.4, 25.5, 25.6, 25.8 |
+
+**Responsibilities & Constraints**
+- `announcement.attachments`を`fileType.startsWith("image/")`の画像添付と`fileType === "application/pdf"`のPDF添付に分割する（`ATTACHMENT_ALLOWED_MIME_TYPES`が画像・PDFのみのため、この2分割で全件を網羅する）
+- 画像添付は既存どおり`AttachmentPreviewList`にまとめて渡す
+- PDF添付は1件ずつ`PdfViewer`として描画する（紐づけドキュメントの描画箇所と同様の並びとする）
+- 紐づけドキュメントの可視性フィルタ・`PdfViewer`表示（要件24.10・24.11）は変更しない
+
+**Dependencies**
+- Inbound: `app/[locale]/(applicant)/announcements/[id]/page.tsx`（P0, 既存・変更なし）
+- Outbound: `PdfViewer`（P0, `documents`spec） / `AttachmentPreviewList`（P0, `helpdesk-inquiries`, 既存・変更なし）
+
+**Contracts**: State [x]
+
+**Implementation Notes**
+- Integration: 既存の`hasAttachments`判定（`attachments.length > 0 || visibleLinkedDocuments.length > 0`）は変更不要（振り分け後も件数の合計は変わらない）
+- Validation: 該当なし
+- Risks: なし（既存の表示件数・データ取得経路は変更しない）
+
+### Data Models（追加分）
+本ラウンドは型・スキーマの追加変更を伴わない。既存の`Announcement.attachments`（`AnnouncementAttachment[]` = `InquiryAttachment[]`）の`fileType`をそのまま表示振り分けの判定に使う。
+
+### Error Handling（追加分）
+既存パターンを維持する。`PdfViewer`はdata URLの読み込み失敗を検知できないため、iframeの外側に独立したダウンロードリンクを常設する既存方針（`PdfViewer`自身の設計）をそのまま踏襲し、本ラウンドで新たなエラーハンドリングは追加しない。
+
+### Testing Strategy（追加分）
+- **Unit/Component Tests**:
+  - `AnnouncementForm`に既存の`attachments`（PDF・画像混在）を渡したとき、PDF添付の件数分だけ`PdfViewer`相当の要素（iframe）が描画され、画像添付では描画されないこと
+  - `AnnouncementForm`に紐づけドキュメントを渡したとき、選択済み件数分の`PdfViewer`が描画されること
+  - `AnnouncementDetail`にPDF添付を渡したとき、`PdfViewer`のダウンロードリンクが`fileName`で表示されること
+  - `AnnouncementDetail`に画像添付を渡したとき、従来どおり`AttachmentPreviewList`経由でサムネイル表示され、`PdfViewer`が描画されないこと
+- **E2E/UI Tests**:
+  - ヘルプデスク側フォームで新規添付・紐づけ後、保存せずにその場でPDFの内容がプレビューできること
+  - 海外販社側詳細画面で、直接アップロードのPDF添付がダウンロードせずに内容確認できること
+  - 日本語・英語両ロケール、タブレット幅（768px）でプレビューが横スクロールを起こさないこと
+
+---
