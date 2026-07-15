@@ -262,3 +262,12 @@ Requirement 8（テンプレート管理画面）の改訂・追加Acceptance Cr
 Requirement 8（テンプレート管理画面）への追加Acceptance Criteria:
 7. （新規）If テンプレートの新規追加または編集の保存操作が失敗したとき（Server Actionがrejectしたとき）、the Portal shall `AnnouncementForm`と同等の送信エラーフィードバック（送信エラーメッセージの表示）を`TemplateForm`上に表示し、入力内容を保持したままフォームを操作可能な状態に戻す。
 8. （新規）The Portal shall 当該送信エラーメッセージを`next-intl`の翻訳キー経由で提供する。
+
+---
+
+### 追加要望（2026-07-15）: ナビゲーション・一覧見出しの表示名変更（問い合わせ管理→申請管理）
+
+別ブランチ（`chore/rename-inquiry-to-application-labels`）での作業により、ヘルプデスクサイドバーのナビゲーション項目（`helpdeskNav.inquiries`）および問い合わせ管理一覧ページの見出し（`helpdeskInquiries.list.title`）の表示文言が「問い合わせ管理」から「申請管理」に変更された。これはUI表示文言のみの変更であり、機能・データモデル（`Inquiry`型、モックAPI、対応状況の変更・返信機能等）に変更はない。
+
+Requirement 9（ナビゲーション追加）への追加Acceptance Criteria:
+3. （新規）The Portal shall Requirement 9で追加したナビゲーション項目のうち、問い合わせ管理画面への項目の表示文言を「申請管理」とする（`helpdeskNav.inquiries`翻訳キー）。

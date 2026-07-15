@@ -15,7 +15,7 @@ function isUnclaimed(inquiry: Inquiry): boolean {
 }
 
 /**
- * ダッシュボードの「対応が必要な問い合わせ」プレビューパネル専用の並び替えロジック。
+ * ダッシュボードの「対応が必要な申請」プレビューパネル専用の並び替えロジック。
  * (1) 未着手（誰も対応着手していない）ものを優先し、(2) 緊急度（高→中→低）、
  * (3) 受付日時（createdAt）の降順、の順で並び替える。
  * 既存の一覧ページが使用する `sortInquiriesForHelpdesk`（`src/lib/helpdesk-inquiry-list.ts`）

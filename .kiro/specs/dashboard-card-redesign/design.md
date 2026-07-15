@@ -480,7 +480,7 @@ interface AnnouncementsPreviewPanelProps {
 - 各項目は既存の `HelpdeskInquiryListItem` コンポーネントで描画し、表示ロジックを重複実装しない
 - 該当する問い合わせが0件の場合は空状態メッセージを表示する
 - データ取得失敗時は、パネル全体をエラー状態で表示し、ページ全体やナビゲーションカードの表示には影響を与えない（要件6.8）
-- パネル下部に `/helpdesk/inquiries` への「問い合わせ一覧を見る」リンクを表示する
+- パネル下部に `/helpdesk/inquiries` への「問い合わせ一覧を見る」（2026-07-15: 表示文言を「申請一覧を見る」に変更、要件11参照）リンクを表示する
 
 **Dependencies**
 - Inbound: HelpdeskDashboardPage（P0）

@@ -50,7 +50,7 @@ describe("Sidebar", () => {
     expect(inactiveLink.className).toContain("hover:text-accent-foreground");
   });
 
-  it("/inquiry/newでは問い合わせ一覧ではなく申請のみがアクティブになる", () => {
+  it("/inquiry/newでは申請一覧ではなく申請のみがアクティブになる", () => {
     pathnameMock.mockReturnValueOnce("/inquiry/new");
     renderSidebar();
 
@@ -64,7 +64,7 @@ describe("Sidebar", () => {
     expect(listLink.className).not.toContain("bg-primary");
   });
 
-  it("/inquiry/123（詳細）では問い合わせ一覧がアクティブになる", () => {
+  it("/inquiry/123（詳細）では申請一覧がアクティブになる", () => {
     pathnameMock.mockReturnValueOnce("/inquiry/123");
     renderSidebar();
 

@@ -164,3 +164,11 @@
 3. Where 対象のお知らせが対応要否（`actionRequired`）ありに設定されている場合, the Dashboard Service shall 「最新のお知らせ」プレビューパネル・リマインド強調表示セクションの両方で、既存の一覧ページと同一の対応要否バッジおよび対応期限（`dueDate`が設定されている場合）を表示する
 4. The Dashboard Service shall 本文要約・対応要否バッジ・対応期限の表示ロジックを、既存の `AnnouncementListItem` コンポーネントを拡張する形で実装し、`/announcements` 一覧ページ等の既存の呼び出し元の見た目に影響を与えない
 5. The Dashboard Service shall 本文要約の表示に新規のCSSライブラリ・プラグインを追加せず、既存のTailwindユーティリティ（`line-clamp-2`）を使用する
+
+### Requirement 11: プレビューパネル名称・リンク文言の表示名変更（問い合わせ→申請）（2026-07-15 追記）
+
+別ブランチ（`chore/rename-inquiry-to-application-labels`）での作業により、Requirement 6が追加したヘルプデスク側ダッシュボードのプレビューパネルの表示文言（`dashboard.priorityInquiriesPreview`名前空間）が「問い合わせ」から「申請」に変更された。これはUI表示文言のみの変更であり、パネルが扱うデータ（対象条件・最大件数・並び順・エラー処理等）に変更はない。
+
+#### Acceptance Criteria
+1. （更新）Requirement 6の受け入れ基準1により表示されるプレビューパネルの名称は「対応が必要な申請」とする（`dashboard.priorityInquiriesPreview.title`翻訳キー）。
+2. （更新）Requirement 6の受け入れ基準6により表示される問い合わせ一覧ページへの導線文言は「申請一覧を見る」とする（`dashboard.priorityInquiriesPreview.viewAll`翻訳キー）。
