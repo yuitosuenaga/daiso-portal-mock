@@ -8,11 +8,12 @@ import {
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 
 export default async function HelpdeskAnnouncementNewPage() {
-  const [t, tCategories, tCountries, tInquiryForm] = await Promise.all([
+  const [t, tCategories, tCountries, tInquiryForm, tDocuments] = await Promise.all([
     getTranslations("helpdeskAnnouncements.form"),
     getTranslations("announcements.categories"),
     getTranslations("inquiryForm.options.country"),
     getTranslations("inquiryForm"),
+    getTranslations("documents.list"),
   ]);
 
   const categoryOptions = ANNOUNCEMENT_CATEGORY_CODES.map((code) => ({
@@ -72,6 +73,7 @@ export default async function HelpdeskAnnouncementNewPage() {
         attachmentsTypeNotAllowedMessage={t("validation.attachmentsTypeNotAllowed")}
         attachmentsCountExceededMessage={t("validation.attachmentsCountExceeded")}
         attachmentsReadFailedMessage={t("validation.attachmentsReadFailed")}
+        downloadLinkLabel={tDocuments("downloadLink")}
         linkedDocumentsLabel={t("linkedDocumentsLabel")}
         linkedDocumentsPickButtonLabel={t("linkedDocumentsPickButtonLabel")}
         linkedDocumentsEmptyMessage={t("linkedDocumentsEmptyMessage")}

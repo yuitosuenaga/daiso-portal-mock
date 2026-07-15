@@ -69,6 +69,12 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   const visibleLinkedDocuments = linkedDocumentResults.filter(
     (document): document is Document => document !== null
   );
+  const imageAttachments = announcement.attachments.filter((attachment) =>
+    attachment.fileType.startsWith("image/")
+  );
+  const pdfAttachments = announcement.attachments.filter(
+    (attachment) => attachment.fileType === "application/pdf"
+  );
   const hasAttachments =
     announcement.attachments.length > 0 || visibleLinkedDocuments.length > 0;
 
@@ -129,7 +135,16 @@ export async function AnnouncementDetail({ id }: { id: string }) {
               <h2 className="text-sm font-semibold text-foreground">
                 {t("attachmentsSectionTitle")}
               </h2>
-              <AttachmentPreviewList attachments={announcement.attachments} />
+              <AttachmentPreviewList attachments={imageAttachments} />
+              {pdfAttachments.map((attachment) => (
+                <PdfViewer
+                  key={attachment.id}
+                  dataUrl={attachment.dataUrl}
+                  title={attachment.fileName}
+                  downloadFileName={attachment.fileName}
+                  downloadLinkLabel={tDocuments("downloadLink")}
+                />
+              ))}
               {visibleLinkedDocuments.map((document) => (
                 <PdfViewer
                   key={document.id}

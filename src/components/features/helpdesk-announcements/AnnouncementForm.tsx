@@ -8,6 +8,7 @@ import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
+import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,6 +67,7 @@ export interface AnnouncementFormProps {
   attachmentsTypeNotAllowedMessage: string;
   attachmentsCountExceededMessage: string;
   attachmentsReadFailedMessage: string;
+  downloadLinkLabel: string;
   linkedDocumentsLabel: string;
   linkedDocumentsPickButtonLabel: string;
   linkedDocumentsEmptyMessage: string;
@@ -123,6 +125,7 @@ export function AnnouncementForm({
   attachmentsTypeNotAllowedMessage,
   attachmentsCountExceededMessage,
   attachmentsReadFailedMessage,
+  downloadLinkLabel,
   linkedDocumentsLabel,
   linkedDocumentsPickButtonLabel,
   linkedDocumentsEmptyMessage,
@@ -392,20 +395,37 @@ export function AnnouncementForm({
       <Controller
         control={control}
         name="attachments"
-        render={({ field }) => (
-          <AttachmentField
-            id="announcement-attachments"
-            value={field.value ?? []}
-            onChange={field.onChange}
-            label={attachmentsLabel}
-            hint={attachmentsHint}
-            removeButtonLabel={attachmentsRemoveButtonLabel}
-            sizeExceededMessage={attachmentsSizeExceededMessage}
-            typeNotAllowedMessage={attachmentsTypeNotAllowedMessage}
-            countExceededMessage={attachmentsCountExceededMessage}
-            readFailedMessage={attachmentsReadFailedMessage}
-          />
-        )}
+        render={({ field }) => {
+          const pdfAttachments = (field.value ?? []).filter(
+            (attachment) => attachment.fileType === "application/pdf"
+          );
+
+          return (
+            <div className="flex flex-col gap-3">
+              <AttachmentField
+                id="announcement-attachments"
+                value={field.value ?? []}
+                onChange={field.onChange}
+                label={attachmentsLabel}
+                hint={attachmentsHint}
+                removeButtonLabel={attachmentsRemoveButtonLabel}
+                sizeExceededMessage={attachmentsSizeExceededMessage}
+                typeNotAllowedMessage={attachmentsTypeNotAllowedMessage}
+                countExceededMessage={attachmentsCountExceededMessage}
+                readFailedMessage={attachmentsReadFailedMessage}
+              />
+              {pdfAttachments.map((attachment) => (
+                <PdfViewer
+                  key={attachment.id}
+                  dataUrl={attachment.dataUrl}
+                  title={attachment.fileName}
+                  downloadFileName={attachment.fileName}
+                  downloadLinkLabel={downloadLinkLabel}
+                />
+              ))}
+            </div>
+          );
+        }}
       />
 
       <Controller
@@ -459,6 +479,15 @@ export function AnnouncementForm({
                 >
                   {linkedDocumentsPickButtonLabel}
                 </Button>
+                {selectedDocuments.map((document) => (
+                  <PdfViewer
+                    key={document.id}
+                    dataUrl={document.dataUrl}
+                    title={document.title}
+                    downloadFileName={document.fileName}
+                    downloadLinkLabel={downloadLinkLabel}
+                  />
+                ))}
               </div>
               <AnnouncementDocumentLinkDialog
                 open={isDocumentDialogOpen}
