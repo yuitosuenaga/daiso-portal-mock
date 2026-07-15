@@ -19,12 +19,18 @@
   "header": {
     "portalName": "Overseas Operations Portal",
     "screenName": "Overseas Sales Agent View",
-    "switchToHelpdesk": "Switch to Japan Daiso View"
+    "switchToHelpdesk": "Switch to Japan Daiso View",
+    "logout": "Log out"
   },
   "helpdeskHeader": {
     "portalName": "Overseas Operations Portal",
     "screenName": "Japan Daiso View",
-    "switchToApplicant": "Switch to Overseas Sales Agent View"
+    "switchToApplicant": "Switch to Overseas Sales Agent View",
+    "logout": "Log out"
+  },
+  "helpdeskAppShell": {
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",

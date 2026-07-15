@@ -19,12 +19,18 @@
   "header": {
     "portalName": "海外運用ポータル",
     "screenName": "海外販社代理店画面",
-    "switchToHelpdesk": "日本大創側画面へ"
+    "switchToHelpdesk": "日本大創側画面へ",
+    "logout": "ログアウト"
   },
   "helpdeskHeader": {
     "portalName": "海外運用ポータル",
     "screenName": "日本大創側画面",
-    "switchToApplicant": "海外販社代理店画面へ"
+    "switchToApplicant": "海外販社代理店画面へ",
+    "logout": "ログアウト"
+  },
+  "helpdeskAppShell": {
+    "expandSidebar": "サイドバーを展開",
+    "collapseSidebar": "サイドバーを折りたたむ"
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",
