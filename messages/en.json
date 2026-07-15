@@ -665,6 +665,16 @@
         "countExceeded": "The number of attachments exceeds the limit (5 files)",
         "readFailed": "Failed to read the file. Please try again."
       }
+    },
+    "filter": {
+      "keywordLabel": "Search keyword",
+      "keywordPlaceholder": "Words in the title or details",
+      "statusLabel": "Status",
+      "statusAll": "All statuses",
+      "categoryLabel": "Category",
+      "categoryAll": "All categories",
+      "clearButton": "Clear",
+      "noResults": "No matching inquiries"
     }
   },
   "links": {

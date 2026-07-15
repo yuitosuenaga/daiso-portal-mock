@@ -665,6 +665,16 @@
         "countExceeded": "添付できるファイル数の上限（5件）を超えています",
         "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
       }
+    },
+    "filter": {
+      "keywordLabel": "キーワード検索",
+      "keywordPlaceholder": "タイトル・自由記述に含まれる語句",
+      "statusLabel": "対応状況",
+      "statusAll": "すべての対応状況",
+      "categoryLabel": "案件種別",
+      "categoryAll": "すべての案件種別",
+      "clearButton": "クリア",
+      "noResults": "該当する問い合わせがありません"
     }
   },
   "links": {
