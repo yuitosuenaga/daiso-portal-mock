@@ -150,7 +150,11 @@
         "required": "This field is required",
         "countriesRequired": "Select at least one country or region",
         "publishEndDateBeforeStart": "The end date must be on or after the start date",
-        "dueDateRequired": "Enter a due date when action is required"
+        "dueDateRequired": "Enter a due date when action is required",
+        "attachmentsSizeExceeded": "The file size exceeds the limit (5MB)",
+        "attachmentsTypeNotAllowed": "This file type is not allowed (images or PDF only)",
+        "attachmentsCountExceeded": "The maximum number of attachments (5) has been exceeded",
+        "attachmentsReadFailed": "Failed to read the file. Please try again."
       },
       "actionRequiredLabel": "Action required",
       "actionRequiredTrueOption": "Action required",
@@ -158,7 +162,21 @@
       "publishStartDateLabel": "Publish start date",
       "publishEndDateLabel": "Publish end date",
       "publishPeriodHint": "Leave blank to publish at all times",
-      "dueDateLabel": "Due date"
+      "dueDateLabel": "Due date",
+      "attachmentsLabel": "Attachments",
+      "attachmentsHint": "Images or PDF, up to 5MB each, up to 5 files can be uploaded directly.",
+      "attachmentsRemoveButtonLabel": "Remove",
+      "linkedDocumentsLabel": "Linked documents",
+      "linkedDocumentsPickButtonLabel": "Select from documents",
+      "linkedDocumentsEmptyMessage": "No documents are linked",
+      "linkedDocumentRemoveButtonLabel": "Remove",
+      "linkedDocumentsDialogTitle": "Select documents",
+      "linkedDocumentsDialogConfirmLabel": "Confirm selection",
+      "linkedDocumentsDialogCancelLabel": "Cancel",
+      "linkedDocumentsDialogNoDocumentsMessage": "No documents are registered",
+      "linkedDocumentsTargetingAllLabel": "All companies",
+      "linkedDocumentsTargetingCountriesPrefixLabel": "Countries:",
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "Companies:"
     },
     "tracking": {
       "confirmedCount": "Confirmed {confirmed}/{total}",
@@ -446,7 +464,8 @@
       "categoryLabel": "Category",
       "notFound": "Announcement not found",
       "error": "Failed to load the announcement",
-      "backToList": "Back to list"
+      "backToList": "Back to list",
+      "attachmentsSectionTitle": "Attachments"
     },
     "actionRequiredBadge": "Action required",
     "reminderBadge": "A reminder has been sent",

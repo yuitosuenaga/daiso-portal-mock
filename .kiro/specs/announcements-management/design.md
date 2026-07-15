@@ -1107,6 +1107,159 @@ sequenceDiagram
 | 23.5 | 既存集計への反映 | announcement-service（既存のgetAnnouncementTrackingSummary等が同一テーブルを参照） | Service | — |
 | 23.6 | 記録済みの上書き防止 | announcement-service（recordCompanyConfirmation/recordCompanyCompletion） | Service | — |
 
+---
+
+## 追加ラウンド（2026-07-15）: 添付ファイル（直接アップロード・ドキュメント紐づけ）
+
+### Overview（追加分）
+お知らせの新規作成・編集フォームに、(A) `inquiry-form`spec所有の添付方式（Base64データURL、許可形式・サイズ・件数の既存制約をそのまま再利用）によるファイルの直接アップロードと、(B) `documents-management`spec配下に登録済みの`Document`をIDで参照する紐づけ、の2種類の添付を追加する。**Purpose**: ヘルプデスク担当者が、周知内容の裏付けとなる資料（マニュアルPDF等）を、その場でのアップロードと、既に登録済みの正式ドキュメントの参照の両方の手段でお知らせに添付できるようにする。**Impact**: `Announcement`にPrismaの新規子テーブル2つ（`AnnouncementAttachment`・`AnnouncementDocumentLink`）を追加するマイグレーションが発生する。既存の一覧・ダッシュボードウィジェットのレイアウト・データ構造は変更しない（詳細画面のみに影響する追加的変更）。
+
+### Goals（追加分）
+- ヘルプデスク担当者が、お知らせの作成・編集フォームからファイルを直接アップロードして添付できる（最大5件、`inquiry-form`と同一の形式・サイズ制約）
+- ヘルプデスク担当者が、`documents-management`に登録済みのドキュメントを一覧から選択して紐づけられる（最大5件）
+- 海外販社側の詳細画面で、直接アップロードの添付ファイルと、閲覧者から見て公開範囲内にある紐づけドキュメントのみが表示される
+- 紐づけドキュメントの表示は、既存の申請者側ドキュメント一覧画面（`documents`spec）と同じ`PdfViewer`によるインラインプレビューとする
+- 既存の一覧・ダッシュボードウィジェットの表示内容・レイアウトは一切変更しない
+
+### Non-Goals（追加分）
+- `Document`自体の新規登録・編集・削除・公開範囲設定（`documents-management`spec所有、本ラウンドはIDによる参照のみを扱う）
+- お知らせの配信対象とドキュメントの公開範囲との不一致に対する警告・保存時のブロック
+- 添付ファイル・紐づけドキュメントの一覧画面・ダッシュボードウィジェットへの表示
+- 実ファイルストレージへの保存（引き続きBase64データURL方式）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `AnnouncementAttachment`（直接アップロード添付の子テーブル）・`AnnouncementDocumentLink`（ドキュメント紐づけの中間テーブル）のPrismaモデルとマイグレーション
+- お知らせの作成・編集フォームへの直接アップロードフィールド（`AttachmentField`の再利用）・ドキュメント紐づけダイアログ（`AnnouncementDocumentLinkDialog`、新規）の追加
+- `announcement-service.ts`・`announcement-mapper.ts`・`lib/validation/announcement.ts`への添付・紐づけ関連の読み書き・検証ロジックの追加
+- 海外販社側詳細画面（`AnnouncementDetail.tsx`）への「添付ファイル」セクションの追加（直接アップロードの表示、および紐づけドキュメントの可視性フィルタ・`PdfViewer`表示）
+
+**Out of Boundary（追加）**
+- `Document`自体の作成・編集・削除・公開範囲設定（`documents-management`spec所有、本specはIDによる参照のみ）
+- `documents`spec所有の申請者側ドキュメント一覧画面自体・`PdfViewer`コンポーネントの実装（読み取り専用で再利用するのみ、変更しない）
+- `AnnouncementList*`・ダッシュボードウィジェット（`dashboard`spec）の変更
+
+**Allowed Dependencies（追加）**
+- `inquiry-form`spec所有: `ATTACHMENT_ALLOWED_MIME_TYPES`・`ATTACHMENT_MAX_FILE_SIZE_BYTES`・`ATTACHMENT_MAX_COUNT`（`lib/constants/attachment.ts`）、`validateAttachmentFile`・`readFileAsDataUrl`・`formatFileSize`（`lib/attachment-utils.ts`）、`AttachmentField`コンポーネント、`InquiryAttachment`型
+- `helpdesk-inquiries`（`helpdesk-inquiry-management`spec）所有: `AttachmentPreviewList`コンポーネント（読み取り専用の添付プレビュー表示）
+- `documents-management`spec所有: `getAllDocuments()`・`Document`型（ヘルプデスク側のドキュメント紐づけ選択肢の取得）
+- `documents`spec所有: `getDocumentById(id)`（申請者セッションスコープの可視性フィルタ済み取得）・`PdfViewer`コンポーネント（詳細画面での紐づけドキュメントのインラインプレビュー表示）
+
+**Revalidation Triggers（追加）**
+- `Document`が`documents-management`側で削除された場合、`AnnouncementDocumentLink`の該当行はカスケード削除される（お知らせ側の`linkedDocumentIds`から自動的に除外され、追加のリビルド処理は不要）
+- `Document.targeting`（公開範囲）が変更された場合、紐づけ側は何も保持し直さない（表示時に`getDocumentById`が都度最新の`targeting`を参照するため、既存の可視性フィルタがそのまま追随する）
+
+### Architecture（追加分）
+
+```mermaid
+graph TB
+    Form[AnnouncementForm]
+    AttachField[AttachmentField existing inquiry-form]
+    LinkDialog[AnnouncementDocumentLinkDialog new]
+    GetAllDocs[getAllDocuments documents-management]
+    Action[createAnnouncementAction / updateAnnouncementAction]
+    Service[announcement-service]
+    DB[(AnnouncementAttachment / AnnouncementDocumentLink)]
+    Detail[AnnouncementDetail applicant]
+    PreviewList[AttachmentPreviewList existing helpdesk-inquiries]
+    GetDocById[getDocumentById documents]
+    PdfViewer[PdfViewer existing documents]
+
+    Form --> AttachField
+    Form --> LinkDialog
+    LinkDialog --> GetAllDocs
+    Form --> Action --> Service --> DB
+    Detail --> PreviewList
+    Detail --> GetDocById --> PdfViewer
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 直接アップロードは`inquiry-form`の`AttachmentField`（多ファイル選択・検証・Base64変換）をそのまま再利用し、独自の検証ロジックを新設しない
+- ドメイン境界: ドキュメント紐づけは`Document`の内容をコピーせず、IDのみを`AnnouncementDocumentLink`で保持する。可視性の判定は常に`documents`spec所有の`getDocumentById`（呼び出し時点の`Document.targeting`を参照）に委譲し、お知らせ側で可視性ロジックを複製しない
+- セキュリティ/整合性上の決定: ドキュメント紐づけの保存時に、配信対象とドキュメント公開範囲の整合性は検証しない（要件24.12）。表示時の可視性フィルタのみで安全側（非表示）に倒す設計とする
+- 既存パターンの維持: フォームの保存は`targeting`等と同様、送信のたびに添付・紐づけの全体を置き換える（差分更新は行わない）
+
+### Technology Stack（追加分・差分のみ）
+追加ライブラリなし。既存のPrisma・react-hook-form・zod・shadcn/uiのDialogのみを使用する。
+
+### File Structure Plan（追加分）
+
+**New Files**
+- `src/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog.tsx` — ドキュメント紐づけ選択ダイアログ（`AnnouncementRecipientDialog.tsx`と同様のDialog構成）
+- `src/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog.test.tsx`
+
+**Modified Files**
+- `prisma/schema.prisma` — `AnnouncementAttachment`・`AnnouncementDocumentLink`モデル追加、`Announcement`・`Document`に逆リレーション追加
+- `src/types/announcement.ts` — `AnnouncementAttachment`（`InquiryAttachment`のエイリアス）・`attachments`・`linkedDocumentIds`フィールド追加
+- `src/lib/validation/announcement.ts` — `attachments`・`linkedDocumentIds`のzodスキーマ追加
+- `src/lib/server/announcement-mapper.ts` — `attachments`・`linkedDocuments`のPrisma include・マッピング追加
+- `src/lib/server/announcement-service.ts` — create/update時の添付・紐づけの全置換書き込み、読み取り系関数へのinclude追加
+- `src/components/features/helpdesk-announcements/AnnouncementForm.tsx` — 直接アップロードフィールド・ドキュメント紐づけダイアログの統合
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 「添付ファイル」セクション追加
+- `src/app/[locale]/helpdesk/(dashboard)/announcements/new/page.tsx`・`.../[id]/edit/page.tsx` — `getAllDocuments()`取得・`documentOptions`受け渡し、編集画面の`defaultValues`拡張
+
+### Data Models（追加分）
+
+```prisma
+model AnnouncementAttachment {
+  id             String       @id @default(cuid())
+  fileName       String
+  fileType       String
+  fileSize       Int
+  dataUrl        String
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
+}
+
+model AnnouncementDocumentLink {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  documentId     String
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, documentId])
+  @@index([announcementId])
+  @@index([documentId])
+}
+```
+
+`AnnouncementTargeting`等の値オブジェクトと異なり、添付・紐づけは独立した識別子を持つ子レコード・別集約（`Document`）への参照であるため、JSON列ではなく正規化したテーブル・リレーションとして追加する（`AnnouncementRecipientStatus`と同様の中間テーブルパターン）。両FKとも`onDelete: Cascade`とする（`AnnouncementRecipientStatus`の`Restrict`とは異なり、添付・紐づけ自体に削除をブロックすべき独立した業務的意味がないため）。
+
+ドメイン型:
+```typescript
+export type AnnouncementAttachment = InquiryAttachment;
+
+export interface Announcement {
+  // ...既存フィールド
+  attachments: AnnouncementAttachment[];
+  linkedDocumentIds: string[];
+}
+```
+
+`CreateAnnouncementInput`は引き続き`Omit<Announcement, "id"|"publishedAt"|"createdAt"|"updatedAt">`のまま`attachments`・`linkedDocumentIds`を含む。
+
+### Error Handling（追加分）
+既存パターンを維持する。フォーム側のzodバリデーションで添付形式・サイズ・件数超過をブロックする（要件24.2）。`linkedDocumentIds`に存在しない/削除済みのIDが含まれていても、サービス層は事前の`prisma.document.findMany`による存在確認で該当IDを無言で除外し、エラーにしない（要件24.12の「検証・警告しない」方針を書き込み時にも一貫させる）。
+
+### Testing Strategy（追加分）
+- **Unit Tests**:
+  - `announcementFormSchema`が添付5件超・不正形式・サイズ超過・紐づけ5件超を拒否すること
+  - `createAnnouncementRecord`/`updateAnnouncementRecord`が添付・紐づけを正しく永続化し、更新時に全置換されること
+  - 存在しない`linkedDocumentIds`が無言で除外されること
+  - `deleteAnnouncementRecord`実行後、関連する`AnnouncementAttachment`・`AnnouncementDocumentLink`もカスケード削除されること
+- **Integration Tests**:
+  - 紐づけドキュメントの公開範囲に閲覧者の会社・国が含まれない場合、詳細画面に表示されないこと（お知らせ自体の配信対象は満たしている場合を含む）
+  - 公開範囲に含まれる紐づけドキュメントが`PdfViewer`でインラインプレビューされること
+  - 直接アップロードの添付ファイルは常に表示されること
+  - `documents-management`側でドキュメントが削除された場合、お知らせ詳細画面から当該紐づけが自動的に消えること
+- **E2E/UI Tests**:
+  - ヘルプデスク側で添付・紐づけを行ったお知らせが、一覧・ダッシュボードウィジェットの表示内容を変えないまま、申請者側詳細画面にのみ反映されること
+  - タブレット幅（768px）で添付・紐づけUIが横スクロールを起こさないこと
+
 ### Components and Interfaces（追加分）
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |

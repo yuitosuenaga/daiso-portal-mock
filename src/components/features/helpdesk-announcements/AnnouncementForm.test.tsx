@@ -63,6 +63,25 @@ const labels = {
     { value: "US", label: "アメリカ合衆国" },
     { value: "VN", label: "ベトナム" },
   ],
+  documentOptions: [],
+  attachmentsLabel: "添付ファイル",
+  attachmentsHint: "画像・PDF、1件5MBまで、最大5件",
+  attachmentsRemoveButtonLabel: "削除",
+  attachmentsSizeExceededMessage: "ファイルサイズが上限を超えています",
+  attachmentsTypeNotAllowedMessage: "許可されていないファイル形式です",
+  attachmentsCountExceededMessage: "添付できるファイル数の上限に達しました",
+  attachmentsReadFailedMessage: "ファイルの読み込みに失敗しました",
+  linkedDocumentsLabel: "ドキュメントの紐づけ",
+  linkedDocumentsPickButtonLabel: "ドキュメントから選択",
+  linkedDocumentsEmptyMessage: "紐づけられたドキュメントはありません",
+  linkedDocumentRemoveButtonLabel: "削除",
+  linkedDocumentsDialogTitle: "ドキュメントを選択",
+  linkedDocumentsDialogConfirmLabel: "選択を確定",
+  linkedDocumentsDialogCancelLabel: "キャンセル",
+  linkedDocumentsDialogNoDocumentsMessage: "登録済みのドキュメントはありません",
+  linkedDocumentsTargetingAllLabel: "全体公開",
+  linkedDocumentsTargetingCountriesPrefixLabel: "対象国:",
+  linkedDocumentsTargetingCompaniesPrefixLabel: "対象会社:",
 };
 
 describe("AnnouncementForm", () => {
@@ -102,6 +121,8 @@ describe("AnnouncementForm", () => {
         publishStartDate: null,
         publishEndDate: null,
         dueDate: null,
+        attachments: [],
+        linkedDocumentIds: [],
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
@@ -202,6 +223,8 @@ describe("AnnouncementForm", () => {
         publishStartDate: null,
         publishEndDate: null,
         dueDate: null,
+        attachments: [],
+        linkedDocumentIds: [],
       });
     });
   });
@@ -245,6 +268,8 @@ describe("AnnouncementForm", () => {
           publishStartDate: null,
           publishEndDate: null,
           dueDate: null,
+          attachments: [],
+          linkedDocumentIds: [],
         }
       );
     });

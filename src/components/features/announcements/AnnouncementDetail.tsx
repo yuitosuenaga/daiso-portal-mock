@@ -4,6 +4,7 @@ import {
   getAnnouncementSelfStatus,
   isReminderPendingForCompany,
 } from "@/lib/api/announcement-tracking";
+import { getDocumentById } from "@/lib/api/documents";
 import { requireApplicantSession } from "@/lib/server/auth-session";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,12 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { BackLink } from "@/components/ui/back-link";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
 import { AnnouncementSelfReportPanel } from "@/components/features/announcements/AnnouncementSelfReportPanel";
+import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
+import { PdfViewer } from "@/components/features/documents/PdfViewer";
+import type { Document } from "@/types/document";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
-  const [t, tCategories, tAnnouncements, locale] = await Promise.all([
+  const [t, tCategories, tAnnouncements, tDocuments, locale] = await Promise.all([
     getTranslations("announcements.detail"),
     getTranslations("announcements.categories"),
     getTranslations("announcements"),
+    getTranslations("documents.list"),
     getLocale(),
   ]);
 
@@ -54,10 +59,18 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     );
   }
 
-  const [isReminderPending, selfStatus] = await Promise.all([
+  const [isReminderPending, selfStatus, linkedDocumentResults] = await Promise.all([
     isReminderPendingForCompany(announcement.id, companyCode),
     getAnnouncementSelfStatus(announcement.id),
+    Promise.all(
+      announcement.linkedDocumentIds.map((documentId) => getDocumentById(documentId))
+    ),
   ]);
+  const visibleLinkedDocuments = linkedDocumentResults.filter(
+    (document): document is Document => document !== null
+  );
+  const hasAttachments =
+    announcement.attachments.length > 0 || visibleLinkedDocuments.length > 0;
 
   return (
     <div className="space-y-4">
@@ -107,10 +120,27 @@ export async function AnnouncementDetail({ id }: { id: string }) {
             initialStatus={selfStatus}
           />
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {announcement.body}
           </p>
+          {hasAttachments && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-foreground">
+                {t("attachmentsSectionTitle")}
+              </h2>
+              <AttachmentPreviewList attachments={announcement.attachments} />
+              {visibleLinkedDocuments.map((document) => (
+                <PdfViewer
+                  key={document.id}
+                  dataUrl={document.dataUrl}
+                  title={document.title}
+                  downloadFileName={document.fileName}
+                  downloadLinkLabel={tDocuments("downloadLink")}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

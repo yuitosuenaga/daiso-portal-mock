@@ -34,6 +34,8 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
     actionRequired: false,
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
+    attachments: [],
+    linkedDocumentIds: [],
     ...overrides,
   };
 }
@@ -53,6 +55,8 @@ describe("createAnnouncementAction", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(createAnnouncement).toHaveBeenCalled();
@@ -69,6 +73,8 @@ describe("createAnnouncementAction", () => {
         status: "published",
         targeting: { scope: "all" },
         actionRequired: false,
+        attachments: [],
+        linkedDocumentIds: [],
       })
     ).rejects.toThrow();
 
@@ -84,6 +90,8 @@ describe("createAnnouncementAction", () => {
         status: "published",
         targeting: { scope: "countries", countries: [] },
         actionRequired: false,
+        attachments: [],
+        linkedDocumentIds: [],
       })
     ).rejects.toThrow();
 
@@ -105,6 +113,8 @@ describe("createAnnouncementAction", () => {
       publishStartDate: null,
       publishEndDate: null,
       dueDate: null,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(created.publishStartDate).toBeNull();
@@ -126,6 +136,8 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
     });
 
     expect(updateAnnouncement).toHaveBeenCalledWith(

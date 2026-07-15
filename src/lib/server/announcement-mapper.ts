@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Announcement as PrismaAnnouncement, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import type {
   Announcement,
@@ -8,6 +8,16 @@ import type {
 } from "@/types/announcement";
 import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
 import type { DocumentCompanyCode } from "@/lib/constants/document-company-options";
+
+/** 添付ファイル・ドキュメント紐づけを含むAnnouncementレコードの読み取り時のinclude句。 */
+export const ANNOUNCEMENT_INCLUDE = {
+  attachments: true,
+  linkedDocuments: true,
+} as const satisfies Prisma.AnnouncementInclude;
+
+export type PrismaAnnouncement = Prisma.AnnouncementGetPayload<{
+  include: typeof ANNOUNCEMENT_INCLUDE;
+}>;
 
 type PrismaRecipientWithCompany = Prisma.AnnouncementRecipientGetPayload<{
   include: { company: true };
@@ -55,6 +65,14 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
     dueDate: mapDateOnly(record.dueDate),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
+    attachments: record.attachments.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      fileType: attachment.fileType,
+      fileSize: attachment.fileSize,
+      dataUrl: attachment.dataUrl,
+    })),
+    linkedDocumentIds: record.linkedDocuments.map((link) => link.documentId),
   };
 }
 

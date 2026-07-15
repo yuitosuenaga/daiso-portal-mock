@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
 import {
+  ANNOUNCEMENT_INCLUDE,
   mapAnnouncement,
   mapRecipientStatusView,
   targetingToColumns,
@@ -80,6 +81,7 @@ export async function listAnnouncementsVisibleToCountry(
   const records = await prisma.announcement.findMany({
     where: visibleToCountryWhere(country),
     orderBy: ORDER_BY_PUBLISHED_AT_DESC,
+    include: ANNOUNCEMENT_INCLUDE,
   });
 
   const now = new Date();
@@ -96,6 +98,7 @@ export async function findAnnouncementVisibleToCountry(
 ): Promise<Announcement | null> {
   const record = await prisma.announcement.findFirst({
     where: { id, ...visibleToCountryWhere(country) },
+    include: ANNOUNCEMENT_INCLUDE,
   });
   if (!record) {
     return null;
@@ -112,6 +115,7 @@ export async function findAnnouncementVisibleToCountry(
 export async function listAllAnnouncements(): Promise<Announcement[]> {
   const records = await prisma.announcement.findMany({
     orderBy: ORDER_BY_CREATED_AT_DESC,
+    include: ANNOUNCEMENT_INCLUDE,
   });
 
   return records.map(mapAnnouncement);
@@ -119,9 +123,28 @@ export async function listAllAnnouncements(): Promise<Announcement[]> {
 
 /** 配信対象による絞り込みを行わず、指定したIDのお知らせを1件取得する。 */
 export async function findAnnouncementById(id: string): Promise<Announcement | null> {
-  const record = await prisma.announcement.findUnique({ where: { id } });
+  const record = await prisma.announcement.findUnique({
+    where: { id },
+    include: ANNOUNCEMENT_INCLUDE,
+  });
 
   return record ? mapAnnouncement(record) : null;
+}
+
+/**
+ * 指定したIDのうち、実在する`Document`のIDのみを返す。存在しない・削除済みのIDは
+ * 無言で除外する（ドキュメント紐づけの保存時にFK違反を防ぐための事前確認）。
+ */
+async function filterExistingDocumentIds(documentIds: string[]): Promise<string[]> {
+  if (documentIds.length === 0) {
+    return [];
+  }
+  const documents = await prisma.document.findMany({
+    where: { id: { in: documentIds } },
+    select: { id: true },
+  });
+  const existingIds = new Set(documents.map((document) => document.id));
+  return documentIds.filter((id) => existingIds.has(id));
 }
 
 function dateOnlyToColumn(value: string | null | undefined): Date | null {
@@ -135,6 +158,8 @@ function dateOnlyToColumn(value: string | null | undefined): Date | null {
 export async function createAnnouncementRecord(
   input: CreateAnnouncementInput
 ): Promise<Announcement> {
+  const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
+
   const record = await prisma.announcement.create({
     data: {
       title: input.title,
@@ -147,7 +172,19 @@ export async function createAnnouncementRecord(
       publishStartDate: dateOnlyToColumn(input.publishStartDate),
       publishEndDate: dateOnlyToColumn(input.publishEndDate),
       dueDate: dateOnlyToColumn(input.dueDate),
+      attachments: {
+        create: input.attachments.map((attachment) => ({
+          fileName: attachment.fileName,
+          fileType: attachment.fileType,
+          fileSize: attachment.fileSize,
+          dataUrl: attachment.dataUrl,
+        })),
+      },
+      linkedDocuments: {
+        create: linkedDocumentIds.map((documentId) => ({ documentId })),
+      },
     },
+    include: ANNOUNCEMENT_INCLUDE,
   });
 
   return mapAnnouncement(record);
@@ -171,6 +208,7 @@ export async function updateAnnouncementRecord(
   }
 
   const shouldStampPublishedAt = current.status !== "published" && input.status === "published";
+  const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
 
   try {
     const record = await prisma.announcement.update({
@@ -186,7 +224,21 @@ export async function updateAnnouncementRecord(
         publishStartDate: dateOnlyToColumn(input.publishStartDate),
         publishEndDate: dateOnlyToColumn(input.publishEndDate),
         dueDate: dateOnlyToColumn(input.dueDate),
+        attachments: {
+          deleteMany: {},
+          create: input.attachments.map((attachment) => ({
+            fileName: attachment.fileName,
+            fileType: attachment.fileType,
+            fileSize: attachment.fileSize,
+            dataUrl: attachment.dataUrl,
+          })),
+        },
+        linkedDocuments: {
+          deleteMany: {},
+          create: linkedDocumentIds.map((documentId) => ({ documentId })),
+        },
       },
+      include: ANNOUNCEMENT_INCLUDE,
     });
 
     return mapAnnouncement(record);
