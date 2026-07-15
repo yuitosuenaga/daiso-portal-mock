@@ -71,6 +71,7 @@ const labels = {
   attachmentsTypeNotAllowedMessage: "許可されていないファイル形式です",
   attachmentsCountExceededMessage: "添付できるファイル数の上限に達しました",
   attachmentsReadFailedMessage: "ファイルの読み込みに失敗しました",
+  downloadLinkLabel: "ダウンロード",
   linkedDocumentsLabel: "ドキュメントの紐づけ",
   linkedDocumentsPickButtonLabel: "ドキュメントから選択",
   linkedDocumentsEmptyMessage: "紐づけられたドキュメントはありません",
@@ -389,6 +390,78 @@ describe("AnnouncementForm", () => {
       ).toBeTruthy();
     });
     expect(createAnnouncementActionMock).not.toHaveBeenCalled();
+  });
+
+  it("直接アップロードのPDF添付はPdfViewerでプレビュー表示され、画像添付は表示されない", async () => {
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "all" },
+          actionRequired: false,
+          attachments: [
+            {
+              id: "attachment-pdf",
+              fileName: "manual.pdf",
+              fileType: "application/pdf",
+              fileSize: 1024,
+              dataUrl: "data:application/pdf;base64,AAAA",
+            },
+            {
+              id: "attachment-image",
+              fileName: "photo.png",
+              fileType: "image/png",
+              fileSize: 2048,
+              dataUrl: "data:image/png;base64,BBBB",
+            },
+          ],
+        }}
+        {...labels}
+      />
+    );
+
+    const iframe = screen.getByTitle("manual.pdf");
+    expect(iframe.getAttribute("src")).toBe("data:application/pdf;base64,AAAA");
+    expect(screen.queryByTitle("photo.png")).toBeNull();
+  });
+
+  it("紐づけドキュメントはPdfViewerでプレビュー表示される", async () => {
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "all" },
+          actionRequired: false,
+          linkedDocumentIds: ["document-1"],
+        }}
+        {...labels}
+        documentOptions={[
+          {
+            id: "document-1",
+            title: "紐づけドキュメント",
+            fileName: "linked.pdf",
+            fileType: "application/pdf",
+            fileSize: 4096,
+            dataUrl: "data:application/pdf;base64,CCCC",
+            targeting: { scope: "all" },
+            uploadedAt: "2026-07-01T00:00:00.000Z",
+          },
+        ]}
+      />
+    );
+
+    const iframe = screen.getByTitle("紐づけドキュメント");
+    expect(iframe.getAttribute("src")).toBe("data:application/pdf;base64,CCCC");
   });
 
   it("createAnnouncementActionが失敗した場合、エラーメッセージを表示し遷移しない", async () => {

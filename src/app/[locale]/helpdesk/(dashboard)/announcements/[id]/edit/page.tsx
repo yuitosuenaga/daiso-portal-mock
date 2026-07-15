@@ -18,13 +18,14 @@ type HelpdeskAnnouncementEditPageProps = {
 export default async function HelpdeskAnnouncementEditPage({
   params,
 }: HelpdeskAnnouncementEditPageProps) {
-  const [t, tListLabels, tCategories, tCountries, tInquiryForm] =
+  const [t, tListLabels, tCategories, tCountries, tInquiryForm, tDocuments] =
     await Promise.all([
       getTranslations("helpdeskAnnouncements.form"),
       getTranslations("helpdeskAnnouncements.list"),
       getTranslations("announcements.categories"),
       getTranslations("inquiryForm.options.country"),
       getTranslations("inquiryForm"),
+      getTranslations("documents.list"),
     ]);
 
   const backToListLink = (
@@ -131,6 +132,7 @@ export default async function HelpdeskAnnouncementEditPage({
         attachmentsTypeNotAllowedMessage={t("validation.attachmentsTypeNotAllowed")}
         attachmentsCountExceededMessage={t("validation.attachmentsCountExceeded")}
         attachmentsReadFailedMessage={t("validation.attachmentsReadFailed")}
+        downloadLinkLabel={tDocuments("downloadLink")}
         linkedDocumentsLabel={t("linkedDocumentsLabel")}
         linkedDocumentsPickButtonLabel={t("linkedDocumentsPickButtonLabel")}
         linkedDocumentsEmptyMessage={t("linkedDocumentsEmptyMessage")}

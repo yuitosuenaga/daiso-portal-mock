@@ -259,7 +259,7 @@ describe("AnnouncementDetail", () => {
     expect(screen.queryByText("添付ファイル")).toBeNull();
   });
 
-  it("直接アップロードの添付ファイルを常に表示する", async () => {
+  it("直接アップロードのPDF添付ファイルをPdfViewerでプレビュー表示する", async () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       attachments: [
@@ -277,7 +277,30 @@ describe("AnnouncementDetail", () => {
     render(jsx);
 
     expect(screen.getByText("添付ファイル")).toBeTruthy();
-    expect(screen.getByText(/manual\.pdf/)).toBeTruthy();
+    const iframe = screen.getByTitle("manual.pdf");
+    expect(iframe.getAttribute("src")).toBe("data:application/pdf;base64,AAAA");
+  });
+
+  it("直接アップロードの画像添付ファイルは従来どおりサムネイル表示のまま変更しない", async () => {
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      attachments: [
+        {
+          id: "att-2",
+          fileName: "photo.png",
+          fileType: "image/png",
+          fileSize: 2048,
+          dataUrl: "data:image/png;base64,BBBB",
+        },
+      ],
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.getByText("添付ファイル")).toBeTruthy();
+    expect(screen.getByText(/photo\.png/)).toBeTruthy();
+    expect(screen.queryByTitle("photo.png")).toBeNull();
   });
 
   it("閲覧者から見て公開範囲内の紐づけドキュメントをPdfViewerで表示する", async () => {
