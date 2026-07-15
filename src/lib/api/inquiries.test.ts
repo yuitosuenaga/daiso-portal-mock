@@ -141,6 +141,41 @@ describe("createInquiry", () => {
     ).rejects.toThrow();
     expect(createInquiryRecord).not.toHaveBeenCalled();
   });
+
+  it("申請者セッションでも不正な入力（必須項目欠如）のときスキーマ検証で例外を送出しInquiryServiceへ委譲しない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      createInquiry({ category: "invalid" } as unknown as CreateInquiryInput)
+    ).rejects.toThrow();
+    expect(createInquiryRecord).not.toHaveBeenCalled();
+  });
+
+  it("添付ファイル件数が上限を超える不正な入力のとき例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    const input: CreateInquiryInput = {
+      title: "添付過多テスト",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-07-01T00:00:00.000Z",
+      submittedBy: { companyName: "Test Company", country: "JP" },
+      attachments: Array.from({ length: 100 }, (_, index) => ({
+        id: `attachment-${index}`,
+        fileName: `file-${index}.pdf`,
+        fileType: "application/pdf" as const,
+        fileSize: 1,
+        dataUrl: "data:application/pdf;base64,AAAA",
+      })),
+    };
+
+    await expect(createInquiry(input)).rejects.toThrow();
+    expect(createInquiryRecord).not.toHaveBeenCalled();
+  });
 });
 
 describe("getInquiries", () => {
