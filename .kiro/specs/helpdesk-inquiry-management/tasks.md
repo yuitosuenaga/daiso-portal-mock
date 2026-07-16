@@ -525,3 +525,12 @@
   - タブレット幅（768px）で新規画面・エラー表示が横スクロールを起こさないことを確認する
   - _Requirements: 8.8, 15.5_
   - _Depends: 28.1_
+
+---
+
+## 追加ラウンド（2026-07-15）: 表示文言変更（問い合わせ管理→申請管理）の反映確認
+
+- [x] 29. 別ブランチ（`chore/rename-inquiry-to-application-labels`）で実装済みの表示文言変更が本specの対象範囲に反映されていることを確認する
+  - ヘルプデスクサイドバーの`helpdeskNav.inquiries`および問い合わせ管理一覧ページの見出し（`helpdeskInquiries.list.title`）が「申請管理」表記になっていることを`messages/ja.json`で確認する
+  - 機能・データモデル（`Inquiry`型、モックAPI、対応状況の変更・返信機能等）に変更がないことを確認する
+  - _Requirements: 9.3（新規）_

@@ -347,4 +347,13 @@
   - タブレット幅（768px）でフィルタバーが横スクロールを起こさないことを確認する
   - 上記確認が問題ないことで完了とする
   - _Requirements: 13.9_
+
+---
+
+## 追加ラウンド（2026-07-15）: 表示文言変更（問い合わせ一覧→申請一覧）の反映確認
+
+- [x] 27. 別ブランチ（`chore/rename-inquiry-to-application-labels`）で実装済みの表示文言変更が本specの対象範囲に反映されていることを確認する
+  - サイドバーの`navigation.inquiryList`および本ページの見出し・空状態・エラー状態（`inquiryList.list.title`/`.empty`/`.error`）が「申請一覧」表記になっていることを`messages/ja.json`で確認する
+  - 機能・データモデル（`Inquiry`型、`/inquiry`ルート、モックAPI等）に変更がないことを確認する
+  - _Requirements: 1.1（更新）_
   - _Depends: 25_

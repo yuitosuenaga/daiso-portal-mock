@@ -505,3 +505,7 @@ function sendApplicantMessageAction(
 |-------------|---------|------------|
 | 13.1〜13.8 | 問い合わせ一覧の検索・絞り込み | InquiryFilterBar, InquiryListClient, filterInquiries |
 | 13.9 | 検索・絞り込みUIの多言語対応 | i18n messages |
+
+## 追加（2026-07-15）: 表示文言変更（問い合わせ一覧→申請一覧）
+
+別ブランチ（`chore/rename-inquiry-to-application-labels`）でのUI表示文言のみの変更（要件1.1更新）であり、コンポーネント構成・データフロー・データモデルへの設計変更は発生しない。翻訳キー（`navigation.inquiryList`・`inquiryList.list.*`）の値変更のみ。

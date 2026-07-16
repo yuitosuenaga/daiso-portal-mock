@@ -172,3 +172,12 @@
   - 観測可能な完了条件: 単体テストで、`showBodyExcerpt` 指定時に本文が2行までクランプ表示され、未指定時（既存呼び出し）は表示されないことを検証できる。ダッシュボードの両セクションで対応要否バッジ・対応期限が表示されることを検証できる
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
   - _Boundary: AnnouncementListItem, AnnouncementsPreviewPanel, ReminderAnnouncementsPanel_
+
+---
+
+## 追加ラウンド（2026-07-15）: プレビューパネル名称・リンク文言の表示名変更の反映確認
+
+- [x] 16. 別ブランチ（`chore/rename-inquiry-to-application-labels`）で実装済みの表示文言変更が本specの対象範囲に反映されていることを確認する
+  - ヘルプデスク側ダッシュボードの`dashboard.priorityInquiriesPreview.title`が「対応が必要な申請」、`.viewAll`が「申請一覧を見る」表記になっていることを`messages/ja.json`で確認する
+  - パネルが扱うデータ（対象条件・最大件数・並び順・エラー処理等）に変更がないことを確認する
+  - _Requirements: 11.1（更新）, 11.2（更新）_

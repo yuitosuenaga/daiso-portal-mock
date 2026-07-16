@@ -632,3 +632,7 @@ async function onSubmit(values: ReplyTemplateFormValues) {
 ```
 
 保存成功時はフォームが遷移する既存動作（`templates/new`・`templates/[id]/edit`ページ側のリダイレクト処理）を変更しない。失敗時のみ`hasSubmitError`が真になり、入力内容を保持したままフォームを操作可能な状態を維持する（`onSubmit`が入力値をリセットしないため、既存の`react-hook-form`の状態管理により自然に満たされる）。
+
+## 追加（2026-07-15）: 表示文言変更（問い合わせ管理→申請管理）
+
+別ブランチ（`chore/rename-inquiry-to-application-labels`）でのUI表示文言のみの変更（要件9.3新規）であり、コンポーネント構成・データフロー・データモデルへの設計変更は発生しない。翻訳キー（`helpdeskNav.inquiries`・`helpdeskInquiries.list.title`）の値変更のみ。
