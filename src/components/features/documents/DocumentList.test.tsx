@@ -37,6 +37,7 @@ vi.mock("next-intl", () => ({
 const DOCUMENT: Document = {
   id: "1",
   title: "テストドキュメント",
+  sourceType: "upload",
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
@@ -104,5 +105,29 @@ describe("DocumentList", () => {
 
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
     expect(screen.getByText("Onboarding Guide")).toBeTruthy();
+  });
+
+  it("sourceTypeがupload/googleで混在していても両方をプレビュー付きで表示する", async () => {
+    const googleDocument: Document = {
+      id: "2",
+      title: "Google経由のドキュメント",
+      sourceType: "google",
+      googleUrl: "https://docs.google.com/document/d/abc123/edit",
+      googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+      targeting: { scope: "all" },
+      uploadedAt: "2026-07-02T09:00:00Z",
+    };
+    getDocumentsMock.mockResolvedValueOnce([DOCUMENT, googleDocument]);
+
+    const jsx = await DocumentList();
+    render(jsx);
+
+    const uploadIframe = screen.getByTitle("テストドキュメント");
+    expect(uploadIframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
+    expect(screen.getByText("ダウンロード")).toBeTruthy();
+
+    const googleIframe = screen.getByTitle("Google経由のドキュメント");
+    expect(googleIframe.getAttribute("src")).toBe(googleDocument.googleEmbedUrl);
+    expect(screen.getByText("元のドキュメントを開く")).toBeTruthy();
   });
 });

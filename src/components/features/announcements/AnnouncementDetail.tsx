@@ -139,21 +139,34 @@ export async function AnnouncementDetail({ id }: { id: string }) {
               {pdfAttachments.map((attachment) => (
                 <PdfViewer
                   key={attachment.id}
+                  variant="upload"
                   dataUrl={attachment.dataUrl}
                   title={attachment.fileName}
                   downloadFileName={attachment.fileName}
                   downloadLinkLabel={tDocuments("downloadLink")}
                 />
               ))}
-              {visibleLinkedDocuments.map((document) => (
-                <PdfViewer
-                  key={document.id}
-                  dataUrl={document.dataUrl}
-                  title={document.title}
-                  downloadFileName={document.fileName}
-                  downloadLinkLabel={tDocuments("downloadLink")}
-                />
-              ))}
+              {visibleLinkedDocuments.map((document) =>
+                document.sourceType === "google" ? (
+                  <PdfViewer
+                    key={document.id}
+                    variant="google"
+                    embedUrl={document.googleEmbedUrl}
+                    title={document.title}
+                    originalUrl={document.googleUrl}
+                    openOriginalLabel={tDocuments("openOriginalLink")}
+                  />
+                ) : (
+                  <PdfViewer
+                    key={document.id}
+                    variant="upload"
+                    dataUrl={document.dataUrl}
+                    title={document.title}
+                    downloadFileName={document.fileName}
+                    downloadLinkLabel={tDocuments("downloadLink")}
+                  />
+                )
+              )}
             </div>
           )}
         </CardContent>

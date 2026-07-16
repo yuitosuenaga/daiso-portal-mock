@@ -30,10 +30,13 @@ function baseDocumentRecord(
     id: string;
     title: string;
     description: string | null;
-    fileName: string;
-    fileType: string;
-    fileSize: number;
-    dataUrl: string;
+    sourceType: "upload" | "google";
+    fileName: string | null;
+    fileType: string | null;
+    fileSize: number | null;
+    dataUrl: string | null;
+    googleUrl: string | null;
+    googleEmbedUrl: string | null;
     uploadedAt: Date;
     targetingScope: "all" | "countries" | "companies";
     targetingCountries: string[];
@@ -44,10 +47,13 @@ function baseDocumentRecord(
     id: "document-1",
     title: "タイトル",
     description: null,
+    sourceType: "upload" as const,
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
     dataUrl: "data:application/pdf;base64,AAAA",
+    googleUrl: null,
+    googleEmbedUrl: null,
     uploadedAt: new Date("2026-07-01T09:00:00.000Z"),
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
@@ -147,6 +153,34 @@ describe("listAllDocuments / findDocumentById", () => {
 
     expect(result).toBeNull();
   });
+
+  it("sourceType: googleのレコードをGoogle型のDocumentへマッピングする", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      baseDocumentRecord({
+        id: "2",
+        sourceType: "google",
+        fileName: null,
+        fileType: null,
+        fileSize: null,
+        dataUrl: null,
+        googleUrl: "https://docs.google.com/document/d/abc123/edit",
+        googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+      }) as never
+    );
+
+    const result = await findDocumentById("2");
+
+    expect(result?.sourceType).toBe("google");
+    if (result?.sourceType === "google") {
+      expect(result.googleUrl).toBe(
+        "https://docs.google.com/document/d/abc123/edit"
+      );
+      expect(result.googleEmbedUrl).toBe(
+        "https://docs.google.com/document/d/abc123/preview"
+      );
+    }
+    expect(result && "fileName" in result).toBe(false);
+  });
 });
 
 describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", () => {
@@ -160,6 +194,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     );
 
     const result = await createDocumentRecord({
+      sourceType: "upload",
       title: "タイトル",
       fileName: "test.pdf",
       fileType: "application/pdf",
@@ -182,11 +217,80 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     });
   });
 
+  it("sourceType: googleの入力でgoogleUrl/googleEmbedUrlを保存し、fileName等をnullにする", async () => {
+    vi.mocked(prisma.document.create).mockResolvedValue(
+      baseDocumentRecord({
+        id: "2",
+        sourceType: "google",
+        fileName: null,
+        fileType: null,
+        fileSize: null,
+        dataUrl: null,
+        googleUrl: "https://docs.google.com/document/d/abc123/edit",
+        googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+      }) as never
+    );
+
+    const result = await createDocumentRecord({
+      sourceType: "google",
+      title: "Googleドキュメント",
+      googleUrl: "https://docs.google.com/document/d/abc123/edit",
+      googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+      targeting: { scope: "all" },
+    });
+
+    expect(prisma.document.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sourceType: "google",
+          fileName: null,
+          fileType: null,
+          fileSize: null,
+          dataUrl: null,
+          googleUrl: "https://docs.google.com/document/d/abc123/edit",
+          googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+        }),
+      })
+    );
+    expect(result.sourceType).toBe("google");
+    if (result.sourceType === "google") {
+      expect(result.googleEmbedUrl).toBe(
+        "https://docs.google.com/document/d/abc123/preview"
+      );
+    }
+  });
+
+  it("sourceType: uploadの入力ではgoogleUrl/googleEmbedUrlをnullにする", async () => {
+    vi.mocked(prisma.document.create).mockResolvedValue(
+      baseDocumentRecord({ id: "1" }) as never
+    );
+
+    await createDocumentRecord({
+      sourceType: "upload",
+      title: "タイトル",
+      fileName: "test.pdf",
+      fileType: "application/pdf",
+      fileSize: 1024,
+      dataUrl: "data:application/pdf;base64,AAAA",
+      targeting: { scope: "all" },
+    });
+
+    expect(prisma.document.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          googleUrl: null,
+          googleEmbedUrl: null,
+        }),
+      })
+    );
+  });
+
   it("存在しないIDの更新はDocumentNotFoundErrorを送出する", async () => {
     vi.mocked(prisma.document.update).mockRejectedValue(new Error("not found"));
 
     await expect(
       updateDocumentRecord("missing", {
+        sourceType: "upload",
         title: "t",
         fileName: "t.pdf",
         fileType: "application/pdf",

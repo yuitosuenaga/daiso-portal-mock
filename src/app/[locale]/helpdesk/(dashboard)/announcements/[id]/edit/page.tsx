@@ -133,6 +133,7 @@ export default async function HelpdeskAnnouncementEditPage({
         attachmentsCountExceededMessage={t("validation.attachmentsCountExceeded")}
         attachmentsReadFailedMessage={t("validation.attachmentsReadFailed")}
         downloadLinkLabel={tDocuments("downloadLink")}
+        openOriginalLinkLabel={tDocuments("openOriginalLink")}
         linkedDocumentsLabel={t("linkedDocumentsLabel")}
         linkedDocumentsPickButtonLabel={t("linkedDocumentsPickButtonLabel")}
         linkedDocumentsEmptyMessage={t("linkedDocumentsEmptyMessage")}

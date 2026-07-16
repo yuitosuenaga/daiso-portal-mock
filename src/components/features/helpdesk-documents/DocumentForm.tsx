@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
@@ -14,6 +14,7 @@ import {
   DocumentFileField,
   type DocumentFileValue,
 } from "@/components/features/helpdesk-documents/DocumentFileField";
+import { DocumentGoogleLinkField } from "@/components/features/helpdesk-documents/DocumentGoogleLinkField";
 import {
   createDocumentAction,
   updateDocumentAction,
@@ -22,6 +23,8 @@ import {
   documentFormSchema,
   type DocumentFormValues,
 } from "@/lib/validation/document";
+import { toGoogleEmbedUrl } from "@/lib/google-document-url";
+import type { CreateDocumentInput } from "@/types/document";
 
 export interface DocumentFormProps {
   mode: "create" | "edit";
@@ -39,9 +42,15 @@ export interface DocumentFormProps {
   targetingCompaniesOption: string;
   countriesLabel: string;
   companiesLabel: string;
+  sourceTypeLabel: string;
+  sourceTypeUploadOption: string;
+  sourceTypeGoogleOption: string;
   fileLabel: string;
   fileHint: string;
   removeFileButtonLabel: string;
+  googleUrlLabel: string;
+  googleUrlPlaceholder: string;
+  googleUrlHint: string;
   submitButtonLabel: string;
   requiredErrorMessage: string;
   countriesRequiredErrorMessage: string;
@@ -50,20 +59,76 @@ export interface DocumentFormProps {
   sizeExceededMessage: string;
   typeNotAllowedMessage: string;
   readFailedMessage: string;
+  googleUrlInvalidMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
 }
 
-const EMPTY_FILE_VALUES = {
+type UploadFormValues = Extract<DocumentFormValues, { sourceType: "upload" }>;
+
+/**
+ * `react-hook-form`が扱う内部フォーム状態の型。`documentFormSchema`（`sourceType`による
+ * 判別可能ユニオン型）をそのまま`useForm`のジェネリクスに使うと、TypeScriptの`keyof`が
+ * ユニオン全体ではなく共通鍵のみに縮退し、`watch`/`errors`が分岐後のフィールド
+ * （`fileName`・`googleUrl`等）にアクセスできなくなる。そのため、両分岐のフィールドを
+ * 常に保持するフラットな型をフォーム内部専用に用意し、送信時にServer Action側の
+ * `documentFormSchema`が`sourceType`に応じて正しい形へ検証・整形する。
+ */
+interface DocumentFormFieldValues {
+  sourceType: "upload" | "google";
+  title: string;
+  description?: string;
+  fileName: string;
+  fileType: UploadFormValues["fileType"] | "";
+  fileSize: number;
+  dataUrl: string;
+  googleUrl: string;
+  googleEmbedUrl: string;
+  targeting: UploadFormValues["targeting"];
+}
+
+const EMPTY_UPLOAD_VALUES = {
   fileName: "",
-  fileType: "" as DocumentFormValues["fileType"],
+  fileType: "" as DocumentFormFieldValues["fileType"],
   fileSize: 0,
   dataUrl: "",
 };
 
+const EMPTY_GOOGLE_VALUES = {
+  googleUrl: "",
+  googleEmbedUrl: "",
+};
+
+function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
+  if (values.sourceType === "google") {
+    return {
+      sourceType: "google",
+      title: values.title,
+      description: values.description,
+      targeting: values.targeting,
+      ...EMPTY_UPLOAD_VALUES,
+      googleUrl: values.googleUrl,
+      googleEmbedUrl: values.googleEmbedUrl,
+    };
+  }
+
+  return {
+    sourceType: "upload",
+    title: values.title,
+    description: values.description,
+    targeting: values.targeting,
+    fileName: values.fileName,
+    fileType: values.fileType,
+    fileSize: values.fileSize,
+    dataUrl: values.dataUrl,
+    ...EMPTY_GOOGLE_VALUES,
+  };
+}
+
 /**
  * ドキュメントの新規作成・編集で共用するフォーム。公開範囲の選択
- * （全体公開/特定の国・地域/特定の販社）とPDFファイルの選択を含む。
+ * （全体公開/特定の国・地域/特定の販社）と、登録方法（ファイルをアップロード/
+ * Googleドキュメントの共有リンクを登録）に応じたファイル選択またはURL入力を含む。
  */
 export function DocumentForm({
   mode,
@@ -81,9 +146,15 @@ export function DocumentForm({
   targetingCompaniesOption,
   countriesLabel,
   companiesLabel,
+  sourceTypeLabel,
+  sourceTypeUploadOption,
+  sourceTypeGoogleOption,
   fileLabel,
   fileHint,
   removeFileButtonLabel,
+  googleUrlLabel,
+  googleUrlPlaceholder,
+  googleUrlHint,
   submitButtonLabel,
   requiredErrorMessage,
   countriesRequiredErrorMessage,
@@ -92,6 +163,7 @@ export function DocumentForm({
   sizeExceededMessage,
   typeNotAllowedMessage,
   readFailedMessage,
+  googleUrlInvalidMessage,
   requiredIndicator,
   submitErrorMessage,
 }: DocumentFormProps) {
@@ -104,14 +176,24 @@ export function DocumentForm({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<DocumentFormValues>({
-    resolver: zodResolver(documentFormSchema),
-    defaultValues: defaultValues ?? {
-      title: "",
-      description: "",
-      targeting: { scope: "all" },
-      ...EMPTY_FILE_VALUES,
-    },
+  } = useForm<DocumentFormFieldValues>({
+    // `documentFormSchema`は`sourceType`による判別可能ユニオン型を検証・出力するが、
+    // フォーム内部状態は上記の理由でフラットな型を使うため、resolverの型を明示的に合わせる。
+    // 実行時の検証・整形は`documentFormSchema`がそのまま行うため安全性は損なわれない。
+    resolver: zodResolver(
+      documentFormSchema
+    ) as unknown as Resolver<DocumentFormFieldValues>,
+    defaultValues:
+      defaultValues !== undefined
+        ? toFieldValues(defaultValues)
+        : {
+            sourceType: "upload",
+            title: "",
+            description: "",
+            targeting: { scope: "all" },
+            ...EMPTY_UPLOAD_VALUES,
+            ...EMPTY_GOOGLE_VALUES,
+          },
   });
 
   const scopeOptions: SelectOption[] = [
@@ -119,40 +201,69 @@ export function DocumentForm({
     { value: "countries", label: targetingCountriesOption },
     { value: "companies", label: targetingCompaniesOption },
   ];
+  const sourceTypeOptions: SelectOption[] = [
+    { value: "upload", label: sourceTypeUploadOption },
+    { value: "google", label: sourceTypeGoogleOption },
+  ];
   const scope = watch("targeting.scope");
+  const sourceType = watch("sourceType");
   const [fileName, fileType, fileSize, dataUrl] = watch([
     "fileName",
     "fileType",
     "fileSize",
     "dataUrl",
   ]);
+  const googleUrl = watch("googleUrl");
   const currentFile: DocumentFileValue | null = fileName
     ? { fileName, fileType, fileSize, dataUrl }
     : null;
 
-  function handleFileChange(file: DocumentFileValue | null) {
-    if (file) {
-      setValue("fileName", file.fileName, { shouldValidate: true });
-      setValue("fileType", file.fileType as DocumentFormValues["fileType"], {
+  function handleSourceTypeChange(nextSourceType: string) {
+    if (nextSourceType === "google") {
+      setValue("sourceType", "google", { shouldValidate: true });
+      setValue("googleEmbedUrl", toGoogleEmbedUrl(googleUrl) ?? "", {
         shouldValidate: true,
       });
-      setValue("fileSize", file.fileSize, { shouldValidate: true });
-      setValue("dataUrl", file.dataUrl, { shouldValidate: true });
     } else {
-      setValue("fileName", EMPTY_FILE_VALUES.fileName, { shouldValidate: true });
-      setValue("fileType", EMPTY_FILE_VALUES.fileType, { shouldValidate: true });
-      setValue("fileSize", EMPTY_FILE_VALUES.fileSize, { shouldValidate: true });
-      setValue("dataUrl", EMPTY_FILE_VALUES.dataUrl, { shouldValidate: true });
+      setValue("sourceType", "upload", { shouldValidate: true });
     }
   }
 
-  async function onSubmit(values: DocumentFormValues) {
+  function handleFileChange(file: DocumentFileValue | null) {
+    if (file) {
+      setValue("fileName", file.fileName, { shouldValidate: true });
+      setValue(
+        "fileType",
+        file.fileType as DocumentFormFieldValues["fileType"],
+        { shouldValidate: true }
+      );
+      setValue("fileSize", file.fileSize, { shouldValidate: true });
+      setValue("dataUrl", file.dataUrl, { shouldValidate: true });
+    } else {
+      setValue("fileName", EMPTY_UPLOAD_VALUES.fileName, { shouldValidate: true });
+      setValue("fileType", EMPTY_UPLOAD_VALUES.fileType, { shouldValidate: true });
+      setValue("fileSize", EMPTY_UPLOAD_VALUES.fileSize, { shouldValidate: true });
+      setValue("dataUrl", EMPTY_UPLOAD_VALUES.dataUrl, { shouldValidate: true });
+    }
+  }
+
+  function handleGoogleUrlChange(nextGoogleUrl: string) {
+    setValue("googleUrl", nextGoogleUrl, { shouldValidate: true });
+    setValue("googleEmbedUrl", toGoogleEmbedUrl(nextGoogleUrl) ?? "", {
+      shouldValidate: true,
+    });
+  }
+
+  async function onSubmit(values: DocumentFormFieldValues) {
     setHasSubmitError(false);
     try {
+      // `documentFormSchema`が`sourceType`に応じて正しい形へ再検証・整形するため、
+      // フラットなフォーム値をそのまま渡してよい（サーバー側でも同一スキーマで再検証する）。
+      const input = values as unknown as CreateDocumentInput;
       if (mode === "edit" && documentId) {
-        await updateDocumentAction(documentId, values);
+        await updateDocumentAction(documentId, input);
       } else {
-        await createDocumentAction(values);
+        await createDocumentAction(input);
       }
       router.push("/helpdesk/documents");
     } catch {
@@ -189,23 +300,50 @@ export function DocumentForm({
         />
       </FormField>
 
-      <FormField
-        label={fileLabel}
-        required
-        requiredIndicator={requiredIndicator}
-        error={errors.fileName ? fileRequiredErrorMessage : undefined}
-      >
-        <DocumentFileField
-          value={currentFile}
-          onChange={handleFileChange}
-          label={fileLabel}
-          hint={fileHint}
-          removeButtonLabel={removeFileButtonLabel}
-          sizeExceededMessage={sizeExceededMessage}
-          typeNotAllowedMessage={typeNotAllowedMessage}
-          readFailedMessage={readFailedMessage}
+      <FormField label={sourceTypeLabel} htmlFor="document-source-type">
+        <Select
+          id="document-source-type"
+          options={sourceTypeOptions}
+          value={sourceType}
+          onChange={(event) => handleSourceTypeChange(event.target.value)}
         />
       </FormField>
+
+      {sourceType === "google" ? (
+        <FormField
+          label={googleUrlLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          error={errors.googleUrl ? googleUrlInvalidMessage : undefined}
+        >
+          <DocumentGoogleLinkField
+            value={googleUrl ?? ""}
+            onChange={handleGoogleUrlChange}
+            label={googleUrlLabel}
+            hint={googleUrlHint}
+            placeholder={googleUrlPlaceholder}
+            invalid={Boolean(errors.googleUrl)}
+          />
+        </FormField>
+      ) : (
+        <FormField
+          label={fileLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          error={errors.fileName ? fileRequiredErrorMessage : undefined}
+        >
+          <DocumentFileField
+            value={currentFile}
+            onChange={handleFileChange}
+            label={fileLabel}
+            hint={fileHint}
+            removeButtonLabel={removeFileButtonLabel}
+            sizeExceededMessage={sizeExceededMessage}
+            typeNotAllowedMessage={typeNotAllowedMessage}
+            readFailedMessage={readFailedMessage}
+          />
+        </FormField>
+      )}
 
       <FormField label={targetingLabel} htmlFor="document-targeting-scope">
         <Controller
@@ -218,7 +356,7 @@ export function DocumentForm({
               value={field.value}
               onChange={(event) =>
                 field.onChange(
-                  event.target.value as DocumentFormValues["targeting"]["scope"]
+                  event.target.value as DocumentFormFieldValues["targeting"]["scope"]
                 )
               }
             />

@@ -10,12 +10,15 @@
 
 > **2026-07-09追記**: 当初は`/documents`（一覧）と`/documents/[id]`（詳細＋PDF閲覧）の2ページ構成だったが、追加要望により`/documents/[id]`は撤廃し、一覧ページ内で各ドキュメントのPDFプレビューを直接（2列グリッドで）表示する構成に変更した。`getDocumentById`への依存はなくなった。
 
+> **2026-07-16追記**: `documents-management`specの追加要望により、`Document`は`sourceType: "upload" | "google"`の判別可能ユニオン型に変更される。本specが所有する`PdfViewer`を、`sourceType`に応じて「アップロードPDFのdata URLをiframe表示＋ダウンロードリンク」または「Google埋め込みURLをiframe表示＋元ドキュメントを開くリンク」のいずれかを描画するよう拡張する（詳細は「追加ラウンド（2026-07-16）」を参照）。
+
 ### Goals
 - 自社に公開されているドキュメントのみを一覧表示できる
 - 一覧ページ上で、クリック操作なしに、追加のライブラリを導入せずブラウザネイティブの`<iframe>`でPDFを直接閲覧できる
 - 一覧の各ドキュメントから、独立したダウンロード導線を提供する
 - ドキュメントが多い場合でも画面を有効に使えるよう、2列グリッドでプレビューを並べる
 - 日本語・英語の両言語で一覧画面が利用できる
+- （2026-07-16追記）`sourceType: "google"`のドキュメントについても、一覧ページ上でクリック操作なしにGoogle側の最新コンテンツをその場でプレビューできる
 
 ### Non-Goals
 - ドキュメントのアップロード・編集・削除・公開範囲の設定（`documents-management`spec所有）
@@ -23,12 +26,14 @@
 - PDF以外のファイル形式のサポート
 - PDFの複数ページ送り・ページ内検索等の高度なビューア機能（`react-pdf`等のライブラリ導入は行わない）
 - 既読・未読管理（フェーズ1では認証機能が未実装のため対象外）
+- （2026-07-16追記）Google埋め込みが権限不足等で表示できない場合の独自エラーハンドリング（ブラウザのiframe標準動作に委ねる）
+- （2026-07-16追記）Google Drive APIによる変更検知・自動再同期（`documents-management`spec所有のNon-Goals、本specも実装しない）
 
 ## Boundary Commitments
 
 ### This Spec Owns
 - ドキュメント一覧ページ（`/documents`）のUI（各ドキュメントのインラインPDFプレビューを含む、2列グリッド構成）
-- `PdfViewer`コンポーネント（ブラウザネイティブ`<iframe>`によるPDF表示）
+- `PdfViewer`コンポーネント（ブラウザネイティブ`<iframe>`によるPDF表示。2026-07-16追記: `sourceType`に応じたprops分岐対応を含む）
 - ドキュメント一覧・詳細関連の翻訳キー（`messages/ja.json` / `en.json` の `documents` 名前空間）
 - `Sidebar`への「ドキュメント」ナビゲーション項目の追加
 
@@ -38,9 +43,10 @@
 - 販社マスタ`DOCUMENT_COMPANY_OPTIONS`の定義・管理（`documents-management`spec所有）
 - グローバルレイアウト（Header/Sidebar本体の構造/AppShell/LanguageSwitcher）の変更
 - リンク集（`links-page`spec）の型・画面・データ
+- （2026-07-16追記）GoogleドキュメントURLの妥当性検証・埋め込みURLへの変換ロジック（`documents-management`spec所有の`GoogleDocumentUrlUtils`。本specは`documents-management`が保存済みの`googleEmbedUrl`をそのまま受け取って表示するのみ）
 
 ### Allowed Dependencies
-- `documents-management`spec所有の`Document`型、`getDocuments`/`getDocumentById`（読み取り専用）
+- `documents-management`spec所有の`Document`型、`getDocuments`/`getDocumentById`（読み取り専用。2026-07-16追記: `sourceType`判別可能ユニオン型を含む）
 - 既存のUI基盤コンポーネント（`card.tsx`・`skeleton.tsx`・`button.tsx`）
 - 既存の`next-intl`設定・`i18n/navigation.ts`
 - `Sidebar`（項目追加のみ）
@@ -49,6 +55,7 @@
 ### Revalidation Triggers
 - `Document`/`DocumentTargeting`型のフィールド形状が変更された場合、`DocumentList`・`DocumentDetail`・`PdfViewer`への影響を再確認する必要がある
 - `getDocuments`/`getDocumentById`の関数シグネチャが変更された場合、本specの実装前提が変わる
+- （2026-07-16追記）`documents-management`spec側の`sourceType`判別可能ユニオン型の追加は、本spec側で確認済み（本design.mdの対応内容が本トリガーへの回答）
 
 ## Architecture
 
@@ -78,6 +85,7 @@ graph TB
 - レイアウト: `DocumentListItem`を`grid grid-cols-1 md:grid-cols-2 gap-6`のグリッドに配置し、768px未満では1列にフォールバックする
 - 新規コンポーネントの理由: `PdfViewer`はこのリポジトリで初めてのPDF表示要素であり、既存コンポーネントの拡張では表現できないため新設する
 - Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由という既存規約を維持
+- （2026-07-16追記）`PdfViewer`は`sourceType`で分岐する判別可能ユニオン型のpropsを受け取り、呼び出し元（`DocumentListItem`）が`Document.sourceType`を見てどちらのバリアントを渡すか決定する。`PdfViewer`自体は`Document`型を直接importせず、必要なフィールドのみをpropsとして受け取ることで`documents-management`型への直接依存を避ける（既存の`dataUrl`/`title`/`downloadFileName`/`downloadLinkLabel`という個別props方式を踏襲）
 
 ### Technology Stack
 
@@ -159,8 +167,8 @@ sequenceDiagram
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
 |-----------|--------------|--------|---------------|---------------------------|-----------|
 | DocumentList | UI/Server | 自社に公開されたドキュメントを取得・2列グリッド表示 | 1.1〜1.3, 3.1〜3.4, 11.1〜11.4 | DocumentsMockApi (P0) | State |
-| DocumentListItem | UI | 1件分のタイトル・説明・サイズ・日付・インラインPdfViewerを表示 | 1.2, 10.1〜10.5 | PdfViewer (P0) | State |
-| PdfViewer | UI | `<iframe>`によるPDF表示とダウンロードリンクの併設 | 10.1〜10.4, 11.2 | — | State |
+| DocumentListItem | UI | 1件分のタイトル・説明・サイズ・日付・インラインPdfViewerを表示 | 1.2, 10.1〜10.5, 13.1〜13.2, 13.5 | PdfViewer (P0) | State |
+| PdfViewer | UI | `<iframe>`によるPDF表示とダウンロードリンク／Google埋め込みと元ドキュメントリンクの併設 | 10.1〜10.4, 11.2, 13.1〜13.4 | — | State |
 
 ### Data / Mock API（依存のみ、本specは実装しない）
 
@@ -189,12 +197,12 @@ interface DocumentsReadOnlyApi {
 
 - **DocumentList**: `getDocuments()`をアップロード日降順で表示し、`grid grid-cols-1 md:grid-cols-2 gap-6`のグリッドに`DocumentListItem`を配置する（768px未満は1列にフォールバック）。既存`AnnouncementList`と同じ取得・状態管理パターンを踏襲する。
 - **DocumentListItem**: 1件分の`Card`。タイトル・説明・`formatFileSize(fileSize)`・アップロード日を上部に表示し、その直下に`PdfViewer`を配置してPDFプレビューをインライン表示する（クリック操作不要、遷移なし）。
-- **PdfViewer**: `<iframe src={dataUrl} title={title}>`をグリッドの1セル幅を想定したコンテナ（`h-[50vh]`程度、`min-h`を確保）に配置し、iframeの外側に独立したダウンロードリンクを常設する。`<embed>`はフォールバック手段がないため不採用。
+- **PdfViewer**: `<iframe title={title}>`をグリッドの1セル幅を想定したコンテナ（`h-[50vh]`程度、`min-h`を確保）に配置する。`variant: "upload"`時は`src={dataUrl}`とし、iframeの外側に独立したダウンロードリンクを常設する。`variant: "google"`（2026-07-16追記）時は`src={embedUrl}`とし、ダウンロードリンクの代わりに元の共有リンク（`originalUrl`）を新しいタブで開くリンクを常設する。`<embed>`はフォールバック手段がないため不採用。
 
 ## Data Models
 
 ### Domain Model
-- `Document`（`documents-management`所有、参照のみ）: `id`, `title`, `description?`, `fileName`, `fileType`, `fileSize`, `dataUrl`, `targeting`, `uploadedAt`
+- `Document`（`documents-management`所有、参照のみ。2026-07-16追記: `sourceType`による判別可能ユニオン型に変更）: 共通フィールド`id`, `title`, `description?`, `targeting`, `uploadedAt`に加え、`sourceType: "upload"`時は`fileName`, `fileType`, `fileSize`, `dataUrl`を、`sourceType: "google"`時は`googleUrl`, `googleEmbedUrl`を持つ
 
 ### Logical Data Model
 本specは`Document`エンティティを新規に定義せず、`documents-management`が所有する型をそのまま参照する。
@@ -214,6 +222,7 @@ interface DocumentsReadOnlyApi {
 - **データ取得失敗**（一覧・詳細）: エラーメッセージを表示
 - **存在しない/自社に非公開のドキュメントIDへの直接アクセス**: 「見つからない」旨のメッセージを表示（要件2.5, 4.5）
 - **0件時**: 「ドキュメントはありません」旨のメッセージを表示（要件3.4）
+- **Google埋め込みの表示失敗**（2026-07-16追記、権限不足等）: ブラウザのiframe標準動作に委ね、本specとして追加のエラーハンドリングは実装しない（要件13.6）
 
 ### Monitoring
 フェーズ1はモックのため、追加のロギング・監視基盤は導入しない。
@@ -223,9 +232,12 @@ interface DocumentsReadOnlyApi {
 - **Unit Tests**:
   - `DocumentListItem`がタイトル・説明・ファイルサイズ・日付・インラインPdfViewer・ダウンロードリンクを正しく描画すること
   - `PdfViewer`が`<iframe>`に`src`/`title`を正しく設定し、ダウンロードリンクを併設すること
+  - （2026-07-16追記）`PdfViewer`が`variant: "google"`のとき`embedUrl`をiframeの`src`に設定し、ダウンロードリンクの代わりに`originalUrl`を新しいタブで開くリンクを描画すること
+  - （2026-07-16追記）`DocumentListItem`が`document.sourceType`に応じて`PdfViewer`へ正しいvariantのpropsを渡すこと
 - **Integration Tests**:
   - `DocumentList`が`getDocuments()`の結果をアップロード日降順で2列グリッドに表示すること、0件時に空状態メッセージを表示すること
   - `DocumentList`の各項目でクリック操作なしにPDFプレビュー（`<iframe>`）が表示されていること
+  - （2026-07-16追記）`sourceType: "upload"`と`sourceType: "google"`のドキュメントが混在する一覧で、検索・並び順・グリッドレイアウトが`sourceType`によらず同様に機能すること
 - **E2E/UI Tests**:
   - 日本語・英語両ロケールで一覧画面が表示されること
   - タブレット幅（768px）未満で1列表示に切り替わり横スクロールを起こさないこと、768px以上で2列グリッドが横スクロールなく表示されること
@@ -233,6 +245,8 @@ interface DocumentsReadOnlyApi {
 
 ## Security Considerations
 本specは読み取り専用であり、認証・認可の代替とはならない表示範囲制御（`documents-management`spec所有）に依存する。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御を追加できることを設計上の前提とする。
+
+**2026-07-16追記**: `sourceType: "google"`のドキュメントについて、ポータルの公開範囲制御とGoogle側のファイル共有設定は独立している（`documents-management`spec Security Considerations参照）。本specはGoogle側の権限を制御・検証できないため、埋め込みが表示できない場合の挙動はブラウザのiframe標準動作に委ねる。
 
 ## 追加ラウンド（2026-07-08）: 見出し（h1 + 説明文）の統一
 
@@ -291,3 +305,26 @@ interface DocumentsReadOnlyApi {
 |-------------|---------|------------|
 | 12.1〜12.6 | 書類一覧の検索 | DocumentSearchBar, DocumentListClient, filterDocuments |
 | 12.7 | 検索UIの多言語対応 | i18n messages |
+
+## 追加ラウンド（2026-07-16）: Googleドキュメント埋め込みのライブ表示
+
+### Overview（追加分）
+`documents-management`specの追加要望により、ドキュメントは`sourceType: "upload"`（既存のPDFアップロード、`dataUrl`保持）と`sourceType: "google"`（Googleドキュメント/スプレッドシート/スライドの共有リンク登録、`googleUrl`・`googleEmbedUrl`保持）のいずれかで登録されるようになる。本ラウンドでは、一覧ページの`PdfViewer`を`sourceType`に応じて分岐させ、Google型のドキュメントについても一覧上でクリック操作なしにその場でプレビューできるようにする。埋め込みはGoogle側が閲覧時点の最新コンテンツを都度配信するため、元のGoogleドキュメントが更新されれば、次回このページを開いた際に自動的に最新内容が表示される。検索（要件12）・2列グリッド（要件11）・見出し（要件9）・アップロード日降順の並び順（要件3.1）は`sourceType`によらず同様に適用する。
+
+### Component Design（追加分）
+- **PdfViewer（変更）**: propsを`{ variant: "upload"; dataUrl; title; downloadFileName; downloadLinkLabel } | { variant: "google"; embedUrl; title; originalUrl; openOriginalLabel }`の判別可能ユニオン型に変更する。`variant: "upload"`は既存の描画（iframe + ダウンロードリンク）を維持し、`variant: "google"`は`src={embedUrl}`のiframe + `<a href={originalUrl} target="_blank" rel="noopener noreferrer">`による「元のドキュメントを開く」リンクを描画する。
+- **DocumentListItem（変更）**: `document.sourceType`を見て、`sourceType: "upload"`なら`{ variant: "upload", dataUrl: document.dataUrl, ... }`を、`sourceType: "google"`なら`{ variant: "google", embedUrl: document.googleEmbedUrl, originalUrl: document.googleUrl, ... }`を`PdfViewer`へ渡す。ダウンロードリンクラベル・「元のドキュメントを開く」ラベルはいずれもpropsとして受け取り、翻訳解決は呼び出し元（`DocumentList`/`page.tsx`）が行う既存の規約を維持する。
+
+### Modified Files（追加分）
+- `src/components/features/documents/PdfViewer.tsx` — propsを`variant`による判別可能ユニオン型に変更し、`variant: "google"`時の描画分岐を追加
+- `src/components/features/documents/DocumentListItem.tsx` — `document.sourceType`に応じて`PdfViewer`へ渡すpropsを分岐
+- `messages/ja.json` / `messages/en.json` — `documents.list`に`openOriginalLinkLabel`（「元のドキュメントを開く」）を追加。既存の`downloadLinkLabel`は`variant: "upload"`用として維持
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 13.1〜13.2 | sourceTypeに応じたプレビューsrcの切り替え | DocumentListItem, PdfViewer |
+| 13.3 | アクセシブルな名前の両バリアント共通適用 | PdfViewer |
+| 13.4 | Google型でのダウンロードリンク代替（元ドキュメントを開くリンク） | PdfViewer |
+| 13.5 | 検索・グリッド・並び順の`sourceType`非依存の維持 | DocumentList, DocumentListClient |
+| 13.6 | Google埋め込み表示失敗時のブラウザ標準動作への委任 | PdfViewer |

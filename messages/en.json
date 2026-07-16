@@ -58,7 +58,9 @@
       "targetingCountriesLabel": "Target countries",
       "targetingCompaniesLabel": "Target companies",
       "fileSizeLabel": "File size",
-      "uploadedAtLabel": "Uploaded"
+      "uploadedAtLabel": "Uploaded",
+      "sourceTypeUploadBadge": "Upload",
+      "sourceTypeGoogleBadge": "Google link"
     },
     "form": {
       "createTitle": "Create Document",
@@ -75,10 +77,16 @@
       "targetingCompaniesOption": "Specify companies",
       "countriesLabel": "Countries/regions (multiple allowed)",
       "companiesLabel": "Companies (multiple allowed)",
+      "sourceTypeLabel": "Registration method",
+      "sourceTypeUploadOption": "Upload a file",
+      "sourceTypeGoogleOption": "Register a Google document share link",
       "fileLabel": "PDF file",
       "fileHint": "PDF only, up to 20MB.",
       "currentFileLabel": "Current file",
       "removeButtonLabel": "Remove",
+      "googleUrlLabel": "Google document share link",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Set the Google Docs/Sheets/Slides sharing setting to \"Anyone with the link can view\" before registering it.",
       "submitButton": "Save",
       "submitError": "Failed to save. Please try again later.",
       "validation": {
@@ -88,12 +96,14 @@
         "fileRequired": "Please select a PDF file",
         "sizeExceeded": "The file size exceeds the limit (20MB)",
         "typeNotAllowed": "This file type is not allowed (PDF only)",
-        "readFailed": "Failed to read the file. Please try again."
+        "readFailed": "Failed to read the file. Please try again.",
+        "googleUrlInvalid": "Enter a Google Docs, Sheets, or Slides share link"
       },
       "detailTitle": "Document Details",
       "editButton": "Edit",
       "cancelButton": "Cancel",
-      "downloadLink": "Download"
+      "downloadLink": "Download",
+      "openOriginalLink": "Open the original document"
     }
   },
   "helpdeskAnnouncements": {
@@ -499,6 +509,7 @@
       "empty": "No documents",
       "error": "Failed to load documents",
       "downloadLink": "Download",
+      "openOriginalLink": "Open the original document",
       "fileSizeLabel": "File size",
       "uploadedAtLabel": "Uploaded"
     },

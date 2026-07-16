@@ -18,6 +18,46 @@ export class DocumentNotFoundError extends Error {
 
 const ORDER_BY_UPLOADED_AT_DESC = { uploadedAt: "desc" } as const;
 
+/**
+ * `CreateDocumentInput`をPrismaの書き込み用データへ変換する。`sourceType`の分岐で
+ * 使われない側のフィールド（アップロード方式ならgoogleUrl/googleEmbedUrl、Google方式なら
+ * fileName等）は明示的に`null`にし、編集時に登録方式が切り替わっても前の方式のデータが
+ * 残留しないようにする。
+ */
+function toDocumentData(
+  input: CreateDocumentInput
+): Prisma.DocumentUncheckedCreateInput {
+  const targetingColumns = targetingToColumns(input.targeting);
+
+  if (input.sourceType === "google") {
+    return {
+      title: input.title,
+      description: input.description,
+      sourceType: "google",
+      fileName: null,
+      fileType: null,
+      fileSize: null,
+      dataUrl: null,
+      googleUrl: input.googleUrl,
+      googleEmbedUrl: input.googleEmbedUrl,
+      ...targetingColumns,
+    };
+  }
+
+  return {
+    title: input.title,
+    description: input.description,
+    sourceType: "upload",
+    fileName: input.fileName,
+    fileType: input.fileType,
+    fileSize: input.fileSize,
+    dataUrl: input.dataUrl,
+    googleUrl: null,
+    googleEmbedUrl: null,
+    ...targetingColumns,
+  };
+}
+
 function visibleToWhere(country: string, companyCode: string): Prisma.DocumentWhereInput {
   return {
     OR: [
@@ -78,15 +118,7 @@ export async function createDocumentRecord(
   input: CreateDocumentInput
 ): Promise<Document> {
   const record = await prisma.document.create({
-    data: {
-      title: input.title,
-      description: input.description,
-      fileName: input.fileName,
-      fileType: input.fileType,
-      fileSize: input.fileSize,
-      dataUrl: input.dataUrl,
-      ...targetingToColumns(input.targeting),
-    },
+    data: toDocumentData(input),
   });
 
   return mapDocument(record);
@@ -100,15 +132,7 @@ export async function updateDocumentRecord(
   try {
     const record = await prisma.document.update({
       where: { id },
-      data: {
-        title: input.title,
-        description: input.description,
-        fileName: input.fileName,
-        fileType: input.fileType,
-        fileSize: input.fileSize,
-        dataUrl: input.dataUrl,
-        ...targetingToColumns(input.targeting),
-      },
+      data: toDocumentData(input),
     });
 
     return mapDocument(record);

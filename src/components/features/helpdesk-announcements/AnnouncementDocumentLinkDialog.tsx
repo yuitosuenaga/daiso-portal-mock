@@ -117,7 +117,9 @@ export function AnnouncementDocumentLinkDialog({
                     <span className="flex-1">
                       <span className="block font-medium">{document.title}</span>
                       <span className="block text-xs text-muted-foreground">
-                        {formatFileSize(document.fileSize)} ·{" "}
+                        {document.sourceType === "upload"
+                          ? `${formatFileSize(document.fileSize)} · `
+                          : ""}
                         {targetingSummary(
                           document,
                           targetingAllLabel,

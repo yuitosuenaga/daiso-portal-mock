@@ -26,6 +26,10 @@ export interface DocumentDetailPanelProps {
   fileSizeLabel: string;
   uploadedAtLabel: string;
   downloadLinkLabel: string;
+  openOriginalLinkLabel: string;
+  sourceTypeLabel: string;
+  sourceTypeUploadBadge: string;
+  sourceTypeGoogleBadge: string;
   targetingAllLabel: string;
   targetingCountriesLabel: string;
   targetingCompaniesLabel: string;
@@ -38,15 +42,27 @@ export interface DocumentDetailPanelProps {
 }
 
 function toFormDefaultValues(document: Document): DocumentFormValues {
+  if (document.sourceType === "google") {
+    return {
+      sourceType: "google",
+      title: document.title,
+      description: document.description ?? "",
+      googleUrl: document.googleUrl,
+      googleEmbedUrl: document.googleEmbedUrl,
+      // `Document.targeting`はドメイン型として`string[]`だが、保存済みデータは常に
+      // `documentFormSchema`で検証済みのため、フォームの厳密な型へ安全に絞り込める。
+      targeting: document.targeting as DocumentFormValues["targeting"],
+    };
+  }
+
   return {
+    sourceType: "upload",
     title: document.title,
     description: document.description ?? "",
     fileName: document.fileName,
     fileType: document.fileType,
     fileSize: document.fileSize,
     dataUrl: document.dataUrl,
-    // `Document.targeting`はドメイン型として`string[]`だが、保存済みデータは常に
-    // `documentFormSchema`で検証済みのため、フォームの厳密な型へ安全に絞り込める。
     targeting: document.targeting as DocumentFormValues["targeting"],
   };
 }
@@ -68,6 +84,10 @@ export function DocumentDetailPanel({
   fileSizeLabel,
   uploadedAtLabel,
   downloadLinkLabel,
+  openOriginalLinkLabel,
+  sourceTypeLabel,
+  sourceTypeUploadBadge,
+  sourceTypeGoogleBadge,
   targetingAllLabel,
   targetingCountriesLabel,
   targetingCompaniesLabel,
@@ -80,14 +100,24 @@ export function DocumentDetailPanel({
 }: DocumentDetailPanelProps) {
   const [mode, setMode] = useState<"view" | "edit">("edit");
 
-  const preview = (
-    <PdfViewer
-      dataUrl={document.dataUrl}
-      title={document.title}
-      downloadFileName={document.fileName}
-      downloadLinkLabel={downloadLinkLabel}
-    />
-  );
+  const preview =
+    document.sourceType === "google" ? (
+      <PdfViewer
+        variant="google"
+        embedUrl={document.googleEmbedUrl}
+        title={document.title}
+        originalUrl={document.googleUrl}
+        openOriginalLabel={openOriginalLinkLabel}
+      />
+    ) : (
+      <PdfViewer
+        variant="upload"
+        dataUrl={document.dataUrl}
+        title={document.title}
+        downloadFileName={document.fileName}
+        downloadLinkLabel={downloadLinkLabel}
+      />
+    );
 
   return (
     <div className="space-y-4">
@@ -125,8 +155,16 @@ export function DocumentDetailPanel({
                     })}
                   </time>
                 </span>
+                {document.sourceType === "upload" && (
+                  <span>
+                    {fileSizeLabel}: {formatFileSize(document.fileSize)}
+                  </span>
+                )}
                 <span>
-                  {fileSizeLabel}: {formatFileSize(document.fileSize)}
+                  {sourceTypeLabel}:{" "}
+                  {document.sourceType === "google"
+                    ? sourceTypeGoogleBadge
+                    : sourceTypeUploadBadge}
                 </span>
                 <span>
                   {targetingLabel(document.targeting, {

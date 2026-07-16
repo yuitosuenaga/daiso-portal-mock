@@ -47,12 +47,23 @@ vi.mock("next-intl/server", () => ({
 const DOCUMENT: Document = {
   id: "1",
   title: "テストドキュメント",
+  sourceType: "upload",
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
   dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
+};
+
+const GOOGLE_DOCUMENT: Document = {
+  id: "2",
+  title: "Googleドキュメント",
+  sourceType: "google",
+  googleUrl: "https://docs.google.com/document/d/abc123/edit",
+  googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+  targeting: { scope: "all" },
+  uploadedAt: "2026-07-02T09:00:00Z",
 };
 
 describe("DocumentManagementList", () => {
@@ -84,5 +95,15 @@ describe("DocumentManagementList", () => {
     expect(screen.getByText("全体公開")).toBeTruthy();
     expect(screen.getByRole("link", { name: "新規ドキュメントを追加" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "編集" })).toBeTruthy();
+  });
+
+  it("sourceTypeに応じた登録方式バッジをそれぞれ表示する", async () => {
+    getAllDocumentsMock.mockResolvedValueOnce([DOCUMENT, GOOGLE_DOCUMENT]);
+
+    const jsx = await DocumentManagementList();
+    render(jsx);
+
+    expect(screen.getByText("アップロード")).toBeTruthy();
+    expect(screen.getByText("Googleリンク")).toBeTruthy();
   });
 });

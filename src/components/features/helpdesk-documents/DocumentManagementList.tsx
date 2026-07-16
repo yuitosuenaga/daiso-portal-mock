@@ -79,7 +79,14 @@ export async function DocumentManagementList() {
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium">{document.title}</p>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span>{formatFileSize(document.fileSize)}</span>
+                  <span className="rounded border border-input px-1.5 py-0.5">
+                    {document.sourceType === "google"
+                      ? t("sourceTypeGoogleBadge")
+                      : t("sourceTypeUploadBadge")}
+                  </span>
+                  {document.sourceType === "upload" && (
+                    <span>{formatFileSize(document.fileSize)}</span>
+                  )}
                   <time dateTime={document.uploadedAt}>
                     {new Date(document.uploadedAt).toLocaleDateString(
                       locale,

@@ -204,14 +204,22 @@ enum DocumentTargetingScope {
   companies
 }
 
+enum DocumentSourceType {
+  upload
+  google
+}
+
 model Document {
   id                    String                     @id @default(cuid())
   title                 String
   description           String?
-  fileName              String
-  fileType              String                     @default("application/pdf")
-  fileSize              Int
-  dataUrl               String
+  sourceType            DocumentSourceType         @default(upload)
+  fileName              String?
+  fileType              String?
+  fileSize              Int?
+  dataUrl               String?
+  googleUrl             String?
+  googleEmbedUrl        String?
   uploadedAt            DateTime                   @default(now())
   targetingScope        DocumentTargetingScope     @default(all)
   targetingCountries    String[]                   @default([])
