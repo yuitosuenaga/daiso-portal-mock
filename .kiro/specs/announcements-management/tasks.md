@@ -770,3 +770,107 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 25.1, 25.2, 25.4, 25.6_
   - _Depends: 33.2, 34.1_
+
+- [ ] 37. データ基盤: スキーマ拡張とマイグレーション
+- [ ] 37.1 `AnnouncementTranslation`・`AnnouncementNotificationLog`モデル、`ApplicantUser.preferredLocale`を追加する
+  - `prisma/schema.prisma`に`AnnouncementTranslation`（`announcementId`・`locale`・`title`・`body`、`@@unique([announcementId, locale])`）・`AnnouncementNotificationLog`（`announcementId`・`kind`・`recipientEmail`・`locale`・`status`・`errorMessage`・`sentAt`）・関連Enum（`AnnouncementNotificationKind`・`AnnouncementNotificationStatus`）を追加し、`ApplicantUser`に`preferredLocale String @default("en")`を追加する
+  - マイグレーションを作成し、既存データに影響がないことを確認する
+  - `prisma migrate dev`が成功し、既存テストが継続してパスすることで完了とする
+  - _Requirements: 29.3, 30.1, 30.2, 31.1_
+  - _Boundary: prisma/schema.prisma, prisma/migrations_
+
+- [ ] 38. コア: メール送信基盤（mailer）の実装
+- [ ] 38.1 `nodemailer`ラッパー（`mailer.ts`）を実装する
+  - `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`環境変数からトランスポートを構成する`sendMail`関数を実装する
+  - 環境変数が1つでも未設定の場合は`MailerNotConfiguredError`をthrowする
+  - 単体テストがパスすることで完了とする
+  - _Requirements: 26.1, 26.2, 26.3_
+  - _Boundary: lib/server/mailer.ts_
+
+- [ ] 39. コア: 言語解決・宛先解決・通知オーケストレーションの実装
+- [ ] 39.1 `resolveAnnouncementContent`・`targetApplicantUsersWhere`を実装する
+  - `announcement-service.ts`に、`locale === "ja"`で既存の`title`/`body`を、それ以外で`translations`から一致する行（見つからなければ`ja`にフォールバック）を返す`resolveAnnouncementContent`を実装する
+  - `targetRecipientsWhere`と同型の、`ApplicantUser`を`Company.country`でスコープする`targetApplicantUsersWhere`を実装する
+  - `announcement-mapper.ts`の`ANNOUNCEMENT_INCLUDE`に`translations: true`を追加し、`mapAnnouncement`が`translations`を含めて返すようにする
+  - 単体テストがパスすることで完了とする
+  - _Requirements: 31.1, 31.4, 33.1, 33.2_
+  - _Boundary: lib/server/announcement-service.ts, lib/server/announcement-mapper.ts_
+  - _Depends: 37.1_
+
+- [ ] 39.2 `announcement-notifications.ts`（`notifyAnnouncementPublished`/`notifyAnnouncementReminder`）を実装する
+  - 宛先（`ApplicantUser`）ごとに`resolveAnnouncementContent`で言語別コンテンツを解決し、`mailer.sendMail`を呼び出す
+  - 宛先ごとの送信を`try/catch`し、例外を呼び出し元に伝播させない。結果（`sent`/`failed`/`skipped`）を`AnnouncementNotificationLog`に記録する
+  - 単体テストがパスすることで完了とする
+  - _Requirements: 27.1, 27.2, 27.4, 28.1, 28.2, 29.1, 29.2, 29.3, 33.3_
+  - _Boundary: lib/server/announcement-notifications.ts_
+  - _Depends: 38.1, 39.1_
+
+- [ ] 40. 統合: 公開・リマインド操作からの通知呼び出し結線
+- [ ] 40.1 `createAnnouncementRecord`/`updateAnnouncementRecord`から公開時に`notifyAnnouncementPublished`を呼び出す
+  - 新規作成時に`status: "published"`、または更新時に`draft`→`published`へ遷移した場合のみ呼び出す。それ以外（`published`→`published`等）では再送しない
+  - ブラウザで下書きから公開へ更新すると、`AnnouncementNotificationLog`が作成されることで完了とする
+  - _Requirements: 27.1, 27.3_
+  - _Boundary: lib/server/announcement-service.ts_
+  - _Depends: 39.2_
+
+- [ ] 40.2 `sendAnnouncementReminders`から`notifyAnnouncementReminder`を呼び出す
+  - 既存のリマインド送信確定処理（`reminderSentAt`記録）の後段で、対象会社に属する`ApplicantUser`へ通知する
+  - 既存のリマインド送信操作の完了表示・送信済み記録の挙動が変わらないことで完了とする
+  - _Requirements: 28.1, 28.3_
+  - _Boundary: lib/server/announcement-service.ts_
+  - _Depends: 39.2_
+
+- [ ] 41. コア: フォームの言語別入力
+- [ ] 41.1 `announcementFormSchema`に`titleEn`/`bodyEn`/`translations`を追加する
+  - `titleEn`/`bodyEn`を必須文字列とし、`translations`（任意言語の配列）に`ja`/`en`との重複禁止の`refine`を追加する
+  - 単体テストがパスすることで完了とする
+  - _Requirements: 31.2, 31.3, 32.2, 32.3_
+  - _Boundary: lib/validation/announcement.ts_
+  - _Depends: 37.1_
+
+- [ ] 41.2 `AnnouncementForm`に言語タブUIを追加する
+  - `ja`（既存フィールド）・`en`（固定タブ）・追加言語（`useFieldArray`による行の追加・削除）を切り替えるタブUIを実装する
+  - `ja`・`en`のいずれかが未入力のまま保存しようとするとブロックされることをブラウザで確認できることで完了とする
+  - _Requirements: 32.1, 32.3, 32.4_
+  - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.tsx_
+  - _Depends: 41.1_
+
+- [ ] 42. 統合: 保存経路への翻訳データ反映
+- [ ] 42.1 `createAnnouncementRecord`/`updateAnnouncementRecord`が`translations`を永続化する
+  - `en`行を必ず1件upsertし、追加言語行は渡された内容で全置換する
+  - ブラウザで追加言語を含めて保存し、再読み込み後も内容が保持されていることで完了とする
+  - _Requirements: 31.1, 31.5_
+  - _Boundary: lib/server/announcement-service.ts_
+  - _Depends: 37.1, 41.1_
+
+- [ ] 43. 検証: 単体テスト
+- [ ] 43.1 (P) `mailer`・`announcement-notifications`の単体テストを実装する
+  - SMTP未設定時に`skipped`、送信失敗時に`failed`として記録されることを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 26.1, 29.1, 29.2_
+  - _Depends: 39.2_
+
+- [ ] 43.2 (P) `resolveAnnouncementContent`・`targetApplicantUsersWhere`の単体テストを実装する
+  - `ja`固定、`en`・追加言語の解決、未登録言語での`ja`フォールバックを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 31.4, 33.2_
+  - _Depends: 39.1_
+
+- [ ] 43.3 (P) `announcementFormSchema`の単体テストを実装する
+  - `titleEn`/`bodyEn`未入力時のブロック、`translations`内の`ja`/`en`重複指定の拒否を検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 32.2_
+  - _Depends: 41.1_
+
+- [ ] 44. 検証: 統合テスト・実機確認
+- [ ] 44.1 公開・リマインド時の通知送信の統合テストを実装する
+  - 下書きから公開への更新、公開済みのまま編集、リマインド送信のそれぞれで`AnnouncementNotificationLog`の作成有無・件数が要件どおりであることを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 27.1, 27.3, 28.1, 29.3_
+  - _Depends: 40.1, 40.2_
+
+- [ ] 44.2 日本語・英語両ロケール、タブレット幅（768px）での言語タブUI確認
+  - 言語タブUIが両ロケール・タブレット幅で横スクロールを起こさず表示されることをブラウザで確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 32.1, 32.4_
+  - _Depends: 41.2_

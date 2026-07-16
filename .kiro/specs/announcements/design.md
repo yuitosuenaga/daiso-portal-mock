@@ -884,3 +884,108 @@ interface AnnouncementSelfReportPanelProps {
 - **E2E/UI Tests**:
   - 日本語・英語両方で確認済み表示・対応完了ボタン・対応完了済み表示の文言が翻訳されること
   - タブレット幅（768px）でボタン・バッジが横スクロールを発生させずに表示されること
+
+---
+
+## 追加ラウンド（2026-07-16）: 多言語コンテンツの表示側対応
+
+### Overview（追加分）
+`announcements-management`spec側で、`Announcement`のタイトル・本文が言語別（`ja`固定＋`en`必須＋任意追加言語、`AnnouncementTranslation`）に保持されるようになる（同spec要件31）。これに伴い、`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`が返す`Announcement.title`/`body`を、現在のUIロケール（`ja`/`en`）に対応する内容に解決してから返すようにする。**Purpose**: 海外販社担当者が自分の理解できる言語でお知らせの内容を正確に把握できるようにする。**Impact**: `lib/api/announcements.ts`の3関数が内部で呼び出す`announcement-management`側の関数にロケール引数を渡す点のみが変更される。`AnnouncementList`・`AnnouncementDetail`・`AnnouncementListItem`のレイアウト・Props形状・呼び出しコードは変更しない（`title`/`body`の値の中身が変わるのみ）。
+
+### Goals（追加分）
+- お知らせ一覧・詳細画面が、現在のUIロケールに対応するタイトル・本文を表示する
+- 対応する言語のコンテンツが未登録の場合、既定言語（`ja`）にフォールバックする
+- 既存の一覧・詳細画面のレイアウト・操作性（検索絞り込み・バッジ表示・並び順等）を変更しない
+
+### Non-Goals（追加分）
+- `Announcement`の多言語コンテンツ自体の入力・保持・マイグレーション（`announcements-management`spec所有）
+- 通知メールの多言語化（`announcements-management`spec所有、本specの対象外）
+- UIロケール自体の追加（表示対象は既存の`ja`/`en`のみ）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- なし（データ層の解決ロジックは`announcements-management`spec所有。本specは`getAnnouncements`等の既存呼び出しにロケールを渡す呼び出し側の変更のみを担う）
+
+**Out of Boundary（追加）**
+- `Announcement.title`/`body`の言語別解決ロジック自体（`resolveAnnouncementContent`、`announcements-management`spec所有）
+- ダッシュボードの「お知らせ概要ウィジェット」（`dashboard`spec所有）の呼び出しコード自体の変更（本ラウンドは`dashboard`spec側のコードを変更しない。`getRecentAnnouncements`の新規オプション引数は省略可能とし、省略時は既定言語`ja`で解決されるため、ウィジェット側が追随するまでは`ja`表示のままとなる点をRevalidation Triggersに記録する）
+
+**Allowed Dependencies（追加）**
+- `announcements-management`spec側で拡張される`getAnnouncements`/`getRecentAnnouncements`/`getAnnouncementById`のロケール対応オプション（引数追加、後方互換）
+
+**Revalidation Triggers（追加）**
+- `dashboard`spec所有の`AnnouncementWidget`の呼び出しコードが`getRecentAnnouncements`にロケールを渡すよう更新されない限り、ウィジェットの表示は既定言語（`ja`）に固定され続ける。`dashboard`spec側で本要件（申請者側UIロケールに対応した表示）を満たすには、別ラウンドでの追従が必要になる
+
+### Architecture（追加分）
+新規コンポーネント・新規UIは発生しない。既存の`AnnouncementList`・`AnnouncementDetail`（いずれもServer Component）が、既存の`getLocale()`（`next-intl/server`、日付フォーマット表示のため既に呼び出し済み）で取得した`locale`を、`lib/api/announcements.ts`の`getAnnouncements()`/`getAnnouncementById(id)`にオプション引数として渡す。`getRecentAnnouncements`も同様のオプションを追加するが、`dashboard`spec側の呼び出しコードは本ラウンドでは変更しない（Revalidation Triggers参照）。
+
+```mermaid
+graph TB
+    List[AnnouncementList]
+    Detail[AnnouncementDetail]
+    GetLocale[getLocale next-intl existing]
+    Api[lib/api/announcements.ts]
+    Service[announcement-service resolveAnnouncementContent existing]
+
+    List --> GetLocale
+    Detail --> GetLocale
+    List --> Api
+    Detail --> Api
+    Api --> Service
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 既存の「Server Componentが`getLocale()`を呼び出し、日付フォーマット等に利用する」パターンを、モックAPI呼び出しへのロケール引き渡しにも拡張する
+- ドメイン境界: 言語別コンテンツの解決ロジック自体は`announcements-management`spec側に留め、本specは「現在のUIロケールを取得し、既存のAPI呼び出しに渡す」という呼び出し側の責務のみを持つ
+- 新規コンポーネントを作らない理由: `title`/`body`の値が変わるのみであり、既存のPropsの型・コンポーネント構造は変わらないため
+- Steering準拠: 表示テキストは`next-intl`翻訳キー経由という既存規約を維持する（本ラウンドは翻訳キーの追加を伴わない）
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし（既存の`next-intl/server`の`getLocale()`のみを使用）。
+
+### File Structure Plan（追加分）
+新規ファイルなし。
+
+### Modified Files（追加分）
+- `src/lib/api/announcements.ts` — `getAnnouncements(options?: { locale?: string })`・`getAnnouncementById(id: string, options?: { locale?: string })`・`getRecentAnnouncements(options?: GetRecentAnnouncementsOptions & { locale?: string })`に、`announcements-management`spec側のサービス層へ渡すロケール引数を追加（省略時は既定言語`ja`として解決される、後方互換）
+- `src/components/features/announcements/AnnouncementList.tsx` — 既存の`getLocale()`呼び出し結果を`getAnnouncements({ locale })`に渡す
+- `src/components/features/announcements/AnnouncementDetail.tsx` — 既存の`getLocale()`呼び出し結果を`getAnnouncementById(id, { locale })`に渡す
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 16.1〜16.4 | 多言語コンテンツの表示 | AnnouncementList, AnnouncementDetail | Service（`getAnnouncements`/`getAnnouncementById`のロケール引数） |
+| 16.5 | ダッシュボードウィジェットへのデータ層反映 | （`getRecentAnnouncements`のみ、UI変更なし） | Service |
+
+### Components and Interfaces（追加分）
+新規コンポーネントなし。既存の`AnnouncementList`・`AnnouncementDetail`が、`getLocale()`の戻り値を既存のAPI呼び出しに追加引数として渡すのみ（Props形状・JSX構造の変更はない）。
+
+##### Service Interface（差分）
+```typescript
+function getAnnouncements(options?: { locale?: string }): Promise<Announcement[]>;
+function getAnnouncementById(
+  id: string,
+  options?: { locale?: string }
+): Promise<Announcement | null>;
+function getRecentAnnouncements(
+  options?: GetRecentAnnouncementsOptions & { locale?: string }
+): Promise<Announcement[]>;
+```
+- Preconditions: `locale`は`next-intl`の`routing.locales`（`"ja" | "en"`）のいずれか。省略時は`announcements-management`spec側が既定言語（`ja`）として扱う
+- Postconditions: 戻り値の各`Announcement.title`/`body`が、指定した`locale`に対応する内容（未登録の場合は`ja`にフォールバック）になる
+- Invariants: `locale`の指定は`Announcement`の並び順・件数・その他フィールドに影響しない
+
+### Data Models（追加分）
+本specは新規のデータモデルを追加しない。`announcements-management`spec所有の`AnnouncementTranslation`（読み取り専用、間接的に`title`/`body`の解決結果として反映される）を参照する。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `AnnouncementList`/`AnnouncementDetail`が`getLocale()`の戻り値をAPI呼び出しの`locale`オプションに渡すこと（モック関数の呼び出し引数を検証）
+- **Integration Tests**:
+  - UIロケールを`en`に切り替えた状態で一覧・詳細を表示すると、`en`翻訳が登録されているお知らせについて英語のタイトル・本文が表示されること
+  - `en`翻訳が未登録のお知らせについて、UIロケールが`en`でも日本語（既定言語）のタイトル・本文にフォールバックして表示されること
+- **E2E/UI Tests**:
+  - 言語切り替え操作（`LanguageSwitcher`）の前後で、一覧・詳細のタイトル・本文表示が切り替わること
