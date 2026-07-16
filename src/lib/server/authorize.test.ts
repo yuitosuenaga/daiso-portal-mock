@@ -24,6 +24,7 @@ describe("authorizeApplicantCredentials", () => {
       displayName: "テスト太郎",
       companyId: "company-1",
       createdAt: new Date(),
+      isActive: true,
       company: { id: "company-1", name: "Test Co.", country: "JP", companyCode: "jp-test", createdAt: new Date() },
     } as never);
 
@@ -52,6 +53,7 @@ describe("authorizeApplicantCredentials", () => {
       displayName: "テスト太郎",
       companyId: "company-1",
       createdAt: new Date(),
+      isActive: true,
       company: { id: "company-1", name: "Test Co.", country: "JP", companyCode: "jp-test", createdAt: new Date() },
     } as never);
 
@@ -72,6 +74,49 @@ describe("authorizeApplicantCredentials", () => {
     );
 
     expect(result).toBeNull();
+  });
+
+  it("無効化(isActive: false)されたアカウントは、正しいパスワードでもnullを返す", async () => {
+    const passwordHash = await bcrypt.hash("password1234", 10);
+    vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue({
+      id: "applicant-1",
+      email: "applicant@example.com",
+      passwordHash,
+      displayName: "テスト太郎",
+      companyId: "company-1",
+      createdAt: new Date(),
+      isActive: false,
+      company: { id: "company-1", name: "Test Co.", country: "JP", companyCode: "jp-test", createdAt: new Date() },
+    } as never);
+
+    const result = await authorizeApplicantCredentials(
+      "applicant@example.com",
+      "password1234"
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it("有効(isActive: true)なアカウントは、既存の挙動を維持する", async () => {
+    const passwordHash = await bcrypt.hash("password1234", 10);
+    vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue({
+      id: "applicant-1",
+      email: "applicant@example.com",
+      passwordHash,
+      displayName: "テスト太郎",
+      companyId: "company-1",
+      createdAt: new Date(),
+      isActive: true,
+      company: { id: "company-1", name: "Test Co.", country: "JP", companyCode: "jp-test", createdAt: new Date() },
+    } as never);
+
+    const result = await authorizeApplicantCredentials(
+      "applicant@example.com",
+      "password1234"
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.applicantUserId).toBe("applicant-1");
   });
 });
 

@@ -41,7 +41,8 @@
     "links": "Links",
     "faq": "FAQ",
     "announcements": "Announcement Management",
-    "documents": "Document Management"
+    "documents": "Document Management",
+    "companies": "Company Management"
   },
   "helpdeskDocuments": {
     "list": {
@@ -380,6 +381,87 @@
         "required": "This field is required",
         "invalidUrl": "Please enter a valid URL"
       }
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "Company Management",
+      "description": "View registered overseas distributors and manage their applicant accounts.",
+      "empty": "No companies are registered",
+      "noResults": "No matching companies found",
+      "error": "Failed to load companies",
+      "addButton": "Add new company",
+      "searchLabel": "Search by company name or company code",
+      "searchPlaceholder": "Enter a company name or company code",
+      "nameHeader": "Company Name",
+      "countryHeader": "Country",
+      "companyCodeHeader": "Company Code",
+      "applicantUserCountHeader": "Applicant Accounts",
+      "detailLink": "Details",
+      "detailLinkLabel": "View details for {name}"
+    },
+    "form": {
+      "createTitle": "Create Company",
+      "editTitle": "Edit Company",
+      "notFound": "Company not found",
+      "backToList": "Back to list",
+      "nameLabel": "Company Name",
+      "namePlaceholder": "Enter the company name",
+      "countryLabel": "Country",
+      "countryPlaceholder": "Select a country",
+      "companyCodeLabel": "Company Code",
+      "companyCodePlaceholder": "Enter the company code",
+      "submitButton": "Save",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required",
+        "companyCodeDuplicate": "This company code is already in use"
+      }
+    },
+    "detail": {
+      "backToList": "Back to list",
+      "editButton": "Edit company",
+      "countryLabel": "Country",
+      "companyCodeLabel": "Company Code",
+      "applicantUsersTitle": "Applicant Accounts",
+      "addApplicantUserButton": "Add applicant account",
+      "applicantUsersEmpty": "No applicant accounts are registered",
+      "emailHeader": "Email",
+      "displayNameHeader": "Display Name",
+      "statusHeader": "Status",
+      "activeStatus": "Active",
+      "inactiveStatus": "Inactive",
+      "editLink": "Edit"
+    },
+    "applicantUserForm": {
+      "createTitle": "Create Applicant Account",
+      "editTitle": "Edit Applicant Account",
+      "notFound": "Account not found",
+      "backToDetail": "Back to company details",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter the email address",
+      "displayNameLabel": "Display Name",
+      "displayNamePlaceholder": "Enter the display name",
+      "passwordLabel": "Password",
+      "passwordCreatePlaceholder": "Enter an initial password (8+ characters)",
+      "passwordEditPlaceholder": "Enter only if changing (8+ characters)",
+      "passwordCreateHint": "The helpdesk staff sets the initial password directly.",
+      "passwordEditHint": "Leave blank to keep the existing password unchanged.",
+      "submitButton": "Save",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required",
+        "emailInvalid": "Please enter a valid email address",
+        "emailDuplicate": "This email address is already in use",
+        "passwordTooShort": "Password must be at least 8 characters"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "Deactivate",
+      "activateButton": "Reactivate",
+      "deactivateConfirm": "Deactivate this account? Once deactivated, this account will no longer be able to log in.",
+      "activateConfirm": "Reactivate this account? Once reactivated, this account will be able to log in again.",
+      "toggleError": "Failed to update. Please try again later."
     }
   },
   "nav": {

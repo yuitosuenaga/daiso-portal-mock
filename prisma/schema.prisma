@@ -53,6 +53,7 @@ model ApplicantUser {
   companyId       String
   company         Company  @relation(fields: [companyId], references: [id])
   createdAt       DateTime @default(now())
+  isActive        Boolean  @default(true)
   /// 通知メール・お知らせ表示に用いる言語設定。未設定（既定値）は"en"として扱う。
   preferredLocale String   @default("en")
 }
