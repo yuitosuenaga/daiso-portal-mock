@@ -31,6 +31,13 @@ export async function authorizeApplicantCredentials(
     return null;
   }
 
+  // 無効化された申請者アカウントのログインを拒否する（要件7.5）。パスワード誤りと
+  // 同様にnullを返すことで、無効化されたアカウントか単なるパスワード誤りかを
+  // 外部から判別されないようにする（意図的な設計判断）。
+  if (!applicantUser.isActive) {
+    return null;
+  }
+
   return {
     id: applicantUser.id,
     role: "applicant",

@@ -11,6 +11,7 @@ import {
   Link2,
   HelpCircle,
   FolderOpen,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,8 @@ interface HelpdeskNavItem {
     | "announcements"
     | "links"
     | "faq"
-    | "documents";
+    | "documents"
+    | "companies";
   href: string;
   icon: LucideIcon;
 }
@@ -38,6 +40,7 @@ const HELPDESK_NAV_ITEMS: HelpdeskNavItem[] = [
   { translationKey: "documents", href: "/helpdesk/documents", icon: FolderOpen },
   { translationKey: "links", href: "/helpdesk/links", icon: Link2 },
   { translationKey: "faq", href: "/helpdesk/faq", icon: HelpCircle },
+  { translationKey: "companies", href: "/helpdesk/companies", icon: Building2 },
 ];
 
 interface HelpdeskSidebarProps {

@@ -53,6 +53,7 @@ model ApplicantUser {
   companyId    String
   company      Company  @relation(fields: [companyId], references: [id])
   createdAt    DateTime @default(now())
+  isActive     Boolean  @default(true)
 }
 
 model HelpdeskStaff {

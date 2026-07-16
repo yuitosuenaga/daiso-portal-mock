@@ -82,6 +82,26 @@ describe("HelpdeskSidebar", () => {
     expect(faqLink.getAttribute("href")).toBe("/helpdesk/faq");
   });
 
+  it("販社管理へのナビゲーション項目を表示する", () => {
+    renderHelpdeskSidebar();
+
+    const companiesLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.companies,
+    });
+    expect(companiesLink.getAttribute("href")).toBe("/helpdesk/companies");
+  });
+
+  it("会社詳細ページ表示中は販社管理項目がアクティブになる", () => {
+    vi.mocked(usePathname).mockReturnValue("/helpdesk/companies/company-001");
+
+    renderHelpdeskSidebar();
+
+    const companiesLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.companies,
+    });
+    expect(companiesLink.className).toContain("bg-primary");
+  });
+
   it("問い合わせ詳細ページ表示中は申請管理項目がアクティブになる", () => {
     vi.mocked(usePathname).mockReturnValue("/helpdesk/inquiries/inquiry-001");
 
