@@ -1,5 +1,6 @@
 import "server-only";
 
+import { routing } from "@/i18n/routing";
 import { prisma } from "@/lib/db/prisma";
 import {
   ANNOUNCEMENT_INCLUDE,
@@ -26,8 +27,39 @@ async function findAnnouncementForNotification(
   return record ? mapAnnouncement(record) : null;
 }
 
-/** 通知メール本文に含めるポータルの詳細ページのベースパス（ロケールプレフィックスは含めない）。 */
+/** 通知メール本文に含めるポータルの詳細ページのパス（ロケールプレフィックスは含めない）。 */
 const ANNOUNCEMENT_DETAIL_PATH_PREFIX = "/announcements";
+
+/**
+ * ローカル開発でのデフォルトのポータル公開URL。本番（Cloud Run）では`AUTH_URL`が
+ * サービスの公開URLとして明示的に設定されている（Auth.jsのリダイレクト用途と共用）ため、
+ * 通知メール内の詳細リンクにもこれを転用する。
+ */
+const DEFAULT_APP_BASE_URL = "http://localhost:3000";
+
+/**
+ * 通知メール本文に埋め込む、スキーム・ホストを含む絶対URLのベース部分を解決する。
+ * 末尾のスラッシュは除去する。
+ */
+function resolveAppBaseUrl(): string {
+  const configured = process.env.AUTH_URL;
+  if (!configured) {
+    return DEFAULT_APP_BASE_URL;
+  }
+  return configured.replace(/\/+$/, "");
+}
+
+/**
+ * 宛先の`preferredLocale`から、詳細リンクに用いるUIロケール（`next-intl`の`routing.locales`）
+ * を解決する。`ApplicantUser.preferredLocale`はメール本文の言語選択用の自由入力に近い値
+ * （`th`・`vi`等も許容）だが、ポータルのURLパスは`ja`/`en`の2ロケールしかルーティングされて
+ * いないため、それ以外の値は既定ロケール（`ja`）にフォールバックする。
+ */
+function resolveUiLocale(preferredLocale: string): string {
+  return (routing.locales as readonly string[]).includes(preferredLocale)
+    ? preferredLocale
+    : routing.defaultLocale;
+}
 
 interface NotificationRecipient {
   email: string;
@@ -45,7 +77,8 @@ async function sendAndLog(
   recipient: NotificationRecipient
 ): Promise<void> {
   const { title, body } = resolveAnnouncementContent(announcement, recipient.preferredLocale);
-  const detailUrl = `${ANNOUNCEMENT_DETAIL_PATH_PREFIX}/${announcement.id}`;
+  const uiLocale = resolveUiLocale(recipient.preferredLocale);
+  const detailUrl = `${resolveAppBaseUrl()}/${uiLocale}${ANNOUNCEMENT_DETAIL_PATH_PREFIX}/${announcement.id}`;
   const subject = title;
   const bodyLines = [body, "", detailUrl];
   if (kind === "reminder" && announcement.dueDate) {

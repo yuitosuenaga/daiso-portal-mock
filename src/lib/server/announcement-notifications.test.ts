@@ -177,6 +177,62 @@ describe("notifyAnnouncementPublished", () => {
     );
   });
 
+  it("メール本文の詳細リンクはスキーム・ホストを含む絶対URLで、宛先のpreferredLocaleに対応するUIロケール（ja/en）のパスにする", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+      { email: "b@example.com", preferredLocale: "en" },
+      { email: "c@example.com", preferredLocale: "th" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementPublished("announcement-1");
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "a@example.com",
+        text: expect.stringContaining("http://localhost:3000/ja/announcements/announcement-1"),
+      })
+    );
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "b@example.com",
+        text: expect.stringContaining("http://localhost:3000/en/announcements/announcement-1"),
+      })
+    );
+    // "th"はUIルーティング上のロケールではないため、既定ロケール（ja）のパスにフォールバックする
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "c@example.com",
+        text: expect.stringContaining("http://localhost:3000/ja/announcements/announcement-1"),
+      })
+    );
+  });
+
+  it("AUTH_URLが設定されている場合はそれをベースURLとして詳細リンクに使う（末尾スラッシュは除去する）", async () => {
+    vi.stubEnv("AUTH_URL", "https://portal-mock.example.run.app/");
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementPublished("announcement-1");
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          "https://portal-mock.example.run.app/ja/announcements/announcement-1"
+        ),
+      })
+    );
+    vi.unstubAllEnvs();
+  });
+
   it("存在しないお知らせIDに対しては何もしない", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
 
