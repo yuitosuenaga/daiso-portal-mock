@@ -597,3 +597,7 @@ function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary>;
 - **Unit Tests**: `NavigationCard`（バッジあり/なし表示切り替え）, `getAllInquiryStatusSummary`（集計ロジック）, `AnnouncementsCard`（7日しきい値の境界値）, `sortInquiriesForPriorityPreview`（未着手優先・緊急度・受付日時の並び替えロジック）
 - **Integration Tests**: `InquiryListCard`（scope=own/allそれぞれでのAPI呼び出しとエラー時フォールバック）, `AnnouncementsPreviewPanel`（正常表示・空状態・エラー時フォールバック）, `PriorityInquiriesPreviewPanel`（正常表示・0件時の空状態・エラー時フォールバック）, `ReminderAnnouncementsPanel`（リマインド対象が存在する場合の表示、0件時の非表示、データ取得失敗時の非表示フォールバック）
 - **E2E/UI Tests**: 申請者側トップページの5カードから各ページへの遷移、ヘルプデスク側トップページの6カードから各ページへの遷移とセクション区分表示、ヘルプデスク側「リンク」「FAQ」ページの表示内容が申請者側と一致すること、両ポータルともナビゲーションカードが画面上部・プレビューパネルがその下部に表示されること
+
+## 追加（2026-07-15）: プレビューパネル名称・リンク文言の表示名変更
+
+別ブランチ（`chore/rename-inquiry-to-application-labels`）でのUI表示文言のみの変更（要件11.1・11.2更新）であり、コンポーネント構成・データフロー・データモデルへの設計変更は発生しない。翻訳キー（`dashboard.priorityInquiriesPreview.title`・`.viewAll`）の値変更のみ。
