@@ -41,7 +41,8 @@
     "links": "リンク集",
     "faq": "よくある質問",
     "announcements": "お知らせ管理",
-    "documents": "ドキュメント管理"
+    "documents": "ドキュメント管理",
+    "companies": "販社管理"
   },
   "helpdeskDocuments": {
     "list": {
@@ -371,6 +372,87 @@
         "required": "この項目は必須です",
         "invalidUrl": "有効なURLを入力してください"
       }
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "販社管理",
+      "description": "登録済みの海外販社を確認し、申請者アカウントを管理できます。",
+      "empty": "販社が登録されていません",
+      "noResults": "該当する販社がありません",
+      "error": "販社の取得に失敗しました",
+      "addButton": "新規販社を追加",
+      "searchLabel": "会社名・販社コードで検索",
+      "searchPlaceholder": "会社名または販社コードを入力してください",
+      "nameHeader": "会社名",
+      "countryHeader": "国",
+      "companyCodeHeader": "販社コード",
+      "applicantUserCountHeader": "申請者アカウント数",
+      "detailLink": "詳細",
+      "detailLinkLabel": "{name}の詳細を表示"
+    },
+    "form": {
+      "createTitle": "販社の新規作成",
+      "editTitle": "販社の編集",
+      "notFound": "会社が見つかりません",
+      "backToList": "一覧へ戻る",
+      "nameLabel": "会社名",
+      "namePlaceholder": "会社名を入力してください",
+      "countryLabel": "国",
+      "countryPlaceholder": "国を選択してください",
+      "companyCodeLabel": "販社コード",
+      "companyCodePlaceholder": "販社コードを入力してください",
+      "submitButton": "保存する",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です",
+        "companyCodeDuplicate": "この販社コードは既に使用されています"
+      }
+    },
+    "detail": {
+      "backToList": "一覧へ戻る",
+      "editButton": "会社情報を編集",
+      "countryLabel": "国",
+      "companyCodeLabel": "販社コード",
+      "applicantUsersTitle": "申請者アカウント",
+      "addApplicantUserButton": "申請者アカウントを追加",
+      "applicantUsersEmpty": "申請者アカウントが登録されていません",
+      "emailHeader": "メールアドレス",
+      "displayNameHeader": "表示名",
+      "statusHeader": "有効状態",
+      "activeStatus": "有効",
+      "inactiveStatus": "無効",
+      "editLink": "編集"
+    },
+    "applicantUserForm": {
+      "createTitle": "申請者アカウントの新規作成",
+      "editTitle": "申請者アカウントの編集",
+      "notFound": "アカウントが見つかりません",
+      "backToDetail": "会社詳細へ戻る",
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力してください",
+      "displayNameLabel": "表示名",
+      "displayNamePlaceholder": "表示名を入力してください",
+      "passwordLabel": "パスワード",
+      "passwordCreatePlaceholder": "初期パスワードを入力してください（8文字以上）",
+      "passwordEditPlaceholder": "変更する場合のみ入力してください（8文字以上）",
+      "passwordCreateHint": "ヘルプデスク担当者が初期パスワードを直接設定します。",
+      "passwordEditHint": "空欄のまま保存すると、既存のパスワードは変更されません。",
+      "submitButton": "保存する",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です",
+        "emailInvalid": "有効なメールアドレスを入力してください",
+        "emailDuplicate": "このメールアドレスは既に使用されています",
+        "passwordTooShort": "パスワードは8文字以上で入力してください"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "無効化する",
+      "activateButton": "再有効化する",
+      "deactivateConfirm": "このアカウントを無効化しますか？無効化すると、このアカウントでログインできなくなります。",
+      "activateConfirm": "このアカウントを再有効化しますか？再有効化すると、再びログインできるようになります。",
+      "toggleError": "更新に失敗しました。時間を置いて再度お試しください。"
     }
   },
   "nav": {
