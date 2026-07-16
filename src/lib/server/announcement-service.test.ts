@@ -11,7 +11,7 @@ vi.mock("@/lib/db/prisma", () => ({
       delete: vi.fn(),
     },
     announcementRecipient: {
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     announcementRecipientStatus: {
       upsert: vi.fn(),
@@ -24,7 +24,16 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/server/announcement-notifications", () => ({
+  notifyAnnouncementPublished: vi.fn().mockResolvedValue(undefined),
+  notifyAnnouncementReminder: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { prisma } from "@/lib/db/prisma";
+import {
+  notifyAnnouncementPublished,
+  notifyAnnouncementReminder,
+} from "@/lib/server/announcement-notifications";
 import {
   AnnouncementNotFoundError,
   createAnnouncementRecord,
@@ -39,7 +48,9 @@ import {
   listAnnouncementsVisibleToCountry,
   recordCompanyCompletion,
   recordCompanyConfirmation,
+  resolveAnnouncementContent,
   sendAnnouncementReminders,
+  targetApplicantUsersWhere,
   updateAnnouncementRecord,
 } from "@/lib/server/announcement-service";
 
@@ -68,6 +79,7 @@ function baseAnnouncementRecord(
       announcementId: string;
     }[];
     linkedDocuments: { id: string; announcementId: string; documentId: string }[];
+    translations: { id: string; announcementId: string; locale: string; title: string; body: string }[];
   }> = {}
 ) {
   return {
@@ -94,6 +106,13 @@ function baseAnnouncementRecord(
       announcementId: string;
     }[],
     linkedDocuments: [] as { id: string; announcementId: string; documentId: string }[],
+    translations: [] as {
+      id: string;
+      announcementId: string;
+      locale: string;
+      title: string;
+      body: string;
+    }[],
     ...overrides,
   };
 }
@@ -130,6 +149,55 @@ function recipientRecord(
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("listAnnouncementsVisibleToCountry: 言語別コンテンツの解決（要件16.2, 16.3）", () => {
+  it("localeにenを指定し、対応する翻訳が存在する場合はen翻訳のタイトル・本文を返す", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        title: "日本語タイトル",
+        body: "日本語本文",
+        translations: [
+          { id: "t1", announcementId: "1", locale: "en", title: "English Title", body: "English Body" },
+        ],
+      }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN", "en");
+
+    expect(result[0].title).toBe("English Title");
+    expect(result[0].body).toBe("English Body");
+  });
+
+  it("localeにenを指定しても対応する翻訳が存在しない場合は既定言語（ja）にフォールバックする", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({ id: "1", title: "日本語タイトル", body: "日本語本文" }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN", "en");
+
+    expect(result[0].title).toBe("日本語タイトル");
+    expect(result[0].body).toBe("日本語本文");
+  });
+
+  it("localeを指定しない場合は既定言語（ja）のタイトル・本文を返す", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        title: "日本語タイトル",
+        body: "日本語本文",
+        translations: [
+          { id: "t1", announcementId: "1", locale: "en", title: "English Title", body: "English Body" },
+        ],
+      }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN");
+
+    expect(result[0].title).toBe("日本語タイトル");
+    expect(result[0].body).toBe("日本語本文");
+  });
 });
 
 describe("listAnnouncementsVisibleToCountry", () => {
@@ -229,6 +297,35 @@ describe("findAnnouncementVisibleToCountry", () => {
     expect(result).toBeNull();
   });
 
+  it("localeにenを指定し、対応する翻訳が存在する場合はen翻訳のタイトル・本文を返す（要件16.2）", async () => {
+    vi.mocked(prisma.announcement.findFirst).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        title: "日本語タイトル",
+        body: "日本語本文",
+        translations: [
+          { id: "t1", announcementId: "1", locale: "en", title: "English Title", body: "English Body" },
+        ],
+      }) as never
+    );
+
+    const result = await findAnnouncementVisibleToCountry("1", "VN", "en");
+
+    expect(result?.title).toBe("English Title");
+    expect(result?.body).toBe("English Body");
+  });
+
+  it("localeにenを指定しても対応する翻訳が存在しない場合は既定言語（ja）にフォールバックする（要件16.3）", async () => {
+    vi.mocked(prisma.announcement.findFirst).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", title: "日本語タイトル", body: "日本語本文" }) as never
+    );
+
+    const result = await findAnnouncementVisibleToCountry("1", "VN", "en");
+
+    expect(result?.title).toBe("日本語タイトル");
+    expect(result?.body).toBe("日本語本文");
+  });
+
   it("公開開始日が未来の場合はnullを返す", async () => {
     vi.mocked(prisma.announcement.findFirst).mockResolvedValue(
       baseAnnouncementRecord({
@@ -323,6 +420,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -359,6 +457,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       dueDate: "2026-08-15",
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -389,6 +488,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -416,6 +516,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
         actionRequired: false,
         attachments: [],
         linkedDocumentIds: [],
+        translations: [],
       })
     ).rejects.toThrow(AnnouncementNotFoundError);
   });
@@ -437,6 +538,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -463,6 +565,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -489,6 +592,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -512,6 +616,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -589,6 +694,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
         },
       ],
       linkedDocumentIds: ["doc-1", "doc-2"],
+      translations: [],
     });
 
     expect(prisma.announcement.create).toHaveBeenCalledWith(
@@ -637,6 +743,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: ["doc-1", "doc-deleted"],
+      translations: [],
     });
 
     expect(prisma.document.findMany).toHaveBeenCalledWith({
@@ -670,6 +777,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: ["doc-2"],
+      translations: [],
     });
 
     expect(prisma.announcement.update).toHaveBeenCalledWith(
@@ -824,6 +932,10 @@ describe("sendAnnouncementReminders", () => {
     vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue(
       {} as never
     );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+      recipientRecord("r2", "us-daiso-usa", "US"),
+    ] as never);
 
     await sendAnnouncementReminders("1", ["r1", "r2"]);
 
@@ -835,9 +947,153 @@ describe("sendAnnouncementReminders", () => {
     );
   });
 
+  it("送信確定処理の後段で、対象担当者が属する会社コード宛にnotifyAnnouncementReminderを呼び出す", async () => {
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue(
+      {} as never
+    );
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+      recipientRecord("r2", "vn-daiso-vietnam", "VN"),
+    ] as never);
+
+    await sendAnnouncementReminders("1", ["r1", "r2"]);
+
+    expect(notifyAnnouncementReminder).toHaveBeenCalledWith("1", ["vn-daiso-vietnam"]);
+  });
+
   it("空配列を渡した場合は何もせず正常終了する", async () => {
     await expect(sendAnnouncementReminders("1", [])).resolves.toBeUndefined();
     expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+    expect(notifyAnnouncementReminder).not.toHaveBeenCalled();
+  });
+});
+
+describe("createAnnouncementRecord / updateAnnouncementRecord: 通知呼び出し結線", () => {
+  it("公開状態で新規作成した場合、notifyAnnouncementPublishedを呼び出す", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+
+    await createAnnouncementRecord({
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
+    });
+
+    expect(notifyAnnouncementPublished).toHaveBeenCalledWith("1");
+  });
+
+  it("下書きとして新規作成した場合、notifyAnnouncementPublishedを呼び出さない", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+
+    await createAnnouncementRecord({
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "draft",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
+    });
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("下書き→公開への更新の場合、notifyAnnouncementPublishedを呼び出す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
+    });
+
+    expect(notifyAnnouncementPublished).toHaveBeenCalledWith("1");
+  });
+
+  it("公開済みのまま編集保存した場合、notifyAnnouncementPublishedを再度呼び出さない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル（更新）",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
+    });
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveAnnouncementContent", () => {
+  const announcement = {
+    title: "日本語タイトル",
+    body: "日本語本文",
+    translations: [{ locale: "en", title: "English Title", body: "English Body" }],
+  };
+
+  it("localeがjaのときAnnouncement.title/bodyを返す", () => {
+    expect(resolveAnnouncementContent(announcement, "ja")).toEqual({
+      title: "日本語タイトル",
+      body: "日本語本文",
+    });
+  });
+
+  it("対応するAnnouncementTranslationが存在する言語ではその内容を返す", () => {
+    expect(resolveAnnouncementContent(announcement, "en")).toEqual({
+      title: "English Title",
+      body: "English Body",
+    });
+  });
+
+  it("対応するAnnouncementTranslationが存在しない言語ではjaにフォールバックする", () => {
+    expect(resolveAnnouncementContent(announcement, "th")).toEqual({
+      title: "日本語タイトル",
+      body: "日本語本文",
+    });
+  });
+});
+
+describe("targetApplicantUsersWhere", () => {
+  it("配信対象が全体一律のとき、無条件のwhereを返す", () => {
+    expect(targetApplicantUsersWhere({ targeting: { scope: "all" } })).toEqual({});
+  });
+
+  it("配信対象が特定国のとき、対象国のApplicantUserのみに絞り込むwhereを返す", () => {
+    expect(
+      targetApplicantUsersWhere({ targeting: { scope: "countries", countries: ["VN", "TH"] } })
+    ).toEqual({ company: { country: { in: ["VN", "TH"] } } });
   });
 });
 

@@ -59,6 +59,13 @@ export default async function HelpdeskAnnouncementEditPage({
 
   const documentOptions = await getAllDocuments();
 
+  const enTranslation = announcement.translations.find(
+    (translation) => translation.locale === "en"
+  );
+  const additionalTranslations = announcement.translations.filter(
+    (translation) => translation.locale !== "en"
+  );
+
   return (
     <div className="max-w-2xl space-y-4">
       {backToListLink}
@@ -79,6 +86,9 @@ export default async function HelpdeskAnnouncementEditPage({
         defaultValues={{
           title: announcement.title,
           body: announcement.body,
+          titleEn: enTranslation?.title ?? "",
+          bodyEn: enTranslation?.body ?? "",
+          translations: additionalTranslations,
           category: announcement.category,
           status: announcement.status,
           // `Announcement.targeting.countries`はドメイン型として`string[]`だが、
@@ -102,6 +112,13 @@ export default async function HelpdeskAnnouncementEditPage({
         titlePlaceholder={t("titlePlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
+        languageJaTabLabel={t("language.jaTab")}
+        languageEnTabLabel={t("language.enTab")}
+        languageAddButtonLabel={t("language.addButton")}
+        languageRemoveButtonLabel={t("language.removeButton")}
+        languageLocaleCodeLabel={t("language.localeCodeLabel")}
+        languageLocaleCodePlaceholder={t("language.localeCodePlaceholder")}
+        languageLocaleDuplicateErrorMessage={t("language.localeDuplicateError")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         statusLabel={t("statusLabel")}

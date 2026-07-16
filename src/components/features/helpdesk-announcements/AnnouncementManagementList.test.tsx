@@ -100,6 +100,7 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
     updatedAt: "2026-07-01T09:00:00Z",
     attachments: [],
     linkedDocumentIds: [],
+    translations: [],
     ...overrides,
   };
 }

@@ -69,6 +69,7 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
     updatedAt: "2026-07-01T00:00:00.000Z",
     attachments: [],
     linkedDocumentIds: [],
+    translations: [],
     ...overrides,
   };
 }
@@ -110,6 +111,15 @@ describe("getRecentAnnouncements", () => {
 
     await expect(getRecentAnnouncements()).rejects.toThrow();
   });
+
+  it("locale指定時はlistAnnouncementsVisibleToCountryへlocaleを渡す", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listAnnouncementsVisibleToCountry).mockResolvedValue([announcement()]);
+
+    await getRecentAnnouncements({ locale: "en" });
+
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN", "en");
+  });
 });
 
 describe("getAnnouncements", () => {
@@ -127,6 +137,15 @@ describe("getAnnouncements", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
     await expect(getAnnouncements()).rejects.toThrow();
+  });
+
+  it("locale指定時はlistAnnouncementsVisibleToCountryへlocaleを渡す", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listAnnouncementsVisibleToCountry).mockResolvedValue([announcement()]);
+
+    await getAnnouncements({ locale: "en" });
+
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN", "en");
   });
 });
 
@@ -148,6 +167,19 @@ describe("getAnnouncementById", () => {
     vi.mocked(getSession).mockResolvedValue(null);
 
     await expect(getAnnouncementById("announcement-1")).rejects.toThrow();
+  });
+
+  it("locale指定時はfindAnnouncementVisibleToCountryへlocaleを渡す", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findAnnouncementVisibleToCountry).mockResolvedValue(announcement());
+
+    await getAnnouncementById("announcement-1", { locale: "en" });
+
+    expect(findAnnouncementVisibleToCountry).toHaveBeenCalledWith(
+      "announcement-1",
+      "VN",
+      "en"
+    );
   });
 });
 
@@ -197,6 +229,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
     actionRequired: false,
     attachments: [],
     linkedDocumentIds: [],
+    translations: [{ locale: "en", title: "New announcement", body: "Body" }],
   };
 
   it("ヘルプデスクセッションでcreateAnnouncementRecordに委譲する", async () => {

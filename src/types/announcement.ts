@@ -16,6 +16,16 @@ export type AnnouncementAttachment = InquiryAttachment;
 export type AnnouncementStatus = "draft" | "published";
 
 /**
+ * `ja`（既定言語）以外の言語のタイトル・本文。`en`は必須、それ以外は任意で
+ * 0件以上登録できる。`locale`はISO言語コード（例: `en`・`th`・`vi`）。
+ */
+export interface AnnouncementTranslationView {
+  locale: string;
+  title: string;
+  body: string;
+}
+
+/**
  * お知らせの配信対象。全体一律、または特定の国・地域（ISO 3166-1 alpha-2）を
  * 1件以上指定するかを判別可能なユニオン型で表す。
  */
@@ -50,6 +60,12 @@ export interface Announcement {
   attachments: AnnouncementAttachment[];
   /** `documents-management`spec配下に登録済みのドキュメントへの参照ID（最大5件）。 */
   linkedDocumentIds: string[];
+  /**
+   * `ja`（既定言語）以外の言語のタイトル・本文。`en`の行は作成・編集時に必ず1件
+   * 存在する（サービス層で保証）。`resolveAnnouncementContent`で言語別コンテンツを
+   * 解決する際の参照元となる。
+   */
+  translations: AnnouncementTranslationView[];
 }
 
 /**

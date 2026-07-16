@@ -152,6 +152,15 @@
       "titlePlaceholder": "お知らせのタイトルを入力してください",
       "bodyLabel": "本文",
       "bodyPlaceholder": "お知らせの本文を入力してください",
+      "language": {
+        "jaTab": "日本語",
+        "enTab": "English",
+        "addButton": "言語を追加",
+        "removeButton": "この言語を削除",
+        "localeCodeLabel": "言語コード",
+        "localeCodePlaceholder": "例: th, vi, zh",
+        "localeDuplicateError": "他の言語と重複しない言語コードを入力してください"
+      },
       "categoryLabel": "種別",
       "categoryPlaceholder": "種別を選択してください",
       "statusLabel": "公開状態",

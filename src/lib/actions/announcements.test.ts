@@ -36,6 +36,7 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
     updatedAt: "2026-07-01T00:00:00.000Z",
     attachments: [],
     linkedDocumentIds: [],
+    translations: [{ locale: "en", title: "Title", body: "Body" }],
     ...overrides,
   };
 }
@@ -57,6 +58,7 @@ describe("createAnnouncementAction", () => {
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
     });
 
     expect(createAnnouncement).toHaveBeenCalled();
@@ -75,6 +77,7 @@ describe("createAnnouncementAction", () => {
         actionRequired: false,
         attachments: [],
         linkedDocumentIds: [],
+        translations: [{ locale: "en", title: "Title", body: "Body" }],
       })
     ).rejects.toThrow();
 
@@ -92,6 +95,7 @@ describe("createAnnouncementAction", () => {
         actionRequired: false,
         attachments: [],
         linkedDocumentIds: [],
+        translations: [{ locale: "en", title: "Title", body: "Body" }],
       })
     ).rejects.toThrow();
 
@@ -115,6 +119,7 @@ describe("createAnnouncementAction", () => {
       dueDate: null,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
     });
 
     expect(created.publishStartDate).toBeNull();
@@ -138,6 +143,7 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       actionRequired: false,
       attachments: [],
       linkedDocumentIds: [],
+      translations: [{ locale: "en", title: "Title", body: "Body" }],
     });
 
     expect(updateAnnouncement).toHaveBeenCalledWith(

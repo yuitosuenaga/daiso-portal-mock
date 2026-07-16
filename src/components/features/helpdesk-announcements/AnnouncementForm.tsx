@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
@@ -37,6 +37,13 @@ export interface AnnouncementFormProps {
   titlePlaceholder: string;
   bodyLabel: string;
   bodyPlaceholder: string;
+  languageJaTabLabel: string;
+  languageEnTabLabel: string;
+  languageAddButtonLabel: string;
+  languageRemoveButtonLabel: string;
+  languageLocaleCodeLabel: string;
+  languageLocaleCodePlaceholder: string;
+  languageLocaleDuplicateErrorMessage: string;
   categoryLabel: string;
   categoryPlaceholder: string;
   statusLabel: string;
@@ -96,6 +103,13 @@ export function AnnouncementForm({
   titlePlaceholder,
   bodyLabel,
   bodyPlaceholder,
+  languageJaTabLabel,
+  languageEnTabLabel,
+  languageAddButtonLabel,
+  languageRemoveButtonLabel,
+  languageLocaleCodeLabel,
+  languageLocaleCodePlaceholder,
+  languageLocaleDuplicateErrorMessage,
   categoryLabel,
   categoryPlaceholder,
   statusLabel,
@@ -143,6 +157,7 @@ export function AnnouncementForm({
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [activeLanguageTab, setActiveLanguageTab] = useState<string>("ja");
   const {
     register,
     handleSubmit,
@@ -155,6 +170,9 @@ export function AnnouncementForm({
     defaultValues: defaultValues ?? {
       title: "",
       body: "",
+      titleEn: "",
+      bodyEn: "",
+      translations: [],
       category: "" as unknown as AnnouncementFormValues["category"],
       status: "draft",
       targeting: { scope: "all" },
@@ -166,6 +184,46 @@ export function AnnouncementForm({
       linkedDocumentIds: [],
     },
   });
+  const {
+    fields: translationFields,
+    append: appendTranslation,
+    remove: removeTranslation,
+  } = useFieldArray({ control, name: "translations" });
+  const previousTranslationCountRef = useRef(translationFields.length);
+
+  // 言語を追加した直後、追加した行のタブへ自動的に切り替える。
+  useEffect(() => {
+    if (translationFields.length > previousTranslationCountRef.current) {
+      const lastField = translationFields[translationFields.length - 1];
+      if (lastField) {
+        setActiveLanguageTab(lastField.id);
+      }
+    }
+    previousTranslationCountRef.current = translationFields.length;
+  }, [translationFields]);
+
+  // 保存操作でja/en/追加言語のいずれかにエラーがある場合、そのタブへ自動的に切り替える
+  // （非表示タブのフィールドにエラーが出ていても、閲覧者が気づけるようにするため）。
+  useEffect(() => {
+    if (errors.title || errors.body) {
+      setActiveLanguageTab("ja");
+      return;
+    }
+    if (errors.titleEn || errors.bodyEn) {
+      setActiveLanguageTab("en");
+      return;
+    }
+    const translationErrors = errors.translations;
+    const translationErrorIndex = Array.isArray(translationErrors)
+      ? translationErrors.findIndex((entry) => entry)
+      : -1;
+    if (translationErrorIndex >= 0) {
+      const field = translationFields[translationErrorIndex];
+      if (field) {
+        setActiveLanguageTab(field.id);
+      }
+    }
+  }, [errors, translationFields]);
 
   const statusOptions: SelectOption[] = [
     { value: "draft", label: statusDraftOption },
@@ -198,38 +256,198 @@ export function AnnouncementForm({
     }
   }
 
+  const languageTabButtonClassName = (isActive: boolean) =>
+    `rounded-md border px-3 py-1.5 text-sm ${
+      isActive
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-input bg-background text-foreground"
+    }`;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <FormField
-        label={titleLabel}
-        required
-        requiredIndicator={requiredIndicator}
-        htmlFor="announcement-title"
-        error={errors.title ? requiredErrorMessage : undefined}
-      >
-        <Input
-          id="announcement-title"
-          placeholder={titlePlaceholder}
-          aria-invalid={errors.title ? true : undefined}
-          {...register("title")}
-        />
-      </FormField>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeLanguageTab === "ja"}
+            className={languageTabButtonClassName(activeLanguageTab === "ja")}
+            onClick={() => setActiveLanguageTab("ja")}
+          >
+            {languageJaTabLabel}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeLanguageTab === "en"}
+            className={languageTabButtonClassName(activeLanguageTab === "en")}
+            onClick={() => setActiveLanguageTab("en")}
+          >
+            {languageEnTabLabel}
+          </button>
+          {translationFields.map((field, index) => {
+            const locale = watch(`translations.${index}.locale`);
+            return (
+              <button
+                key={field.id}
+                type="button"
+                role="tab"
+                aria-selected={activeLanguageTab === field.id}
+                className={languageTabButtonClassName(activeLanguageTab === field.id)}
+                onClick={() => setActiveLanguageTab(field.id)}
+              >
+                {locale || languageLocaleCodeLabel}
+              </button>
+            );
+          })}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              appendTranslation({ locale: "", title: "", body: "" });
+            }}
+          >
+            {languageAddButtonLabel}
+          </Button>
+        </div>
 
-      <FormField
-        label={bodyLabel}
-        required
-        requiredIndicator={requiredIndicator}
-        htmlFor="announcement-body"
-        error={errors.body ? requiredErrorMessage : undefined}
-      >
-        <Textarea
-          id="announcement-body"
-          placeholder={bodyPlaceholder}
-          rows={5}
-          aria-invalid={errors.body ? true : undefined}
-          {...register("body")}
-        />
-      </FormField>
+        {activeLanguageTab === "ja" && (
+          <div className="flex flex-col gap-4">
+            <FormField
+              label={titleLabel}
+              required
+              requiredIndicator={requiredIndicator}
+              htmlFor="announcement-title"
+              error={errors.title ? requiredErrorMessage : undefined}
+            >
+              <Input
+                id="announcement-title"
+                placeholder={titlePlaceholder}
+                aria-invalid={errors.title ? true : undefined}
+                {...register("title")}
+              />
+            </FormField>
+            <FormField
+              label={bodyLabel}
+              required
+              requiredIndicator={requiredIndicator}
+              htmlFor="announcement-body"
+              error={errors.body ? requiredErrorMessage : undefined}
+            >
+              <Textarea
+                id="announcement-body"
+                placeholder={bodyPlaceholder}
+                rows={5}
+                aria-invalid={errors.body ? true : undefined}
+                {...register("body")}
+              />
+            </FormField>
+          </div>
+        )}
+
+        {activeLanguageTab === "en" && (
+          <div className="flex flex-col gap-4">
+            <FormField
+              label={titleLabel}
+              required
+              requiredIndicator={requiredIndicator}
+              htmlFor="announcement-title-en"
+              error={errors.titleEn ? requiredErrorMessage : undefined}
+            >
+              <Input
+                id="announcement-title-en"
+                placeholder={titlePlaceholder}
+                aria-invalid={errors.titleEn ? true : undefined}
+                {...register("titleEn")}
+              />
+            </FormField>
+            <FormField
+              label={bodyLabel}
+              required
+              requiredIndicator={requiredIndicator}
+              htmlFor="announcement-body-en"
+              error={errors.bodyEn ? requiredErrorMessage : undefined}
+            >
+              <Textarea
+                id="announcement-body-en"
+                placeholder={bodyPlaceholder}
+                rows={5}
+                aria-invalid={errors.bodyEn ? true : undefined}
+                {...register("bodyEn")}
+              />
+            </FormField>
+          </div>
+        )}
+
+        {translationFields.map((field, index) => {
+          if (activeLanguageTab !== field.id) {
+            return null;
+          }
+          const translationError = errors.translations?.[index];
+          return (
+            <div key={field.id} className="flex flex-col gap-4">
+              <FormField
+                label={languageLocaleCodeLabel}
+                required
+                requiredIndicator={requiredIndicator}
+                htmlFor={`announcement-translation-${index}-locale`}
+                error={
+                  translationError?.locale
+                    ? languageLocaleDuplicateErrorMessage
+                    : undefined
+                }
+              >
+                <Input
+                  id={`announcement-translation-${index}-locale`}
+                  placeholder={languageLocaleCodePlaceholder}
+                  aria-invalid={translationError?.locale ? true : undefined}
+                  {...register(`translations.${index}.locale`)}
+                />
+              </FormField>
+              <FormField
+                label={titleLabel}
+                required
+                requiredIndicator={requiredIndicator}
+                htmlFor={`announcement-translation-${index}-title`}
+                error={translationError?.title ? requiredErrorMessage : undefined}
+              >
+                <Input
+                  id={`announcement-translation-${index}-title`}
+                  placeholder={titlePlaceholder}
+                  aria-invalid={translationError?.title ? true : undefined}
+                  {...register(`translations.${index}.title`)}
+                />
+              </FormField>
+              <FormField
+                label={bodyLabel}
+                required
+                requiredIndicator={requiredIndicator}
+                htmlFor={`announcement-translation-${index}-body`}
+                error={translationError?.body ? requiredErrorMessage : undefined}
+              >
+                <Textarea
+                  id={`announcement-translation-${index}-body`}
+                  placeholder={bodyPlaceholder}
+                  rows={5}
+                  aria-invalid={translationError?.body ? true : undefined}
+                  {...register(`translations.${index}.body`)}
+                />
+              </FormField>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-fit"
+                onClick={() => {
+                  removeTranslation(index);
+                  setActiveLanguageTab("ja");
+                }}
+              >
+                {languageRemoveButtonLabel}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
 
       <FormField
         label={categoryLabel}

@@ -84,6 +84,7 @@ const ANNOUNCEMENT: Announcement = {
   updatedAt: "2026-07-01T09:00:00Z",
   attachments: [],
   linkedDocumentIds: [],
+  translations: [],
 };
 
 describe("AnnouncementList", () => {
@@ -98,6 +99,14 @@ describe("AnnouncementList", () => {
     render(jsx);
 
     expect(screen.getByText("お知らせはありません")).toBeTruthy();
+  });
+
+  it("getLocale()の戻り値をgetAnnouncementsのlocaleオプションとして渡す", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([]);
+
+    await AnnouncementList();
+
+    expect(getAnnouncementsMock).toHaveBeenCalledWith({ locale: "ja" });
   });
 
   it("getAnnouncementsが例外をthrowしたときエラーメッセージを表示する", async () => {

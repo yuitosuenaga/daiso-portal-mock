@@ -30,7 +30,7 @@ export async function AnnouncementList() {
   try {
     const { claims } = await requireApplicantSession();
     companyCode = claims.companyCode;
-    announcements = await getAnnouncements();
+    announcements = await getAnnouncements({ locale });
   } catch {
     return (
       <div>
