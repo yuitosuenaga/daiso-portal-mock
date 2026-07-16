@@ -58,6 +58,7 @@ function document(overrides: Partial<Document> = {}): Document {
   return {
     id: "document-1",
     title: "タイトル",
+    sourceType: "upload",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -65,7 +66,7 @@ function document(overrides: Partial<Document> = {}): Document {
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
-  };
+  } as Document;
 }
 
 beforeEach(() => {
@@ -156,6 +157,7 @@ describe("getDocumentByIdForHelpdesk", () => {
 
 describe("createDocument / updateDocument / deleteDocument", () => {
   const input: CreateDocumentInput = {
+    sourceType: "upload",
     title: "新規作成テスト",
     fileName: "test.pdf",
     fileType: "application/pdf",

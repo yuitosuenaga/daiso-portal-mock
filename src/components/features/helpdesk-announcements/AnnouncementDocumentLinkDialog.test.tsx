@@ -8,6 +8,7 @@ function makeDocument(overrides: Partial<Document> = {}): Document {
   return {
     id: "doc-1",
     title: "業務マニュアル",
+    sourceType: "upload",
     fileName: "manual.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -15,7 +16,7 @@ function makeDocument(overrides: Partial<Document> = {}): Document {
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00Z",
     ...overrides,
-  };
+  } as Document;
 }
 
 const labels = {

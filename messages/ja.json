@@ -58,7 +58,9 @@
       "targetingCountriesLabel": "対象国・地域",
       "targetingCompaniesLabel": "対象販社",
       "fileSizeLabel": "ファイルサイズ",
-      "uploadedAtLabel": "アップロード日"
+      "uploadedAtLabel": "アップロード日",
+      "sourceTypeUploadBadge": "アップロード",
+      "sourceTypeGoogleBadge": "Googleリンク"
     },
     "form": {
       "createTitle": "ドキュメントの新規作成",
@@ -75,10 +77,16 @@
       "targetingCompaniesOption": "特定の販社を指定",
       "countriesLabel": "国・地域（複数選択可）",
       "companiesLabel": "販社（複数選択可）",
+      "sourceTypeLabel": "登録方法",
+      "sourceTypeUploadOption": "ファイルをアップロード",
+      "sourceTypeGoogleOption": "Googleドキュメントの共有リンクを登録",
       "fileLabel": "PDFファイル",
       "fileHint": "PDFのみ、20MBまでアップロードできます。",
       "currentFileLabel": "登録済みファイル",
       "removeButtonLabel": "削除",
+      "googleUrlLabel": "Googleドキュメントの共有リンク",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Google Docs/スプレッドシート/スライドの共有設定を「リンクを知っている全員が閲覧可」にしてから登録してください。",
       "submitButton": "保存する",
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {
@@ -88,12 +96,14 @@
         "fileRequired": "PDFファイルを選択してください",
         "sizeExceeded": "ファイルサイズが上限（20MB）を超えています",
         "typeNotAllowed": "許可されていないファイル形式です（PDFのみ）",
-        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
+        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
+        "googleUrlInvalid": "Googleドキュメント/スプレッドシート/スライドの共有リンクを入力してください"
       },
       "detailTitle": "ドキュメント詳細",
       "editButton": "編集",
       "cancelButton": "キャンセル",
-      "downloadLink": "ダウンロード"
+      "downloadLink": "ダウンロード",
+      "openOriginalLink": "元のドキュメントを開く"
     }
   },
   "helpdeskAnnouncements": {
@@ -499,6 +509,7 @@
       "empty": "ドキュメントはありません",
       "error": "ドキュメントの取得に失敗しました",
       "downloadLink": "ダウンロード",
+      "openOriginalLink": "元のドキュメントを開く",
       "fileSizeLabel": "ファイルサイズ",
       "uploadedAtLabel": "アップロード日"
     },

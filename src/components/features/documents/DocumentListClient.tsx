@@ -12,6 +12,7 @@ export interface DocumentListClientProps {
   documents: Document[];
   locale: string;
   downloadLinkLabel: string;
+  openOriginalLinkLabel: string;
 }
 
 /**
@@ -22,6 +23,7 @@ export function DocumentListClient({
   documents,
   locale,
   downloadLinkLabel,
+  openOriginalLinkLabel,
 }: DocumentListClientProps) {
   const t = useTranslations("documents.search");
   const [keyword, setKeyword] = useState("");
@@ -48,6 +50,7 @@ export function DocumentListClient({
               document={document}
               locale={locale}
               downloadLinkLabel={downloadLinkLabel}
+              openOriginalLinkLabel={openOriginalLinkLabel}
             />
           ))}
         </div>

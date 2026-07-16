@@ -7,11 +7,23 @@ const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
 
 function buildValidInput(overrides: Record<string, unknown> = {}) {
   return {
+    sourceType: "upload",
     title: "テストタイトル",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
     dataUrl: SAMPLE_PDF_DATA_URL,
+    targeting: { scope: "all" },
+    ...overrides,
+  };
+}
+
+function buildValidGoogleInput(overrides: Record<string, unknown> = {}) {
+  return {
+    sourceType: "google",
+    title: "テストタイトル",
+    googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
+    googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
     targeting: { scope: "all" },
     ...overrides,
   };
@@ -92,5 +104,65 @@ describe("documentFormSchema", () => {
     const result = documentFormSchema.safeParse(buildValidInput({ fileName: "" }));
 
     expect(result.success).toBe(false);
+  });
+
+  describe("sourceType: google", () => {
+    it("有効なGoogleドキュメントの共有リンクであれば検証を通過する", () => {
+      const result = documentFormSchema.safeParse(buildValidGoogleInput());
+
+      expect(result.success).toBe(true);
+    });
+
+    it("有効なGoogleスプレッドシートの共有リンクであれば検証を通過する", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidGoogleInput({
+          googleUrl: "https://docs.google.com/spreadsheets/d/xyz789/edit",
+          googleEmbedUrl: "https://docs.google.com/spreadsheets/d/xyz789/preview",
+        })
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("タイトルが空文字列の場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidGoogleInput({ title: "" })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("特定の国・地域を指定したのに0件の場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidGoogleInput({ targeting: { scope: "countries", countries: [] } })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("googleUrlがGoogleドキュメント/スプレッドシート/スライドの形式でない場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidGoogleInput({ googleUrl: "https://example.com/not-google" })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("googleUrlが空文字列の場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidGoogleInput({ googleUrl: "" })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("sourceType: googleではfileName等のアップロード方式のフィールドを要求しない", () => {
+      const result = documentFormSchema.safeParse(buildValidGoogleInput());
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect("fileName" in result.data).toBe(false);
+      }
+    });
   });
 });

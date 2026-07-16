@@ -41,9 +41,15 @@ export default async function HelpdeskDocumentNewPage() {
         targetingCompaniesOption={t("targetingCompaniesOption")}
         countriesLabel={t("countriesLabel")}
         companiesLabel={t("companiesLabel")}
+        sourceTypeLabel={t("sourceTypeLabel")}
+        sourceTypeUploadOption={t("sourceTypeUploadOption")}
+        sourceTypeGoogleOption={t("sourceTypeGoogleOption")}
         fileLabel={t("fileLabel")}
         fileHint={t("fileHint")}
         removeFileButtonLabel={t("removeButtonLabel")}
+        googleUrlLabel={t("googleUrlLabel")}
+        googleUrlPlaceholder={t("googleUrlPlaceholder")}
+        googleUrlHint={t("googleUrlHint")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         countriesRequiredErrorMessage={t("validation.countriesRequired")}
@@ -52,6 +58,7 @@ export default async function HelpdeskDocumentNewPage() {
         sizeExceededMessage={t("validation.sizeExceeded")}
         typeNotAllowedMessage={t("validation.typeNotAllowed")}
         readFailedMessage={t("validation.readFailed")}
+        googleUrlInvalidMessage={t("validation.googleUrlInvalid")}
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
       />

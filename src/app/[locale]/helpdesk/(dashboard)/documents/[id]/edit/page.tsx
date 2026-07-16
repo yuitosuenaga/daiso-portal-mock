@@ -81,6 +81,10 @@ export default async function HelpdeskDocumentEditPage({
         fileSizeLabel={tListLabels("fileSizeLabel")}
         uploadedAtLabel={tListLabels("uploadedAtLabel")}
         downloadLinkLabel={t("downloadLink")}
+        openOriginalLinkLabel={t("openOriginalLink")}
+        sourceTypeLabel={t("sourceTypeLabel")}
+        sourceTypeUploadBadge={tListLabels("sourceTypeUploadBadge")}
+        sourceTypeGoogleBadge={tListLabels("sourceTypeGoogleBadge")}
         targetingAllLabel={tListLabels("targetingAllLabel")}
         targetingCountriesLabel={tListLabels("targetingCountriesLabel")}
         targetingCompaniesLabel={tListLabels("targetingCompaniesLabel")}
@@ -102,9 +106,15 @@ export default async function HelpdeskDocumentEditPage({
           targetingCompaniesOption: t("targetingCompaniesOption"),
           countriesLabel: t("countriesLabel"),
           companiesLabel: t("companiesLabel"),
+          sourceTypeLabel: t("sourceTypeLabel"),
+          sourceTypeUploadOption: t("sourceTypeUploadOption"),
+          sourceTypeGoogleOption: t("sourceTypeGoogleOption"),
           fileLabel: t("fileLabel"),
           fileHint: t("fileHint"),
           removeFileButtonLabel: t("removeButtonLabel"),
+          googleUrlLabel: t("googleUrlLabel"),
+          googleUrlPlaceholder: t("googleUrlPlaceholder"),
+          googleUrlHint: t("googleUrlHint"),
           submitButtonLabel: t("submitButton"),
           requiredErrorMessage: t("validation.required"),
           countriesRequiredErrorMessage: t("validation.countriesRequired"),
@@ -113,6 +123,7 @@ export default async function HelpdeskDocumentEditPage({
           sizeExceededMessage: t("validation.sizeExceeded"),
           typeNotAllowedMessage: t("validation.typeNotAllowed"),
           readFailedMessage: t("validation.readFailed"),
+          googleUrlInvalidMessage: t("validation.googleUrlInvalid"),
           requiredIndicator: tInquiryForm("requiredMark"),
           submitErrorMessage: t("submitError"),
         }}

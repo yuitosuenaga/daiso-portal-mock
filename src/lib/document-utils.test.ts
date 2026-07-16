@@ -85,6 +85,7 @@ function buildDocument(overrides: Partial<Document> = {}): Document {
     id: "doc-1",
     title: "利用規約",
     description: "各国共通の利用規約です。",
+    sourceType: "upload",
     fileName: "terms.pdf",
     fileType: "application/pdf",
     fileSize: 1000,
@@ -92,7 +93,7 @@ function buildDocument(overrides: Partial<Document> = {}): Document {
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
-  };
+  } as Document;
 }
 
 describe("filterDocuments", () => {

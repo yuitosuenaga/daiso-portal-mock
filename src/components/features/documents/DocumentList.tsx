@@ -54,6 +54,7 @@ export async function DocumentList() {
         documents={documents}
         locale={locale}
         downloadLinkLabel={t("downloadLink")}
+        openOriginalLinkLabel={t("openOriginalLink")}
       />
     </div>
   );

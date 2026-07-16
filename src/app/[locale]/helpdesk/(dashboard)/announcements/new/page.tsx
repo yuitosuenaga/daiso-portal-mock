@@ -74,6 +74,7 @@ export default async function HelpdeskAnnouncementNewPage() {
         attachmentsCountExceededMessage={t("validation.attachmentsCountExceeded")}
         attachmentsReadFailedMessage={t("validation.attachmentsReadFailed")}
         downloadLinkLabel={tDocuments("downloadLink")}
+        openOriginalLinkLabel={tDocuments("openOriginalLink")}
         linkedDocumentsLabel={t("linkedDocumentsLabel")}
         linkedDocumentsPickButtonLabel={t("linkedDocumentsPickButtonLabel")}
         linkedDocumentsEmptyMessage={t("linkedDocumentsEmptyMessage")}

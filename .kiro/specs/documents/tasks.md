@@ -189,3 +189,44 @@
   - タブレット幅（768px）で検索欄が横スクロールを起こさないことを確認する
   - _Requirements: 12.7_
   - _Depends: 8_
+
+---
+
+## 追加ラウンド（2026-07-16）: Googleドキュメント埋め込みのライブ表示
+
+> 前提: `documents-management`spec が`Document`型を`sourceType`による判別可能ユニオン型に変更し、`sourceType: "google"`時に`googleUrl`・`googleEmbedUrl`を提供済みであること（実装順序は`documents-management`の該当タスクを先行させる）。
+
+- [x] 10. Googleドキュメント埋め込みのライブ表示
+- [x] 10.1 PdfViewerのpropsをバリアントによる判別可能ユニオン型に変更する
+  - `PdfViewer`のpropsを、アップロード方式（`dataUrl`・`title`・ダウンロードファイル名・ダウンロードリンクラベル）とGoogle方式（埋め込みURL・`title`・元のURL・「元のドキュメントを開く」リンクラベル）の判別可能ユニオン型に変更する
+  - アップロード方式は既存通り`dataUrl`をiframeの`src`に設定しダウンロードリンクを表示し、Google方式は埋め込みURLをiframeの`src`に設定し、元のURLを新しいタブで開くリンクを表示するよう実装を分岐する
+  - 両方式ともiframeの`title`属性にドキュメントタイトルが設定されることで完了とする
+  - _Requirements: 13.1, 13.2, 13.3, 13.4_
+  - _Boundary: PdfViewer_
+
+- [x] 10.2 (P) Google埋め込み関連の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`documents.list`に「元のドキュメントを開く」リンクラベルのキーを追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在することで完了とする
+  - _Requirements: 13.4_
+  - _Boundary: i18n messages_
+
+- [x] 10.3 DocumentListItemをsourceType分岐に対応させる
+  - ドキュメントの`sourceType`に応じて、`PdfViewer`へ渡すpropsをアップロード方式（`dataUrl`等）またはGoogle方式（埋め込みURL・元URL等）に分岐させる
+  - `sourceType`が`"upload"`と`"google"`で混在する一覧で、それぞれのカードが正しいプレビュー・リンクを表示することで完了とする
+  - _Requirements: 13.1, 13.2_
+  - _Boundary: DocumentListItem_
+  - _Depends: 10.1, 10.2_
+
+- [x] 10.4 (P) sourceType混在時の検索・グリッド・並び順を確認する
+  - `sourceType`が`"upload"`と`"google"`で混在するドキュメント一覧で、検索によるキーワード絞り込み・2列グリッドレイアウト・アップロード日降順の並び順が`sourceType`によらず同様に機能することを確認する
+  - Google埋め込みが表示できない場合（権限不足等）に、本specとして追加のエラーハンドリングを行わずブラウザの標準動作に委ねていることをコードレビューで確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 13.5, 13.6_
+  - _Depends: 10.3_
+
+- [x] 10.5 (P) PdfViewerの単体テストを更新する
+  - `PdfViewer`がGoogle方式のとき埋め込みURLをiframeの`src`に設定し、ダウンロードリンクの代わりに元のURLを新しいタブで開くリンクを描画することを検証するテストを追加する
+  - `DocumentListItem`がドキュメントの`sourceType`に応じて正しいバリアントのpropsを`PdfViewer`へ渡すことを検証するテストを追加する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 13.1, 13.2, 13.3, 13.4_
+  - _Depends: 10.3_

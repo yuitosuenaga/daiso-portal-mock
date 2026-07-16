@@ -214,3 +214,89 @@
   - _Requirements: 12.1, 12.2, 12.3, 12.4_
   - _Boundary: DocumentDetailPanel_
   - _Depends: 6.5_
+
+---
+
+- [x] 7. Googleドキュメント/スプレッドシートの共有リンクによる登録（2026-07-16 追記）
+- [x] 7.1 Document型・CreateDocumentInputをsourceTypeによる判別可能ユニオン型に変更する
+  - `Document`型を共通フィールド（`id`, `title`, `description?`, `targeting`, `uploadedAt`）+ `sourceType: "upload"`ブランチ（`fileName`, `fileType`, `fileSize`, `dataUrl`）+ `sourceType: "google"`ブランチ（`googleUrl`, `googleEmbedUrl`）の判別可能ユニオン型に変更する
+  - `CreateDocumentInput`も同様に`Document`から`id`・`uploadedAt`を除いた判別可能ユニオン型に変更する
+  - 既存のモックシードデータ（`lib/api/documents.ts`）の全件に`sourceType: "upload"`を明示的に付与し、型チェックが通ることで完了とする
+  - _Requirements: 13.5, 13.6_
+  - _Boundary: Document型_
+
+- [x] 7.2 (P) GoogleドキュメントURL変換ユーティリティを実装する
+  - `docs.google.com/document/`・`docs.google.com/spreadsheets/`・`docs.google.com/presentation/`のいずれかのURLから種別とファイルIDを抽出し、それ以外は変換不能を返す関数を実装する
+  - 抽出結果から`{種別}/d/{ファイルID}/preview`形式の埋め込み用URLを生成し、無効なURLには`null`を返す変換関数を実装する
+  - Docs/Sheets/Slidesそれぞれの有効なURL・無効なURL（他ドメイン、不正形式）を渡した際に期待通りの結果を返すことで完了とする
+  - _Requirements: 13.3, 13.5_
+  - _Boundary: GoogleDocumentUrlUtils_
+
+- [x] 7.3 documentFormSchemaをsourceTypeによる判別可能ユニオンに変更する
+  - `sourceType: "upload"`ブランチは既存の`fileName`/`fileType`/`fileSize`/`dataUrl`検証を維持し、`sourceType: "google"`ブランチはタイトル・公開範囲・`googleUrl`を検証し、`googleUrl`は埋め込みURLへの変換結果が得られることを条件とする
+  - タイトル・公開範囲未入力、`googleUrl`が不正な形式の場合にそれぞれ正しくバリデーションエラーになることで完了とする
+  - _Requirements: 13.3, 13.4, 13.6, 13.7_
+  - _Boundary: DocumentActions_
+  - _Depends: 7.1, 7.2_
+
+- [x] 7.4 (P) Googleリンク登録関連の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskDocuments.form`に登録方法選択（アップロード/Googleリンク）・Google URL入力欄（ラベル・プレースホルダー・共有設定に関するヘルプテキスト・エラーメッセージ）のキーを追加する
+  - `helpdeskDocuments.list`に登録方式バッジ（アップロード/Googleリンク）のキーを追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在することで完了とする
+  - _Requirements: 13.1, 13.2, 13.9_
+  - _Boundary: i18n messages_
+
+- [x] 7.5 (P) DocumentGoogleLinkFieldを実装する
+  - `<Input type="url">`でGoogle共有リンクを入力し、変更時・送信時に埋め込みURLへの変換結果で検証してエラーメッセージを表示するコンポーネントを実装する
+  - Google側のファイル共有設定（リンクを知っている全員が閲覧可）が必要である旨のヘルプテキストを表示する
+  - 無効なURLを入力するとエラーメッセージが表示され、有効なURLでエラーが解消されることで完了とする
+  - _Requirements: 13.2, 13.3_
+  - _Boundary: DocumentGoogleLinkField_
+  - _Depends: 7.2, 7.4_
+
+- [x] 7.6 DocumentFormに登録方法の選択とGoogleリンク入力を統合する
+  - タイトル・説明・公開範囲の入力欄はそのまま維持し、登録方法（ファイルをアップロード/Googleドキュメントの共有リンクを登録）を選択するUIを追加し、選択に応じて`DocumentFileField`または`DocumentGoogleLinkField`を出し分ける
+  - 既存ドキュメントの編集時は登録済みの`sourceType`を初期選択として表示する
+  - タイトル・公開範囲・（選択した登録方法に応じた）ファイルまたはURLのいずれかが未入力の状態で送信すると送信がブロックされ、正しく入力すると保存されることで完了とする
+  - _Requirements: 13.1, 13.2, 13.4, 13.8_
+  - _Boundary: DocumentForm_
+  - _Depends: 7.3, 7.5_
+
+- [x] 7.7 DocumentActionsをsourceType分岐に対応させる
+  - `createDocumentAction`・`updateDocumentAction`を`documentFormSchema`（`sourceType`判別可能ユニオン）で再検証し、`sourceType: "google"`の場合はクライアントから送られた埋め込みURLをそのまま使わず、`googleUrl`からサーバー側で埋め込みURLを再計算して保存するようにする
+  - `sourceType: "upload"`の既存の保存処理・`revalidatePath`対象は変更しない
+  - Googleリンクで新規作成した際、保存されたドキュメントの埋め込みURLがサーバー側の計算結果と一致し、クライアントから異なる値を送っても上書きされないことで完了とする
+  - _Requirements: 13.5, 13.6, 13.7_
+  - _Boundary: DocumentActions_
+  - _Depends: 7.3, 7.6_
+
+- [x] 7.8 (P) DocumentManagementListに登録方式バッジを追加する
+  - 一覧の各行に、`sourceType`に応じた「アップロード」/「Googleリンク」バッジを表示する
+  - アップロード方式・Googleリンク方式のドキュメントが混在する一覧で、それぞれ正しいバッジが表示されることで完了とする
+  - _Requirements: 13.9_
+  - _Boundary: DocumentManagementList_
+  - _Depends: 7.1_
+
+- [x] 7.9 DocumentDetailPanelをsourceType分岐に対応させる
+  - 表示モードの読み取り専用情報を、`sourceType: "upload"`時は既存通り（ファイルサイズ・アップロード日）、`sourceType: "google"`時は登録方式・元の共有リンクURLを表示するよう分岐させる
+  - `PdfViewer`（`documents`spec所有）へ渡すpropsを、`sourceType: "upload"`時は既存のデータURL系、`sourceType: "google"`時は埋め込みURL・元URL系に切り替える（`documents`spec側で`PdfViewer`がバリアント分岐に対応済みであることが前提）
+  - 編集モードでは7.6で対応済みの`DocumentForm`をそのまま使用し、変更はしない
+  - Googleリンク方式のドキュメントの編集画面を開くと、表示モードで元のリンクURLとプレビューが表示されることで完了とする
+  - _Requirements: 13.8, 13.10_
+  - _Boundary: DocumentDetailPanel_
+  - _Depends: 7.6, 7.8_
+
+- [x] 7.10 (P) GoogleドキュメントURL変換・バリデーションの単体テストを実装する
+  - URL変換ユーティリティがDocs/Sheets/Slidesの有効なURL・無効なURLに対して期待通りの結果を返すことを検証するテストを実装する
+  - `documentFormSchema`が`sourceType: "google"`ブランチで無効なURLを拒否し有効なURLを受理すること、`sourceType: "google"`時に`fileName`等を要求しないことを検証するテストを実装する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 13.3, 13.6, 13.7_
+  - _Depends: 7.2, 7.3_
+
+- [x] 7.11 (P) Googleリンク登録の統合確認を行う
+  - Googleリンクで作成したドキュメントが、公開範囲条件に応じてヘルプデスク一覧・申請者側一覧の両方にアップロード方式と同様に反映されることを確認する
+  - 既存のGoogleリンク型ドキュメントを編集してURLのみ変更した場合に埋め込みURLが再計算されることを確認する
+  - 本specがGoogle Drive APIによる変更検知・自動再同期・OAuth連携を一切実装していないこと（埋め込み表示のみに依拠していること）をコードレビューで確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 13.10, 13.11_
+  - _Depends: 7.7, 7.9_

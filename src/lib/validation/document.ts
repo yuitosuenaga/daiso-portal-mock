@@ -6,6 +6,7 @@ import {
 } from "@/lib/constants/document";
 import { DOCUMENT_COMPANY_CODES } from "@/lib/constants/document-company-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
+import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 
 const documentTargetingSchema = z.discriminatedUnion("scope", [
   z.object({ scope: z.literal("all") }),
@@ -19,12 +20,8 @@ const documentTargetingSchema = z.discriminatedUnion("scope", [
   }),
 ]);
 
-/**
- * ドキュメント新規作成・編集フォームの入力値を検証する zod スキーマ。
- * タイトルとファイル（PDF・上限サイズ以下）を必須とし、公開範囲を「特定の国・地域を指定」
- * または「特定の販社を指定」にした場合は1件以上の選択を要求する。
- */
-export const documentFormSchema = z.object({
+const documentUploadSchema = z.object({
+  sourceType: z.literal("upload"),
   title: z.string().trim().min(1),
   description: z.string().trim().optional(),
   fileName: z.string().trim().min(1),
@@ -33,6 +30,34 @@ export const documentFormSchema = z.object({
   dataUrl: z.string().trim().min(1).startsWith("data:application/pdf"),
   targeting: documentTargetingSchema,
 });
+
+const documentGoogleSchema = z.object({
+  sourceType: z.literal("google"),
+  title: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  googleUrl: z.string().trim().min(1),
+  googleEmbedUrl: z.string().trim().min(1),
+  targeting: documentTargetingSchema,
+});
+
+/**
+ * ドキュメント新規作成・編集フォームの入力値を検証する zod スキーマ。
+ * タイトルと公開範囲は登録方法によらず必須とし、登録方法（`sourceType`）に応じて
+ * アップロード方式（ファイル形式・サイズ）またはGoogle方式（共有リンクURLの形式）を検証する。
+ * `googleUrl`は、iframe埋め込み用URLへの変換結果が得られること（＝Googleドキュメント/
+ * スプレッドシート/スライドの有効なURLパターンであること）を条件とする。
+ */
+export const documentFormSchema = z
+  .discriminatedUnion("sourceType", [documentUploadSchema, documentGoogleSchema])
+  .superRefine((data, ctx) => {
+    if (data.sourceType === "google" && toGoogleEmbedUrl(data.googleUrl) === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid Google document URL",
+        path: ["googleUrl"],
+      });
+    }
+  });
 
 /**
  * `documentFormSchema` から推論されるフォーム入力値の型。

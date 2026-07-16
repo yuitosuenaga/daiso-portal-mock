@@ -72,6 +72,7 @@ const labels = {
   attachmentsCountExceededMessage: "添付できるファイル数の上限に達しました",
   attachmentsReadFailedMessage: "ファイルの読み込みに失敗しました",
   downloadLinkLabel: "ダウンロード",
+  openOriginalLinkLabel: "元のドキュメントを開く",
   linkedDocumentsLabel: "ドキュメントの紐づけ",
   linkedDocumentsPickButtonLabel: "ドキュメントから選択",
   linkedDocumentsEmptyMessage: "紐づけられたドキュメントはありません",
@@ -449,6 +450,7 @@ describe("AnnouncementForm", () => {
           {
             id: "document-1",
             title: "紐づけドキュメント",
+            sourceType: "upload",
             fileName: "linked.pdf",
             fileType: "application/pdf",
             fileSize: 4096,

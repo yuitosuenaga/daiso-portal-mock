@@ -26,6 +26,7 @@ const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
 
 function buildInput(overrides: Partial<CreateDocumentInput> = {}): CreateDocumentInput {
   return {
+    sourceType: "upload",
     title: "アクション経由の新規作成",
     fileName: "test.pdf",
     fileType: "application/pdf",
@@ -33,13 +34,27 @@ function buildInput(overrides: Partial<CreateDocumentInput> = {}): CreateDocumen
     dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
     ...overrides,
-  };
+  } as CreateDocumentInput;
+}
+
+function buildGoogleInput(
+  overrides: Partial<CreateDocumentInput> = {}
+): CreateDocumentInput {
+  return {
+    sourceType: "google",
+    title: "Google経由の新規作成",
+    googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
+    googleEmbedUrl: "https://docs.google.com/document/d/should-be-ignored/preview",
+    targeting: { scope: "all" },
+    ...overrides,
+  } as CreateDocumentInput;
 }
 
 function document(overrides: Partial<Document> = {}): Document {
   return {
     id: "document-1",
     title: "タイトル",
+    sourceType: "upload",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -47,7 +62,7 @@ function document(overrides: Partial<Document> = {}): Document {
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
-  };
+  } as Document;
 }
 
 beforeEach(() => {
@@ -91,6 +106,40 @@ describe("createDocumentAction", () => {
 
     expect(createDocument).not.toHaveBeenCalled();
   });
+
+  it("Googleリンクの有効な入力で作成し、googleEmbedUrlをgoogleUrlからサーバー側で再計算する", async () => {
+    vi.mocked(createDocument).mockResolvedValue(
+      document({
+        sourceType: "google",
+        fileName: undefined,
+        fileType: undefined,
+        fileSize: undefined,
+        dataUrl: undefined,
+        googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
+        googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+      } as unknown as Partial<Document>)
+    );
+
+    await createDocumentAction(buildGoogleInput());
+
+    expect(createDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceType: "google",
+        googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
+        googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+      })
+    );
+  });
+
+  it("Googleリンクが無効な形式の場合は例外になり、保存されない", async () => {
+    await expect(
+      createDocumentAction(
+        buildGoogleInput({ googleUrl: "https://example.com/not-google" })
+      )
+    ).rejects.toThrow();
+
+    expect(createDocument).not.toHaveBeenCalled();
+  });
 });
 
 describe("updateDocumentAction / deleteDocumentAction", () => {
@@ -105,6 +154,27 @@ describe("updateDocumentAction / deleteDocumentAction", () => {
     );
     expect(result.title).toBe("更新後");
     expect(revalidatePath).toHaveBeenCalled();
+  });
+
+  it("Googleリンクドキュメントの更新時もgoogleEmbedUrlをgoogleUrlから再計算する", async () => {
+    vi.mocked(updateDocument).mockResolvedValue(
+      document({ sourceType: "google" } as unknown as Partial<Document>)
+    );
+
+    await updateDocumentAction(
+      "document-1",
+      buildGoogleInput({
+        googleUrl: "https://docs.google.com/spreadsheets/d/xyz789/edit",
+      })
+    );
+
+    expect(updateDocument).toHaveBeenCalledWith(
+      "document-1",
+      expect.objectContaining({
+        googleUrl: "https://docs.google.com/spreadsheets/d/xyz789/edit",
+        googleEmbedUrl: "https://docs.google.com/spreadsheets/d/xyz789/preview",
+      })
+    );
   });
 
   it("既存ドキュメントを削除し、ルートを再検証する", async () => {

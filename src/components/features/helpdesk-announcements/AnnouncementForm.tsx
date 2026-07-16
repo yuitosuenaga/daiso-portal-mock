@@ -68,6 +68,7 @@ export interface AnnouncementFormProps {
   attachmentsCountExceededMessage: string;
   attachmentsReadFailedMessage: string;
   downloadLinkLabel: string;
+  openOriginalLinkLabel: string;
   linkedDocumentsLabel: string;
   linkedDocumentsPickButtonLabel: string;
   linkedDocumentsEmptyMessage: string;
@@ -126,6 +127,7 @@ export function AnnouncementForm({
   attachmentsCountExceededMessage,
   attachmentsReadFailedMessage,
   downloadLinkLabel,
+  openOriginalLinkLabel,
   linkedDocumentsLabel,
   linkedDocumentsPickButtonLabel,
   linkedDocumentsEmptyMessage,
@@ -417,6 +419,7 @@ export function AnnouncementForm({
               {pdfAttachments.map((attachment) => (
                 <PdfViewer
                   key={attachment.id}
+                  variant="upload"
                   dataUrl={attachment.dataUrl}
                   title={attachment.fileName}
                   downloadFileName={attachment.fileName}
@@ -479,15 +482,27 @@ export function AnnouncementForm({
                 >
                   {linkedDocumentsPickButtonLabel}
                 </Button>
-                {selectedDocuments.map((document) => (
-                  <PdfViewer
-                    key={document.id}
-                    dataUrl={document.dataUrl}
-                    title={document.title}
-                    downloadFileName={document.fileName}
-                    downloadLinkLabel={downloadLinkLabel}
-                  />
-                ))}
+                {selectedDocuments.map((document) =>
+                  document.sourceType === "google" ? (
+                    <PdfViewer
+                      key={document.id}
+                      variant="google"
+                      embedUrl={document.googleEmbedUrl}
+                      title={document.title}
+                      originalUrl={document.googleUrl}
+                      openOriginalLabel={openOriginalLinkLabel}
+                    />
+                  ) : (
+                    <PdfViewer
+                      key={document.id}
+                      variant="upload"
+                      dataUrl={document.dataUrl}
+                      title={document.title}
+                      downloadFileName={document.fileName}
+                      downloadLinkLabel={downloadLinkLabel}
+                    />
+                  )
+                )}
               </div>
               <AnnouncementDocumentLinkDialog
                 open={isDocumentDialogOpen}
