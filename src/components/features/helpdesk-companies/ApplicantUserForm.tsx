@@ -76,6 +76,7 @@ export function ApplicantUserForm({
     handleSubmit,
     setError,
     reset,
+    resetField,
     formState: { errors, isSubmitting },
   } = useForm<ApplicantUserFormValues>({
     resolver: zodResolver(schema),
@@ -102,6 +103,9 @@ export function ApplicantUserForm({
       reset({ email: values.email, displayName: values.displayName, password: "" });
       router.push(`/helpdesk/companies/${companyId}`);
     } catch (error) {
+      // 保存に失敗した場合も、パスワード入力欄の平文をフォーム上に残さない
+      // （要件5.9・タスク17: 重複エラー等の保存失敗時は他項目を保持しパスワード欄のみクリアする）。
+      resetField("password");
       if (error instanceof Error && error.message.includes("Email already taken")) {
         setError("email", { type: "duplicate", message: emailDuplicateMessage });
         return;

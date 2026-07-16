@@ -125,6 +125,17 @@ describe("ApplicantUserForm（新規作成モード）", () => {
       ).toBeTruthy();
     });
     expect(pushMock).not.toHaveBeenCalled();
+    // 保存失敗時もメールアドレス・表示名は保持するが、パスワードの平文は
+    // フォーム上に残さない（要件5.9・タスク17）。
+    expect(
+      (screen.getByLabelText("メールアドレス") as HTMLInputElement).value
+    ).toBe("tanaka@example.com");
+    expect(
+      (screen.getByLabelText("表示名") as HTMLInputElement).value
+    ).toBe("田中太郎");
+    expect(
+      (screen.getByLabelText("パスワード") as HTMLInputElement).value
+    ).toBe("");
   });
 });
 
