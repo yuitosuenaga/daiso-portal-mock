@@ -32,7 +32,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   try {
     const { claims } = await requireApplicantSession();
     companyCode = claims.companyCode;
-    announcement = await getAnnouncementById(id);
+    announcement = await getAnnouncementById(id, { locale });
   } catch {
     return (
       <div className="space-y-4">

@@ -43,6 +43,13 @@ export default async function HelpdeskAnnouncementNewPage() {
         titlePlaceholder={t("titlePlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
+        languageJaTabLabel={t("language.jaTab")}
+        languageEnTabLabel={t("language.enTab")}
+        languageAddButtonLabel={t("language.addButton")}
+        languageRemoveButtonLabel={t("language.removeButton")}
+        languageLocaleCodeLabel={t("language.localeCodeLabel")}
+        languageLocaleCodePlaceholder={t("language.localeCodePlaceholder")}
+        languageLocaleDuplicateErrorMessage={t("language.localeDuplicateError")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         statusLabel={t("statusLabel")}

@@ -46,13 +46,15 @@ model Company {
 }
 
 model ApplicantUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  displayName  String
-  companyId    String
-  company      Company  @relation(fields: [companyId], references: [id])
-  createdAt    DateTime @default(now())
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  displayName     String
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id])
+  createdAt       DateTime @default(now())
+  /// 通知メール・お知らせ表示に用いる言語設定。未設定（既定値）は"en"として扱う。
+  preferredLocale String   @default("en")
 }
 
 model HelpdeskStaff {
@@ -130,6 +132,17 @@ enum AnnouncementStatus {
   published
 }
 
+enum AnnouncementNotificationKind {
+  publish
+  reminder
+}
+
+enum AnnouncementNotificationStatus {
+  sent
+  failed
+  skipped
+}
+
 model Announcement {
   id                 String                        @id @default(cuid())
   title              String
@@ -148,6 +161,43 @@ model Announcement {
   recipientStatuses  AnnouncementRecipientStatus[]
   attachments        AnnouncementAttachment[]
   linkedDocuments    AnnouncementDocumentLink[]
+  translations       AnnouncementTranslation[]
+  notificationLogs   AnnouncementNotificationLog[]
+}
+
+/**
+ * お知らせのタイトル・本文を`ja`以外の言語で保持する子テーブル。`ja`（既定言語）の内容は
+ * 引き続き`Announcement.title`/`body`が正であり、`locale === "ja"`の行は作らない。
+ * `en`の行は作成・編集時に必ず1件存在するようサービス層で保証する。
+ */
+model AnnouncementTranslation {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  locale         String
+  title          String
+  body           String
+
+  @@unique([announcementId, locale])
+  @@index([announcementId])
+}
+
+/**
+ * お知らせの公開・リマインド通知メールの送信結果履歴。宛先1件ごとに1行を作成する
+ * （履歴は追記のみで、更新・削除は行わない）。
+ */
+model AnnouncementNotificationLog {
+  id             String                         @id @default(cuid())
+  announcementId String
+  announcement   Announcement                   @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  kind           AnnouncementNotificationKind
+  recipientEmail String
+  locale         String
+  status         AnnouncementNotificationStatus
+  errorMessage   String?
+  sentAt         DateTime                       @default(now())
+
+  @@index([announcementId])
 }
 
 model AnnouncementAttachment {

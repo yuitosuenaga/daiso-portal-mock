@@ -151,6 +151,15 @@
       "titlePlaceholder": "Enter the announcement title",
       "bodyLabel": "Body",
       "bodyPlaceholder": "Enter the announcement body",
+      "language": {
+        "jaTab": "Japanese",
+        "enTab": "English",
+        "addButton": "Add language",
+        "removeButton": "Remove this language",
+        "localeCodeLabel": "Language code",
+        "localeCodePlaceholder": "e.g. th, vi, zh",
+        "localeDuplicateError": "Enter a language code that is not used by another language"
+      },
       "categoryLabel": "Category",
       "categoryPlaceholder": "Select a category",
       "statusLabel": "Publish status",

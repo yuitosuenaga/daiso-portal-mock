@@ -51,6 +51,7 @@ function makeAnnouncement(
     updatedAt: publishedAt,
     attachments: [],
     linkedDocumentIds: [],
+    translations: [],
     ...overrides,
   };
 }

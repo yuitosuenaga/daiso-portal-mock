@@ -29,6 +29,13 @@ const labels = {
   titlePlaceholder: "タイトルを入力してください",
   bodyLabel: "本文",
   bodyPlaceholder: "本文を入力してください",
+  languageJaTabLabel: "日本語",
+  languageEnTabLabel: "English",
+  languageAddButtonLabel: "言語を追加",
+  languageRemoveButtonLabel: "この言語を削除",
+  languageLocaleCodeLabel: "言語コード",
+  languageLocaleCodePlaceholder: "例: th, vi, zh",
+  languageLocaleDuplicateErrorMessage: "他の言語と重複しない言語コードを入力してください",
   categoryLabel: "種別",
   categoryPlaceholder: "種別を選択してください",
   statusLabel: "公開状態",
@@ -86,6 +93,18 @@ const labels = {
   linkedDocumentsTargetingCompaniesPrefixLabel: "対象会社:",
 };
 
+/** en タブに切り替えてtitleEn/bodyEnを入力し、jaタブへ戻る。 */
+function fillEnFields(titleEn: string, bodyEn: string) {
+  fireEvent.click(screen.getByRole("tab", { name: "English" }));
+  fireEvent.change(screen.getByLabelText(/タイトル/), {
+    target: { value: titleEn },
+  });
+  fireEvent.change(screen.getByLabelText(/本文/), {
+    target: { value: bodyEn },
+  });
+  fireEvent.click(screen.getByRole("tab", { name: "日本語" }));
+}
+
 describe("AnnouncementForm", () => {
   it("必須項目が未入力のまま送信するとcreateAnnouncementActionが呼ばれない", async () => {
     render(<AnnouncementForm mode="create" {...labels} />);
@@ -107,6 +126,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -125,6 +145,7 @@ describe("AnnouncementForm", () => {
         dueDate: null,
         attachments: [],
         linkedDocumentIds: [],
+        translations: [{ locale: "en", title: "New announcement", body: "Body text" }],
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
@@ -143,6 +164,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -167,6 +189,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -192,6 +215,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -227,6 +251,7 @@ describe("AnnouncementForm", () => {
         dueDate: null,
         attachments: [],
         linkedDocumentIds: [],
+        translations: [{ locale: "en", title: "New announcement", body: "Body text" }],
       });
     });
   });
@@ -239,6 +264,9 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
+          titleEn: "Existing title (EN)",
+          bodyEn: "Existing body (EN)",
+          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -272,6 +300,9 @@ describe("AnnouncementForm", () => {
           dueDate: null,
           attachments: [],
           linkedDocumentIds: [],
+          translations: [
+            { locale: "en", title: "Existing title (EN)", body: "Existing body (EN)" },
+          ],
         }
       );
     });
@@ -285,6 +316,9 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
+          titleEn: "Existing title (EN)",
+          bodyEn: "Existing body (EN)",
+          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -316,6 +350,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -353,6 +388,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -374,6 +410,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -393,6 +430,65 @@ describe("AnnouncementForm", () => {
     expect(createAnnouncementActionMock).not.toHaveBeenCalled();
   });
 
+  it("enタブが未入力のまま送信すると送信がブロックされる", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createAnnouncementActionMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("言語を追加ボタンで追加言語のタブが表示され、入力した内容が送信される", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fillEnFields("New announcement", "Body text");
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "言語を追加" }));
+    fireEvent.click(screen.getByRole("tab", { name: "言語コード" }));
+    fireEvent.change(screen.getByLabelText(/言語コード/), {
+      target: { value: "th" },
+    });
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "หัวข้อ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "เนื้อหา" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createAnnouncementActionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          translations: [
+            { locale: "en", title: "New announcement", body: "Body text" },
+            { locale: "th", title: "หัวข้อ", body: "เนื้อหา" },
+          ],
+        })
+      );
+    });
+  });
+
   it("直接アップロードのPDF添付はPdfViewerでプレビュー表示され、画像添付は表示されない", async () => {
     render(
       <AnnouncementForm
@@ -401,6 +497,9 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
+          titleEn: "Existing title (EN)",
+          bodyEn: "Existing body (EN)",
+          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -439,6 +538,9 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
+          titleEn: "Existing title (EN)",
+          bodyEn: "Existing body (EN)",
+          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -476,6 +578,7 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
+    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });

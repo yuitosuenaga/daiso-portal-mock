@@ -5,10 +5,17 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   ANNOUNCEMENT_INCLUDE,
+  DEFAULT_ANNOUNCEMENT_LOCALE,
   mapAnnouncement,
   mapRecipientStatusView,
+  resolveAnnouncementContent,
+  targetApplicantUsersWhere,
   targetingToColumns,
 } from "@/lib/server/announcement-mapper";
+import {
+  notifyAnnouncementPublished,
+  notifyAnnouncementReminder,
+} from "@/lib/server/announcement-notifications";
 import type {
   Announcement,
   CreateAnnouncementInput,
@@ -18,6 +25,11 @@ import type {
   AnnouncementSelfStatus,
   AnnouncementTrackingSummary,
 } from "@/types/announcement-recipient";
+
+// `resolveAnnouncementContent`・`targetApplicantUsersWhere`は`announcement-mapper.ts`
+// （サービス層に依存しないleafモジュール）に定義されている（`announcement-notifications.ts`
+// との循環importを避けるため）。本モジュールの公開APIとしては引き続きここから再エクスポートする。
+export { resolveAnnouncementContent, targetApplicantUsersWhere };
 
 export class AnnouncementNotFoundError extends Error {
   constructor(announcementId: string) {
@@ -74,9 +86,29 @@ function targetRecipientsWhere(
   return {};
 }
 
-/** 自社の国が配信対象に含まれるお知らせのみを公開日の降順で取得する。 */
+/**
+ * `translations`配列（`en`必須＋任意追加言語）をPrismaのネスト書き込み形状に変換する。
+ * `en`行を必ず1件含み、それ以外の行は渡された内容で全置換する方針のため、常に
+ * `deleteMany`（既存の全翻訳行を削除）＋`create`（渡された内容を作り直す）で表現する。
+ */
+function translationsToNestedWrite(translations: Announcement["translations"]) {
+  return {
+    deleteMany: {},
+    create: translations.map((translation) => ({
+      locale: translation.locale,
+      title: translation.title,
+      body: translation.body,
+    })),
+  };
+}
+
+/**
+ * 自社の国が配信対象に含まれるお知らせのみを公開日の降順で取得する。`locale`に対応する
+ * タイトル・本文（要件16、未登録の場合は既定言語`ja`にフォールバック）に解決して返す。
+ */
 export async function listAnnouncementsVisibleToCountry(
-  country: string
+  country: string,
+  locale: string = DEFAULT_ANNOUNCEMENT_LOCALE
 ): Promise<Announcement[]> {
   const records = await prisma.announcement.findMany({
     where: visibleToCountryWhere(country),
@@ -85,16 +117,21 @@ export async function listAnnouncementsVisibleToCountry(
   });
 
   const now = new Date();
-  return records.map(mapAnnouncement).filter((item) => isWithinPublishPeriod(item, now));
+  return records
+    .map(mapAnnouncement)
+    .filter((item) => isWithinPublishPeriod(item, now))
+    .map((item) => ({ ...item, ...resolveAnnouncementContent(item, locale) }));
 }
 
 /**
  * 指定したIDのお知らせを1件取得する。自社の国が配信対象に含まれない、
- * または該当データが存在しない場合はnullを返す。
+ * または該当データが存在しない場合はnullを返す。`locale`に対応するタイトル・本文
+ * （要件16、未登録の場合は既定言語`ja`にフォールバック）に解決して返す。
  */
 export async function findAnnouncementVisibleToCountry(
   id: string,
-  country: string
+  country: string,
+  locale: string = DEFAULT_ANNOUNCEMENT_LOCALE
 ): Promise<Announcement | null> {
   const record = await prisma.announcement.findFirst({
     where: { id, ...visibleToCountryWhere(country) },
@@ -105,7 +142,11 @@ export async function findAnnouncementVisibleToCountry(
   }
 
   const announcement = mapAnnouncement(record);
-  return isWithinPublishPeriod(announcement, new Date()) ? announcement : null;
+  if (!isWithinPublishPeriod(announcement, new Date())) {
+    return null;
+  }
+
+  return { ...announcement, ...resolveAnnouncementContent(announcement, locale) };
 }
 
 /**
@@ -183,11 +224,23 @@ export async function createAnnouncementRecord(
       linkedDocuments: {
         create: linkedDocumentIds.map((documentId) => ({ documentId })),
       },
+      translations: {
+        create: input.translations.map((translation) => ({
+          locale: translation.locale,
+          title: translation.title,
+          body: translation.body,
+        })),
+      },
     },
     include: ANNOUNCEMENT_INCLUDE,
   });
 
-  return mapAnnouncement(record);
+  const announcement = mapAnnouncement(record);
+  if (announcement.status === "published") {
+    await notifyAnnouncementPublished(announcement.id);
+  }
+
+  return announcement;
 }
 
 /**
@@ -237,12 +290,21 @@ export async function updateAnnouncementRecord(
           deleteMany: {},
           create: linkedDocumentIds.map((documentId) => ({ documentId })),
         },
+        translations: translationsToNestedWrite(input.translations),
       },
       include: ANNOUNCEMENT_INCLUDE,
     });
 
-    return mapAnnouncement(record);
-  } catch {
+    const announcement = mapAnnouncement(record);
+    if (shouldStampPublishedAt) {
+      await notifyAnnouncementPublished(announcement.id);
+    }
+
+    return announcement;
+  } catch (error) {
+    if (error instanceof AnnouncementNotFoundError) {
+      throw error;
+    }
     throw new AnnouncementNotFoundError(id);
   }
 }
@@ -340,17 +402,32 @@ export async function sendAnnouncementReminders(
   announcementId: string,
   recipientIds: string[]
 ): Promise<void> {
+  if (recipientIds.length === 0) {
+    return;
+  }
+
   const sentAt = new Date();
 
-  await Promise.all(
-    recipientIds.map((recipientId) =>
-      prisma.announcementRecipientStatus.upsert({
-        where: { announcementId_recipientId: { announcementId, recipientId } },
-        update: { reminderSentAt: sentAt },
-        create: { announcementId, recipientId, reminderSentAt: sentAt },
-      })
-    )
+  const [recipients] = await Promise.all([
+    prisma.announcementRecipient.findMany({
+      where: { id: { in: recipientIds } },
+      include: { company: true },
+    }),
+    Promise.all(
+      recipientIds.map((recipientId) =>
+        prisma.announcementRecipientStatus.upsert({
+          where: { announcementId_recipientId: { announcementId, recipientId } },
+          update: { reminderSentAt: sentAt },
+          create: { announcementId, recipientId, reminderSentAt: sentAt },
+        })
+      )
+    ),
+  ]);
+
+  const companyCodes = Array.from(
+    new Set(recipients.map((recipient) => recipient.company.companyCode))
   );
+  await notifyAnnouncementReminder(announcementId, companyCodes);
 }
 
 /**
