@@ -1,0 +1,510 @@
+# 技術設計書: helpdesk-account-management
+
+## Overview
+
+**Purpose**: 本機能は、ヘルプデスク担当者が海外販社（`Company`）とその申請者アカウント（`ApplicantUser`）を、管理画面（`/helpdesk/companies`配下）から一覧・新規作成・編集・無効化できるようにする。あわせて、新規作成時にヘルプデスク担当者が初期パスワードを直接設定し、既存アカウントのパスワードも直接再設定できる運用を提供する。
+
+**Users**: 日本側ヘルプデスク担当者が、新規販社の契約・担当者の異動・退職に応じて、継続的に`Company`・`ApplicantUser`データを整備する際に利用する。
+
+**Impact**: 現状、`Company`・`ApplicantUser`は`prisma/schema.prisma`にフェーズ3で定義済みだが、投入・更新手段は`prisma/seed.ts`の直接編集のみである。本specはこれをヘルプデスク側の管理画面に置き換える。`ApplicantUser`モデルに`isActive`フィールド（後方互換なマイグレーション追加、デフォルト`true`）を新設し、無効化されたアカウントの認証を`authorize.ts`側で拒否するようにする。既存の`src/lib/server/company-service.ts`（`listCompaniesForHelpdesk`、`helpdesk-inquiry-management`spec所有の代理登録画面向け読み取り専用関数）はシグネチャを変更せず、本specは同ファイルへ関数を追加する形で書き込み系・詳細取得系を実装する。
+
+### Goals
+- ヘルプデスク担当者が`Company`を一覧・新規作成・編集できる
+- ヘルプデスク担当者が会社ごとに`ApplicantUser`を一覧・新規作成・編集・無効化／再有効化できる
+- 新規`ApplicantUser`作成時・既存アカウント編集時に、ヘルプデスク担当者が初期パスワード・新しいパスワードを直接設定できる
+- 無効化されたアカウントがログインできないことを保証する
+- 既存のヘルプデスク管理画面（`documents-management`・`faq-management`・`helpdesk-inquiry-management`）が確立したCRUDパターン（Server Component一覧 + Server Actions + zodバリデーション + react-hook-form + `revalidatePath`、`requireHelpdeskStaffSession`による多層防御）をそのまま踏襲し、新規の抽象化を持ち込まない
+
+### Non-Goals
+- 実際のメール送信によるパスワードリセット・アカウント招待メール（メール送信基盤が無いため将来フェーズ）
+- 多要素認証（MFA）
+- CSVインポート等の一括登録・一括無効化（将来検討）
+- `ApplicantUser`の物理削除（既存の`Inquiry.companyId`・`AnnouncementRecipientStatus`等の参照整合性のため無効化のみとする）
+- `Company`の削除・無効化（既存の申請者アカウント・問い合わせの参照元となるため対象外。将来要件）
+- `HelpdeskStaff`（ヘルプデスク担当者自身）の管理画面（別画面・別specの対象）
+- ログイン画面自体（`/login`・`/helpdesk/login`のUI・フォーム）の変更。認証ロジック（`authorize.ts`）への無効化チェック追加のみを行う
+- ミドルウェアによる`/helpdesk/*`ルート保護自体の変更（`helpdesk-portal-layout`が確立した既存の仕組みをそのまま利用する）
+
+## Boundary Commitments
+
+### This Spec Owns
+- `/[locale]/helpdesk/companies`・`/[locale]/helpdesk/companies/new`・`/[locale]/helpdesk/companies/[id]`・`/[locale]/helpdesk/companies/[id]/edit`・`/[locale]/helpdesk/companies/[id]/applicant-users/new`・`/[locale]/helpdesk/companies/[id]/applicant-users/[userId]/edit`配下の全ページ
+- `Company`の作成・更新・詳細取得・一覧取得（申請者アカウント数集計付き）を行うサービス層関数（`src/lib/server/company-service.ts`への追加）
+- `ApplicantUser`の一覧（会社別）・詳細取得・作成・更新・有効状態変更を行うサービス層関数（新規`src/lib/server/applicant-user-service.ts`）
+- `Company`・`ApplicantUser`のServer Actions（新規`src/lib/actions/companies.ts`・`src/lib/actions/applicant-users.ts`）
+- 対応するzodバリデーションスキーマ（新規`src/lib/validation/company.ts`・`src/lib/validation/applicant-user.ts`）
+- `ApplicantUser`モデルへの`isActive: Boolean @default(true)`フィールド追加（Prismaスキーマ変更・マイグレーション）
+- `authorizeApplicantCredentials`（`src/lib/server/authorize.ts`）への無効化アカウントのログイン拒否ロジックの追加
+- `HelpdeskSidebar`への「販社管理」ナビゲーション項目の追加
+
+### Out of Boundary
+- 既存の`listCompaniesForHelpdesk`（`helpdesk-inquiry-management`spec所有、代理問い合わせ登録画面向け）のシグネチャ・戻り値・呼び出し元。本specは変更せず、別関数を追加する
+- `Company`・`ApplicantUser`以外のPrismaモデル（`Inquiry`・`Announcement`・`Document`等）の変更
+- ログイン画面のUI・フォーム・ルーティング自体（`/login`・`/helpdesk/login`の実装は`backend-db-foundation`spec所有のまま変更しない）
+- ミドルウェアによる`/helpdesk/*`ルート保護の実装自体（`helpdesk-portal-layout`所有）
+- メール送信基盤・パスワードリセットメール・招待メールの実装
+
+### Allowed Dependencies
+- `documents-management`・`faq-management`・`helpdesk-inquiry-management`が確立したServer Actions + zodバリデーション + `revalidatePath`パターン
+- `backend-db-foundation`が導入したPrismaクライアント（`src/lib/db/prisma.ts`）・`Company`/`ApplicantUser`モデル
+- `helpdesk-portal-layout`が確立した`HelpdeskAppShell`・`HelpdeskSidebar`・ミドルウェアによるルート保護
+- 既存の`requireHelpdeskStaffSession`（`src/lib/server/auth-session.ts`）
+- 既存の`bcryptjs`によるパスワードハッシュ方式（`authorize.ts`・`prisma/seed.ts`と同一の`bcrypt.hash(password, 10)`）
+- 既存のUIプリミティブ（`Card`, `Button`, `Input`, `Select`, `Label`, `Badge`, `Skeleton`, `Alert`）
+
+### Revalidation Triggers
+- `ApplicantUser`モデルへのフィールド追加・変更（本specの`isActive`追加を含め、`authorize.ts`・`prisma/seed.ts`・型定義への影響を要確認）
+- `Company`・`ApplicantUser`のPrismaモデル自体の破壊的変更（`company-service.ts`の既存関数`listCompaniesForHelpdesk`を利用する`helpdesk-inquiry-management`specへの影響確認が必要）
+- ログイン認証ロジック（`authorize.ts`）の変更（`backend-db-foundation`specが定めた認証フローへの影響確認が必要）
+
+## Architecture
+
+### Existing Architecture Analysis
+`helpdesk-portal-layout`により、`/[locale]/helpdesk`配下はミドルウェアでヘルプデスクセッションが必須化された独立レイアウト（`HelpdeskAppShell`）を持つ。既存の`src/lib/server/company-service.ts`は`listCompaniesForHelpdesk`（読み取り専用、`requireHelpdeskStaffSession`による多層防御あり）のみを実装済みで、書き込み系・詳細取得系は存在しない。`documents-management`・`faq-management`はいずれも「Server Component一覧ページ → Server Actions → サービス層（Prisma） → `revalidatePath`」という同一パターンを確立しており、本specもこれを踏襲する。認証は`authorize.ts`が`prisma.applicantUser.findUnique`・`bcrypt.compare`で照合する実装済みのCredentials Providerフローであり、本specは`ApplicantUser`取得後の分岐に無効化チェックを1箇所追加するのみで済む。
+
+### Architecture Pattern & Boundary Map
+`documents-management`・`helpdesk-inquiry-management`と同一のパターンを踏襲する。`Company`と`ApplicantUser`は1:N関係のため、`Company`詳細画面が`ApplicantUser`一覧の入り口を兼ねる構成とする。
+
+```mermaid
+graph TB
+    CompanyListPage[Company List Page]
+    CompanyNewPage[Company New Page]
+    CompanyDetailPage[Company Detail Page]
+    CompanyEditPage[Company Edit Page]
+    ApplicantUserNewPage[ApplicantUser New Page]
+    ApplicantUserEditPage[ApplicantUser Edit Page]
+
+    CompanyListPage --> CompanyManagementList[Company Management List]
+    CompanyListPage --> CompanyManagementListClient[Company List Client Filter]
+    CompanyNewPage --> CompanyForm[Company Form]
+    CompanyEditPage --> CompanyForm
+    CompanyDetailPage --> CompanyDetail[Company Detail]
+    CompanyDetailPage --> ApplicantUserList[Applicant User List]
+    ApplicantUserList --> ToggleApplicantUserActiveButton[Toggle Active Button]
+    ApplicantUserNewPage --> ApplicantUserForm[Applicant User Form]
+    ApplicantUserEditPage --> ApplicantUserForm
+
+    CompanyForm --> CompanyActions[Company Server Actions]
+    ApplicantUserForm --> ApplicantUserActions[ApplicantUser Server Actions]
+    ToggleApplicantUserActiveButton --> ApplicantUserActions
+
+    CompanyActions --> CompanyService[Company Service]
+    ApplicantUserActions --> ApplicantUserService[ApplicantUser Service]
+    CompanyManagementList --> CompanyService
+    CompanyDetail --> CompanyService
+    ApplicantUserList --> ApplicantUserService
+
+    CompanyService --> Prisma[(Prisma / Company テーブル)]
+    ApplicantUserService --> Prisma2[(Prisma / ApplicantUser テーブル)]
+
+    Authorize[authorizeApplicantCredentials] -.isActive参照.-> Prisma2
+```
+
+**Architecture Integration**:
+- 選択パターン: Server Actions + サーバー専用サービス層（`documents-management`・`faq-management`と同一パターン。データ実体はPrisma/PostgreSQL）
+- ドメイン境界: `Company`サービス（`company-service.ts`拡張）と`ApplicantUser`サービス（新規`applicant-user-service.ts`）を分離する。`ApplicantUser`は常に`companyId`のスコープ内で操作され、会社をまたいだ一覧・検索は本specの対象外とする（要件4は「会社ごとの」一覧であり、全社横断の申請者アカウント一覧は持たない）
+- 既存パターンの維持: ページ構成（一覧→新規作成/編集、`Company`は詳細画面を追加で持つ）はNext.js App Router構成を踏襲。フォームは`react-hook-form`+`zod`
+- 新規コンポーネントの理由: `Company`と`ApplicantUser`はライフサイクル・フォーム項目が異なる別エンティティのため、`CompanyForm`と`ApplicantUserForm`を分離する。無効化操作は削除確認（`confirm()`）と異なり状態変更の確認UIのため専用の`ToggleApplicantUserActiveButton`を新設する
+- Steering準拠: 表示テキストは全て`next-intl`翻訳キー経由、データアクセスは`src/lib/server/`のサービス層に集約、Server Actionsは呼び出し時に`requireHelpdeskStaffSession`を検証するという既存規約を維持
+
+### Technology Stack
+
+| Layer | Choice / Version | Role in Feature | Notes |
+|-------|------------------|-----------------|-------|
+| Frontend | Next.js App Router（既存） | ページ構成・Server Actions | `documents-management`と同一パターン |
+| Forms | react-hook-form + zod（既存） | `Company`/`ApplicantUser`作成・編集フォームのバリデーション | パスワードは`ApplicantUserForm`のみが扱う |
+| UI | shadcn/ui（既存） | `Input`, `Select`（国選択）, `Badge`（有効/無効表示）, `Button` | 新規UIプリミティブの追加は不要。無効化確認はブラウザ標準`confirm()`を使用（既存`DeleteFaqButton`等と同様） |
+| Auth | bcryptjs（既存） | 初期パスワード・再設定パスワードのハッシュ化（`bcrypt.hash(password, 10)`） | `authorize.ts`・`seed.ts`と同一のコスト係数 |
+| Data | Prisma / PostgreSQL（`backend-db-foundation`基盤） | `Company`・`ApplicantUser`のCRUD、`isActive`フィールド追加 | マイグレーション追加が必要（後方互換） |
+
+## File Structure Plan
+
+### Directory Structure
+```
+src/app/[locale]/helpdesk/(dashboard)/companies/
+├── page.tsx                                # 一覧（検索・新規作成導線）
+├── new/
+│   └── page.tsx                            # Company新規作成
+└── [id]/
+    ├── page.tsx                            # Company詳細 + ApplicantUser一覧
+    ├── edit/
+    │   └── page.tsx                        # Company編集
+    └── applicant-users/
+        ├── new/
+        │   └── page.tsx                    # ApplicantUser新規作成
+        └── [userId]/
+            └── edit/
+                └── page.tsx                # ApplicantUser編集・パスワード再設定・無効化/再有効化
+
+src/components/features/helpdesk-companies/
+├── CompanyManagementList.tsx               # Server: 全件取得（申請者数集計付き）
+├── CompanyManagementListClient.tsx         # Client: 会社名・販社コードによる絞り込み
+├── CompanyForm.tsx                         # Client: Company新規作成・編集共用フォーム
+├── CompanyDetail.tsx                       # Server: Company情報 + ApplicantUserList組み立て
+├── ApplicantUserList.tsx                   # 表示専用: 有効状態バッジ・編集導線を含む一覧
+├── ApplicantUserForm.tsx                   # Client: ApplicantUser新規作成・編集共用フォーム（パスワード欄含む）
+└── ToggleApplicantUserActiveButton.tsx     # Client: confirm()による確認 + 有効/無効切り替えアクション呼び出し
+
+src/lib/server/
+├── company-service.ts                      # 変更: listCompaniesForHelpdesk（既存、変更なし）に加え、
+│                                            #        listCompaniesForManagement / getCompanyById /
+│                                            #        createCompany / updateCompany / isCompanyCodeTaken を追加
+├── applicant-user-service.ts               # 新規: listApplicantUsersByCompany / getApplicantUserById /
+│                                            #        createApplicantUser / updateApplicantUser /
+│                                            #        setApplicantUserActive / isApplicantUserEmailTaken
+└── authorize.ts                            # 変更: authorizeApplicantCredentialsにisActive==falseの拒否分岐を追加
+
+src/lib/actions/
+├── companies.ts                            # 新規: createCompanyAction / updateCompanyAction
+└── applicant-users.ts                      # 新規: createApplicantUserAction / updateApplicantUserAction /
+                                             #        setApplicantUserActiveAction
+
+src/lib/validation/
+├── company.ts                              # 新規: companyFormSchema（zod）
+└── applicant-user.ts                       # 新規: applicantUserCreateFormSchema / applicantUserUpdateFormSchema（zod）
+
+src/lib/constants/
+└── applicant-user.ts                       # 新規: APPLICANT_USER_PASSWORD_MIN_LENGTH（8）
+
+src/types/
+├── company.ts                              # 新規: CompanyWithStats, CreateCompanyInput
+└── applicant-user.ts                       # 新規: ApplicantUserSummary, CreateApplicantUserInput,
+                                             #        UpdateApplicantUserInput
+
+src/components/layout/
+└── HelpdeskSidebar.tsx                      # 変更: 「販社管理」ナビゲーション項目を追加
+
+prisma/
+└── schema.prisma                           # 変更: ApplicantUserに isActive Boolean @default(true) を追加
+                                             #        （マイグレーション新規追加。既存フィールドは変更しない）
+
+messages/
+├── ja.json                                 # 変更: helpdeskCompanies名前空間、helpdeskNavへのキー追加
+└── en.json                                 # 同上
+```
+
+### Modified Files
+- `src/lib/server/company-service.ts` — 既存の`listCompaniesForHelpdesk`（`CompanyOption`を返す、`helpdesk-inquiry-management`spec所有）はシグネチャ・実装を変更しない。新規に`listCompaniesForManagement()`（`name`昇順、各社の`applicantUserCount`を`_count`で集計）・`getCompanyById(id)`・`createCompany(input)`・`updateCompany(id, input)`・`isCompanyCodeTaken(companyCode, excludeId?)`を追加する
+- `src/lib/server/authorize.ts` — `authorizeApplicantCredentials`内、`bcrypt.compare`成功後に`if (!applicantUser.isActive) return null;`を追加する（要件7.5）。`authorizeHelpdeskCredentials`は変更しない（`HelpdeskStaff`は本specの対象外）
+- `src/components/layout/HelpdeskSidebar.tsx` — `HELPDESK_NAV_ITEMS`に1項目（`{ translationKey: "companies", href: "/helpdesk/companies", icon: Building2 }`）を追加
+- `prisma/schema.prisma` — `ApplicantUser`モデルに`isActive Boolean @default(true)`を追加。`@default(true)`により既存データ（`seed.ts`投入済みレコード）は後方互換にマイグレーションされる
+- `messages/ja.json` / `messages/en.json` — 新規名前空間（`helpdeskCompanies`）・`helpdeskNav`への項目追加
+
+> 既存のヘルプデスク画面（`helpdesk-inquiry-management`の代理問い合わせ登録画面）が依存する`listCompaniesForHelpdesk`の型・挙動は変更しない。
+
+## System Flows
+
+`Company`・`ApplicantUser`の作成・編集はいずれも「Client Component（フォーム） → Server Action → サービス層（Prisma） → `revalidatePath`」という同一パターンに従う。パスワードを扱う`ApplicantUser`作成フローを代表として図示する。
+
+```mermaid
+sequenceDiagram
+    participant User as ヘルプデスク担当者
+    participant Form as ApplicantUserForm
+    participant Action as createApplicantUserAction
+    participant Service as ApplicantUserService（Prisma）
+    participant Pages as Company詳細/ApplicantUser編集ページ
+
+    User->>Form: メールアドレス・表示名・初期パスワードを入力
+    Form->>Form: applicantUserCreateFormSchemaでクライアント側バリデーション
+    Form->>Action: createApplicantUserAction(companyId, input)
+    Action->>Action: requireHelpdeskStaffSession()でセッション検証
+    Action->>Action: applicantUserCreateFormSchemaでサーバー側再バリデーション
+    Action->>Service: isApplicantUserEmailTaken(email)で重複確認
+    Action->>Service: bcrypt.hash(password, 10) 後 createApplicantUser(companyId, input)
+    Action->>Pages: revalidatePath(Company詳細)
+    Pages-->>User: 保存後のCompany詳細画面（ApplicantUser一覧）へ遷移
+```
+
+- 無効化・再有効化フローは「`ToggleApplicantUserActiveButton`（`confirm()`確認） → `setApplicantUserActiveAction` → `setApplicantUserActive(id, isActive)` → `revalidatePath`」という同型のより単純なフローであり、パスワードの取り扱いを含まない。
+- ログイン拒否フローは既存の`authorizeApplicantCredentials`内に閉じる（新規のUI・Server Actionは持たない）。`bcrypt.compare`成功後に`isActive`を確認し、`false`であれば既存のパスワード不一致時と同様に`null`を返す（Auth.js側は既存の「認証失敗」表示にフォールバックする）。
+
+## Requirements Traceability
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 1.1〜1.7 | Company一覧表示 | CompanyManagementList, CompanyManagementListClient | CompanyService (Service) | — |
+| 2.1〜2.5 | Companyの新規作成 | CompanyForm, CompanyActions | CompanyService | ApplicantUser作成フローと同型 |
+| 3.1〜3.5 | Companyの編集 | CompanyForm, CompanyActions | CompanyService | ApplicantUser作成フローと同型 |
+| 4.1〜4.6 | Company詳細・ApplicantUser一覧表示 | CompanyDetail, ApplicantUserList | CompanyService, ApplicantUserService | — |
+| 5.1〜5.9 | ApplicantUser新規作成・パスワード設定 | ApplicantUserForm, ApplicantUserActions | ApplicantUserService | ApplicantUser作成フロー |
+| 6.1〜6.9 | ApplicantUser編集・パスワード再設定 | ApplicantUserForm, ApplicantUserActions | ApplicantUserService | ApplicantUser作成フローと同型 |
+| 7.1〜7.7 | ApplicantUserの無効化・再有効化 | ToggleApplicantUserActiveButton, ApplicantUserActions, authorize.ts | ApplicantUserService | 無効化フロー、ログイン拒否フロー |
+| 8.1〜8.3 | 認可（ヘルプデスクセッション限定） | 全ページ, 全Server Actions | requireHelpdeskStaffSession | — |
+| 9.1〜9.2 | ナビゲーション統合 | HelpdeskSidebar | — | — |
+| 10.1〜10.2 | 多言語対応 | 全新規コンポーネント | — | — |
+| 11.1 | レスポンシブ対応 | （既存HelpdeskAppShellに依存、新規コンポーネントなし） | — | — |
+
+## Components and Interfaces
+
+| Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
+|-----------|--------------|--------|---------------|---------------------------|-----------|
+| CompanyManagementList | UI/Server | 申請者数集計付きでCompany全件を取得・表示 | 1.1〜1.7 | CompanyService (P0) | State |
+| CompanyManagementListClient | UI/Client | 会社名・販社コードによる絞り込み | 1.3 | なし | State |
+| CompanyForm | UI/Client | 会社名・国・販社コードの入力・送信 | 2.1〜2.5, 3.1〜3.5 | CompanyActions (P0) | State |
+| CompanyDetail | UI/Server | Company情報・ApplicantUser一覧の組み立て | 4.1〜4.6 | CompanyService (P0), ApplicantUserService (P0) | State |
+| ApplicantUserList | UI | ApplicantUser一覧行（有効状態バッジ・編集導線） | 4.2〜4.5 | なし | State |
+| ApplicantUserForm | UI/Client | メールアドレス・表示名・パスワードの入力・送信 | 5.1〜5.9, 6.1〜6.9 | ApplicantUserActions (P0) | State |
+| ToggleApplicantUserActiveButton | UI/Client | 無効化/再有効化確認・アクション呼び出し | 7.1〜7.3, 7.6〜7.7 | ApplicantUserActions (P0) | State |
+| CompanyService | Data/Service | Companyの読み取り・CRUD（Prisma） | 1.1, 2.4, 3.4, 4.1 | Prisma (P0), Company型 (P0) | Service |
+| ApplicantUserService | Data/Service | ApplicantUserの読み取り・CRUD・有効状態変更（Prisma） | 4.2, 5.6, 6.7, 7.3, 7.7 | Prisma (P0), ApplicantUser型 (P0) | Service |
+| CompanyActions | Server Actions | CompanyServiceのCRUDを呼び出し`revalidatePath`で再検証 | 2.3〜2.5, 3.3〜3.4 | CompanyService (P0) | Service |
+| ApplicantUserActions | Server Actions | ApplicantUserServiceのCRUD・有効状態変更を呼び出し`revalidatePath`で再検証 | 5.6, 6.7〜6.8, 7.3, 7.7 | ApplicantUserService (P0) | Service |
+
+### Data / Service Layer
+
+#### CompanyService（`company-service.ts`拡張）
+
+| Field | Detail |
+|-------|--------|
+| Intent | Companyの一覧（申請者数集計付き）・詳細・CRUDを提供する。既存の`listCompaniesForHelpdesk`とは独立した追加関数として実装する |
+| Requirements | 1.1, 2.3〜2.4, 3.3〜3.4, 4.1, 4.6 |
+
+**Responsibilities & Constraints**
+- `listCompaniesForManagement`は`name`昇順で全件取得し、各社の`applicantUsers`件数をPrismaの`_count`で集計する（絞り込みは行わず、絞り込みはクライアント側`CompanyManagementListClient`が担う）
+- `getCompanyById`は存在しない場合`null`を返す（例外を送出しない。呼び出し元Server Componentが「見つからない」表示を行う）
+- `createCompany`/`updateCompany`は、呼び出し元（Server Actions）が事前に`isCompanyCodeTaken`で重複確認済みであることを前提とする。DBの`companyCode`ユニーク制約による競合時（同時実行等）はPrismaの一意制約違反エラー（`P2002`）をそのまま呼び出し元に伝播させる
+- `isCompanyCodeTaken(companyCode, excludeId?)`は、`excludeId`が指定された場合そのIDを除外して重複確認する（編集時に自分自身を除外するため）
+
+**Dependencies**
+- Inbound: `CompanyActions`（P0）, `CompanyManagementList`（P0）, `CompanyDetail`（P0）
+- Outbound: Prismaクライアント（P0）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface CompanyService {
+  listCompaniesForHelpdesk(): Promise<CompanyOption[]>;              // 既存（変更しない）
+  listCompaniesForManagement(): Promise<CompanyWithStats[]>;         // name昇順、applicantUserCount付き
+  getCompanyById(id: string): Promise<Company | null>;
+  createCompany(input: CreateCompanyInput): Promise<Company>;
+  updateCompany(id: string, input: CreateCompanyInput): Promise<Company>;
+  isCompanyCodeTaken(companyCode: string, excludeId?: string): Promise<boolean>;
+}
+```
+- Preconditions: `updateCompany`の`id`は存在するCompanyのIDであること
+- Postconditions: `createCompany`で作成されたCompanyは直後の`listCompaniesForManagement`の結果に反映される
+- Invariants: `companyCode`はDBレベルで一意（既存の`@unique`制約）
+
+**Implementation Notes**
+- Integration: `helpdesk-inquiry-management`spec所有の`listCompaniesForHelpdesk`は本specでは呼び出さず、変更もしない
+- Validation: `companyCode`の重複はサーバー側バリデーション（Server Actions内）とDB制約の二重で防ぐ
+- Risks: なし（永続化はPrisma/PostgreSQL）
+
+#### ApplicantUserService（新規`applicant-user-service.ts`）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 会社ごとのApplicantUserの一覧・詳細・CRUD・有効状態変更を提供する。パスワードのハッシュ化を本サービス内で行う |
+| Requirements | 4.2, 5.6〜5.9, 6.5〜6.9, 7.3〜7.7 |
+
+**Responsibilities & Constraints**
+- `listApplicantUsersByCompany(companyId)`は、有効なアカウントを先頭に（`isActive: "desc"`）、次に`displayName`昇順で返す（要件4.3）
+- `createApplicantUser`は受け取った平文パスワードを`bcrypt.hash(password, 10)`でハッシュ化してから`ApplicantUser`を作成し、`isActive: true`で初期化する
+- `updateApplicantUser`は`password`が指定されている場合のみハッシュ化して`passwordHash`を更新し、未指定（`undefined`）の場合は既存の`passwordHash`を変更しない
+- `setApplicantUserActive(id, isActive)`は`isActive`フィールドのみを更新し、他のフィールド・関連する`Inquiry`・`AnnouncementRecipientStatus`等のレコードには影響しない
+- `isApplicantUserEmailTaken(email, excludeId?)`は`ApplicantUser`テーブルと`HelpdeskStaff`テーブルの両方を確認する（要件5.3・6.3）。`excludeId`は`ApplicantUser`側のみに適用する（`HelpdeskStaff`とのメールアドレス重複は`excludeId`の対象外とし、常に重複として扱う）
+
+**Dependencies**
+- Inbound: `ApplicantUserActions`（P0）, `ApplicantUserList`/`CompanyDetail`（P0, 表示のための取得）, `authorize.ts`（P0, `isActive`の参照のみ。本サービスの関数は呼び出さずPrismaを直接参照する既存実装を維持）
+- Outbound: Prismaクライアント（P0）, `bcryptjs`（P0）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface ApplicantUserService {
+  listApplicantUsersByCompany(companyId: string): Promise<ApplicantUserSummary[]>;
+  getApplicantUserById(id: string): Promise<ApplicantUserSummary | null>;
+  createApplicantUser(
+    companyId: string,
+    input: CreateApplicantUserInput
+  ): Promise<ApplicantUserSummary>;
+  updateApplicantUser(
+    id: string,
+    input: UpdateApplicantUserInput
+  ): Promise<ApplicantUserSummary>;
+  setApplicantUserActive(id: string, isActive: boolean): Promise<ApplicantUserSummary>;
+  isApplicantUserEmailTaken(email: string, excludeId?: string): Promise<boolean>;
+}
+```
+- Preconditions: `updateApplicantUser`/`setApplicantUserActive`の`id`は存在するApplicantUserのIDであること。`CreateApplicantUserInput.password`は平文（呼び出し元でzod検証済み、最小8文字）
+- Postconditions: `createApplicantUser`で作成されたアカウントは直後の`listApplicantUsersByCompany`の結果に反映され、初期状態で`isActive: true`
+- Invariants: `passwordHash`は常にハッシュ化済みの値（平文が`ApplicantUserSummary`に含まれることはない）
+
+**Implementation Notes**
+- Integration: `ApplicantUserSummary`は`passwordHash`を含まない（一覧・編集画面表示用の型。パスワード欄は常に空表示で、入力があった場合のみ更新する）
+- Validation: 存在しないIDへの操作はPrismaの`P2025`をハンドリングし`ApplicantUserNotFoundError`をthrowする（`document-service.ts`と同様のパターン）
+- Risks: `authorize.ts`が本サービスを経由せず`prisma.applicantUser`を直接参照する既存実装のため、`isActive`フィールド名の変更時は`authorize.ts`側の修正も必要（Revalidation Triggers参照）
+
+### Server Actions
+
+#### CompanyActions（新規`companies.ts`）
+
+| Field | Detail |
+|-------|--------|
+| Intent | クライアントからのCompany作成・更新操作を受け、サーバー側バリデーション・重複確認・`revalidatePath`を行う |
+| Requirements | 2.2〜2.5, 3.2〜3.4, 8.2 |
+
+**Responsibilities & Constraints**
+- 全ての関数に`"use server"`を付与し、冒頭で`requireHelpdeskStaffSession()`を呼び出す（要件8.2）
+- `companyFormSchema`（zod）で会社名・国・販社コードを検証する
+- 保存前に`isCompanyCodeTaken`で重複確認し、重複時はエラーをthrowする（クライアント側で重複エラー表示にフォールバック）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface CompanyActions {
+  createCompanyAction(input: CreateCompanyInput): Promise<Company>;
+  updateCompanyAction(id: string, input: CreateCompanyInput): Promise<Company>;
+}
+```
+- Preconditions: `input`はクライアント側で`companyFormSchema`によりバリデーション済み
+- Postconditions: 成功時、Company一覧・詳細ルートが再検証される
+- Invariants: バリデーション失敗・重複エラー時はDBを変更しない
+
+**Implementation Notes**
+- Integration: `revalidatePath`の対象は`/[locale]/helpdesk/companies`（page）, `/[locale]/helpdesk/companies/[id]`（page）, `/[locale]/helpdesk/companies/[id]/edit`（page）
+- Validation: サーバー側バリデーションはクライアント側と同一の`companyFormSchema`を再利用する
+
+#### ApplicantUserActions（新規`applicant-users.ts`）
+
+| Field | Detail |
+|-------|--------|
+| Intent | クライアントからのApplicantUser作成・更新・有効状態変更操作を受け、サーバー側バリデーション・重複確認・パスワードハッシュ化・`revalidatePath`を行う |
+| Requirements | 5.2〜5.9, 6.2〜6.9, 7.2〜7.3, 7.6〜7.7, 8.2 |
+
+**Responsibilities & Constraints**
+- 全ての関数に`"use server"`を付与し、冒頭で`requireHelpdeskStaffSession()`を呼び出す
+- `createApplicantUserAction`は`applicantUserCreateFormSchema`（メール形式・表示名必須・パスワード最小8文字）で検証し、`isApplicantUserEmailTaken`で重複確認後、`ApplicantUserService.createApplicantUser`を呼び出す
+- `updateApplicantUserAction`は`applicantUserUpdateFormSchema`（パスワードは空文字列または未指定を許容）で検証し、パスワード欄が空の場合は`ApplicantUserService.updateApplicantUser`に`password: undefined`を渡す
+- `setApplicantUserActiveAction(id, isActive)`はパスワードを扱わない単純な状態変更で、確認は呼び出し元コンポーネント（`ToggleApplicantUserActiveButton`の`confirm()`）が担う
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface ApplicantUserActions {
+  createApplicantUserAction(
+    companyId: string,
+    input: CreateApplicantUserInput
+  ): Promise<ApplicantUserSummary>;
+  updateApplicantUserAction(
+    id: string,
+    input: UpdateApplicantUserInput
+  ): Promise<ApplicantUserSummary>;
+  setApplicantUserActiveAction(
+    id: string,
+    isActive: boolean
+  ): Promise<ApplicantUserSummary>;
+}
+```
+- Preconditions: `companyId`は存在するCompanyのIDであること。フォーム系入力はクライアント側でバリデーション済み
+- Postconditions: 成功時、対象Companyの詳細ルート・当該ApplicantUserの編集ルートが再検証される
+- Invariants: 重複エラー・バリデーション失敗時はDBを変更しない
+
+**Implementation Notes**
+- Integration: `revalidatePath`の対象は`/[locale]/helpdesk/companies/[id]`（page）, `/[locale]/helpdesk/companies/[id]/applicant-users/[userId]/edit`（page）
+- Validation: サーバー側バリデーションはクライアント側と同一のzodスキーマを再利用する。パスワードの平文はServer Action・サービス層の関数境界を超えてクライアントへ返さない（`ApplicantUserSummary`に`passwordHash`・平文パスワードを含めない）
+- Risks: `setApplicantUserActiveAction`は確認ダイアログをクライアント側の`confirm()`に依存する（`documents-management`の削除ボタンと同様のドキュメント化された制約。JavaScript無効環境では確認なしで実行される）
+
+### Presentation Components（サマリーのみ）
+
+- **CompanyManagementList / CompanyManagementListClient**: `listCompaniesForManagement()`の結果を`name`昇順で表示し、`CompanyManagementListClient`が会社名・販社コードのキーワードでクライアント側フィルタする（`HelpdeskInquiryFilterBar`と同型のAND条件フィルタ）。各行に会社名・国・販社コード・申請者アカウント数・詳細画面への導線を配置する。
+- **CompanyForm**: 会社名（`Input`）・国（`Select`、既存`INQUIRY_COUNTRY_CODES`を再利用）・販社コード（`Input`）を持つ`react-hook-form`+`zod`フォーム。新規作成・編集で共用する。
+- **CompanyDetail**: 会社情報のヘッダーと`ApplicantUserList`を組み立てるServer Component。編集・新規申請者アカウント作成への導線を持つ。
+- **ApplicantUserList**: 各行にメールアドレス・表示名・有効状態（`Badge`）・編集リンク・`ToggleApplicantUserActiveButton`を配置する。0件時は空状態メッセージを表示する。
+- **ApplicantUserForm**: メールアドレス（`Input`）・表示名（`Input`）・パスワード（`Input type="password"`、新規作成時は必須・編集時は任意で「変更する場合のみ入力」の補助文言を表示）を持つ`react-hook-form`+`zod`フォーム。
+- **ToggleApplicantUserActiveButton**: クリック時に`confirm()`で確認（無効化・再有効化それぞれ異なる確認文言）し、確認後に`setApplicantUserActiveAction`を呼び出す。
+
+## Data Models
+
+### Domain Model
+- `Company`（既存、変更しない）: `id`, `name`, `country`, `companyCode`, `createdAt`
+- `ApplicantUser`（変更）: 既存の`id`, `email`, `passwordHash`, `displayName`, `companyId`, `createdAt`に加え、`isActive: Boolean @default(true)`を追加する。無効化は論理削除であり、レコードは削除されない
+- `CompanyWithStats`（新規、型のみ）: `Company`に`applicantUserCount: number`を加えた表示用の集計型
+- `CreateCompanyInput`（新規）: `{ name: string; country: string; companyCode: string }`
+- `ApplicantUserSummary`（新規、型のみ）: `{ id, email, displayName, isActive, companyId, createdAt }`（`passwordHash`を含まない）
+- `CreateApplicantUserInput`（新規）: `{ email: string; displayName: string; password: string }`
+- `UpdateApplicantUserInput`（新規）: `{ email: string; displayName: string; password?: string }`（`password`が`undefined`の場合は既存のハッシュを保持）
+
+### Logical Data Model
+- `Company` 1 --- N `ApplicantUser`（既存の`companyId`外部キーで関連付け。変更しない）
+- `ApplicantUser`の`isActive`追加はカーディナリティ・リレーションに影響しない、単純なカラム追加
+
+### Physical Data Model
+`ApplicantUser`テーブルへのカラム追加（Prisma Migrate）:
+
+```prisma
+model ApplicantUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  createdAt    DateTime @default(now())
+  isActive     Boolean  @default(true)
+}
+```
+- `@default(true)`により、既存の全レコード（`seed.ts`投入済み分含む）は後方互換に移行される（`ALTER TABLE ... ADD COLUMN "isActive" BOOLEAN NOT NULL DEFAULT true`相当）
+- 追加のインデックスは設けない（`companyId`には既存の外部キーインデックスが存在し、本specの検索規模ではフルスキャンで十分）
+
+### Data Contracts & Integration
+
+| 型 | 主なフィールド | 備考 |
+|---|---|---|
+| `Company`（既存） | `id`, `name`, `country`, `companyCode`, `createdAt` | 本specは変更しない |
+| `CompanyWithStats` | `Company`のフィールド + `applicantUserCount` | 一覧表示専用 |
+| `CreateCompanyInput` | `name`, `country`, `companyCode` | 作成・更新共用 |
+| `ApplicantUser`（変更） | 既存フィールド + `isActive`（追加） | `authorize.ts`が直接参照する |
+| `ApplicantUserSummary` | `id`, `email`, `displayName`, `isActive`, `companyId`, `createdAt` | `passwordHash`を含まない |
+| `CreateApplicantUserInput` | `email`, `displayName`, `password` | `password`は平文、サービス層でハッシュ化 |
+| `UpdateApplicantUserInput` | `email`, `displayName`, `password?` | `password`未指定時は既存ハッシュを保持 |
+
+## Error Handling
+
+### Error Strategy
+`documents-management`・`faq-management`と同様のパターンを踏襲する。Server Componentは取得失敗時にtry/catchでエラーメッセージを表示し、Server Actionsは不正な入力・重複・存在しないIDに対してエラーをthrowし、呼び出し元のクライアントコンポーネントがフィールド単位・フォーム単位のエラー表示にフォールバックする。
+
+### Error Categories and Responses
+- **データ取得失敗**（一覧・詳細）: 既存パターンと同様にエラーメッセージを表示
+- **存在しないCompany/ApplicantUser IDへの操作**: Server Actionがエラーをthrow（Prisma `P2025`をハンドリング）し、「見つかりません」表示にフォールバック
+- **入力値不正**（会社名・国・販社コード・メールアドレス・表示名・パスワード長）: クライアント側`zod`バリデーションで送信をブロックし、フィールド単位のエラーメッセージを表示。サーバー側でも同一スキーマで再検証する
+- **販社コード重複**（要件2.3・3.3）: Server Actionが重複確認結果に基づきエラーをthrowし、`companyCode`フィールドにエラー表示
+- **メールアドレス重複**（要件5.3・6.3）: Server Actionが重複確認結果に基づきエラーをthrowし、`email`フィールドにエラー表示
+- **無効化されたアカウントでのログイン**: `authorize.ts`が`null`を返し、既存のCredentials Provider「認証失敗」表示にそのままフォールバックする（無効化専用のエラーメッセージは表示しない。実装の単純化と、無効化されたアカウントか単なるパスワード誤りかを外部から判別されないようにするための意図的な設計判断）
+
+### Monitoring
+フェーズ3の既存範囲同様、追加のロギング・監視基盤は本specでは導入しない。
+
+## Testing Strategy
+
+- **Unit Tests**:
+  - `listCompaniesForManagement`が`name`昇順・`applicantUserCount`付きで全件を返すこと
+  - `isCompanyCodeTaken`が`excludeId`指定時に自分自身を重複としてカウントしないこと
+  - `listApplicantUsersByCompany`が有効なアカウント→`displayName`昇順で返すこと
+  - `createApplicantUser`が`bcrypt.hash`でパスワードをハッシュ化し、`isActive: true`で作成すること
+  - `updateApplicantUser`が`password`未指定時に既存の`passwordHash`を変更しないこと
+  - `isApplicantUserEmailTaken`が`ApplicantUser`・`HelpdeskStaff`双方のメールアドレスと比較すること
+  - `companyFormSchema`/`applicantUserCreateFormSchema`/`applicantUserUpdateFormSchema`が必須項目未入力・パスワード最小文字数未満・メール形式不正を拒否すること
+  - `authorizeApplicantCredentials`が`isActive: false`のアカウントに対して`bcrypt.compare`成功時でも`null`を返すこと
+- **Integration Tests**:
+  - Company新規作成後、一覧・詳細画面に反映されること。販社コード重複時に保存がブロックされること
+  - ApplicantUser新規作成後、当該Companyの詳細画面の一覧に反映されること。メールアドレス重複時に保存がブロックされること
+  - ApplicantUserを無効化した後、再有効化すると一覧の表示順・有効状態バッジが正しく更新されること
+  - 無効化されたApplicantUserのメールアドレス・（無効化前の）正しいパスワードでログインが失敗すること
+- **E2E/UI Tests**:
+  - 日本語・英語両ロケールで一覧・新規作成・詳細・編集画面が表示されること
+  - ヘルプデスクセッションなしで`/helpdesk/companies`配下へ直接アクセスするとログイン画面へリダイレクトされること
+  - タブレット幅（768px）で新規作成・編集画面が横スクロールを起こさないこと
+
+## Security Considerations
+`Company`・`ApplicantUser`は海外販社の担当者情報を含む機密性の高いデータであり、本specの全ページ・全Server Actionsに対して`requireHelpdeskStaffSession`による多層防御（ミドルウェアに加えた関数単位のセッション検証）を適用する（要件8.2、`company-service.ts`の既存`listCompaniesForHelpdesk`と同一の防御方針）。
+
+初期パスワード・再設定パスワードは`bcryptjs`（コスト係数10、既存の`authorize.ts`・`seed.ts`と同一）でハッシュ化してから保存し、平文パスワードをDB・ログ・レスポンス型（`ApplicantUserSummary`）に含めない。パスワード入力欄はフォーム送信後にクライアント側の状態からクリアする（`react-hook-form`の`reset()`、またはページ遷移による自然な状態破棄）。
+
+無効化されたアカウントのログイン拒否は、既存のCredentials Provider認証フロー（`authorize.ts`）内の1分岐として実装し、新たな認証経路・トークン発行ロジックは追加しない。無効化はレコードの論理的な状態変更のみであり、既存の`Inquiry`・`AnnouncementRecipientStatus`等の外部キー参照は維持されるため、無効化後も過去の問い合わせ履行状況等の管理画面表示は影響を受けない。
+
+`HelpdeskStaff`とのメールアドレス重複確認（`isApplicantUserEmailTaken`）は、`HelpdeskStaff`テーブルの`passwordHash`等の機密情報を返さず、真偽値のみを返す関数として実装する。
