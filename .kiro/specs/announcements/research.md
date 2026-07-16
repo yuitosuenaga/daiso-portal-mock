@@ -162,3 +162,24 @@
 - `src/components/features/announcements/AnnouncementDetail.tsx` — 既存の`isReminderPendingForCompany`呼び出しパターン
 - `src/components/features/announcements/AnnouncementList.tsx` — `reminderPendingEntries`の並行取得パターン
 - `.kiro/specs/announcements-management/design.md`「追加ラウンド（2026-07-13）」— `confirmAnnouncementAction`等の提供元設計
+
+## Research Log（2026-07-16追加ラウンド: 多言語コンテンツの表示側対応）
+
+### 既存のロケール取得パターンの調査
+- **Context**: `announcements-management`spec側で言語別コンテンツ（`AnnouncementTranslation`）が追加されるにあたり、本spec側の一覧・詳細画面が「現在のUIロケール」をどう取得し、既存のAPI呼び出しに渡すかを調査した
+- **Sources Consulted**: `src/components/features/announcements/AnnouncementList.tsx`・`AnnouncementDetail.tsx`（いずれも既に`next-intl/server`の`getLocale()`を日付フォーマット表示のため呼び出し済み）
+- **Findings**: 両コンポーネントは既にサーバーサイドで`locale`を取得済みであり、新規の取得ロジックを追加する必要がない
+- **Implications**: `getAnnouncements`/`getAnnouncementById`の呼び出しに、既存の`locale`変数をオプション引数として渡すだけで実現できる。新規コンポーネント・新規のロケール取得コードは不要
+
+### ダッシュボードウィジェットへの反映範囲の調査
+- **Context**: 要件16.5「`getRecentAnnouncements`が返すタイトルが現在のUIロケールに対応する」を、`dashboard`spec側のコードを変更せずに満たせるかを調査した
+- **Sources Consulted**: `dashboard`spec所有の`AnnouncementWidget`（`getRecentAnnouncements()`を引数なしで呼び出す既存実装、本spec・`announcements-management`specのいずれもOut of Boundaryとして変更しない対象）
+- **Findings**: `getRecentAnnouncements`にロケールのオプション引数を追加しても、`dashboard`spec側の呼び出しコードを変更しない限り、ウィジェットは常に既定言語（`ja`）で表示され続ける
+- **Implications**: 本ラウンドはデータ層（関数シグネチャの後方互換な拡張）のみを完了させ、ウィジェット自体への反映は`dashboard`spec側の追従が必要なRevalidation Triggerとして明記する（本ラウンドのスコープには含めない）
+
+### Risks & Mitigations（追加分）
+- `dashboard`spec側が`getRecentAnnouncements`の新オプションに追従しない限り、ウィジェットの表示言語がUIロケールと食い違う状態が残る — Revalidation Triggersとして`design.md`に明記し、`dashboard`spec側の次回改修時に対応する
+
+### References（追加分）
+- `src/components/features/announcements/AnnouncementList.tsx` / `AnnouncementDetail.tsx` — 既存の`getLocale()`呼び出しパターン
+- `.kiro/specs/announcements-management/design.md`「追加ラウンド（2026-07-16）」— `resolveAnnouncementContent`・`AnnouncementTranslation`の提供元設計

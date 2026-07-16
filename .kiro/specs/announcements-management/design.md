@@ -1532,3 +1532,286 @@ graph TB
   - 日本語・英語両ロケール、タブレット幅（768px）でプレビューが横スクロールを起こさないこと
 
 ---
+
+## 追加ラウンド（2026-07-16）: 通知配信と多言語発信対応
+
+### Overview（追加分）
+現状「フェーズ1はメール・プッシュ通知等の配信機能を対象外とする」としていた制約を見直し、お知らせの公開・リマインド送信時に対象受信者へメール通知を送るメール送信基盤を追加する。あわせて、`Announcement`のタイトル・本文を言語別（`ja`必須＋`en`必須＋任意の追加言語）に保持できるようにし、通知メールの本文を受信者の言語設定に応じて出し分ける。**Purpose**: 「日本本社→海外販社・代理店（20か国以上）への情報発信」という本ポータルの目的に対し、ログイン依存の閲覧のみだったプッシュ型の届け方を補い、単一言語の発信による伝達漏れを防ぐ。**Impact**: `Announcement`に子テーブル`AnnouncementTranslation`を追加し、`ApplicantUser`に`preferredLocale`を追加するマイグレーションが発生する。新規モジュール`src/lib/server/mailer.ts`・`src/lib/server/announcement-notifications.ts`を追加し、既存の`createAnnouncementRecord`/`updateAnnouncementRecord`/`sendAnnouncementReminders`（`announcement-service.ts`）から呼び出す。既存の一覧・詳細画面のレイアウト・操作性は変更しない（フォームへの言語タブ追加を除く）。
+
+### Goals（追加分）
+- お知らせが「公開」状態になった時点で、配信対象に含まれる`ApplicantUser`へ通知メールが送信される
+- 未対応者へのリマインド送信操作時に、対象`ApplicantUser`へリマインドメールが送信される
+- メール送信の失敗が、公開・リマインド送信という既存の業務操作を失敗させない（ベストエフォート）
+- 送信結果（成功・失敗・スキップ）の履歴が記録される
+- お知らせのタイトル・本文を`ja`・`en`必須＋任意の追加言語で登録でき、通知メールは受信者の言語設定に対応する内容で送信される
+
+### Non-Goals（追加分）
+- SMS・アプリ内プッシュ通知等、メール以外の配信チャネル
+- 受信者ごとの配信オプトアウトUI（全対象受信者への一律送信のみ）
+- `ApplicantUser`が自身の`preferredLocale`を変更するUI（本ラウンドはフィールドの追加と既定値の適用のみ。設定変更UIは将来の検討事項とする）
+- `AnnouncementRecipient`（モック担当者マスタ）の個人単位識別・ログイン機能への拡張
+- 20か国語すべてを網羅する翻訳データの自動生成・機械翻訳連携
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `AnnouncementTranslation`（お知らせの言語別タイトル・本文の子テーブル）のPrismaモデル・マイグレーション
+- `ApplicantUser.preferredLocale`フィールドの追加・マイグレーション
+- メール送信基盤（`src/lib/server/mailer.ts`）・通知オーケストレーション（`src/lib/server/announcement-notifications.ts`）・送信履歴（`AnnouncementNotificationLog`）
+- お知らせ作成・編集フォームの言語別入力UI（`AnnouncementForm`への言語タブ追加）
+- 公開時・リマインド送信時のメール送信の呼び出し箇所（`announcement-service.ts`の`createAnnouncementRecord`/`updateAnnouncementRecord`/`sendAnnouncementReminders`）
+
+**Out of Boundary（追加）**
+- 申請者側（`announcements`spec）の一覧・詳細画面における言語別コンテンツの表示ロジック自体（本specは`Announcement`型の`title`/`body`が要求された言語で解決された値を返す関数を提供するのみ。`announcements`spec側は要件16として参照するのみで、本ラウンドではUIコンポーネントを変更しない）
+- `ApplicantUser`の認証・アカウント管理機能自体（`backend-db-foundation`spec所有。本ラウンドは既存の`ApplicantUser`テーブルにフィールドを追加するのみ）
+- ダッシュボードの「お知らせ概要ウィジェット」（`dashboard`spec所有）自体の変更
+
+**Allowed Dependencies（追加）**
+- 既存の`ApplicantUser`（`companyId`経由で`Company.country`を参照、メール送信・言語解決の宛先データとして使用）
+- 既存の`requireApplicantSession`/`requireHelpdeskStaffSession`（`lib/server/auth-session.ts`）
+- 既存の`targetRecipientsWhere`と同様の考え方（`Company.country`によるスコープ判定）
+
+**Revalidation Triggers（追加）**
+- `Announcement.title`/`body`の解決方式（言語別）の変更（`announcements`spec・`dashboard`spec双方が再確認する必要がある）
+- `ApplicantUser.preferredLocale`の既定値・意味の変更
+- メール送信基盤（SMTP設定・送信関数のシグネチャ）の変更
+
+### Architecture（追加分）
+
+```mermaid
+graph TB
+    Form[AnnouncementForm]
+    Service[announcement-service]
+    Mailer[mailer]
+    Notify[announcement-notifications]
+    TransTable[AnnouncementTranslation]
+    NotifyLog[AnnouncementNotificationLog]
+    ApplicantUsers[ApplicantUser]
+    RecipientDialog[AnnouncementRecipientDialog existing]
+
+    Form --> Service
+    Service --> TransTable
+    Service --> Notify
+    RecipientDialog --> Service
+    Notify --> ApplicantUsers
+    Notify --> TransTable
+    Notify --> Mailer
+    Notify --> NotifyLog
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 既存の「Server Actions → サービス層（Prisma）」構成を維持し、公開・リマインド送信という既存の書き込み操作の内部で通知処理を追加で呼び出す（新規のUIエントリポイントは作らない）
+- ドメイン境界: 通知の送信先解決（`ApplicantUser`単位）は`AnnouncementRecipient`（担当者マスタ、確認済み・実施済み集計専用）とは別経路とする。両者は「配信対象（`targeting`）でスコープされた対象母集団」という考え方は共有するが、`AnnouncementRecipient`にはメールアドレスが存在しないため、実際の送信先解決には`ApplicantUser`を参照する新しいwhere条件（`targetApplicantUsersWhere`）を設ける
+- ベストエフォートの実現方式: `announcement-notifications.ts`の関数は宛先ごとの送信を内部で`try/catch`し、例外を呼び出し元（`announcement-service.ts`）に伝播させない（Promiseがrejectしない設計とする）。これにより`createAnnouncementRecord`等の既存の戻り値・エラー処理を変更せずに済む
+- 言語解決の方式: `Announcement.title`/`body`は引き続き`ja`（既定言語）のコンテンツを直接保持する既存カラムとし、`en`必須＋任意追加言語は新設の`AnnouncementTranslation`（`locale`ごとに1行）に保持する。これにより既存の全ての読み取り経路（`title`/`body`を直接参照するコード）に対する破壊的変更を避けつつ、`en`・追加言語を段階的に載せられる
+- Steering準拠: モックAPIではなく実DB（Prisma）ベースの既存パターン（`backend-db-foundation`統合後の規約）を維持する。表示テキストは`next-intl`翻訳キー経由という既存規約を維持する
+
+### Technology Stack（追加分・差分のみ）
+
+| Layer | Choice / Version | Role in Feature | Notes |
+|-------|------------------|------------------|-------|
+| メール送信 | `nodemailer`（新規導入） + SMTP | 公開・リマインド通知メールの送信 | SMTP接続情報は`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`の環境変数で構成する。未設定時は送信をスキップし`AnnouncementNotificationLog`に`status: "skipped"`として記録する（ローカル開発・テスト環境でSMTP資格情報を必須にしない） |
+| Data / Storage | Prisma + PostgreSQL（既存） | `AnnouncementTranslation`・`AnnouncementNotificationLog`・`ApplicantUser.preferredLocale`の追加 | 既存の`Announcement`関連子テーブル（`AnnouncementAttachment`等）と同一パターン |
+
+### File Structure Plan（追加分）
+
+```
+prisma/
+├── schema.prisma                              # 変更: AnnouncementTranslation・AnnouncementNotificationLogモデル、ApplicantUser.preferredLocale、関連Enumを追加
+└── migrations/                                 # 新規: 上記スキーマ変更を反映するマイグレーション
+
+src/lib/server/
+├── mailer.ts                                   # 新規: nodemailerトランスポートのラッパー（sendMail、SMTP未設定時はスキップ）
+├── announcement-notifications.ts               # 新規: notifyAnnouncementPublished・notifyAnnouncementReminder（宛先解決・言語解決・ベストエフォート送信・履歴記録）
+├── announcement-service.ts                     # 変更: createAnnouncementRecord/updateAnnouncementRecordの公開遷移時、sendAnnouncementRemindersの送信確定時にnotify*を呼び出す。targetApplicantUsersWhere・resolveAnnouncementContentを追加
+└── announcement-mapper.ts                      # 変更: AnnouncementTranslationのinclude・マッピングを追加
+
+src/types/
+└── announcement.ts                             # 変更: AnnouncementTranslationView型、Announcement.translationsフィールドを追加
+
+src/lib/validation/
+└── announcement.ts                             # 変更: announcementFormSchemaに titleEn/bodyEn（必須）・translations（任意言語の配列）を追加
+
+src/components/features/helpdesk-announcements/
+└── AnnouncementForm.tsx                        # 変更: 言語別入力タブ（ja/en必須、任意言語の追加・削除）を追加
+
+messages/
+├── ja.json                                     # 変更: helpdeskAnnouncements.form.language*名前空間を追加
+└── en.json                                     # 同上
+```
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `AnnouncementTranslation`（`id`, `announcementId`, `locale`, `title`, `body`, `@@unique([announcementId, locale])`）、`AnnouncementNotificationLog`（`id`, `announcementId`, `kind`（`AnnouncementNotificationKind`: `publish`/`reminder`）, `recipientEmail`, `locale`, `status`（`AnnouncementNotificationStatus`: `sent`/`failed`/`skipped`）, `errorMessage String?`, `sentAt DateTime @default(now())`）を追加。`ApplicantUser`に`preferredLocale String @default("en")`を追加
+- `src/lib/server/mailer.ts` — `sendMail(options: { to: string; subject: string; text: string }): Promise<void>`（SMTP未設定時は例外`MailerNotConfiguredError`をthrow、呼び出し元が`skipped`として扱う）
+- `src/lib/server/announcement-notifications.ts` — `notifyAnnouncementPublished(announcementId: string): Promise<void>`・`notifyAnnouncementReminder(announcementId: string, companyCodes: string[]): Promise<void>`を追加。いずれも内部で宛先ごとに`try/catch`し例外を伝播させない
+- `src/lib/server/announcement-service.ts` — `createAnnouncementRecord`が`status: "published"`で新規作成された場合、`updateAnnouncementRecord`が`draft`→`published`へ遷移した場合に`notifyAnnouncementPublished`を呼び出す。`sendAnnouncementReminders`が送信確定後に`notifyAnnouncementReminder`を呼び出す。`targetApplicantUsersWhere`（`targetRecipientsWhere`と同型、`ApplicantUser`向け）・`resolveAnnouncementContent(announcement, locale)`（`ja`固定カラム＋`translations`からの解決、フォールバックは`ja`）を追加
+- `src/lib/server/announcement-mapper.ts` — `ANNOUNCEMENT_INCLUDE`に`translations: true`を追加し、`mapAnnouncement`が`translations: AnnouncementTranslationView[]`を含めて返すよう変更
+- `src/lib/validation/announcement.ts` — `announcementFormSchema`に`titleEn: z.string().min(1)`・`bodyEn: z.string().min(1)`・`translations: z.array(z.object({ locale: z.string().min(2), title: z.string().min(1), body: z.string().min(1) })).max(20)`を追加（`translations`内の`locale`に`ja`/`en`の重複指定は不可とする）
+- `src/components/features/helpdesk-announcements/AnnouncementForm.tsx` — タイトル・本文フィールドの周辺に言語タブ（`ja`・`en`は固定タブ、その他は`useFieldArray`で追加・削除可能な行）を追加
+- `messages/ja.json` / `messages/en.json` — `helpdeskAnnouncements.form.language.*`（タブラベル・言語追加ボタン・削除ボタン・言語コード入力ラベル）の翻訳キーを追加
+
+### System Flows（追加分）
+
+```mermaid
+sequenceDiagram
+    participant User as ヘルプデスク担当者
+    participant Form as AnnouncementForm
+    participant Service as announcement-service
+    participant Notify as announcement-notifications
+    participant Mailer as mailer
+    participant DB as AnnouncementNotificationLog
+
+    User->>Form: 公開状態「公開」で保存
+    Form->>Service: updateAnnouncementRecord / createAnnouncementRecord
+    Service->>Service: draft→published遷移 or 新規公開を判定
+    alt 公開遷移が発生した
+        Service->>Notify: notifyAnnouncementPublished(announcementId)
+        Notify->>Notify: targetApplicantUsersWhereで宛先ApplicantUserを解決
+        loop 宛先ごと
+            Notify->>Notify: resolveAnnouncementContent(announcement, recipient.preferredLocale)
+            Notify->>Mailer: sendMail(...)
+            Mailer-->>Notify: 成功 or 例外
+            Notify->>DB: AnnouncementNotificationLogを記録（sent/failed/skipped）
+        end
+    end
+    Service-->>Form: 保存結果を返す（通知の成否に関わらず成功）
+```
+
+- リマインド送信（既存の`sendAnnouncementReminders`）も同型のフローに従う。差分は宛先を「配信対象全体」ではなく「リマインド対象として指定された会社（`companyCodes`）に属する`ApplicantUser`」に絞る点のみである
+- 通知処理（`Notify`ブロック全体）の失敗は`Service`の戻り値・例外に影響しない。`Service`は`await`はするが、`Notify`側が内部で全例外を捕捉するため、`Service`から見た`notifyAnnouncementPublished`の呼び出しは常に正常終了する
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 26.1〜26.3 | メール送信基盤の導入 | mailer | Service | — |
+| 27.1〜27.4 | 公開時のメール通知送信 | announcement-service, announcement-notifications | Service | 公開通知フロー |
+| 28.1〜28.3 | リマインド送信時のメール通知送信 | announcement-service, announcement-notifications | Service | 公開通知フローと同型 |
+| 29.1〜29.4 | ベストエフォートと送信履歴 | announcement-notifications, AnnouncementNotificationLog | Service | 公開通知フロー |
+| 30.1〜30.3 | 受信者の言語設定 | ApplicantUser.preferredLocale | Service | — |
+| 31.1〜31.5 | タイトル・本文の多言語コンテンツ化 | AnnouncementTranslation, announcement-service（resolveAnnouncementContent） | Service | — |
+| 32.1〜32.4 | ヘルプデスク側フォームでの言語別入力 | AnnouncementForm | State | — |
+| 33.1〜33.3 | 通知メールの言語別本文生成 | announcement-notifications（resolveAnnouncementContent呼び出し） | Service | 公開通知フロー |
+
+### Components and Interfaces（追加分）
+
+#### mailer
+
+| Field | Detail |
+|-------|--------|
+| Intent | SMTP経由でメールを送信する薄いラッパー。未設定環境では送信をスキップできるようにする |
+| Requirements | 26.1, 26.2, 26.3 |
+
+**Responsibilities & Constraints**
+- `SMTP_HOST`等の環境変数が1つでも未設定の場合、`nodemailer.createTransport`を呼ばず`MailerNotConfiguredError`をthrowする（呼び出し元が`skipped`として履歴に記録する）
+- 設定済みの場合、`nodemailer`のトランスポートで実際に送信し、失敗時は例外をそのままthrowする（呼び出し元が捕捉する）
+- 本モジュール自体はベストエフォートの制御を持たない（呼び出し元である`announcement-notifications.ts`が制御する）
+
+**Dependencies**
+- External: `nodemailer`（新規, P0）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface MailerService {
+  sendMail(options: { to: string; subject: string; text: string }): Promise<void>;
+}
+```
+- Preconditions: `to`は有効なメールアドレス形式であること
+- Postconditions: 送信成功時は正常に解決する。SMTP未設定時・送信失敗時はいずれも例外をthrowする（呼び出し元が種別を判別してログ・履歴に記録する）
+- Invariants: 本モジュールは他のテーブル・状態を直接変更しない（純粋な送信責務のみ）
+
+**Implementation Notes**
+- Integration: 呼び出し元は`MailerNotConfiguredError`と一般的な送信失敗を区別し、それぞれ`AnnouncementNotificationLog.status`を`"skipped"`/`"failed"`に振り分ける
+- Validation: メールアドレス形式の検証は行わない（宛先は`ApplicantUser.email`から取得済みの既存の検証済みデータであることを前提とする）
+- Risks: SMTP送信のタイムアウトが長い場合、公開・リマインド操作全体のレイテンシに影響する。宛先件数が多い場合は将来的に並列度の制御・キュー化を検討する必要がある（本ラウンドでは対象外とし、Requirements Traceabilityの範囲に限定する）
+
+#### announcement-notifications
+
+| Field | Detail |
+|-------|--------|
+| Intent | 公開・リマインド操作それぞれについて、宛先（`ApplicantUser`）の解決、言語別コンテンツの解決、ベストエフォートでのメール送信、送信履歴の記録を統括する |
+| Requirements | 27.1, 27.2, 27.4, 28.1, 28.2, 29.1, 29.2, 29.3, 33.1, 33.2, 33.3 |
+
+**Responsibilities & Constraints**
+- 宛先ごとに`sendMail`を`try/catch`で呼び出し、例外を外側に伝播させない（要件29.1のベストエフォート方式を本関数内で完結させる）
+- 宛先ごとに`resolveAnnouncementContent(announcement, recipient.preferredLocale)`で言語別のタイトル・本文を解決してからメール本文を組み立てる
+- 送信結果（`sent`/`failed`/`skipped`）を宛先ごとに`AnnouncementNotificationLog`へ記録する
+- リマインドの宛先は、指定された`companyCodes`に属する`ApplicantUser`に限定する（未対応者一覧のダイアログから渡される会社コード集合と一致させる）
+
+**Dependencies**
+- Inbound: `announcement-service`（`createAnnouncementRecord`/`updateAnnouncementRecord`/`sendAnnouncementReminders`、P0）
+- Outbound: `mailer`（P0）, `prisma.applicantUser`（P0）, `AnnouncementNotificationLog`（P0）
+
+**Contracts**: Service [x]
+
+##### Service Interface
+```typescript
+interface AnnouncementNotificationService {
+  notifyAnnouncementPublished(announcementId: string): Promise<void>;
+  notifyAnnouncementReminder(
+    announcementId: string,
+    companyCodes: string[]
+  ): Promise<void>;
+}
+```
+- Preconditions: `announcementId`は存在し、公開状態が`published`であること（呼び出し元が公開遷移確定後に呼ぶことを前提とする）
+- Postconditions: 対象宛先ごとに1件の`AnnouncementNotificationLog`が作成される。関数自体は例外をthrowせず常に正常終了する
+- Invariants: 本関数の呼び出しが`Announcement`本体・`AnnouncementRecipientStatus`（確認済み・実施済み集計）を変更することはない（読み取りと通知履歴の記録のみ）
+
+**Implementation Notes**
+- Integration: `announcement-service.ts`からは`await`で呼び出すが、内部で全例外を捕捉するため呼び出し元の`try/catch`は不要（既存の関数シグネチャ・戻り値は変更しない）
+- Validation: `resolveAnnouncementContent`が`en`翻訳の欠落を検知した場合でも例外をthrowしない（要件31.2により`en`は保存時点で必須のため通常発生しないが、防御的に`ja`へフォールバックする）
+- Risks: 宛先件数が多い場合の逐次送信によるレイテンシ増（`mailer`のRisks参照）
+
+#### announcement-service（差分: 言語解決・宛先解決）
+
+**Responsibilities & Constraints（追加）**
+- `resolveAnnouncementContent(announcement: PrismaAnnouncement, locale: string): { title: string; body: string }` — `locale === "ja"`のとき`announcement.title`/`announcement.body`を返す。それ以外は`announcement.translations`から`locale`が一致する行を探し、見つかればその`title`/`body`を、見つからなければ`ja`の内容（`announcement.title`/`body`）にフォールバックして返す
+- `targetApplicantUsersWhere(announcement: Pick<Announcement, "targeting">): Prisma.ApplicantUserWhereInput` — `targetRecipientsWhere`と同型のロジックを`ApplicantUser`（`company.country`経由）向けに提供する
+- `createAnnouncementRecord`/`updateAnnouncementRecord`は、`AnnouncementTranslation`の書き込みを「`en`行を必ず1件upsert、`translations`配列で渡された追加言語行を全置換（既存の全追加言語行を削除して渡された内容で作り直す）」という方針で行う
+
+#### AnnouncementForm（差分: 言語別入力）
+
+**Responsibilities & Constraints（追加）**
+- 既存のタイトル・本文フィールドの直後に言語タブUIを追加する。`ja`タブは既存の`title`/`body`フィールドをそのまま使用し、`en`タブは新規の`titleEn`/`bodyEn`フィールド（いずれも必須）を持つ
+- 追加言語は`useFieldArray`で管理する`translations`配列とし、各行が言語コード（自由入力、例: `th`・`vi`・`zh`）・タイトル・本文の3項目を持つ。行の追加・削除ボタンを提供する
+- 言語コードの重複（`ja`・`en`との重複、追加言語同士の重複）は`announcementFormSchema`側の`refine`で検証し、保存操作をブロックする
+
+### Data Models（追加分）
+
+- `AnnouncementTranslation`（新規）: `Announcement`の子テーブル。`{ id, announcementId, locale, title, body }`、`@@unique([announcementId, locale])`。`locale === "ja"`の行は作らない（`ja`は常に`Announcement.title`/`body`が正）。`en`の行は`Announcement`の作成・編集時に必ず1件存在するように運用する（DB制約ではなくサービス層で保証する）
+- `AnnouncementNotificationLog`（新規）: `{ id, announcementId, kind: "publish" | "reminder", recipientEmail, locale, status: "sent" | "failed" | "skipped", errorMessage: string | null, sentAt }`。1回の通知処理につき宛先1件ごとに1行を作成する（履歴は追記のみ、更新・削除は行わない）
+- `ApplicantUser.preferredLocale`（既存モデルへのフィールド追加）: `string`、既定値`"en"`。通知メールの言語決定・お知らせ表示側（`announcements`spec要件16）の将来的な参照候補として使用する
+- `Announcement.translations`（ドメイン型への追加）: `AnnouncementTranslationView[]`（`{ locale: string; title: string; body: string }[]`）。既存の`title`/`body`（`ja`固定）はフィールドとして維持し、破壊的変更を避ける
+
+### Error Handling（追加分）
+
+### Error Strategy（追加分）
+- **メール送信基盤未設定**: `mailer.sendMail`が`MailerNotConfiguredError`をthrow → `announcement-notifications`が`status: "skipped"`として記録し、警告ログを出力する。公開・リマインド操作自体は成功として完了する
+- **メール送信失敗（SMTPエラー等）**: `announcement-notifications`が`status: "failed"`・`errorMessage`を記録し、エラーログを出力する。公開・リマインド操作自体は成功として完了する（要件29.1）
+- **翻訳データの欠落**: `resolveAnnouncementContent`が対応する言語のレコードを見つけられない場合、例外を発生させず`ja`にフォールバックする（要件31.4・33.2）
+
+### Monitoring（追加分）
+フェーズ1・2相当の範囲では追加の監視基盤は導入しない。送信失敗はサーバーログ（`console.error`等、既存規約に従う）と`AnnouncementNotificationLog`テーブルの両方に記録し、後者をヘルプデスク側の確認手段として利用する。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `resolveAnnouncementContent`が`locale === "ja"`で`Announcement.title`/`body`を返すこと、対応する`AnnouncementTranslation`が存在する言語ではその内容を返すこと、存在しない言語では`ja`にフォールバックすること
+  - `targetApplicantUsersWhere`が`targeting.scope === "all"`で無条件、`"countries"`で対象国の`ApplicantUser`のみに絞り込む`where`を生成すること
+  - `mailer.sendMail`がSMTP環境変数未設定時に`MailerNotConfiguredError`をthrowすること
+  - `announcement-notifications`が宛先の送信失敗時に例外を伝播させず、`AnnouncementNotificationLog`に`failed`を記録すること
+  - `announcementFormSchema`が`titleEn`/`bodyEn`の未入力、および`translations`内の`ja`/`en`重複指定を拒否すること
+- **Integration Tests**:
+  - お知らせを下書きから公開へ更新すると、配信対象国に属する`ApplicantUser`宛に`AnnouncementNotificationLog`が作成されること（テスト用のダミーSMTP/モックトランスポートを使用）
+  - 公開済みのまま編集保存した場合、通知が再送されない（新規の`AnnouncementNotificationLog`が作成されない）こと
+  - リマインド送信操作後、対象会社に属する`ApplicantUser`宛に`kind: "reminder"`の`AnnouncementNotificationLog`が作成されること
+  - `en`翻訳のみを登録したお知らせについて、`preferredLocale: "th"`（未登録言語）の`ApplicantUser`向け通知が`ja`の内容にフォールバックすること
+- **E2E/UI Tests**:
+  - ヘルプデスク側フォームで`ja`・`en`タブの入力、追加言語の追加・削除ができること
+  - `ja`・`en`のいずれかが未入力のまま保存しようとするとブロックされること
+  - 日本語・英語両ロケール、タブレット幅（768px）で言語タブUIが横スクロールを起こさないこと
+
+---

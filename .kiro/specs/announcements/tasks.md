@@ -332,3 +332,47 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 15.12, 15.13_
   - _Depends: 17.1, 19.1_
+
+- [ ] 21. 統合: 一覧・詳細画面のロケール引き渡し
+- [ ] 21.1 `AnnouncementList`が`getLocale()`の結果を`getAnnouncements`に渡す
+  - 既存の`getLocale()`呼び出し結果を`getAnnouncements({ locale })`のオプション引数として渡すよう変更する
+  - 既存のレイアウト・Props形状・フィルタ機能を変更しないことで完了とする
+  - _Requirements: 16.1, 16.2, 16.3, 16.4_
+  - _Boundary: components/features/announcements/AnnouncementList.tsx_
+  - _Depends: announcements-management#39.1_
+
+- [ ] 21.2 `AnnouncementDetail`が`getLocale()`の結果を`getAnnouncementById`に渡す
+  - 既存の`getLocale()`呼び出し結果を`getAnnouncementById(id, { locale })`のオプション引数として渡すよう変更する
+  - 既存のレイアウト・見つからない/エラー表示を変更しないことで完了とする
+  - _Requirements: 16.1, 16.2, 16.3, 16.4_
+  - _Boundary: components/features/announcements/AnnouncementDetail.tsx_
+  - _Depends: announcements-management#39.1_
+
+- [ ] 22. 統合: `getRecentAnnouncements`へのロケール引数追加（データ層のみ）
+- [ ] 22.1 `getRecentAnnouncements`に`locale`オプション引数を追加する
+  - `lib/api/announcements.ts`の`getRecentAnnouncements`に`locale`オプションを追加し、`announcement-service`側の解決関数へ引き渡す。`dashboard`spec側の既存呼び出しコードは変更しない（省略時は既定言語`ja`で解決される）
+  - 既存の呼び出し（引数なし）が後方互換に動作することで完了とする
+  - _Requirements: 16.5_
+  - _Boundary: lib/api/announcements.ts_
+  - _Depends: announcements-management#39.1_
+
+- [ ] 23. 検証: 単体テスト・統合テスト
+- [ ] 23.1 (P) ロケール引き渡しの単体テストを実装する
+  - `AnnouncementList`/`AnnouncementDetail`が`getLocale()`の戻り値をAPI呼び出しの`locale`オプションとして渡すことを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 16.2, 16.3_
+  - _Depends: 21.1, 21.2_
+
+- [ ] 23.2 統合テスト: 言語別コンテンツの表示・フォールバックを確認する
+  - UIロケールが`en`のとき、`en`翻訳が登録されているお知らせは英語表示、未登録のお知らせは日本語（既定言語）表示になることを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 16.2, 16.3_
+  - _Depends: 21.1, 21.2, announcements-management#42.1_
+
+- [ ] 24. 検証: 実機確認
+- [ ] 24.1 言語切り替え操作前後の表示確認
+  - `LanguageSwitcher`での言語切り替え前後で、一覧・詳細のタイトル・本文表示が切り替わることをブラウザで確認する
+  - タブレット幅（768px）で横スクロールを発生させないことを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 16.1, 16.2, 16.3, 16.4_
+  - _Depends: 21.1, 21.2_

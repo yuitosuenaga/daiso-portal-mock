@@ -193,3 +193,50 @@
 ### References（追加分）
 - `src/components/features/documents/PdfViewer.tsx` — 再利用対象のPDFプレビューコンポーネント
 - `src/components/features/helpdesk-documents/DocumentDetailPanel.tsx` — 「フォームの外側にプレビューを並べる」パターンの参照元
+
+## Research Log（2026-07-16追加ラウンド: 通知配信と多言語発信対応）
+
+### 通知配信の宛先データの調査（AnnouncementRecipientにはメールアドレスがない）
+- **Context**: 「お知らせ公開・リマインド時に対象受信者へメール通知を送る」を実現するにあたり、既存の`AnnouncementRecipient`（確認済み・実施済み集計用の担当者マスタ）をそのまま宛先にできるかを調査した
+- **Sources Consulted**: `prisma/schema.prisma`（`AnnouncementRecipient`モデル: `id`/`companyId`/`contactName`/`statuses`のみでメールアドレスを持たない）、`ApplicantUser`モデル（`email`・`companyId`を持つ実ログインアカウント）
+- **Findings**: `AnnouncementRecipient`はログイン機能とは無関係のモック担当者マスタであり、メールアドレスを持たない。一方`ApplicantUser`は`backend-db-foundation`spec統合により実際のログインアカウントとして存在し、`email`・`companyId`（→`Company.country`）を持つ
+- **Implications**: 通知メールの宛先解決は`AnnouncementRecipient`ではなく`ApplicantUser`を対象に、配信対象（`targeting`）と同じ「国でスコープする」考え方（`targetRecipientsWhere`と同型の`targetApplicantUsersWhere`）を新設して行う。確認済み・実施済み集計（`AnnouncementRecipient`）と通知送信（`ApplicantUser`）は別の対象母集団になる点を設計に明記する
+
+### 多言語コンテンツのデータモデル調査
+- **Context**: `Announcement.title`/`body`を単一言語から複数言語対応にする際、既存の`title`/`body`カラムを維持しつつ後方互換を保てる構造を検討した
+- **Sources Consulted**: `src/types/announcement.ts`（`Announcement.title`/`body: string`、多数の既存consumerが直接参照）、既存の子テーブルパターン（`AnnouncementAttachment`・`AnnouncementDocumentLink`）
+- **Findings**: `title`/`body`は`dashboard`spec所有の`AnnouncementWidget`を含む複数箇所から`string`として直接参照されており、型を`Record<string, string>`等に変更すると影響範囲がspec境界を越える
+- **Implications**: 既存の`title`/`body`カラムは「`ja`（既定言語）の内容」として維持し、`en`必須・追加言語任意の分だけを新設の子テーブル`AnnouncementTranslation`に持たせる方式を採用した。これにより既存の`Announcement.title`の型・意味を変えずに多言語化できる
+
+### メール送信基盤の技術選定
+- **Context**: 「SMTP/Nodemailerまたは同等」という要件26の制約のもと、具体的な導入方式を検討した
+- **Sources Consulted**: `nodemailer`公式ドキュメント（Node.js標準のSMTP送信ライブラリ、追加のクラウドベンダーAPI契約を必要としない）
+- **Findings**: 本プロジェクトはCloud Run上でNext.jsを実行するのみで、専用のメール配信サービス（SendGrid等）は導入されていない。開発・テスト環境で実際のSMTP資格情報を要求すると、テストが実行困難になる
+- **Implications**: `nodemailer` + 環境変数によるSMTP接続情報の構成を採用し、環境変数が未設定の場合は送信をスキップして`skipped`として履歴に記録する「無設定時は無害に振る舞う」設計とする（要件29のベストエフォート方針と整合する）
+
+### Design Decisions（追加分）
+
+#### Decision: 通知処理は`announcement-service.ts`の既存書き込み関数から`await`で呼び出すが、内部で全例外を捕捉する
+- **Context**: メール送信失敗が公開・リマインド操作自体を失敗させてはならない（要件29.1）という制約をどう実現するか
+- **Alternatives Considered**: 1. `fire-and-forget`（`void notify(...)`のように呼び出し元が結果を待たない） 2. `await`はするが呼び出される側（`announcement-notifications.ts`）が内部で全例外を捕捉し、常に正常終了するPromiseを返す（Option B）
+- **Selected Approach**: Option B
+- **Rationale**: サーバーレス実行環境（Cloud Run）ではリクエスト処理完了後に非同期処理が継続保証されない場合があり、`fire-and-forget`は送信・履歴記録が完了する前にレスポンスが返ってしまうリスクがある。`await`しつつ内部で例外を握ることで、履歴記録の完了を保証しながら呼び出し元の操作を失敗させない
+- **Trade-offs**: 宛先件数が多い場合、公開操作のレスポンスタイムがメール送信の合計時間だけ伸びる（Risksに記録）
+- **Follow-up**: 宛先件数が実運用で増えた場合、送信の並列化またはキュー化（バックグラウンドジョブ）への切り替えを検討する
+
+#### Decision: `ja`は既存カラムのまま維持し、`AnnouncementTranslation`は`en`必須＋追加言語のみを保持する
+- **Context**: 多言語コンテンツの保存先をどう設計するか
+- **Alternatives Considered**: 1. 全言語（`ja`含む）を`AnnouncementTranslation`に統一する 2. `ja`は既存カラムに残し、`en`以降のみ子テーブルに持たせる（Option B）
+- **Selected Approach**: Option B
+- **Rationale**: 既存の`Announcement.title`/`body`を直接参照する既存consumer（`dashboard`spec等）への影響を避けつつ、最小限のスキーマ変更で多言語化を実現できる
+- **Trade-offs**: `ja`と`en`以降で参照方法が非対称になる（`resolveAnnouncementContent`関数内で吸収する）
+- **Follow-up**: なし
+
+### Risks & Mitigations（追加分）
+- SMTP送信の逐次実行により、宛先件数が多いお知らせの公開操作のレスポンスが遅くなる — 本ラウンドでは許容し、実運用での件数増加時に並列化・キュー化を検討する
+- `en`翻訳の保存漏れ（サービス層のみでの保証のためDB制約による強制ではない）が発生すると、`en`ロケールのユーザーが`ja`にフォールバックしてしまう — `announcementFormSchema`のクライアント・サーバー両側バリデーションで`titleEn`/`bodyEn`を必須とし、フォーム経由の作成・編集では発生しないようにする
+
+### References（追加分）
+- `prisma/schema.prisma` — `ApplicantUser`・`AnnouncementRecipient`の既存モデル定義
+- `src/lib/server/announcement-service.ts` — `targetRecipientsWhere`（宛先解決の既存パターン）
+- `nodemailer` — SMTP送信ライブラリ（公式ドキュメント）
