@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "db:seed": "tsx prisma/seed.ts",
+    "db:backfill-announcement-recipients": "tsx prisma/backfill-announcement-recipients.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
