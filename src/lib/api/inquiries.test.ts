@@ -8,6 +8,8 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   listAllInquiries: vi.fn(),
   findInquiryById: vi.fn(),
   findInquiryForCompany: vi.fn(),
+  listUnreadReplyInquiryIds: vi.fn(),
+  markInquiryRead: vi.fn(),
   setClaim: vi.fn(),
   updateStatus: vi.fn(),
 }));
@@ -19,6 +21,8 @@ import {
   findInquiryForCompany,
   listAllInquiries as listAllInquiriesService,
   listInquiriesForCompany,
+  listUnreadReplyInquiryIds as listUnreadReplyInquiryIdsService,
+  markInquiryRead as markInquiryReadService,
   setClaim,
   updateStatus,
 } from "@/lib/server/inquiry-service";
@@ -29,6 +33,8 @@ import {
   getInquiries,
   getInquiryById,
   getInquiryStatusSummary,
+  getUnreadReplyInquiryIds,
+  markInquiryRead,
   setInquiryClaim,
   updateInquiryStatus,
 } from "@/lib/api/inquiries";
@@ -315,6 +321,49 @@ describe("getInquiryStatusSummary", () => {
     const summary = await getInquiryStatusSummary();
 
     expect(summary).toEqual({ new: 2, in_progress: 0, resolved: 1 });
+  });
+});
+
+describe("getUnreadReplyInquiryIds", () => {
+  it("申請者セッションのcompanyIdでlistUnreadReplyInquiryIdsに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listUnreadReplyInquiryIdsService).mockResolvedValue([
+      "inquiry-1",
+    ]);
+
+    const result = await getUnreadReplyInquiryIds();
+
+    expect(listUnreadReplyInquiryIdsService).toHaveBeenCalledWith(
+      "company-1"
+    );
+    expect(result).toEqual(["inquiry-1"]);
+  });
+
+  it("ヘルプデスクセッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+
+    await expect(getUnreadReplyInquiryIds()).rejects.toThrow();
+  });
+});
+
+describe("markInquiryRead", () => {
+  it("申請者セッションのcompanyIdでmarkInquiryReadに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(markInquiryReadService).mockResolvedValue(undefined);
+
+    await markInquiryRead("inquiry-1");
+
+    expect(markInquiryReadService).toHaveBeenCalledWith(
+      "inquiry-1",
+      "company-1"
+    );
+  });
+
+  it("ヘルプデスクセッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+
+    await expect(markInquiryRead("inquiry-1")).rejects.toThrow();
+    expect(markInquiryReadService).not.toHaveBeenCalled();
   });
 });
 

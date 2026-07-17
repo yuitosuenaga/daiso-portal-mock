@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InquiryList } from "@/components/features/inquiry-list/InquiryList";
 import messages from "../../../../messages/ja.json";
@@ -15,9 +15,12 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const getInquiriesMock = vi.fn();
+const getUnreadReplyInquiryIdsMock = vi.fn();
 
 vi.mock("@/lib/api/inquiries", () => ({
   getInquiries: (...args: unknown[]) => getInquiriesMock(...args),
+  getUnreadReplyInquiryIds: (...args: unknown[]) =>
+    getUnreadReplyInquiryIdsMock(...args),
 }));
 
 function resolveMessage(namespace: string, key: string): string {
@@ -44,6 +47,10 @@ vi.mock("next-intl", () => ({
 }));
 
 describe("InquiryList", () => {
+  beforeEach(() => {
+    getUnreadReplyInquiryIdsMock.mockReset().mockResolvedValue([]);
+  });
+
   it("問い合わせが0件のとき空状態メッセージを表示する", async () => {
     getInquiriesMock.mockResolvedValueOnce([]);
 
@@ -115,6 +122,65 @@ describe("InquiryList", () => {
     const link = screen.getByRole("link", { name: "(タイトル未設定)" });
     expect(link).toBeTruthy();
     expect(link.getAttribute("href")).toBe("/inquiry/inquiry-002");
+  });
+
+  it("未読の問い合わせIDに含まれる行にのみ新着インジケーターを表示する", async () => {
+    getInquiriesMock.mockResolvedValueOnce([
+      {
+        id: "inquiry-001",
+        title: "未読あり",
+        category: "defect",
+        urgency: "high",
+        storeRegion: "関東",
+        originalText: "本文1",
+        originalLanguage: "ja",
+        status: "in_progress",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Test Company", country: "JP" },
+      },
+      {
+        id: "inquiry-002",
+        title: "既読済み",
+        category: "order",
+        urgency: "medium",
+        storeRegion: "関東",
+        originalText: "本文2",
+        originalLanguage: "ja",
+        status: "new",
+        createdAt: "2026-06-27T09:15:00.000Z",
+        submittedBy: { companyName: "Test Company", country: "JP" },
+      },
+    ]);
+    getUnreadReplyInquiryIdsMock.mockResolvedValueOnce(["inquiry-001"]);
+
+    const jsx = await InquiryList();
+    render(jsx);
+
+    expect(screen.getAllByText("新着")).toHaveLength(1);
+  });
+
+  it("未読ID取得のみ失敗しても一覧本体は表示される", async () => {
+    getInquiriesMock.mockResolvedValueOnce([
+      {
+        id: "inquiry-001",
+        title: "対象",
+        category: "defect",
+        urgency: "high",
+        storeRegion: "関東",
+        originalText: "本文",
+        originalLanguage: "ja",
+        status: "new",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Test Company", country: "JP" },
+      },
+    ]);
+    getUnreadReplyInquiryIdsMock.mockRejectedValueOnce(new Error("failed"));
+
+    const jsx = await InquiryList();
+    render(jsx);
+
+    expect(screen.getByRole("link", { name: "対象" })).toBeTruthy();
+    expect(screen.queryByText("新着")).toBeNull();
   });
 
   it("空状態とエラー状態は異なるメッセージで表示される", async () => {

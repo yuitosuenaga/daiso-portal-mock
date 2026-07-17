@@ -1,5 +1,5 @@
 import { getTranslations, getLocale } from "next-intl/server";
-import { getInquiries } from "@/lib/api/inquiries";
+import { getInquiries, getUnreadReplyInquiryIds } from "@/lib/api/inquiries";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -34,8 +34,12 @@ export async function InquiryList() {
   );
 
   let inquiries: Inquiry[];
+  let unreadInquiryIds: string[];
   try {
-    inquiries = await getInquiries();
+    [inquiries, unreadInquiryIds] = await Promise.all([
+      getInquiries(),
+      getUnreadReplyInquiryIds().catch(() => [] as string[]),
+    ]);
   } catch {
     return (
       <div>
@@ -112,6 +116,8 @@ export async function InquiryList() {
             urgencyFieldLabel={t("detail.urgencyLabel")}
             locale={locale}
             untitledLabel={t("list.untitled")}
+            unreadInquiryIds={unreadInquiryIds}
+            newBadgeLabel={t("list.newBadge")}
           />
         </CardContent>
       </Card>
