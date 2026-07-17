@@ -104,7 +104,22 @@ describe("notifyAnnouncementPublished", () => {
 
     expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { company: { country: { in: ["VN"] } } },
+        where: { isActive: true, company: { country: { in: ["VN"] } } },
+      })
+    );
+  });
+
+  it("配信対象が全体一律のときも、無効化済み（isActive: false）のApplicantUserを除外するwhereを渡す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([] as never);
+
+    await notifyAnnouncementPublished("announcement-1");
+
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isActive: true },
       })
     );
   });
@@ -258,7 +273,7 @@ describe("notifyAnnouncementReminder", () => {
     expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          AND: [{}, { company: { companyCode: { in: ["vn-daiso-vietnam"] } } }],
+          AND: [{ isActive: true }, { company: { companyCode: { in: ["vn-daiso-vietnam"] } } }],
         },
       })
     );
@@ -272,5 +287,25 @@ describe("notifyAnnouncementReminder", () => {
 
     expect(prisma.announcement.findUnique).not.toHaveBeenCalled();
     expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("無効化済み（isActive: false）のApplicantUserを除外するwhereを、会社コード絞り込みとAND条件で渡す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord({ targetingScope: "countries", targetingCountries: ["VN"] }) as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([] as never);
+
+    await notifyAnnouncementReminder("announcement-1", ["vn-daiso-vietnam"]);
+
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { isActive: true, company: { country: { in: ["VN"] } } },
+            { company: { companyCode: { in: ["vn-daiso-vietnam"] } } },
+          ],
+        },
+      })
+    );
   });
 });
