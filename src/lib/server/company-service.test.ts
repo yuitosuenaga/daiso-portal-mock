@@ -8,16 +8,59 @@ function notFoundPrismaError() {
   });
 }
 
+const {
+  companyCreateMock,
+  companyFindManyMock,
+  companyFindUniqueMock,
+  companyFindFirstMock,
+  companyUpdateMock,
+  announcementRecipientCreateMock,
+  transactionMock,
+} = vi.hoisted(() => {
+  const companyCreateMock = vi.fn();
+  const companyFindManyMock = vi.fn();
+  const companyFindUniqueMock = vi.fn();
+  const companyFindFirstMock = vi.fn();
+  const companyUpdateMock = vi.fn();
+  const announcementRecipientCreateMock = vi.fn();
+
+  // `createCompany`は`prisma.$transaction(async (tx) => {...})`（インタラクティブ
+  // トランザクション）を使うため、`tx`にはモック済みの`company`/`announcementRecipient`
+  // をそのまま渡す。呼び出し検証はトップレベルの`prisma.company.create`等と同じ
+  // モック関数に対して行える。
+  const transactionMock = vi.fn(
+    async (callback: (tx: { company: { create: typeof companyCreateMock }; announcementRecipient: { create: typeof announcementRecipientCreateMock } }) => unknown) =>
+      callback({
+        company: { create: companyCreateMock },
+        announcementRecipient: { create: announcementRecipientCreateMock },
+      })
+  );
+
+  return {
+    companyCreateMock,
+    companyFindManyMock,
+    companyFindUniqueMock,
+    companyFindFirstMock,
+    companyUpdateMock,
+    announcementRecipientCreateMock,
+    transactionMock,
+  };
+});
+
 vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     company: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findMany: companyFindManyMock,
+      findUnique: companyFindUniqueMock,
+      findFirst: companyFindFirstMock,
+      create: companyCreateMock,
+      update: companyUpdateMock,
     },
+    announcementRecipient: {
+      create: announcementRecipientCreateMock,
+    },
+    $transaction: transactionMock,
   },
 }));
 
@@ -187,6 +230,63 @@ describe("createCompany / updateCompany", () => {
       data: { name: "新規会社", country: "TH", companyCode: "TH-100" },
     });
     expect(result.id).toBe("1");
+  });
+
+  it("Companyの作成とAnnouncementRecipient（代表1件）の作成を1トランザクションで行う（要件12.1〜12.3）", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(prisma.company.create).mockResolvedValue(
+      baseCompanyRecord({
+        id: "company-new",
+        name: "新規会社",
+        country: "TH",
+        companyCode: "TH-100",
+      }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.create).mockResolvedValue({
+      id: "recipient-new",
+      companyId: "company-new",
+      contactName: "新規会社",
+    } as never);
+
+    const result = await createCompany({
+      name: "新規会社",
+      country: "TH",
+      companyCode: "TH-100",
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.company.create).toHaveBeenCalledWith({
+      data: { name: "新規会社", country: "TH", companyCode: "TH-100" },
+    });
+    // `AnnouncementRecipient`は作成された`Company`のidに紐付け、`contactName`は
+    // 会社名（`input.name`）を既定値とする（要件12.3）。
+    expect(prisma.announcementRecipient.create).toHaveBeenCalledWith({
+      data: { companyId: "company-new", contactName: "新規会社" },
+    });
+    // 既存の`createCompanyAction`呼び出し元から見た戻り値（`Company`）は変わらない。
+    expect(result).toEqual({
+      id: "company-new",
+      name: "新規会社",
+      country: "TH",
+      companyCode: "TH-100",
+      createdAt: expect.any(String),
+    });
+  });
+
+  it("AnnouncementRecipientの作成が失敗した場合、Companyの作成もロールバックされる（要件12.2）", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(prisma.company.create).mockResolvedValue(
+      baseCompanyRecord({ id: "company-new", name: "新規会社" }) as never
+    );
+    vi.mocked(prisma.announcementRecipient.create).mockRejectedValue(
+      new Error("db error")
+    );
+
+    await expect(
+      createCompany({ name: "新規会社", country: "TH", companyCode: "TH-100" })
+    ).rejects.toThrow("db error");
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it("既存の会社情報を更新する", async () => {

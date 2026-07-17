@@ -188,3 +188,36 @@
   - タブレット幅（768px）で新規作成・編集画面が横スクロールを起こさないことを確認する
   - _Requirements: 10.1, 10.2, 11.1_
   - _Depends: 24_
+
+---
+
+## バグ修正: `Company`作成時の`AnnouncementRecipient`同期（2026-07-17 追記）
+
+- [x] 26. `createCompany`で`AnnouncementRecipient`を同期生成する
+  - `src/lib/server/company-service.ts`の`createCompany`を、`prisma.$transaction`で`company.create`と`announcementRecipient.create({ data: { companyId, contactName } })`を1トランザクションにまとめる実装に拡張する。`contactName`は作成する`Company`の会社名（`input.name`）を既定値とする
+  - `AnnouncementRecipient`モデル・`src/types/announcement-recipient.ts`の型・`announcement-service.ts`のロジックは変更しない（Prismaクライアント経由のレコード作成のみ追加）
+  - `updateCompany`・その他の関数は変更しない
+  - 単体テストで、`createCompany`が`Company`と`AnnouncementRecipient`（`contactName` = 会社名）を作成すること、トランザクションで束ねられていること（`announcementRecipient.create`が呼ばれること）、既存の`createCompany`利用箇所（`createCompanyAction`）の戻り値`Company`が変わらないことを検証し、通ることで完了とする
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+  - _Boundary: CompanyService（createCompany）_
+
+- [x] 27. 作成直後の`Company`がお知らせトラッキング対象に含まれることを結合テストで確認する
+  - `createCompany`で作成した`Company`（`companyCode`）が、`getAnnouncementRecipientStatuses`の結果、および`recordCompanyConfirmation`/`recordCompanyCompletion`の記録対象に含まれることを結合テスト（またはサービス層テスト）で検証する
+  - _Requirements: 12.4_
+  - _Boundary: CompanyService × announcement-service（読み取り検証のみ）_
+  - _Depends: 26_
+
+- [x] 28. 既存`Company`補完のbackfillスクリプトを追加する
+  - `prisma/backfill-announcement-recipients.ts`（新規、`prisma/seed.ts`と同じ`tsx`実行・Prismaクライアント初期化パターン）を追加し、`announcementRecipients`が0件の`Company`（`where: { announcementRecipients: { none: {} } }`）を抽出して各社に`contactName` = 会社名の`AnnouncementRecipient`を1件作成する。既に担当者を持つ会社はスキップする（冪等）
+  - `AnnouncementRecipientStatus`（確認済み・実施済み・リマインド履歴）は変更しない
+  - `package.json`の`scripts`に`db:backfill-announcement-recipients`（`tsx prisma/backfill-announcement-recipients.ts`）を追加する
+  - ローカルDBで、担当者0件の`Company`にのみ1件補完され、再実行しても重複が生じない（冪等）ことを確認する
+  - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
+  - _Boundary: prisma/backfill-announcement-recipients.ts, package.json scripts_
+  - _Depends: 26_
+
+- [x] 29. `ApplicantUser`作成フローが`AnnouncementRecipient`に触れないことを確認する
+  - `applicant-user-service.ts`の`createApplicantUser`・`updateApplicantUser`・`setApplicantUserActive`が`AnnouncementRecipient`を生成・変更しないこと（既存実装のまま）をコードレビュー/テストで確認する
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 14.1, 14.2, 14.3_
+  - _Depends: 26, 27, 28_

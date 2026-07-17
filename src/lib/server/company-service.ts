@@ -100,16 +100,36 @@ export async function getCompanyById(id: string): Promise<Company | null> {
   return record ? mapCompany(record) : null;
 }
 
-/** 会社を新規作成する。呼び出し元が事前に`isCompanyCodeTaken`で重複確認済みであることを前提とする。 */
+/**
+ * 会社を新規作成する。呼び出し元が事前に`isCompanyCodeTaken`で重複確認済みであることを前提とする。
+ *
+ * `Company`作成と同時に、お知らせの確認済み・実施済み状態やリマインド送信対象を追跡する
+ * 会社単位のマスタ`AnnouncementRecipient`を代表1件（`contactName` = 会社名）作成する。
+ * 両者を`prisma.$transaction`で1トランザクションにまとめ、いずれかが失敗した場合は
+ * 両方をロールバックすることで、`AnnouncementRecipient`を欠く`Company`が残らないようにする
+ * （`helpdesk-account-management`spec 要件12。`AnnouncementRecipient`のモデル・型・
+ * トラッキングロジック自体はこのspec対象外のため変更せず、レコード作成のみを追加する）。
+ */
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
   await requireHelpdeskStaffSession();
 
-  const record = await prisma.company.create({
-    data: {
-      name: input.name,
-      country: input.country,
-      companyCode: input.companyCode,
-    },
+  const record = await prisma.$transaction(async (tx) => {
+    const company = await tx.company.create({
+      data: {
+        name: input.name,
+        country: input.country,
+        companyCode: input.companyCode,
+      },
+    });
+
+    await tx.announcementRecipient.create({
+      data: {
+        companyId: company.id,
+        contactName: input.name,
+      },
+    });
+
+    return company;
   });
 
   return mapCompany(record);
