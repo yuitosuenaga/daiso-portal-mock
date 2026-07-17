@@ -1086,14 +1086,16 @@ describe("resolveAnnouncementContent", () => {
 });
 
 describe("targetApplicantUsersWhere", () => {
-  it("配信対象が全体一律のとき、無条件のwhereを返す", () => {
-    expect(targetApplicantUsersWhere({ targeting: { scope: "all" } })).toEqual({});
+  it("配信対象が全体一律のとき、有効なApplicantUser（isActive: true）のみに絞り込むwhereを返す", () => {
+    expect(targetApplicantUsersWhere({ targeting: { scope: "all" } })).toEqual({
+      isActive: true,
+    });
   });
 
-  it("配信対象が特定国のとき、対象国のApplicantUserのみに絞り込むwhereを返す", () => {
+  it("配信対象が特定国のとき、対象国かつ有効なApplicantUser（isActive: true）のみに絞り込むwhereを返す", () => {
     expect(
       targetApplicantUsersWhere({ targeting: { scope: "countries", countries: ["VN", "TH"] } })
-    ).toEqual({ company: { country: { in: ["VN", "TH"] } } });
+    ).toEqual({ isActive: true, company: { country: { in: ["VN", "TH"] } } });
   });
 });
 

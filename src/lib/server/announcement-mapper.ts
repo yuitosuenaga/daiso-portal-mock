@@ -132,12 +132,19 @@ export function resolveAnnouncementContent(
  * 取得するための`where`条件。`announcement-service.ts`の`targetRecipientsWhere`
  * （`AnnouncementRecipient`向け）と同型のロジックを、`ApplicantUser`
  * （`company.country`経由）向けに提供する。
+ *
+ * ヘルプデスクが無効化した申請者アカウント（`isActive: false`、`helpdesk-account-management`
+ * specで追加）は、配信対象の国・会社に関わらず常に通知メール送信対象から除外する
+ * （既知バグ修正: 無効化済みアカウントへ誤って通知が送信されないようにするため）。
  */
 export function targetApplicantUsersWhere(
   announcement: Pick<Announcement, "targeting">
 ): Prisma.ApplicantUserWhereInput {
   if (announcement.targeting.scope === "countries") {
-    return { company: { country: { in: announcement.targeting.countries } } };
+    return {
+      isActive: true,
+      company: { country: { in: announcement.targeting.countries } },
+    };
   }
-  return {};
+  return { isActive: true };
 }
