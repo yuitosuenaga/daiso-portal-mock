@@ -14,6 +14,7 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 - **対象**: ヘルプデスク側の販社管理画面（`Company`の一覧・新規作成・編集）、会社ごとの申請者アカウント管理画面（`ApplicantUser`の一覧・新規作成・編集・無効化／再有効化）、新規`ApplicantUser`作成時のヘルプデスク担当者によるパスワード直接設定、既存パスワードの再設定（ヘルプデスク担当者による直接変更）、ルート`/helpdesk/companies`配下の新規ページ群、`HelpdeskSidebar`へのナビゲーション項目追加、対応するServer Actions・zodバリデーションスキーマ・データアクセス関数の設計、無効化されたアカウントのログイン拒否という認証側への影響範囲の定義。
 - **対象外**: 実際のメール送信によるパスワードリセット・アカウント招待メール（メール送信基盤が存在しないため将来フェーズで対応）、多要素認証（MFA）、CSVインポート等の一括登録・一括無効化（将来検討）、`ApplicantUser`の物理削除（既存の`Inquiry.companyId`・`AnnouncementRecipient.companyId`等の外部キー参照整合性の観点から無効化のみを対象とし削除機能は設けない）、`Company`の削除・無効化（既存の申請者アカウント・問い合わせ等の参照元となるため本specでは対象外とし、将来要件として扱う）、`HelpdeskStaff`（ヘルプデスク担当者自身のアカウント）の管理画面（別画面・別ユーザー種別であり本specの対象外）、ログイン画面自体の変更（既存の`/helpdesk/login`・`/login`の実装は変更しない。無効化されたアカウントのログイン拒否ロジックの追加のみが本specの対象）。
 - **隣接仕様との境界**: `helpdesk-portal-layout`specが確立した`HelpdeskSidebar`・ルート保護（ミドルウェアによる`/helpdesk/*`配下のヘルプデスクセッション必須化）の仕組みをそのまま利用し、本spec側で新たなルート保護の仕組みを作らない。認証（Auth.js Credentials Provider、`src/lib/server/authorize.ts`）は既存実装を前提とし、本specは「無効化されたアカウントでの認証を拒否する」という認可判定への追加要件のみを持つ。既存の`src/lib/server/company-service.ts`（`listCompaniesForHelpdesk`、ヘルプデスク側代理問い合わせ登録画面向けの`Company`読み取り専用関数）は`helpdesk-inquiry-management`spec所有のまま変更せず、本specは`Company`の書き込み系（作成・更新）とより詳細な読み取り（一覧・詳細）を新たに設計する。
+- **隣接仕様との境界（`AnnouncementRecipient`。2026-07-17 追記）**: `AnnouncementRecipient`（お知らせの確認済み・実施済み・リマインド送信状態を追跡する会社単位のマスタ）は`announcements-management`・`announcements`・`backend-db-foundation`specが所有する。本specは、`Company`を新規作成した瞬間から当該会社がお知らせトラッキングの対象になるよう、`Company`作成時に対応する`AnnouncementRecipient`を同期生成する部分（および過去に本spec経由で作成され`AnnouncementRecipient`が欠落している`Company`の補完）のみを担当する。`AnnouncementRecipient`の型定義（`src/types/announcement-recipient.ts`）・Prismaスキーマ定義・トラッキング/自己申告/リマインド送信のロジック（`announcement-service.ts`等）は本specの対象外であり、変更しない。
 
 ## 要件
 
@@ -169,3 +170,51 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 #### 受け入れ基準
 
 1. The ヘルプデスクポータル shall 本specで追加する画面をタブレット幅（768px以上）のビューポートで横スクロールを発生させることなく表示する。
+
+---
+
+## 追加要望: `Company`作成時の`AnnouncementRecipient`同期（2026-07-17 追記）
+
+### 背景（バグ）
+
+`helpdesk-account-management`spec 導入前、`Company`は`prisma/seed.ts`でのみ投入され、seedは各`Company`に対応する`AnnouncementRecipient`（お知らせの確認済み・実施済み状態やリマインド送信対象を追跡する会社単位のマスタ）を同時に作成していた。しかし本specで新設した管理画面経由の`Company`作成フロー（`src/lib/server/company-service.ts`の`createCompany`）は`AnnouncementRecipient`を一切生成しない。その結果、管理画面から新規登録した販社は、`AnnouncementRecipient`を`companyCode`で引くお知らせ関連処理（`recordCompanyConfirmation`/`recordCompanyCompletion`等）の対象が0件となり、以下の不具合が発生する。
+
+- お知らせの「確認済み／実施済み」自己申告ボタンを押しても対象0件で何も記録されない
+- ヘルプデスク側のお知らせトラッキング画面（宛先一覧）に当該販社が一切現れない
+- ヘルプデスク側トラッキング画面からのリマインド送信対象（選択候補）にも当該販社の担当者が現れない
+
+新規販社をオンボーディングした瞬間に壊れる実質的なバグであり、本specが所有する`Company`作成フローに起因するため、本specの追加要件として修正する。
+
+### 要件 12: `Company`新規作成時の`AnnouncementRecipient`同期生成
+
+**目的:** ヘルプデスク担当者として、管理画面から新規登録した販社が、登録直後からお知らせのトラッキング・自己申告・リマインドの対象になるようにしたい。そうすることで、新規オンボーディングした販社でもお知らせ機能が正しく動作する。
+
+#### 受け入れ基準
+
+1. When ヘルプデスク担当者が販社（`Company`）を新規作成したとき、the ヘルプデスクポータル shall 当該`Company`に紐付く`AnnouncementRecipient`を少なくとも1件、同一トランザクション内で同時に作成する。
+2. The ヘルプデスクポータル shall `Company`作成と`AnnouncementRecipient`作成をアトミックに扱い、いずれかが失敗した場合は両方をロールバックして`Company`のみが`AnnouncementRecipient`を欠く状態を作らない。
+3. When 同期生成された`AnnouncementRecipient`について、the ヘルプデスクポータル shall `contactName`に会社を識別できる表示名（当該`Company`の会社名を既定とする）を設定する。
+4. The ヘルプデスクポータル shall 同期生成した`AnnouncementRecipient`により、作成直後の`Company`が既存のお知らせトラッキング（`getAnnouncementRecipientStatuses`）・自己申告記録（`recordCompanyConfirmation`/`recordCompanyCompletion`）・リマインド送信対象の選択の対象に含まれるようにする。
+5. The ヘルプデスクポータル shall `AnnouncementRecipient`の型定義・Prismaスキーマ定義・トラッキング/自己申告/リマインドのロジック自体は変更せず、`Company`作成フロー側でのレコード生成のみを追加する（`AnnouncementRecipient`は`announcements-management`/`announcements`/`backend-db-foundation`spec所有）。
+
+### 要件 13: 既存`Company`に対する`AnnouncementRecipient`の補完（backfill）
+
+**目的:** ヘルプデスク担当者・運用者として、本バグ修正より前に管理画面経由で作成され`AnnouncementRecipient`が欠落している既存の販社についても、お知らせ機能が正しく動作するようにしたい。そうすることで、既に壊れている販社を後追いで救済できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `AnnouncementRecipient`を1件も持たない既存の`Company`を検出し、各社に対して`AnnouncementRecipient`を1件補完する手段を提供する。
+2. The 補完手段 shall 冪等（idempotent）であり、既に`AnnouncementRecipient`を持つ`Company`には新たなレコードを追加せず、複数回実行しても重複を生じない。
+3. The 補完手段 shall 補完で生成する`AnnouncementRecipient`の`contactName`を、要件12.3と同一の規則（当該`Company`の会社名を既定とする）で設定する。
+4. The 補完手段 shall リポジトリ既存の運用パターン（`prisma/seed.ts`と同様の`tsx`スクリプト + `package.json`スクリプト）に沿って提供し、環境（ローカル・本番Cloud SQL等）ごとに手動実行できるものとする。
+5. The 補完手段 shall 既存の`AnnouncementRecipientStatus`（確認済み・実施済み・リマインド送信履歴）を変更・削除しない。
+
+### 要件 14: `ApplicantUser`作成時の`AnnouncementRecipient`に関する扱い
+
+**目的:** ヘルプデスク担当者として、申請者アカウント（`ApplicantUser`）の作成が`AnnouncementRecipient`のトラッキング整合性に影響しないことを明確にしたい。そうすることで、アカウント追加のたびに余計なトラッキング対象が増減しないことを保証できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `ApplicantUser`の新規作成時に`AnnouncementRecipient`を生成・変更しない。
+2. The ヘルプデスクポータル shall この扱いの根拠として、`AnnouncementRecipient`が`Company`に対して多対一（会社単位）のマスタであり、`ApplicantUser`とはリレーション（外部キー）を持たず`companyCode`（会社）でのみ引かれること、およびお知らせのトラッキング・自己申告・リマインド選択が会社単位で成立することを、設計に明記する。
+3. The ヘルプデスクポータル shall `AnnouncementRecipient`の同期生成を`Company`作成時のみに限定し、`ApplicantUser`作成・編集・無効化・再有効化のフローでは`AnnouncementRecipient`に触れない。

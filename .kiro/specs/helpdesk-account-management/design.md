@@ -36,6 +36,8 @@
 - `ApplicantUser`モデルへの`isActive: Boolean @default(true)`フィールド追加（Prismaスキーマ変更・マイグレーション）
 - `authorizeApplicantCredentials`（`src/lib/server/authorize.ts`）への無効化アカウントのログイン拒否ロジックの追加
 - `HelpdeskSidebar`への「販社管理」ナビゲーション項目の追加
+- （2026-07-17 追記）`Company`新規作成時に対応する`AnnouncementRecipient`を同一トランザクションで同期生成する処理（`company-service.ts`の`createCompany`拡張）
+- （2026-07-17 追記）`AnnouncementRecipient`が欠落している既存`Company`を補完する冪等バックフィルスクリプト（新規`prisma/backfill-announcement-recipients.ts` + `package.json`スクリプト）
 
 ### Out of Boundary
 - 既存の`listCompaniesForHelpdesk`（`helpdesk-inquiry-management`spec所有、代理問い合わせ登録画面向け）のシグネチャ・戻り値・呼び出し元。本specは変更せず、別関数を追加する
@@ -43,6 +45,8 @@
 - ログイン画面のUI・フォーム・ルーティング自体（`/login`・`/helpdesk/login`の実装は`backend-db-foundation`spec所有のまま変更しない）
 - ミドルウェアによる`/helpdesk/*`ルート保護の実装自体（`helpdesk-portal-layout`所有）
 - メール送信基盤・パスワードリセットメール・招待メールの実装
+- （2026-07-17 追記）`AnnouncementRecipient`の型定義（`src/types/announcement-recipient.ts`）・Prismaスキーマ定義・お知らせのトラッキング/自己申告/リマインド送信ロジック（`announcement-service.ts`・`announcement-notifications.ts`等）。これらは`announcements-management`/`announcements`/`backend-db-foundation`spec所有であり、本specは`Company`作成フロー側での`AnnouncementRecipient`レコード生成のみを追加する（モデル・型・ロジックは読み取り前提で変更しない）
+- （2026-07-17 追記）`AnnouncementRecipient`の`contactName`の運用ルール整備・複数担当者の登録UI。本specの同期生成は「会社が識別できる代表担当1件」を作るのみで、担当者名の精緻な運用は将来要件とする
 
 ### Allowed Dependencies
 - `documents-management`・`faq-management`・`helpdesk-inquiry-management`が確立したServer Actions + zodバリデーション + `revalidatePath`パターン
@@ -263,6 +267,7 @@ sequenceDiagram
 - `listCompaniesForManagement`は`name`昇順で全件取得し、各社の`applicantUsers`件数をPrismaの`_count`で集計する（絞り込みは行わず、絞り込みはクライアント側`CompanyManagementListClient`が担う）
 - `getCompanyById`は存在しない場合`null`を返す（例外を送出しない。呼び出し元Server Componentが「見つからない」表示を行う）
 - `createCompany`/`updateCompany`は、呼び出し元（Server Actions）が事前に`isCompanyCodeTaken`で重複確認済みであることを前提とする。DBの`companyCode`ユニーク制約による競合時（同時実行等）はPrismaの一意制約違反エラー（`P2002`）をそのまま呼び出し元に伝播させる
+- （2026-07-17 追記）`createCompany`は`Company`の作成と、それに紐付く`AnnouncementRecipient`（最低1件）の作成を`prisma.$transaction`で1トランザクションとして扱う（要件12.1・12.2）。同期生成する`AnnouncementRecipient.contactName`は当該`Company`の会社名を既定値とする（要件12.3）。`AnnouncementRecipient`はお知らせのトラッキングが会社単位で成立するためのマスタであり、代表1件で自己申告・トラッキング・リマインド選択が機能する。トランザクションのいずれかが失敗した場合は`Company`ごとロールバックし、`AnnouncementRecipient`を欠く`Company`を残さない
 - `isCompanyCodeTaken(companyCode, excludeId?)`は、`excludeId`が指定された場合そのIDを除外して重複確認する（編集時に自分自身を除外するため）
 
 **Dependencies**
@@ -290,6 +295,7 @@ interface CompanyService {
 - Integration: `helpdesk-inquiry-management`spec所有の`listCompaniesForHelpdesk`は本specでは呼び出さず、変更もしない
 - Validation: `companyCode`の重複はサーバー側バリデーション（Server Actions内）とDB制約の二重で防ぐ
 - Risks: なし（永続化はPrisma/PostgreSQL）
+- （2026-07-17 追記）`createCompany`は`prisma.$transaction([...])`（または`prisma.$transaction(async (tx) => {...})`）で`company.create`と`announcementRecipient.create({ data: { companyId, contactName } })`を束ねる。`AnnouncementRecipient`モデル・`announcement-recipient.ts`の型・`announcement-service.ts`のロジックには手を入れず、Prismaクライアント経由でのレコード作成のみを行う。`seed.ts`が各社に2件の担当者を作っていたのに対し、管理画面作成時は担当者名の実データが無いため代表1件（`contactName` = 会社名）とする（トラッキングは会社単位で成立するため1件で十分。将来、複数担当者・実担当者名の登録は別要件）
 
 #### ApplicantUserService（新規`applicant-user-service.ts`）
 
@@ -304,6 +310,7 @@ interface CompanyService {
 - `updateApplicantUser`は`password`が指定されている場合のみハッシュ化して`passwordHash`を更新し、未指定（`undefined`）の場合は既存の`passwordHash`を変更しない
 - `setApplicantUserActive(id, isActive)`は`isActive`フィールドのみを更新し、他のフィールド・関連する`Inquiry`・`AnnouncementRecipientStatus`等のレコードには影響しない
 - `isApplicantUserEmailTaken(email, excludeId?)`は`ApplicantUser`テーブルと`HelpdeskStaff`テーブルの両方を確認する（要件5.3・6.3）。`excludeId`は`ApplicantUser`側のみに適用する（`HelpdeskStaff`とのメールアドレス重複は`excludeId`の対象外とし、常に重複として扱う）
+- （2026-07-17 追記）`ApplicantUser`の作成・更新・有効状態変更のいずれも`AnnouncementRecipient`を生成・変更しない（要件14）。`AnnouncementRecipient`は`Company`に対して多対一（会社単位）のマスタで、`ApplicantUser`とはリレーション（外部キー）を持たず`companyCode`（会社）でのみ引かれる。お知らせのトラッキング（`getAnnouncementRecipientStatuses`）・自己申告（`recordCompanyConfirmation`/`recordCompanyCompletion`）・リマインド選択はすべて会社単位で成立し、通知メールの宛先解決は別途`ApplicantUser`（`isActive`・国/会社で絞り込み）側で行われる。したがって`ApplicantUser`件数の増減はトラッキング整合性に影響せず、アカウント追加のたびに`AnnouncementRecipient`を増減させる必要はない
 
 **Dependencies**
 - Inbound: `ApplicantUserActions`（P0）, `ApplicantUserList`/`CompanyDetail`（P0, 表示のための取得）, `authorize.ts`（P0, `isActive`の参照のみ。本サービスの関数は呼び出さずPrismaを直接参照する既存実装を維持）
@@ -432,6 +439,7 @@ interface ApplicantUserActions {
 ### Logical Data Model
 - `Company` 1 --- N `ApplicantUser`（既存の`companyId`外部キーで関連付け。変更しない）
 - `ApplicantUser`の`isActive`追加はカーディナリティ・リレーションに影響しない、単純なカラム追加
+- （2026-07-17 追記）`Company` 1 --- N `AnnouncementRecipient`（既存の`AnnouncementRecipient.companyId`外部キー。schema・カーディナリティとも変更しない）。`AnnouncementRecipient` 1 --- N `AnnouncementRecipientStatus`（お知らせ×担当者ごとの確認済み/実施済み/リマインド送信状態）。`ApplicantUser`と`AnnouncementRecipient`の間に直接のリレーションは存在しない。本specの追加は、`Company`作成時にこの`Company` 1 --- N `AnnouncementRecipient`関係に最低1件のレコードを必ず作る（会社に対して担当者レコードが0件になる状態を無くす）という不変条件の追加であり、モデル定義自体は変更しない
 
 ### Physical Data Model
 `ApplicantUser`テーブルへのカラム追加（Prisma Migrate）:
@@ -508,3 +516,55 @@ model ApplicantUser {
 無効化されたアカウントのログイン拒否は、既存のCredentials Provider認証フロー（`authorize.ts`）内の1分岐として実装し、新たな認証経路・トークン発行ロジックは追加しない。無効化はレコードの論理的な状態変更のみであり、既存の`Inquiry`・`AnnouncementRecipientStatus`等の外部キー参照は維持されるため、無効化後も過去の問い合わせ履行状況等の管理画面表示は影響を受けない。
 
 `HelpdeskStaff`とのメールアドレス重複確認（`isApplicantUserEmailTaken`）は、`HelpdeskStaff`テーブルの`passwordHash`等の機密情報を返さず、真偽値のみを返す関数として実装する。
+
+## 追加設計: `Company`作成時の`AnnouncementRecipient`同期とbackfill（2026-07-17 追記）
+
+### 根本原因
+
+`AnnouncementRecipient`は、お知らせの確認済み・実施済み状態やリマインド送信対象を追跡する**会社単位のマスタ**（`companyId` + `contactName`）である。お知らせ関連処理は次のように、いずれも`AnnouncementRecipient`を`companyCode`（会社）経由で解決する。
+
+- 自己申告記録（`recordCompanyConfirmation`/`recordCompanyCompletion` → `recordCompanyStatus` → `findTargetRecipientsForCompany`）は、`prisma.announcementRecipient.findMany({ where: { AND: [targeting, { company: { companyCode } }] } })`で対象担当者を引く。該当が0件なら何も記録されない。
+- ヘルプデスクのトラッキング（`getAnnouncementRecipientStatuses`）は`announcementRecipient.findMany`の結果を宛先一覧として返す。担当者が0件の会社は一覧に現れない。
+- リマインド送信（`sendAnnouncementReminders`）は、トラッキング画面で選択された`recipientIds`を対象とする。宛先一覧に現れない会社は選択候補にも乗らない。
+
+`prisma/seed.ts`は各`Company`に対し2件の`AnnouncementRecipient`（`${code}-1`/`${code}-2`）を必ず作成していたため、seed投入の販社では上記が機能していた。しかし本specで追加した`createCompany`（管理画面フロー）は`Company`のみを作成し`AnnouncementRecipient`を作らないため、管理画面から登録した販社は担当者0件となり、自己申告・トラッキング・リマインド選択のすべてが機能しない。これが根本原因である。
+
+### フォワード修正（`createCompany`の同期生成）
+
+`company-service.ts`の`createCompany`を、`Company`作成と`AnnouncementRecipient`（代表1件）作成を1トランザクションにまとめる実装に拡張する。
+
+```mermaid
+sequenceDiagram
+    participant A as CompanyActions
+    participant S as CompanyService.createCompany
+    participant DB as Prisma / PostgreSQL
+    A->>S: createCompany({ name, country, companyCode })
+    S->>DB: $transaction([company.create(...), announcementRecipient.create({ companyId, contactName })])
+    DB-->>S: Company（+ AnnouncementRecipient 1件）
+    S-->>A: Company
+```
+
+- `AnnouncementRecipient.contactName`は当該`Company`の会社名を既定値とする（実担当者名の実データが無いため）。
+- トランザクションのため、`AnnouncementRecipient`作成が失敗すれば`Company`もロールバックされ、担当者0件の`Company`は残らない（要件12.2）。
+- `AnnouncementRecipient`モデル・型・トラッキングロジックは変更せず、レコード作成のみを追加する（境界順守）。
+
+### backfill（既存`Company`の補完）
+
+本修正より前に管理画面経由で作成され、`AnnouncementRecipient`を0件しか持たない既存`Company`を救済するため、冪等な一回性スクリプトを提供する。
+
+- 配置: 新規`prisma/backfill-announcement-recipients.ts`（`prisma/seed.ts`と同じ`tsx`実行・同じPrismaクライアント初期化パターン）。
+- `package.json`に`db:backfill-announcement-recipients`（`tsx prisma/backfill-announcement-recipients.ts`）を追加する。
+- ロジック: `announcementRecipients`が0件の`Company`を抽出（`where: { announcementRecipients: { none: {} } }`）し、各社に`contactName` = 会社名の`AnnouncementRecipient`を1件作成する。既に1件以上持つ会社はスキップするため冪等（要件13.2）。
+- `AnnouncementRecipientStatus`（既存の確認済み/実施済み/リマインド履歴）は一切変更しない（要件13.5）。
+- 実行タイミング: `prisma migrate deploy`と同様、環境（ローカル・本番Cloud SQL）ごとに**手動で1回**実行する運用とする（本番反映は自動化されない前提。既存の運用ノウハウに準拠）。
+
+### 設計判断（代替案との比較）
+
+- 「起動時チェックで自動補完」案は、サーバー起動のたびに全`Company`をスキャンする副作用・冪等性管理の複雑さがあり、既存リポジトリに起動フックの仕組みが無いため採用しない。
+- 「管理画面上の手動同期ボタン」案は、UI・Server Action・翻訳キーの追加コストに対し、backfillは一度きりの運用作業であるため過剰。`seed.ts`同様のスクリプト方式が最小コストで既存パターンにも合致する。
+- `ApplicantUser`側は、`AnnouncementRecipient`が会社単位マスタで`ApplicantUser`と直接のリレーションを持たないため、作成・更新・無効化のいずれでも`AnnouncementRecipient`を触らない（要件14）。通知メールの宛先解決は別途`ApplicantUser`（`isActive`・国/会社）側で行われており、トラッキング用マスタである`AnnouncementRecipient`とは関心が分離されている。
+
+### テスト追加方針
+
+- `createCompany`が`Company`と`AnnouncementRecipient`（`contactName` = 会社名）を1トランザクションで作成すること、および作成直後に当該会社が`getAnnouncementRecipientStatuses`の結果へ含まれることを単体/結合テストで検証する。
+- backfillスクリプトが、担当者0件の`Company`にのみ1件補完し、既に担当者を持つ会社には追加しない（冪等）ことを検証する。
