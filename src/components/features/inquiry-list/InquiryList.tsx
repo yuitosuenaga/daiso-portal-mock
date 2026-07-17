@@ -38,7 +38,15 @@ export async function InquiryList() {
   try {
     [inquiries, unreadInquiryIds] = await Promise.all([
       getInquiries(),
-      getUnreadReplyInquiryIds().catch(() => [] as string[]),
+      getUnreadReplyInquiryIds().catch((error) => {
+        // 新着バッジは付加的な情報であり、取得に失敗しても一覧表示自体は継続する。
+        // ただし失敗を握りつぶすとバッジが常に非表示になる不具合に気づけないため、ログには残す。
+        console.error(
+          "[inquiry-list] Failed to fetch unread reply inquiry ids:",
+          error
+        );
+        return [] as string[];
+      }),
     ]);
   } catch {
     return (
