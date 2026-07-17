@@ -1,5 +1,5 @@
 import { getTranslations, getLocale } from "next-intl/server";
-import { getInquiries } from "@/lib/api/inquiries";
+import { getInquiries, getUnreadReplyInquiryIds } from "@/lib/api/inquiries";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -34,8 +34,20 @@ export async function InquiryList() {
   );
 
   let inquiries: Inquiry[];
+  let unreadInquiryIds: string[];
   try {
-    inquiries = await getInquiries();
+    [inquiries, unreadInquiryIds] = await Promise.all([
+      getInquiries(),
+      getUnreadReplyInquiryIds().catch((error) => {
+        // 新着バッジは付加的な情報であり、取得に失敗しても一覧表示自体は継続する。
+        // ただし失敗を握りつぶすとバッジが常に非表示になる不具合に気づけないため、ログには残す。
+        console.error(
+          "[inquiry-list] Failed to fetch unread reply inquiry ids:",
+          error
+        );
+        return [] as string[];
+      }),
+    ]);
   } catch {
     return (
       <div>
@@ -112,6 +124,8 @@ export async function InquiryList() {
             urgencyFieldLabel={t("detail.urgencyLabel")}
             locale={locale}
             untitledLabel={t("list.untitled")}
+            unreadInquiryIds={unreadInquiryIds}
+            newBadgeLabel={t("list.newBadge")}
           />
         </CardContent>
       </Card>

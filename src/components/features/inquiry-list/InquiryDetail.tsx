@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BackLink } from "@/components/ui/back-link";
 import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHistoryList";
 import { ApplicantMessageForm } from "@/components/features/inquiry-list/ApplicantMessageForm";
+import { MarkInquiryRead } from "@/components/features/inquiry-list/MarkInquiryRead";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 
 export async function InquiryDetail({ id }: { id: string }) {
@@ -55,6 +56,7 @@ export async function InquiryDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
+      <MarkInquiryRead inquiryId={inquiry.id} />
       {backToListLink}
       <Card>
         <CardHeader className="space-y-3">

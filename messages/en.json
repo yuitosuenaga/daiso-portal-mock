@@ -744,7 +744,8 @@
       "description": "View the list of inquiries and requests your company has submitted, along with their status.",
       "empty": "No applications",
       "error": "Failed to load applications",
-      "untitled": "(No title)"
+      "untitled": "(No title)",
+      "newBadge": "New"
     },
     "status": {
       "new": "New",

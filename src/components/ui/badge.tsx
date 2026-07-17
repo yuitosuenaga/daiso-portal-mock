@@ -19,6 +19,7 @@ const badgeVariants = cva(
         "urgency-medium": "bg-secondary text-secondary-foreground",
         "urgency-low": "bg-muted text-muted-foreground",
         muted: "bg-muted text-muted-foreground",
+        unread: "bg-primary text-primary-foreground",
       },
     },
     defaultVariants: {

@@ -9,6 +9,8 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   createInquiryRecord: vi.fn(),
   findInquiryForCompany: vi.fn(),
   appendHistoryEntry: vi.fn(),
+  listUnreadReplyInquiryIds: vi.fn(),
+  markInquiryRead: vi.fn(),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -17,9 +19,11 @@ import {
   appendHistoryEntry,
   createInquiryRecord,
   findInquiryForCompany,
+  markInquiryRead as markInquiryReadService,
 } from "@/lib/server/inquiry-service";
 import {
   createInquiryAction,
+  markInquiryReadAction,
   sendApplicantMessageAction,
 } from "@/lib/actions/inquiry";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
@@ -191,5 +195,41 @@ describe("sendApplicantMessageAction", () => {
     expect(appendHistoryEntry).toHaveBeenCalledWith(
       expect.objectContaining({ attachments: [attachment] })
     );
+  });
+});
+
+describe("markInquiryReadAction", () => {
+  it("申請者セッションのcompanyIdで既読として記録し、一覧ルートを再検証する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(markInquiryReadService).mockResolvedValue(undefined);
+
+    await markInquiryReadAction("inquiry-1");
+
+    expect(markInquiryReadService).toHaveBeenCalledWith(
+      "inquiry-1",
+      "company-1"
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/inquiry", "page");
+  });
+
+  it("空文字のIDでは例外を送出し、既読更新されない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(markInquiryReadAction("   ")).rejects.toThrow();
+    expect(markInquiryReadService).not.toHaveBeenCalled();
+  });
+
+  it("ヘルプデスクセッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue({
+      claims: {
+        id: "staff-1",
+        role: "helpdesk" as const,
+        staffId: "staff-1",
+        displayName: "田中 太郎",
+      },
+    } as never);
+
+    await expect(markInquiryReadAction("inquiry-1")).rejects.toThrow();
+    expect(markInquiryReadService).not.toHaveBeenCalled();
   });
 });

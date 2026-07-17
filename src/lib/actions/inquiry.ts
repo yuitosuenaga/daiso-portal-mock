@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createInquiry } from "@/lib/api/inquiries";
+import { createInquiry, markInquiryRead } from "@/lib/api/inquiries";
 import { requireApplicantSession } from "@/lib/server/auth-session";
 import {
   appendHistoryEntry,
@@ -13,6 +13,7 @@ import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 
+const INQUIRY_LIST_PATH = "/[locale]/inquiry";
 const INQUIRY_DETAIL_PATH = "/[locale]/inquiry/[id]";
 const HELPDESK_INQUIRY_DETAIL_PATH = "/[locale]/helpdesk/inquiries/[id]";
 
@@ -68,4 +69,21 @@ export async function sendApplicantMessageAction(
 
   revalidatePath(INQUIRY_DETAIL_PATH, "page");
   revalidatePath(HELPDESK_INQUIRY_DETAIL_PATH, "page");
+}
+
+/**
+ * 申請者が問い合わせ詳細画面（`/inquiry/[id]`）を開いた時点で、その問い合わせを
+ * 既読として記録する（`lastReadAt`を現在時刻に更新する）。既読の記録は`status`・
+ * 対応中フラグ（`claim`）を一切変更しない。既読記録後、申請一覧の新着インジケーターが
+ * 更新されるよう一覧ルートを再検証する。
+ *
+ * `MarkInquiryRead`（Client Component）から詳細画面マウント時に呼び出されることを
+ * 想定しており、失敗しても詳細画面の表示自体は妨げない（呼び出し側でエラーを握りつぶす）。
+ */
+export async function markInquiryReadAction(inquiryId: string): Promise<void> {
+  const id = inquiryIdSchema.parse(inquiryId);
+
+  await markInquiryRead(id);
+
+  revalidatePath(INQUIRY_LIST_PATH, "page");
 }

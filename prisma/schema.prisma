@@ -87,6 +87,8 @@ model Inquiry {
   claimedAt              DateTime?
   attachments            InquiryAttachment[]
   history                InquiryHistoryEntry[]
+  /// 申請者が最後にこの問い合わせの詳細画面を開いた時刻（既読時刻）。null=一度も開いていない
+  lastReadAt             DateTime?
 
   @@index([companyId])
 }

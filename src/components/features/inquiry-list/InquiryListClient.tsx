@@ -20,6 +20,10 @@ export interface InquiryListClientProps {
   urgencyFieldLabel: string;
   locale: string;
   untitledLabel: string;
+  /** ヘルプデスク起点の未読対応履歴（新着）がある問い合わせのID一覧 */
+  unreadInquiryIds?: string[];
+  /** 新着インジケーターの表示文言 */
+  newBadgeLabel?: string;
 }
 
 /**
@@ -37,6 +41,8 @@ export function InquiryListClient({
   urgencyFieldLabel,
   locale,
   untitledLabel,
+  unreadInquiryIds = [],
+  newBadgeLabel = "",
 }: InquiryListClientProps) {
   const t = useTranslations("inquiryList.filter");
   const [filters, setFilters] = useState(EMPTY_INQUIRY_FILTERS);
@@ -44,6 +50,11 @@ export function InquiryListClient({
   const filteredInquiries = useMemo(
     () => filterInquiries(inquiries, filters),
     [inquiries, filters]
+  );
+
+  const unreadInquiryIdSet = useMemo(
+    () => new Set(unreadInquiryIds),
+    [unreadInquiryIds]
   );
 
   return (
@@ -70,6 +81,8 @@ export function InquiryListClient({
               urgencyFieldLabel={urgencyFieldLabel}
               locale={locale}
               untitledLabel={untitledLabel}
+              hasUnreadReply={unreadInquiryIdSet.has(item.id)}
+              newBadgeLabel={newBadgeLabel}
             />
           ))}
         </ul>

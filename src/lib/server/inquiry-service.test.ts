@@ -8,6 +8,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     inquiryHistoryEntry: {
       create: vi.fn(),
@@ -26,6 +27,8 @@ import {
   listAllInquiries,
   listHistory,
   listInquiriesForCompany,
+  listUnreadReplyInquiryIds,
+  markInquiryRead,
   setClaim,
   updateStatus,
 } from "@/lib/server/inquiry-service";
@@ -241,5 +244,112 @@ describe("listHistory", () => {
     expect(prisma.inquiryHistoryEntry.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { inquiryId: "inquiry-1" } })
     );
+  });
+});
+
+describe("listUnreadReplyInquiryIds", () => {
+  it("lastReadAtがnullでヘルプデスク起点履歴が存在する場合は未読と判定する", async () => {
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([
+      {
+        id: "inquiry-1",
+        lastReadAt: null,
+        history: [{ occurredAt: new Date("2026-07-10T00:00:00.000Z") }],
+      },
+    ] as never);
+
+    const result = await listUnreadReplyInquiryIds("company-1");
+
+    expect(prisma.inquiry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { companyId: "company-1" } })
+    );
+    expect(result).toEqual(["inquiry-1"]);
+  });
+
+  it("lastReadAtがnullでもヘルプデスク起点履歴が0件の場合は未読にならない（作成直後）", async () => {
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([
+      { id: "inquiry-1", lastReadAt: null, history: [] },
+    ] as never);
+
+    const result = await listUnreadReplyInquiryIds("company-1");
+
+    expect(result).toEqual([]);
+  });
+
+  it("ヘルプデスク起点履歴の最新発生時刻がlastReadAtより新しい場合は未読と判定する", async () => {
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([
+      {
+        id: "inquiry-1",
+        lastReadAt: new Date("2026-07-01T00:00:00.000Z"),
+        history: [{ occurredAt: new Date("2026-07-05T00:00:00.000Z") }],
+      },
+    ] as never);
+
+    const result = await listUnreadReplyInquiryIds("company-1");
+
+    expect(result).toEqual(["inquiry-1"]);
+  });
+
+  it("ヘルプデスク起点履歴の最新発生時刻がlastReadAt以前の場合は未読にならない", async () => {
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([
+      {
+        id: "inquiry-1",
+        lastReadAt: new Date("2026-07-10T00:00:00.000Z"),
+        history: [{ occurredAt: new Date("2026-07-05T00:00:00.000Z") }],
+      },
+    ] as never);
+
+    const result = await listUnreadReplyInquiryIds("company-1");
+
+    expect(result).toEqual([]);
+  });
+
+  it("申請者自身のrequester_messageのみの問い合わせは未読判定の対象履歴に含まれず未読にならない", async () => {
+    // サービス層のクエリはhistoryをHELPDESK_ORIGIN_HISTORY_TYPESでフィルタして取得するため、
+    // requester_messageのみの場合はhistoryが空配列として返る想定
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([
+      { id: "inquiry-1", lastReadAt: null, history: [] },
+    ] as never);
+
+    const result = await listUnreadReplyInquiryIds("company-1");
+
+    expect(prisma.inquiry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { companyId: "company-1" },
+        select: expect.objectContaining({
+          history: expect.objectContaining({
+            where: {
+              type: {
+                in: ["reply_sent", "status_changed", "claimed", "released"],
+              },
+            },
+          }),
+        }),
+      })
+    );
+    expect(result).toEqual([]);
+  });
+});
+
+describe("markInquiryRead", () => {
+  it("自社スコープの問い合わせのlastReadAtのみを現在時刻に更新する", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    await markInquiryRead("inquiry-1", "company-1");
+
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
+      where: { id: "inquiry-1", companyId: "company-1" },
+      data: { lastReadAt: expect.any(Date) },
+    });
+  });
+
+  it("他社スコープのIDでは対象0件となり更新されない", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    await markInquiryRead("inquiry-1", "other-company");
+
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
+      where: { id: "inquiry-1", companyId: "other-company" },
+      data: { lastReadAt: expect.any(Date) },
+    });
   });
 });

@@ -13,6 +13,8 @@ import {
   findInquiryForCompany,
   listAllInquiries as listAllInquiriesService,
   listInquiriesForCompany,
+  listUnreadReplyInquiryIds as listUnreadReplyInquiryIdsService,
+  markInquiryRead as markInquiryReadService,
   setClaim,
   updateStatus,
 } from "@/lib/server/inquiry-service";
@@ -124,6 +126,29 @@ export async function updateInquiryStatus(
   await requireHelpdeskStaffSession();
 
   return updateStatus(id, status);
+}
+
+/**
+ * ログイン中の申請者セッションが所属する会社の問い合わせのうち、
+ * ヘルプデスク起点の対応履歴（`reply_sent`/`status_changed`/`claimed`/`released`）に
+ * 未読（新着）があるものの問い合わせIDを返す。申請者自身の送信（`requester_message`）は
+ * 判定に含めない。
+ */
+export async function getUnreadReplyInquiryIds(): Promise<string[]> {
+  const { claims } = await requireApplicantSession();
+
+  return listUnreadReplyInquiryIdsService(claims.companyId);
+}
+
+/**
+ * ログイン中の申請者セッションが所属する会社の問い合わせに限り、
+ * 既読時刻（`lastReadAt`）を現在時刻に更新する。`status`・対応中フラグ（`claim`）は
+ * 変更しない。他社の問い合わせIDを指定しても更新されない。
+ */
+export async function markInquiryRead(inquiryId: string): Promise<void> {
+  const { claims } = await requireApplicantSession();
+
+  await markInquiryReadService(inquiryId, claims.companyId);
 }
 
 /** 自社の問い合わせをステータス別に集計する。 */

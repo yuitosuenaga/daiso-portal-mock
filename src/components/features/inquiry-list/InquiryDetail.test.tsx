@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
+import { markInquiryReadAction } from "@/lib/actions/inquiry";
 
 import { InquiryDetail } from "@/components/features/inquiry-list/InquiryDetail";
 import messages from "../../../../messages/ja.json";
@@ -27,6 +29,7 @@ vi.mock("@/lib/api/inquiry-history", () => ({
 
 vi.mock("@/lib/actions/inquiry", () => ({
   sendApplicantMessageAction: vi.fn(),
+  markInquiryReadAction: vi.fn().mockResolvedValue(undefined),
 }));
 
 function resolveMessage(namespace: string, key: string): string {
@@ -123,6 +126,40 @@ describe("InquiryDetail", () => {
     render(jsx);
 
     expect(screen.getByText("一覧へ戻る")).toBeTruthy();
+  });
+
+  it("取得成功時、詳細画面のマウントをもって既読記録用Server Actionを呼び出す", async () => {
+    vi.mocked(markInquiryReadAction).mockClear();
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Test Company", country: "JP" },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    await waitFor(() => {
+      expect(markInquiryReadAction).toHaveBeenCalledWith("inquiry-001");
+    });
+  });
+
+  it("見つからない場合は既読記録用Server Actionを呼び出さない", async () => {
+    vi.mocked(markInquiryReadAction).mockClear();
+    getInquiryByIdMock.mockResolvedValueOnce(null);
+
+    const jsx = await InquiryDetail({ id: "not-exist" });
+    render(jsx);
+
+    expect(markInquiryReadAction).not.toHaveBeenCalled();
   });
 
   it("取得成功時にタイトルを見出しとして表示する", async () => {

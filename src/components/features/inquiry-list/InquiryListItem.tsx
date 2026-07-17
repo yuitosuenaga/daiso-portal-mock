@@ -19,6 +19,10 @@ export interface InquiryListItemProps {
   locale: string;
   /** inquiry.titleが空文字の場合に表示する代替ラベル */
   untitledLabel: string;
+  /** ヘルプデスク起点の未読対応履歴（新着）があるかどうか */
+  hasUnreadReply: boolean;
+  /** 新着インジケーターの表示文言（表示テキスト・aria-labelの両方に使用） */
+  newBadgeLabel: string;
 }
 
 /**
@@ -35,16 +39,25 @@ export function InquiryListItem({
   urgencyFieldLabel,
   locale,
   untitledLabel,
+  hasUnreadReply,
+  newBadgeLabel,
 }: InquiryListItemProps) {
   return (
     <li className="flex items-start justify-between gap-4 py-3">
       <div className="flex-1 space-y-1">
-        <Link
-          href={`/inquiry/${inquiry.id}`}
-          className="text-sm font-medium hover:underline"
-        >
-          {inquiry.title || untitledLabel}
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/inquiry/${inquiry.id}`}
+            className="text-sm font-medium hover:underline"
+          >
+            {inquiry.title || untitledLabel}
+          </Link>
+          {hasUnreadReply && (
+            <Badge variant="unread" aria-label={newBadgeLabel}>
+              {newBadgeLabel}
+            </Badge>
+          )}
+        </div>
         <p className="line-clamp-2 text-sm text-muted-foreground">
           {inquiry.originalText}
         </p>

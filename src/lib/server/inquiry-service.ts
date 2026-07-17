@@ -11,6 +11,17 @@ const INQUIRY_INCLUDE = {
   attachments: true,
 } as const;
 
+/**
+ * 未読判定に含める「ヘルプデスク起点」の対応履歴種別。
+ * 申請者自身の送信（`requester_message`）は未読判定に含めない。
+ */
+const HELPDESK_ORIGIN_HISTORY_TYPES = [
+  "reply_sent",
+  "status_changed",
+  "claimed",
+  "released",
+] as const;
+
 export class DoubleClaimError extends Error {
   constructor(inquiryId: string) {
     super(`Inquiry is already claimed: ${inquiryId}`);
@@ -194,4 +205,57 @@ export async function listHistory(
   });
 
   return records.map(mapHistoryEntry);
+}
+
+/**
+ * 指定した会社IDに紐づく問い合わせのうち、「未読（新着あり）」と判定されるものの
+ * IDを返す。未読とは、ヘルプデスク起点の対応履歴（`requester_message`以外）の
+ * 最新発生時刻が、当該問い合わせの`lastReadAt`より新しい（または`lastReadAt`が
+ * `null`でヘルプデスク起点履歴が1件以上存在する）状態を指す。
+ * 申請者自身の送信（`requester_message`）のみの問い合わせは未読にならない。
+ */
+export async function listUnreadReplyInquiryIds(
+  companyId: string
+): Promise<string[]> {
+  const records = await prisma.inquiry.findMany({
+    where: { companyId },
+    select: {
+      id: true,
+      lastReadAt: true,
+      history: {
+        where: { type: { in: [...HELPDESK_ORIGIN_HISTORY_TYPES] } },
+        orderBy: { occurredAt: "desc" },
+        take: 1,
+        select: { occurredAt: true },
+      },
+    },
+  });
+
+  return records
+    .filter((record) => {
+      const latestHelpdeskEntry = record.history[0];
+      if (!latestHelpdeskEntry) {
+        return false;
+      }
+      if (!record.lastReadAt) {
+        return true;
+      }
+      return latestHelpdeskEntry.occurredAt.getTime() > record.lastReadAt.getTime();
+    })
+    .map((record) => record.id);
+}
+
+/**
+ * 指定した会社IDに紐づく場合のみ、対象問い合わせの既読時刻（`lastReadAt`）を
+ * 現在時刻に更新する。`status`・対応中フラグ（`claim`）は変更しない。
+ * 他社スコープのIDを指定した場合は対象0件で更新されない（サイレントに何もしない）。
+ */
+export async function markInquiryRead(
+  id: string,
+  companyId: string
+): Promise<void> {
+  await prisma.inquiry.updateMany({
+    where: { id, companyId },
+    data: { lastReadAt: new Date() },
+  });
 }
