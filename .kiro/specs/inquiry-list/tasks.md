@@ -357,3 +357,96 @@
   - 機能・データモデル（`Inquiry`型、`/inquiry`ルート、モックAPI等）に変更がないことを確認する
   - _Requirements: 1.1（更新）_
   - _Depends: 25_
+
+---
+
+## 追加ラウンド（2026-07-17）: 新着返信の未読表示と既読管理
+
+> 本ラウンドはメール等の外部通知を含まない（保留）。画面内での未読/新着表示と既読管理のみを対象とする。データモデル（`Inquiry.lastReadAt`）の追加を伴うため、実装時に`prisma migrate`で1マイグレーションを追加すること（本設計・タスクフェーズではマイグレーションコマンドは実行しない）。
+
+- [ ] 28. データモデル・サービス層: 既読タイムスタンプと未読判定
+- [ ] 28.1 `Inquiry`モデルへ既読タイムスタンプを追加しマイグレーションを作成する
+  - `prisma/schema.prisma`の`Inquiry`モデルに`lastReadAt DateTime?`（nullable・既定値なし）を加法的に追加する。他モデル・他フィールドは変更しない
+  - `prisma migrate dev`で後方互換なマイグレーションを1つ追加する（既存レコードは`lastReadAt = null`）
+  - 公開`Inquiry`型（`src/types/inquiry.ts`）には`lastReadAt`を露出させない（未読判定はサービス層で完結させる）
+  - 既存のマイグレーション・シードが引き続き通ることで完了とする
+  - _Requirements: 14.4_
+  - _Boundary: prisma schema, Inquiry_
+
+- [ ] 28.2 未読判定・既読更新のサービス関数を実装する
+  - `src/lib/server/inquiry-service.ts`に`listUnreadReplyInquiryIds(companyId)`（会社スコープの問い合わせのうち、ヘルプデスク起点履歴（`reply_sent`/`status_changed`/`claimed`/`released`＝`requester_message`以外）の最新`occurredAt`が`lastReadAt`より新しい、または`lastReadAt`がnullでヘルプデスク起点履歴が存在するものの問い合わせIDを返す）を追加する
+  - `markInquiryRead(id, companyId)`（自社スコープを確認したうえで対象問い合わせの`lastReadAt`を現在時刻に更新する。他社スコープのIDでは更新しない。`status`・`claim`は変更しない）を追加する
+  - 既存のサービス関数・`INQUIRY_INCLUDE`・`mapInquiry`は変更しない
+  - 単体テストで、`lastReadAt`のnull/過去/未来・`requester_message`のみの場合・他社スコープの各ケースが期待どおりに判定・更新されることで完了とする
+  - _Requirements: 14.3, 14.5_
+  - _Boundary: inquiry-service_
+  - _Depends: 28.1_
+
+---
+
+- [ ] 29. API・Server Action・翻訳キー
+- [ ] 29.1 未読ID取得・既読更新のAPI関数を実装する
+  - `src/lib/api/inquiries.ts`に`getUnreadReplyInquiryIds(): Promise<string[]>`（申請者セッションを要求し自社スコープの未読IDを返す）・`markInquiryRead(inquiryId): Promise<void>`（申請者セッション・自社スコープで`lastReadAt`を更新）を追加する
+  - 既存の`getInquiries`・`getInquiryById`・`getInquiryStatusSummary`等のシグネチャ・挙動は変更しない
+  - _Requirements: 14.3, 14.4, 14.5_
+  - _Boundary: inquiries API_
+  - _Depends: 28.2_
+
+- [ ] 29.2 既読記録用のServer Actionを実装する
+  - `src/lib/actions/inquiry.ts`に`markInquiryReadAction(inquiryId): Promise<void>`を追加する。`inquiryIdSchema`で検証し、`markInquiryRead`を呼び出したのち`/[locale]/inquiry`（一覧ルート）を`revalidatePath`する
+  - 既存の`createInquiryAction`・`sendApplicantMessageAction`は変更しない
+  - 単体テストで、他社スコープのIDでは既読更新されないこと・`status`/`claim`が変更されないことで完了とする
+  - _Requirements: 14.4, 14.5, 14.6_
+  - _Boundary: markInquiryReadAction_
+  - _Depends: 29.1_
+
+- [ ] 29.3 新着インジケーターの日本語・英語翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`inquiryList.list`名前空間に`newBadge`（新着インジケーターの表示文言・`aria-label`用、例: 「新着」/"New"）を追加する
+  - `ja.json`で定義した新規キーが`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 14.7_
+  - _Boundary: i18n messages_
+
+---
+
+- [ ] 30. UI: 一覧の新着インジケーターと詳細の既読記録
+- [ ] 30.1 InquiryListItemに新着インジケーターを追加する
+  - `hasUnreadReply: boolean`prop・新着ラベルpropを追加し、`true`のときタイトル付近に`aria-label`付きの新着インジケーター（`Badge`または小さなドット）を表示、`false`のとき非表示にする
+  - _Requirements: 14.1, 14.2, 14.7_
+  - _Boundary: InquiryListItem_
+  - _Depends: 29.3_
+
+- [ ] 30.2 InquiryList・InquiryListClientで未読IDを結線する
+  - `InquiryList`（Server）で`getInquiries()`と`getUnreadReplyInquiryIds()`を`Promise.all`で取得し（未読ID取得のみ失敗時は空配列にフォールバック）、`InquiryListClient`へ`unreadInquiryIds`を渡す
+  - `InquiryListClient`で`unreadInquiryIds`を`Set`化し、各`InquiryListItem`へ`hasUnreadReply`を渡す。既存のフィルタ・並び順・0件表示は維持する
+  - ブラウザで、ヘルプデスク起点の未読履歴がある問い合わせの行にのみ新着インジケーターが表示されることで完了とする
+  - _Requirements: 14.1, 14.2_
+  - _Boundary: InquiryList, InquiryListClient_
+  - _Depends: 29.1, 30.1_
+
+- [ ] 30.3 詳細画面に既読記録トリガー（MarkInquiryRead）を組み込む
+  - `src/components/features/inquiry-list/MarkInquiryRead.tsx`（`"use client"`、描画なし）を新規作成し、`useEffect`で`markInquiryReadAction(inquiryId)`をマウント時に1度呼び出す（エラーは握りつぶす）
+  - `InquiryDetail`（Server）が問い合わせ取得成功時にのみ`<MarkInquiryRead inquiryId={inquiry.id} />`をレンダリングする（見つからない・エラー状態では既読記録しない）
+  - ブラウザで詳細画面を開くと既読が記録され、一覧へ戻ると新着インジケーターが消えることで完了とする
+  - _Requirements: 14.4, 14.6_
+  - _Boundary: MarkInquiryRead, InquiryDetail_
+  - _Depends: 29.2_
+
+---
+
+- [ ] 31. 検証（新着表示・既読管理）
+- [ ] 31.1 未読判定・既読更新の単体テストを作成する
+  - `listUnreadReplyInquiryIds`が`lastReadAt`のnull/過去/未来・`requester_message`のみの場合・ヘルプデスク起点履歴の最新発生時刻との比較で正しく未読を判定することを検証する
+  - `markInquiryRead`が`lastReadAt`のみを更新し`status`・`claim`を変更しないこと、他社スコープのIDでは更新しないことを検証するテストが通ることで完了とする
+  - _Requirements: 14.3, 14.5_
+  - _Depends: 28.2, 29.1_
+
+- [ ] 31.2 InquiryListItem・MarkInquiryReadの統合テストを作成する
+  - `InquiryListItem`が`hasUnreadReply`の真偽で新着インジケーターの表示/非表示を切り替えることを検証する
+  - `MarkInquiryRead`がマウント時に`markInquiryReadAction`を1度呼び出すことを検証するテストが通ることで完了とする
+  - _Requirements: 14.1, 14.2, 14.4_
+  - _Depends: 30.1, 30.3_
+
+- [ ] 31.3 * 新着表示・既読管理のE2E確認を行う
+  - ヘルプデスク側で返信を記録→申請一覧に新着インジケーターが表示される→詳細画面を開く→一覧へ戻ると新着インジケーターが消えることを日本語・英語の両方で確認する
+  - _Requirements: 14.1, 14.4, 14.6_
+  - _Depends: 31.2_

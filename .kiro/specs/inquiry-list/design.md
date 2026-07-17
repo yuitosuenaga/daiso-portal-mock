@@ -16,6 +16,8 @@
 
 **Impact（追加ラウンド・2026-07-10）**: 一覧行が案件種別のみで中身を区別できないという課題を受け、`inquiry-form`spec側が新設する`Inquiry.title`を一覧・詳細の見出しとして表示し、あわせて自由記述（`originalText`）の2行プレビューを一覧行に表示する。また`InquiryList`の成功・空・エラー3状態すべてで`CardHeader`/`CardTitle`による見出しの重複表示を除去し、`announcements`spec所有の`AnnouncementList`と同じ`Card`+`CardContent className="pt-6"`構成に統一する。`Inquiry.title`フィールド自体・フォーム側の変更は`inquiry-form`spec側の追加要望であり、本specはこれを読み取り専用の依存として表示するのみ。
 
+**Impact（追加ラウンド・2026-07-17）**: ヘルプデスクが返信・ステータス変更等を行っても、申請者が申請一覧（`/inquiry`）上で「新着」に気づく手段がなかった。本ラウンドでは、申請一覧の各行にヘルプデスク起点の未読対応履歴（新着）を示すインジケーターを追加し、申請者が詳細画面（`/inquiry/[id]`）を開いた時点でその問い合わせを既読として記録する。既読状態を保持するため`Inquiry`モデルへ既読タイムスタンプ（`lastReadAt`）を1つ追加する（フェーズ1では問い合わせ単位＝同一会社内で共有される既読状態として扱う）。既読の記録は`status`・`claim`に一切の副作用を持たず、要件11.8（解決済みの問い合わせは追加メッセージで自動再オープンしない）と矛盾しない。メール等の外部通知は今回スコープ外（保留）とする。
+
 ### Goals
 - 自社の問い合わせを送信日時降順で一覧表示し、対応状況・緊急度を視覚的に区別できる
 - 一覧項目から詳細画面へ遷移し、自由記述本文を含む詳細情報を確認できる
@@ -25,14 +27,16 @@
 - （追加）詳細画面で、問い合わせ本文・返信の添付ファイルを確認・ダウンロードできる
 - （追加）詳細画面で、当該問い合わせへ追加メッセージ（添付ファイルを含む）を送信でき、送信内容が対応履歴に反映される
 - （追加・2026-07-10）一覧行から`Inquiry.title`と本文の2行プレビューを確認でき、詳細画面にも`title`が見出しとして表示される。一覧の`Card`表示から重複した見出しが除去され、余白が整理される
+- （追加・2026-07-17）申請一覧の各行で、ヘルプデスク起点の未読対応履歴（新着）があることに視覚的に気づける。詳細画面を開くとその問い合わせが既読として記録され、新着インジケーターが消える
 
 ### Non-Goals
 - ヘルプデスク担当者向けの対応状況の変更・返信・コメント機能
 - 他社（自社以外）の問い合わせの参照、認証・ログイン機能
 - 問い合わせの検索・絞り込み・並び替えのカスタマイズ
-- （追加）新着返信の通知・未読管理、対応履歴の担当者名表示
+- （追加）対応履歴の担当者名表示
 - （追加）添付ファイルの型・上限定数・検証ロジック・選択UI・アップロード操作（表示のみが対象）
-- （追加）`InquiryHistoryEntryType`の型定義自体の変更（`helpdesk-inquiry-management`spec所有）、送信メッセージによる`status`・`claim`の自動変更、新着メッセージの通知・未読管理、送信済みメッセージの編集・削除
+- （追加）`InquiryHistoryEntryType`の型定義自体の変更（`helpdesk-inquiry-management`spec所有）、送信メッセージによる`status`・`claim`の自動変更、送信済みメッセージの編集・削除
+- （追加・2026-07-17）新着返信のメール等の外部通知（プッシュ通知・SMTP配信を含む。今回は保留）、未読件数の集約カウント表示（ダッシュボード・サイドバー）、既読の申請者ユーザー単位の区別（フェーズ1は問い合わせ単位で共有）、ヘルプデスク側での既読/未読管理
 
 ## Boundary Commitments
 
@@ -45,6 +49,7 @@
 - （追加）詳細画面・対応履歴セクションにおける添付ファイル表示の組み込み（`AttachmentPreviewList`の呼び出し配線のみ。コンポーネント自体は所有しない）
 - （追加・2026-07-07・2）追加メッセージの送信フォーム（`ApplicantMessageForm`）、送信用のServer Action（`sendApplicantMessageAction`）、対応する翻訳キー（`inquiryList.message`名前空間）
 - （追加・2026-07-10）`InquiryListItem`・`InquiryDetail`での`Inquiry.title`表示配線、一覧行の本文（`originalText`）プレビュー表示、`InquiryList`の`Card`表示構成（重複見出し除去）
+- （追加・2026-07-17）申請一覧の各行の未読/新着インジケーター表示、未読判定ロジック（ヘルプデスク起点履歴の最新発生時刻 vs 既読時刻）、既読記録用のServer Action（`markInquiryReadAction`）・API関数（`getUnreadReplyInquiryIds`・`markInquiryRead`）・サービス関数、`Inquiry`モデルへの既読タイムスタンプ（`lastReadAt`）の加法的追加、対応する翻訳キー（`inquiryList.list.newBadge`等）
 
 ### Out of Boundary
 - `Inquiry`型・`CreateInquiryInput`型・`createInquiry`関数・`getInquiryStatusSummary`関数（`inquiry-form`仕様が所有）。本仕様はこれらを一切変更しない
@@ -54,6 +59,7 @@
 - （追加）`InquiryAttachment`型・添付ファイルの上限定数・検証ユーティリティ（`inquiry-form`spec所有）、`AttachmentPreviewList`コンポーネント自体・`AttachmentField`（いずれも`helpdesk-inquiry-management`/`inquiry-form`spec所有）。本仕様はこれらを変更せず読み取り専用で呼び出すのみ行う
 - （追加・2026-07-07・2）`InquiryHistoryEntryType`の型定義自体（`helpdesk-inquiry-management`spec所有）、ヘルプデスク側の対応履歴タイムライン表示（`helpdesk-inquiry-management`spec所有）。本仕様は型を変更せず、既存の公開関数（`appendInquiryHistoryEntry`）を呼び出すのみ行う
 - （追加・2026-07-10）`Inquiry.title`フィールド自体の追加・フォームでの入力（`inquiry-form`spec所有）、ヘルプデスク側管理画面でのタイトル表示（`helpdesk-inquiry-management`spec所有、今回は対象外）
+- （追加・2026-07-17）ヘルプデスク側の対応履歴記録ロジック（`appendHistoryEntry`等、`helpdesk-inquiry-management`spec所有）は変更しない。既読機能は履歴の**読み取り**（発生時刻の参照）と、`Inquiry.lastReadAt`の**書き込み**のみで実現し、ヘルプデスク側の書き込み経路には手を入れない。未読件数の集約表示（ダッシュボードカードの`InquiryListCard`バッジ・サイドバー、`dashboard`spec所有）、メール等の外部通知（保留）
 
 ### Allowed Dependencies
 - `dashboard` 仕様が提供する `AppShell` / ロケールレイアウト
@@ -65,6 +71,7 @@
 - （追加・2026-07-07・2）`helpdesk-inquiry-management` 仕様が定義した `appendInquiryHistoryEntry` 関数（`src/lib/api/inquiry-history.ts`、既存の公開関数を呼び出して追加メッセージを記録する）・`InquiryHistoryEntryType`の`"requester_message"`値（`helpdesk-inquiry-management`spec側で追加予定）
 - （追加・2026-07-07・2）`inquiry-form` 仕様が定義した `AttachmentField` コンポーネント・`inquiryAttachmentsArraySchema`（zod、既存export済み、サーバー側検証で再利用する）
 - （追加・2026-07-10）`inquiry-form` 仕様が追加する `Inquiry.title` フィールド（読み取り専用で表示する）
+- （追加・2026-07-17）`helpdesk-inquiry-management` 仕様が定義した `getInquiryHistory` 関数・`InquiryHistoryEntry.occurredAt`/`type`（未読判定のため発生時刻・種別を読み取り専用で参照する）。`inquiry-list` spec が導入済みの申請者セッション解決（`requireApplicantSession`）・自社スコープの問い合わせ取得（`findInquiryForCompany`）
 
 ### Revalidation Triggers
 - `inquiry-form`仕様が`Inquiry`型のフィールド形状や`inquiryForm.options.*`の翻訳キー構造を変更した場合、本仕様の一覧・詳細表示に影響がないか再確認が必要
@@ -73,6 +80,7 @@
 - （追加）`helpdesk-inquiry-management`仕様が`AttachmentPreviewList`のprops契約（`attachments: InquiryAttachment[]`）を変更した場合、本仕様の呼び出し箇所（`InquiryDetail`・`InquiryHistoryList`）への影響を再確認する
 - （追加・2026-07-07・2）`helpdesk-inquiry-management`仕様が`InquiryHistoryEntryType`に新たな種別を追加・変更する場合、本仕様の`InquiryHistoryList`の網羅的switch文が追随の必要があることを常に確認する。逆に本仕様が`appendInquiryHistoryEntry`の呼び出し方（`type`・`detail`・`attachments`の形状）を変更する場合は、`helpdesk-inquiry-management`仕様側の表示ロジックへの影響を確認する
 - （追加・2026-07-10）`inquiry-form`仕様が`Inquiry.title`のフィールド形状・最大文字数を変更した場合、本仕様の一覧・詳細表示への影響を再確認する
+- （追加・2026-07-17）`helpdesk-inquiry-management`仕様が`InquiryHistoryEntryType`の種別集合を変更（新たなヘルプデスク起点種別の追加、`requester_message`相当の申請者起点種別の追加等）した場合、未読判定に含める種別集合（`requester_message`以外＝ヘルプデスク起点）の定義を再確認する
 
 ## Architecture
 
@@ -509,3 +517,101 @@ function sendApplicantMessageAction(
 ## 追加（2026-07-15）: 表示文言変更（問い合わせ一覧→申請一覧）
 
 別ブランチ（`chore/rename-inquiry-to-application-labels`）でのUI表示文言のみの変更（要件1.1更新）であり、コンポーネント構成・データフロー・データモデルへの設計変更は発生しない。翻訳キー（`navigation.inquiryList`・`inquiryList.list.*`）の値変更のみ。
+
+## 追加（2026-07-17）: 新着返信の未読表示と既読管理
+
+### Overview（追加分）
+申請一覧（`/inquiry`）の各行に、ヘルプデスク起点の未読対応履歴（新着）があることを示すインジケーターを表示し、申請者が詳細画面（`/inquiry/[id]`）を開いた時点でその問い合わせを既読として記録する。既読状態は`Inquiry`モデルへ加法的に追加する既読タイムスタンプ（`lastReadAt`）で保持する。未読判定・既読記録のいずれも`status`・`claim`には副作用を持たない（要件11.8と非矛盾）。メール等の外部通知は今回スコープ外（保留）。
+
+### 未読判定のセマンティクス（追加分）
+- ある問い合わせが「未読（新着あり）」であるのは、**ヘルプデスク起点の対応履歴（`reply_sent`・`status_changed`・`claimed`・`released` の各種別。`requester_message` は除く）のうち最新の`occurredAt`が、当該問い合わせの`lastReadAt`より新しい**（または`lastReadAt`が`null`＝一度も詳細を開いていない状態で、ヘルプデスク起点の履歴が1件以上存在する）場合とする。
+- 問い合わせ作成直後（ヘルプデスク起点の履歴が0件）の問い合わせは、`lastReadAt`が`null`でも未読にならない（申請者自身が作成したものであり、ヘルプデスク起点の新着が存在しないため）。
+- 申請者自身の送信メッセージ（`requester_message`）は未読判定に含めない（自分の送信で自分に新着が付くのを防ぐ）。
+
+### データモデル変更（追加分・要検討事項の結論）
+- **結論: `Inquiry` モデルへ `lastReadAt DateTime?`（nullable、既定`null`）を1フィールドだけ加法的に追加する。** `InquiryHistoryEntry`型・`Inquiry`の他フィールドは変更しない。未読判定に必要な「ヘルプデスク起点履歴の最新発生時刻」は既存の`InquiryHistoryEntry.occurredAt`から読み取りで得られるため、履歴側へのフィールド追加は不要。
+- **公開`Inquiry`型（`src/types/inquiry.ts`）には`lastReadAt`を追加しない。** `lastReadAt`は永続化・未読判定のためのサーバー内部の関心事であり、未読の有無（`hasUnreadReply: boolean`）はサーバー側で算出して一覧へ渡す。これにより`inquiry-form`spec所有の`Inquiry`型契約を変更せずに済む（`Inquiry`型はフォーム・ダッシュボード・ヘルプデスク側でも共有されているため、フィールド追加の影響範囲を避ける）。
+- **既読の粒度（フェーズ1の判断）**: `lastReadAt`は`Inquiry`（問い合わせ）単位で保持する。問い合わせは会社スコープ（同一会社の申請者は同じ問い合わせを共有して閲覧する）であるため、フェーズ1では**問い合わせ単位＝同一会社内で共有される既読状態**として扱う。個々の申請者ユーザー単位で既読を区別する場合は`(ApplicantUser, Inquiry)`の結合テーブルが必要になるが、これは本ラウンドの最小追加方針・モックスコープを超えるため、将来対応（スコープ外）とする（他のフェーズ1簡略化と同じ扱い）。
+- **Prismaスキーマ変更方針**（`prisma/schema.prisma`。本設計フェーズでは実際の`prisma migrate`コマンドは実行しない。設計のみ）:
+  ```prisma
+  model Inquiry {
+    // ...既存フィールドは変更しない...
+    lastReadAt DateTime?   // 申請者が最後に詳細を開いた時刻。null=未読基準（一度も開いていない）
+  }
+  ```
+  - nullable かつ既定値なしのため、既存レコードへの後方互換な追加であり、実装フェーズで`prisma migrate dev`（本番は`prisma migrate deploy`）による1マイグレーションを追加する。
+  - MEMORY記載の運用注意（本番Cloud SQLへの`prisma migrate deploy`は手動・都度必要）は、本フィールド追加のデプロイ時にも該当する。
+
+### System Flow（追加分）
+```mermaid
+sequenceDiagram
+    participant User as 販社担当者
+    participant List as InquiryList（Server）
+    participant Detail as InquiryDetail（Server）
+    participant Reader as MarkInquiryRead（Client）
+    participant Action as markInquiryReadAction
+    participant Api as inquiries API / inquiry-service
+    participant DB as DB（Inquiry.lastReadAt / InquiryHistoryEntry）
+
+    User->>List: /inquiry を開く
+    List->>Api: getInquiries() + getUnreadReplyInquiryIds()
+    Api->>DB: 会社スコープの問い合わせ・ヘルプデスク起点履歴の最新occurredAt・lastReadAtを取得
+    Api-->>List: 問い合わせ配列 + 未読の問い合わせIDリスト
+    List-->>User: 未読の行に新着インジケーターを表示
+    User->>Detail: 問い合わせ詳細（/inquiry/[id]）を開く
+    Detail-->>Reader: マウント時に既読記録をトリガー
+    Reader->>Action: markInquiryReadAction(inquiryId)
+    Action->>Api: markInquiryRead(inquiryId)（申請者セッション・自社スコープ）
+    Api->>DB: lastReadAt = now に更新（status・claimは変更しない）
+    Action->>Reader: revalidatePath("/[locale]/inquiry")
+    Reader-->>User: 次回の一覧表示で当該行の新着インジケーターが消える
+```
+
+**Key Decisions（追加分・2026-07-17）**:
+- **既読記録は「詳細画面の閲覧」で行うが、Server Componentのレンダリング中には副作用（書き込み）を行わない。** RSCのレンダリングは冪等・副作用なしであるべきため、既読記録は詳細ページに設置する小さなClient Component（`MarkInquiryRead`）が`useEffect`（マウント時）で`markInquiryReadAction`（Server Action）を呼び出す形にする。これにより「GETで状態変更」アンチパターン・レンダリングの二重実行問題を避ける。
+- **未読判定はサーバー側で算出し、一覧へは未読の問い合わせIDの集合（`string[]` → `Set<string>`）として渡す。** `getInquiries()`（既存・`Inquiry[]`を返す）の戻り値型は変更せず、未読IDは新規関数`getUnreadReplyInquiryIds()`で別取得する。これにより既存の`getInquiries`・`getInquiryStatusSummary`・`Inquiry`型契約を一切変更しない。
+- **既読記録・未読表示は`status`・`claim`に一切書き込まない。** `markInquiryRead`は`lastReadAt`のみを更新する。要件11.8（解決済みは追加メッセージで自動再オープンしない）と同じく、閲覧・既読という受動的操作が問い合わせの対応状態を動かさないことを保証する。
+- **未読判定に含める種別は「`requester_message`以外」＝ヘルプデスク起点。** `helpdesk-inquiry-management`spec側で申請者起点の新種別が追加された場合はRevalidation Triggerに従い再確認する。
+
+### Component / Interface Design（追加分）
+- **`getUnreadReplyInquiryIds(): Promise<string[]>`（`src/lib/api/inquiries.ts`、新規）**: 申請者セッション（`requireApplicantSession`）を要求し、自社スコープの問い合わせのうち未読（上記セマンティクス）の問い合わせIDを返す。実装はサービス層の新規関数へ委譲する。
+- **`markInquiryRead(inquiryId: string): Promise<void>`（`src/lib/api/inquiries.ts`、新規）**: 申請者セッションを要求し、`findInquiryForCompany`で自社スコープを確認したうえで対象問い合わせの`lastReadAt`を現在時刻に更新する（他社の問い合わせIDを指定しても更新しない）。`status`・`claim`は変更しない。
+- **サービス層（`src/lib/server/inquiry-service.ts`、新規関数）**: `listUnreadReplyInquiryIds(companyId)`（会社スコープの問い合わせと履歴を参照し未読IDを算出）・`markInquiryRead(id, companyId)`（自社スコープで`lastReadAt`を更新）。`INQUIRY_INCLUDE`・`mapInquiry`等の既存資産は変更せず、未読判定用のクエリは専用に追加する。
+- **`markInquiryReadAction(inquiryId: string): Promise<void>`（`src/lib/actions/inquiry.ts`、新規Server Action）**: `"use server"`。`inquiryIdSchema`で検証し、`markInquiryRead`を呼び出したのち`/[locale]/inquiry`（一覧ルート）を`revalidatePath`する。既存の`sendApplicantMessageAction`と同じセッション・検証・revalidateの構造を踏襲する。
+- **`MarkInquiryRead`（`src/components/features/inquiry-list/MarkInquiryRead.tsx`、新規・Client）**: `"use client"`。`inquiryId`をpropで受け取り、`useEffect`（マウント時・`inquiryId`変化時）で`markInquiryReadAction(inquiryId)`を1度呼び出す。UIは描画しない（`null`を返す）。エラーは握りつぶす（既読記録の失敗は詳細表示を妨げない）。`InquiryDetail`（Server）が問い合わせ取得成功時にのみレンダリングする。
+- **`InquiryList`（Server）**: `getInquiries()`に加えて`getUnreadReplyInquiryIds()`を`Promise.all`で取得し、未読IDを`InquiryListClient`へ`unreadInquiryIds: string[]`として渡す。取得失敗時（未読ID取得のみ失敗）は空配列にフォールバックし、一覧本体の表示は妨げない。
+- **`InquiryListClient`（Client）**: `unreadInquiryIds`を`Set`化し、各`InquiryListItem`へ`hasUnreadReply={unreadSet.has(item.id)}`を渡す。フィルタ結果の並び順・0件表示は既存のまま維持する。
+- **`InquiryListItem`（Client）**: 新規prop `hasUnreadReply: boolean`（および新着ラベル文言prop）を受け取り、`true`のときタイトル付近に新着インジケーター（`Badge`もしくは小さなドット＋`aria-label`付きの視覚要素）を表示する。`false`のときは表示しない。
+- **`InquiryDetail`（Server）**: 問い合わせ取得成功時、既存の描画に加えて`<MarkInquiryRead inquiryId={inquiry.id} />`をレンダリングする。見つからない・エラー状態では既読記録しない。
+
+### Modified Files（追加分）
+- `prisma/schema.prisma` — `Inquiry`モデルに`lastReadAt DateTime?`を加法的に追加する（他モデル・他フィールドは変更しない）
+- `src/lib/server/inquiry-mapper.ts` — 必要に応じて`lastReadAt`を扱う（公開`Inquiry`型には露出しないため、未読判定はサービス層のクエリ内で完結させ、マッパーの変更は最小限にとどめる）
+- `src/lib/server/inquiry-service.ts` — `listUnreadReplyInquiryIds(companyId)`・`markInquiryRead(id, companyId)`を追加。既存関数は変更しない
+- `src/lib/api/inquiries.ts` — `getUnreadReplyInquiryIds()`・`markInquiryRead(inquiryId)`を追加。既存の`getInquiries`・`getInquiryById`・`getInquiryStatusSummary`等は変更しない
+- `src/lib/actions/inquiry.ts` — `markInquiryReadAction(inquiryId)`を追加。既存の`createInquiryAction`・`sendApplicantMessageAction`は変更しない
+- `src/components/features/inquiry-list/MarkInquiryRead.tsx`（新規） — 詳細画面での既読記録トリガー（Client、描画なし）
+- `src/components/features/inquiry-list/InquiryDetail.tsx` — 取得成功時に`MarkInquiryRead`を組み込む
+- `src/components/features/inquiry-list/InquiryList.tsx` — `getUnreadReplyInquiryIds()`を追加取得し`InquiryListClient`へ渡す
+- `src/components/features/inquiry-list/InquiryListClient.tsx` — `unreadInquiryIds`を受け取り各`InquiryListItem`へ`hasUnreadReply`を渡す
+- `src/components/features/inquiry-list/InquiryListItem.tsx` — `hasUnreadReply`prop・新着ラベルpropを追加し、新着インジケーターを表示する
+- `messages/ja.json` / `messages/en.json` — `inquiryList.list.newBadge`（新着インジケーターの表示文言・`aria-label`用、例: 「新着」/"New"）を追加する
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 14.1, 14.2 | 一覧行の新着インジケーター表示/非表示 | InquiryList, InquiryListClient, InquiryListItem |
+| 14.3 | 未読判定（ヘルプデスク起点履歴の最新発生時刻 vs 既読時刻。requester_message除外） | getUnreadReplyInquiryIds, listUnreadReplyInquiryIds |
+| 14.4 | 詳細画面を開いた時点での既読記録 | MarkInquiryRead, markInquiryReadAction, markInquiryRead |
+| 14.5 | 既読記録が status・claim を変更しない | markInquiryRead（inquiry-service） |
+| 14.6 | 既読後の再表示で新着インジケーターが消える | markInquiryReadAction（revalidatePath）, InquiryList |
+| 14.7 | 新着インジケーターの多言語対応 | i18n messages |
+
+### Testing Strategy（追加分）
+- **Unit Tests**: `listUnreadReplyInquiryIds`/未読判定の純粋ロジック（`lastReadAt`がnull・過去・未来の各ケース、`requester_message`のみの場合は未読にならない、ヘルプデスク起点履歴の最新発生時刻が`lastReadAt`より新しい/古い場合の切り替え）。`markInquiryRead`が`lastReadAt`のみを更新し`status`・`claim`を変更しないこと、他社スコープの問い合わせIDでは更新しないこと
+- **Integration Tests**: `InquiryListItem`が`hasUnreadReply`の真偽で新着インジケーターの表示/非表示を切り替えること、`MarkInquiryRead`がマウント時に`markInquiryReadAction`を1度呼び出すこと
+- **E2E/UI Tests**: ヘルプデスク側で返信を記録→申請一覧に新着インジケーターが表示される→詳細画面を開く→一覧へ戻ると新着インジケーターが消える、を日本語・英語の両方で確認する
+
+### Security Considerations（追加分）
+- `markInquiryRead`・`getUnreadReplyInquiryIds`はいずれも申請者セッション（`requireApplicantSession`）を要求し、自社スコープ（`companyId`）に限定する。他社の問い合わせIDを指定しても既読更新・未読参照はできない（`findInquiryForCompany`と同じ所有権判定をDBクエリ側で行う）。
+- 既読記録は`lastReadAt`のみを書き換える冪等な更新であり、`status`・`claim`・履歴には一切書き込まない。改ざん・エスカレーションの余地を持たない。
