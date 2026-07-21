@@ -874,3 +874,52 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 32.1, 32.4_
   - _Depends: 41.2_
+
+## 追加ラウンド（2026-07-21）: 配信対象国・地域選択UIの刷新
+
+- [x] 45. コア: 配信対象国・地域選択UIの刷新
+- [x] 45.1 `CountryTargetingSelect`コンポーネントを新規実装する
+  - 検索ボックス（国名によるフィルタ）・チェックボックス形式の候補一覧・選択済み国のチップ表示・選択件数表示・「すべて選択」（表示中の候補が対象）・「選択をすべて解除」（選択済み全件が対象）を備える
+  - `value: string[]`/`onChange: (value: string[]) => void`のcontrolled componentとして実装し、検索語はコンポーネント内部のローカル状態として保持する
+  - 候補一覧は`role="group"`＋`aria-label`、各候補は`<label htmlFor>`でチェックボックスと結び付け、キーボード操作・スクリーンリーダー対応を確保する。バリデーションエラー時は`data-invalid`属性＋`border-destructive`で視覚的に強調する（`role="group"`は`aria-invalid`非対応のためDOM属性としては付与しない）
+  - 選択状態の配色は`bg-accent`/`border-primary`/`accent-primary`等、CSS変数経由のTailwindユーティリティのみを使用する
+  - _Requirements: 34.1, 34.2, 34.3, 34.4, 34.5, 34.7_
+  - _Boundary: components/features/helpdesk-announcements/CountryTargetingSelect.tsx_
+
+- [x] 45.2 `AnnouncementForm`の配信対象国選択欄を`CountryTargetingSelect`に差し替える
+  - `targeting.countries`の`Controller`内のネイティブ`Select multiple`を`CountryTargetingSelect`に置き換え、`field.value`/`field.onChange`をそのまま接続する（送信データ形式は不変）
+  - 検索・全選択・全解除・選択件数・該当なし・チップ削除の各ラベルをpropsとして追加し、`AnnouncementFormProps`を拡張する
+  - 国選択欄を包む`FormField`の`htmlFor`を、新しい検索入力のidに合わせて更新する
+  - _Requirements: 34.1, 34.6, 34.8_
+  - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.tsx_
+  - _Depends: 45.1_
+
+- [x] 45.3 翻訳キー・ページコンポーネントを更新する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskAnnouncements.form`名前空間に`countriesSearchPlaceholder`・`countriesSelectAllButtonLabel`・`countriesClearAllButtonLabel`・`countriesSelectedCountLabel`（`{count}`プレースホルダー形式）・`countriesNoResultsMessage`・`countriesRemoveChipButtonLabel`を追加する
+  - `new/page.tsx`・`[id]/edit/page.tsx`から上記の翻訳を取得し、`AnnouncementForm`へ渡す
+  - _Requirements: 34.8_
+  - _Boundary: messages/ja.json, messages/en.json, app/[locale]/helpdesk/(dashboard)/announcements/new/page.tsx, app/[locale]/helpdesk/(dashboard)/announcements/[id]/edit/page.tsx_
+  - _Depends: 45.2_
+
+- [x] 46. 検証: 単体テスト
+- [x] 46.1 (P) `CountryTargetingSelect`のコンポーネントテストを実装する
+  - 候補表示、チェックボックスでの選択・解除、検索フィルタと選択状態の維持、該当なしメッセージ、「すべて選択」（表示中のみが対象で既存選択を壊さないこと含む）、「選択をすべて解除」、チップ削除、`ariaInvalid`時の`data-invalid`反映を検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 34.2, 34.3, 34.4, 34.5_
+  - _Boundary: components/features/helpdesk-announcements/CountryTargetingSelect.test.tsx_
+  - _Depends: 45.1_
+
+- [x] 46.2 `AnnouncementForm`の既存テストをチェックボックス操作に更新する
+  - 国選択の操作をネイティブ`select`の`selectedOptions`操作からチェックボックスのクリック操作に更新し、0件選択時のブロック・複数選択時の送信データ形式（`targeting.countries: string[]`）が既存と変わらないことを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 34.1, 34.6_
+  - _Boundary: components/features/helpdesk-announcements/AnnouncementForm.test.tsx_
+  - _Depends: 45.2_
+
+- [x] 47. 検証: 実機確認
+- [x] 47.1 日本語・英語両ロケールでの配信対象国選択UIの動作確認
+  - ヘルプデスクとしてログインし、お知らせ新規作成画面で「特定の国・地域を指定」を選択し、検索・「すべて選択」・「選択をすべて解除」・チップからの個別解除・0件選択時の送信ブロックをブラウザで確認する
+  - 日本語・英語の両ロケールで表示文字列が翻訳キー経由で正しく出し分けられることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 34.1, 34.2, 34.3, 34.4, 34.8_
+  - _Depends: 46.1, 46.2_

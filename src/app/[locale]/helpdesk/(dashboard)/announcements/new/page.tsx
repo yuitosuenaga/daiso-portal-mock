@@ -62,6 +62,12 @@ export default async function HelpdeskAnnouncementNewPage() {
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
         countriesLabel={t("countriesLabel")}
+        countriesSearchPlaceholder={t("countriesSearchPlaceholder")}
+        countriesSelectAllButtonLabel={t("countriesSelectAllButtonLabel")}
+        countriesClearAllButtonLabel={t("countriesClearAllButtonLabel")}
+        countriesSelectedCountLabel={t.raw("countriesSelectedCountLabel")}
+        countriesNoResultsMessage={t("countriesNoResultsMessage")}
+        countriesRemoveChipButtonLabel={t("countriesRemoveChipButtonLabel")}
         publishStartDateLabel={t("publishStartDateLabel")}
         publishEndDateLabel={t("publishEndDateLabel")}
         publishPeriodHint={t("publishPeriodHint")}

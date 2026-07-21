@@ -170,6 +170,12 @@
       "targetingAllOption": "全体一律",
       "targetingCountriesOption": "特定の国・地域を指定",
       "countriesLabel": "国・地域（複数選択可）",
+      "countriesSearchPlaceholder": "国名で検索",
+      "countriesSelectAllButtonLabel": "すべて選択",
+      "countriesClearAllButtonLabel": "選択をすべて解除",
+      "countriesSelectedCountLabel": "{count}件選択中",
+      "countriesNoResultsMessage": "該当する国・地域がありません",
+      "countriesRemoveChipButtonLabel": "削除",
       "submitButton": "保存する",
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {

@@ -8,6 +8,7 @@ import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
+import { CountryTargetingSelect } from "@/components/features/helpdesk-announcements/CountryTargetingSelect";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,12 @@ export interface AnnouncementFormProps {
   targetingAllOption: string;
   targetingCountriesOption: string;
   countriesLabel: string;
+  countriesSearchPlaceholder: string;
+  countriesSelectAllButtonLabel: string;
+  countriesClearAllButtonLabel: string;
+  countriesSelectedCountLabel: string;
+  countriesNoResultsMessage: string;
+  countriesRemoveChipButtonLabel: string;
   publishStartDateLabel: string;
   publishEndDateLabel: string;
   publishPeriodHint: string;
@@ -122,6 +129,12 @@ export function AnnouncementForm({
   targetingAllOption,
   targetingCountriesOption,
   countriesLabel,
+  countriesSearchPlaceholder,
+  countriesSelectAllButtonLabel,
+  countriesClearAllButtonLabel,
+  countriesSelectedCountLabel,
+  countriesNoResultsMessage,
+  countriesRemoveChipButtonLabel,
   publishStartDateLabel,
   publishEndDateLabel,
   publishPeriodHint,
@@ -577,7 +590,7 @@ export function AnnouncementForm({
           label={countriesLabel}
           required
           requiredIndicator={requiredIndicator}
-          htmlFor="announcement-targeting-countries"
+          htmlFor="announcement-targeting-countries-search"
           error={
             errors.targeting && "countries" in errors.targeting
               ? countriesRequiredErrorMessage
@@ -588,24 +601,23 @@ export function AnnouncementForm({
             control={control}
             name="targeting.countries"
             render={({ field }) => (
-              <Select
+              <CountryTargetingSelect
                 id="announcement-targeting-countries"
-                multiple
                 options={countryOptions}
                 value={field.value ?? []}
-                aria-invalid={
+                onChange={field.onChange}
+                ariaInvalid={
                   errors.targeting && "countries" in errors.targeting
                     ? true
                     : undefined
                 }
-                onChange={(event) =>
-                  field.onChange(
-                    Array.from(
-                      event.target.selectedOptions,
-                      (option) => option.value
-                    )
-                  )
-                }
+                groupLabel={countriesLabel}
+                searchPlaceholder={countriesSearchPlaceholder}
+                selectAllButtonLabel={countriesSelectAllButtonLabel}
+                clearAllButtonLabel={countriesClearAllButtonLabel}
+                selectedCountLabel={countriesSelectedCountLabel}
+                noResultsMessage={countriesNoResultsMessage}
+                removeChipButtonLabel={countriesRemoveChipButtonLabel}
               />
             )}
           />

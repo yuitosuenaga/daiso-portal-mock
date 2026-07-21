@@ -1814,4 +1814,111 @@ interface AnnouncementNotificationService {
   - `ja`・`en`のいずれかが未入力のまま保存しようとするとブロックされること
   - 日本語・英語両ロケール、タブレット幅（768px）で言語タブUIが横スクロールを起こさないこと
 
+## 追加ラウンド（2026-07-21）: 配信対象国・地域選択UIの刷新
+
+### Overview（追加分）
+`AnnouncementForm`の配信対象「特定の国・地域を指定」で使用しているネイティブの`<select multiple>`（`INQUIRY_COUNTRY_CODES`由来、23か国規模）を、検索ボックス・チェックボックス形式の一覧・選択済み国のチップ表示・全選択/全解除操作を備えたカスタムコンポーネント`CountryTargetingSelect`に置き換える。**Purpose**: Ctrl+クリックによる多重選択の分かりにくさ、検索手段の欠如、一括操作の欠如、選択状態の可視性の低さという操作性上の課題を解消し、23か国規模の選択肢でもヘルプデスク担当者が直感的かつ正確に配信対象を指定できるようにする。**Impact**: データモデル・サーバーアクション・バリデーションスキーマの変更は伴わない（送信データ形式`targeting.countries: string[]`は不変）。純粋にフォームのUIコンポーネント差し替えであり、`react-hook-form`の`Controller`との結線方式（`value`/`onChange`）もそのまま維持する。
+
+### Goals（追加分）
+- 「特定の国・地域を指定」時、国名による絞り込み検索ができる
+- 表示中の候補全件を一括選択する操作、選択済みの国・地域を一括解除する操作ができる
+- 現在選択されている国・地域の一覧（件数・チップ）を常時視認でき、チップから個別に解除できる
+- 既存の`react-hook-form + zod`統合・送信データ形式・1件以上選択必須のバリデーション（要件5.3）を変更しない
+- キーボード操作・スクリーンリーダーでの読み上げに配慮したマークアップとする
+- ブランドガイドライン（`--primary`のDAISOピンク）を選択状態の表現に使う
+
+### Non-Goals（追加分）
+- 地域（東南アジア等）単位でのグルーピング表示（分類メタデータが`INQUIRY_COUNTRY_CODES`に存在しないため対象外。将来要件として持ち越す）
+- 配信対象確定前の対象会社数・対象人数の集計確認表示（例:「対象X社に配信されます」。会社データとの追加連携が必要になるため対象外。将来要件として持ち越す）
+- `documents-management`spec所有のドキュメント公開範囲フォーム（`DocumentForm`）の同種の国選択UIの置き換え（本ラウンドは`announcements-management`spec所有の`AnnouncementForm`のみを対象とする）
+- `INQUIRY_COUNTRY_CODES`自体の値・件数の変更
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- 新規コンポーネント`CountryTargetingSelect`（`src/components/features/helpdesk-announcements/`）
+- `AnnouncementForm.tsx`内の配信対象国選択欄の差し替え（`Controller`の`render`内で`Select multiple`から`CountryTargetingSelect`への置き換え）
+- `messages/ja.json`・`messages/en.json`の`helpdeskAnnouncements.form`名前空間への検索・全選択・全解除・選択件数・該当なし・チップ削除ラベルの追加
+
+**Out of Boundary（追加）**
+- `lib/validation/announcement.ts`（`announcementFormSchema`）・`lib/actions/announcements.ts`・`announcement-service.ts`の変更（送信データ形式が不変のため無変更）
+- `INQUIRY_COUNTRY_CODES`（`lib/constants/inquiry-options.ts`）・国名翻訳キー（`inquiryForm.options.country`）自体の変更
+- 申請者側画面・`documents-management`spec所有のフォームの変更
+
+**Allowed Dependencies（追加）**
+- 既存の`countryOptions: SelectOption[]`（`INQUIRY_COUNTRY_CODES`から生成、ページコンポーネントが引き続き生成して`AnnouncementForm`に渡す）
+- 既存の`Button`・`Input`（`src/components/ui/`）
+- 既存の`FormField`（`src/components/features/inquiry-form/FormField.tsx`）とのラベル・エラー表示統合（`htmlFor`は検索入力のidを指す形に変更）
+
+**Revalidation Triggers（追加）**
+- `targeting.countries`のデータ形式（`string[]`以外への変更）
+- `SelectOption`型（`value`/`label`）の形状変更
+- `FormField`の`htmlFor`/エラー表示契約の変更
+
+### Architecture（追加分）
+
+```mermaid
+graph TB
+    Form[AnnouncementForm]
+    CountrySelect[CountryTargetingSelect new]
+    Controller[react-hook-form Controller]
+    FormField[FormField existing]
+
+    Form --> FormField --> Controller --> CountrySelect
+    CountrySelect -->|onChange string array| Controller
+```
+
+**Architecture Integration（追加分）**:
+- 選択パターン: 既存の`Controller`ベースのcontrolled component統合パターンをそのまま踏襲する。`CountryTargetingSelect`は`value: string[]`/`onChange: (value: string[]) => void`のみを外部契約とし、内部の検索語はコンポーネント自身のローカル状態（`useState`）として保持し、フォーム状態・送信データには含めない
+- ドメイン境界: 「全選択」は検索フィルタ適用後に表示中の候補のみを対象に既存選択との和集合を取る（要件34.3、フィルタ外の既存選択を壊さない）。「全解除」は表示中に関わらず選択済み全件を空にする（要件34.3の文言通り、フィルタスコープに限定しない）
+- アクセシビリティ上の決定: 候補一覧は`role="group"`＋`aria-label`で囲み、各候補は`<label>`でチェックボックスとテキストを結び付ける（クリック領域拡大とスクリーンリーダー対応を両立）。`role="group"`はARIAの`aria-invalid`をサポートしないため、バリデーションエラー時の視覚的強調は`data-invalid`属性＋`border-destructive`クラスで表現し、`aria-invalid`はDOMに付与しない（実装時にESLint `jsx-a11y/role-supports-aria-props`で検出済み）。エラーメッセージ自体は既存の`FormField`が`role="alert"`で表示するため、エラーの存在自体はスクリーンリーダーに伝わる
+- Steering準拠: 選択済みチェックボックス・チップの配色は`bg-accent`・`text-accent-foreground`・`border-primary`・`accent-primary`（チェックボックスのネイティブaccent-color）等、`tailwind.config.ts`の`--primary`/`--accent`トークン経由のユーティリティのみを使用し、色をハードコードしない（`.kiro/steering/brand.md`）
+
+### File Structure Plan（追加分）
+
+```
+src/components/features/helpdesk-announcements/
+├── CountryTargetingSelect.tsx       # 新規: 検索・チェックボックス一覧・チップ・全選択/全解除を備えた複数選択コンポーネント
+├── CountryTargetingSelect.test.tsx  # 新規: 上記のユニットテスト
+├── AnnouncementForm.tsx             # 変更: 配信対象国選択欄をCountryTargetingSelectに差し替え、関連ラベルpropsを追加
+└── AnnouncementForm.test.tsx        # 変更: 国選択の操作をネイティブselectの操作からチェックボックスのクリック操作に更新
+
+messages/
+├── ja.json                          # 変更: helpdeskAnnouncements.form.countries*（検索・全選択・全解除・選択件数・該当なし・チップ削除）を追加
+└── en.json                          # 同上
+
+src/app/[locale]/helpdesk/(dashboard)/announcements/
+├── new/page.tsx                     # 変更: 追加ラベルpropsの受け渡し
+└── [id]/edit/page.tsx               # 変更: 追加ラベルpropsの受け渡し
+```
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 34.1 | ネイティブselect置き換え | `CountryTargetingSelect`, `AnnouncementForm` |
+| 34.2 | 検索・該当なし表示 | `CountryTargetingSelect`（`searchTerm`によるフィルタ、`noResultsMessage`） |
+| 34.3 | 全選択（表示中）・全解除（全件） | `CountryTargetingSelect`（`selectAllVisible`/`clearAll`） |
+| 34.4 | 選択件数・チップ表示・個別解除 | `CountryTargetingSelect`（選択件数テキスト、チップ`<ul>`、チップ削除ボタン） |
+| 34.5 | キーボード操作・ラベル付け | `CountryTargetingSelect`（`<label htmlFor>`によるチェックボックス結合、`role="group"`＋`aria-label`） |
+| 34.6 | react-hook-form/zod統合維持 | `AnnouncementForm`（`Controller`の`value`/`onChange`をそのまま接続） |
+| 34.7 | ブランドカラー使用 | `CountryTargetingSelect`（`bg-accent`/`border-primary`/`accent-primary`） |
+| 34.8 | next-intl翻訳キー対応 | `messages/ja.json`・`messages/en.json`、`AnnouncementForm`props、両ページコンポーネント |
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**（`CountryTargetingSelect.test.tsx`）:
+  - 候補一覧がチェックボックスとして表示され、選択件数が初期状態で0件と表示されること
+  - チェックボックスのクリックで選択・解除の両方向に`onChange`が正しい配列で呼ばれること
+  - 検索語入力で一致しない候補が非表示になり、既存の選択状態（チップ・件数）が維持されること
+  - 検索語に一致する候補が0件のとき該当なしメッセージが表示されること
+  - 「すべて選択」が表示中の候補のみを対象に既存選択との和集合でonChangeを呼ぶこと（フィルタ適用中の非表示選択を壊さないこと）
+  - 「選択をすべて解除」でonChangeが空配列で呼ばれること
+  - チップの削除ボタンから個別に選択解除できること
+  - `ariaInvalid`が真のとき候補グループに`data-invalid`が反映されること
+- **E2E/UI Tests**（`AnnouncementForm.test.tsx`、既存テストの更新分）:
+  - 「特定の国・地域を指定」時、チェックボックスのクリック操作で複数国を選択して送信すると、既存と同じ形式（`targeting: { scope: "countries", countries: string[] }`）で送信されること
+  - 0件選択のまま送信するとブロックされること（既存のバリデーション挙動が維持されていること）
+- 実機検証（Cursorレビューとは別に、実装担当者が完了確認として実施）: ヘルプデスクとしてログインし、お知らせ新規作成画面で検索・全選択・全解除・チップ削除・0件送信ブロックを日本語・英語両ロケールで確認する
+
 ---
