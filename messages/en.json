@@ -170,6 +170,12 @@
       "targetingAllOption": "All countries",
       "targetingCountriesOption": "Specify countries/regions",
       "countriesLabel": "Countries/regions (multiple allowed)",
+      "countriesSearchPlaceholder": "Search by country name",
+      "countriesSelectAllButtonLabel": "Select all",
+      "countriesClearAllButtonLabel": "Clear all",
+      "countriesSelectedCountLabel": "{count} selected",
+      "countriesNoResultsMessage": "No matching countries or regions",
+      "countriesRemoveChipButtonLabel": "Remove",
       "submitButton": "Save",
       "submitError": "Failed to save. Please try again later.",
       "validation": {

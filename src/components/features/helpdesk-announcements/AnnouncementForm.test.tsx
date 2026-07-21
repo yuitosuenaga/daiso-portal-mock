@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
@@ -48,6 +48,12 @@ const labels = {
   targetingAllOption: "全体一律",
   targetingCountriesOption: "特定の国・地域を指定",
   countriesLabel: "国・地域",
+  countriesSearchPlaceholder: "国名で検索",
+  countriesSelectAllButtonLabel: "すべて選択",
+  countriesClearAllButtonLabel: "選択をすべて解除",
+  countriesSelectedCountLabel: "{count}件選択中",
+  countriesNoResultsMessage: "該当する国・地域がありません",
+  countriesRemoveChipButtonLabel: "削除",
   publishStartDateLabel: "公開開始日",
   publishEndDateLabel: "公開終了日",
   publishPeriodHint: "未入力の場合は常時公開になります",
@@ -223,18 +229,8 @@ describe("AnnouncementForm", () => {
       target: { value: "countries" },
     });
 
-    const countriesSelect = screen.getByLabelText(
-      /国・地域/
-    ) as HTMLSelectElement;
-    const vnOption = within(countriesSelect).getByRole("option", {
-      name: "ベトナム",
-    }) as HTMLOptionElement;
-    const jpOption = within(countriesSelect).getByRole("option", {
-      name: "日本",
-    }) as HTMLOptionElement;
-    vnOption.selected = true;
-    jpOption.selected = true;
-    fireEvent.change(countriesSelect);
+    fireEvent.click(screen.getByRole("checkbox", { name: "日本" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "ベトナム" }));
 
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 

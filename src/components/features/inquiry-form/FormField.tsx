@@ -12,6 +12,8 @@ export interface FormFieldProps {
   requiredIndicator?: React.ReactNode;
   /** 表示済みのエラーメッセージ文字列（翻訳解決は呼び出し側の責務） */
   error?: string;
+  /** エラーメッセージ要素に付与するid（`aria-describedby`等で参照する場合に指定） */
+  errorId?: string;
   /** ラベルと関連付けるフォーム要素のid */
   htmlFor?: string;
   /** ラップ対象の入力コンポーネント（Input/Textarea/Select等） */
@@ -28,6 +30,7 @@ export function FormField({
   required,
   requiredIndicator,
   error,
+  errorId,
   htmlFor,
   children,
   className,
@@ -39,7 +42,7 @@ export function FormField({
       </Label>
       {children}
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p id={errorId} role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
