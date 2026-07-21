@@ -553,3 +553,77 @@
 - [x] 31.2 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 16.1〜16.6_
   - _Depends: 31.1_
+
+## 追加ラウンド（2026-07-21・2）: 一覧のステータス絞り込み・ソート見直し、タイトルの活用、返信送信時のステータス自動遷移
+
+- [x] 32. コア: 一覧の絞り込み・ソートロジックの見直し
+- [x] 32.1 `helpdesk-inquiry-list.ts`にステータス絞り込みを追加し、ソート基準・キーワード検索対象を見直す
+  - `HelpdeskInquiryFilters`/`EMPTY_HELPDESK_INQUIRY_FILTERS`に`status: "" | Inquiry["status"]`を追加する
+  - `filterInquiriesForHelpdesk`のキーワード判定を`title`・`originalText`のいずれかへの部分一致に変更し、`status`が指定されたときの絞り込みを追加する
+  - `sortInquiriesForHelpdesk`を、対応状況（新規→対応中→解決済み）→緊急度（高→中→低）→受付日時の昇順の順で比較する形へ変更する
+  - _Requirements: 1.2, 2.1, 2.3, 2.6_
+  - _Boundary: HelpdeskInquiryList, HelpdeskInquiryListClient_
+
+- [x] 32.2 (P) `HelpdeskInquiryFilterBar`に対応状況の絞り込みUIを追加する
+  - `statusOptions`propを追加し、会社名・キーワード・国・カテゴリと並べて対応状況の`Select`を表示する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskInquiries.filter`名前空間に`statusLabel`/`statusAll`を追加する
+  - _Requirements: 2.1_
+  - _Boundary: HelpdeskInquiryFilterBar_
+  - _Depends: 32.1_
+
+- [x] 32.3 `HelpdeskInquiryListClient`/`HelpdeskInquiryList`に対応状況の選択肢を配線する
+  - `INQUIRY_STATUS_CODES`と既存の`statusLabels`から`statusOptions`を生成し、`HelpdeskInquiryFilterBar`まで配線する
+  - _Requirements: 2.1_
+  - _Boundary: HelpdeskInquiryList, HelpdeskInquiryListClient_
+  - _Depends: 32.2_
+
+- [x] 32.4 (P) `HelpdeskInquiryListItem`・`HelpdeskInquiryDetail`の見出しを`title`へ変更する
+  - 一覧項目の見出しリンクを`inquiry.title`に変更し、会社名・カテゴリを補足行として表示する
+  - 詳細画面の`CardTitle`を`inquiry.title`に変更し、会社名・カテゴリを補足テキストとして`CardTitle`直下に表示する
+  - _Requirements: 1.7, 3.5_
+  - _Boundary: HelpdeskInquiryListItem, HelpdeskInquiryDetail_
+
+- [x] 33. コア: 返信送信時のステータス自動遷移
+- [x] 33.1 `updateStatusIfCurrent`/`updateInquiryStatusIfCurrent`を新設する
+  - `src/lib/server/inquiry-service.ts`に、`WHERE id AND status = expectedStatus`条件付きの`prisma.inquiry.updateMany`で原子的に状態遷移する`updateStatusIfCurrent(id, expectedStatus, nextStatus): Promise<boolean>`を追加する
+  - `src/lib/api/inquiries.ts`に、ヘルプデスクセッションを要求する`updateInquiryStatusIfCurrent`ラッパーを追加する
+  - 既存の無条件`updateStatus`/`updateInquiryStatus`（`changeInquiryStatusAction`が使用）は変更しない
+  - _Requirements: 6.4, 6.5, 7.7_
+  - _Boundary: HelpdeskActions_
+
+- [x] 33.2 `sendInquiryReplyAction`に`new`→`in_progress`の自動遷移を実装する
+  - 返信の対応履歴記録後、`updateInquiryStatusIfCurrent(id, "new", "in_progress")`を呼び出す（読み取ってから無条件で書き込む方式は、他の担当者による並行変更との競合を避けるため採用しない）
+  - 戻り値が`true`（実際に遷移した）のときのみ、`changeInquiryStatusAction`と同様に翻訳済みラベルの`detail`を持つ`status_changed`エントリを対応履歴に追記する
+  - `in_progress`/`resolved`の問い合わせに返信しても`status`が変更されないことを維持する
+  - 一覧の対応状況表示も更新されるよう、再検証対象を一覧・詳細の両方（`revalidateInquiryRoutes`）に変更する
+  - _Requirements: 6.4, 6.5, 7.7_
+  - _Boundary: HelpdeskActions_
+  - _Depends: 33.1_
+
+- [x] 33.3 (P) 一覧・詳細見出しの`title`空文字フォールバックを実装する
+  - 実データで`inquiry.title`が空文字のケースがあることをライブ検証で確認したため、`HelpdeskInquiryListItem`・`HelpdeskInquiryDetail`に`untitledLabel`（`helpdeskInquiries.list.untitled`/`helpdeskInquiries.detail.untitled`）を用いたフォールバック表示を追加する
+  - `title`が空文字のとき、アクセシブルネームのないリンクにならないようにする
+  - _Requirements: 1.7, 3.5_
+  - _Boundary: HelpdeskInquiryListItem, HelpdeskInquiryDetail_
+
+- [x] 34. 検証（一覧絞り込み・ソート見直し、タイトル活用、返信時ステータス自動遷移）
+- [x] 34.1 (P) `sortInquiriesForHelpdesk`/`filterInquiriesForHelpdesk`の単体テストを更新・追加する
+  - 対応状況グルーピング→緊急度→受付日時昇順のソート順を検証する
+  - `status`絞り込み、`title`を含むキーワード検索を検証する
+  - _Requirements: 1.2, 2.1, 2.3, 2.6_
+  - _Depends: 32.1_
+
+- [x] 34.2 (P) `sendInquiryReplyAction`のステータス自動遷移の単体テストを追加する
+  - 送信時点の`status`が`new`のとき`in_progress`へ変更され、`status_changed`エントリが追記されることを検証する
+  - `in_progress`/`resolved`のとき`status`が変更されないことを検証する
+  - _Requirements: 6.4, 6.5_
+  - _Depends: 33.1_
+
+- [x] 34.3 (P) `HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`の見出し表示テストを更新する
+  - 見出しに`title`が表示され、会社名・カテゴリが補足行として表示されることを検証する
+  - _Requirements: 1.7, 3.5_
+  - _Depends: 32.4_
+
+- [x] 34.4 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 1.2, 1.7, 2.1, 2.3, 2.6, 3.5, 6.4, 6.5, 7.7_
+  - _Depends: 34.1, 34.2, 34.3_

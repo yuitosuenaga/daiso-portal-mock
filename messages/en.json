@@ -223,10 +223,11 @@
   "helpdeskInquiries": {
     "list": {
       "title": "Application Management",
-      "description": "View applications from all companies, sorted by urgency.",
+      "description": "View applications from all companies, sorted by status and urgency.",
       "empty": "No applications",
       "error": "Failed to load applications",
-      "noResults": "No applications match the selected filters"
+      "noResults": "No applications match the selected filters",
+      "untitled": "(No title)"
     },
     "detail": {
       "notFound": "Inquiry not found",
@@ -234,7 +235,8 @@
       "backToList": "Back to list",
       "attachmentsLabel": "Attachments",
       "translatedTextLabel": "Japanese Translation",
-      "originalTextLabel": "Original Text"
+      "originalTextLabel": "Original Text",
+      "untitled": "(No title)"
     },
     "filter": {
       "companyLabel": "Company",
@@ -245,6 +247,8 @@
       "countryAll": "All countries",
       "categoryLabel": "Category",
       "categoryAll": "All categories",
+      "statusLabel": "Status",
+      "statusAll": "All statuses",
       "clearButton": "Clear filters"
     },
     "claim": {

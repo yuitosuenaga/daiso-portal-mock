@@ -31,6 +31,7 @@ import {
   markInquiryRead,
   setClaim,
   updateStatus,
+  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 
 const baseInquiryRecord = {
@@ -208,6 +209,36 @@ describe("updateStatus", () => {
     const result = await updateStatus("inquiry-1", "resolved");
 
     expect(result.status).toBe("resolved");
+  });
+});
+
+describe("updateStatusIfCurrent", () => {
+  it("条件に合致し更新できたときtrueを返す", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+
+    const result = await updateStatusIfCurrent(
+      "inquiry-1",
+      "new",
+      "in_progress"
+    );
+
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
+      where: { id: "inquiry-1", status: "new" },
+      data: { status: "in_progress" },
+    });
+    expect(result).toBe(true);
+  });
+
+  it("現在のstatusが期待値と異なり更新されなかったときfalseを返す", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+
+    const result = await updateStatusIfCurrent(
+      "inquiry-1",
+      "new",
+      "in_progress"
+    );
+
+    expect(result).toBe(false);
   });
 });
 

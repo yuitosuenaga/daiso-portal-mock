@@ -12,7 +12,10 @@ import { HelpdeskInquiryListItem } from "@/components/features/helpdesk-inquirie
 import type { Inquiry } from "@/types/inquiry";
 
 export interface HelpdeskInquiryListClientProps {
-  /** `sortInquiriesForHelpdesk` で緊急度優先ソート済みの問い合わせ一覧 */
+  /**
+   * `sortInquiriesForHelpdesk` で対応状況（新規→対応中→解決済み）→緊急度（高→中→低）→
+   * 受付日時昇順の順にソート済みの問い合わせ一覧
+   */
   inquiries: Inquiry[];
   categoryLabels: Record<Inquiry["category"], string>;
   urgencyLabels: Record<Inquiry["urgency"], string>;
@@ -20,9 +23,11 @@ export interface HelpdeskInquiryListClientProps {
   countryLabels: Record<string, string>;
   countryOptions: SelectOption[];
   categoryOptions: SelectOption[];
+  statusOptions: SelectOption[];
   claimBadgeLabel: string;
   claimedByLabel: string;
   locale: string;
+  untitledLabel: string;
 }
 
 /**
@@ -37,9 +42,11 @@ export function HelpdeskInquiryListClient({
   countryLabels,
   countryOptions,
   categoryOptions,
+  statusOptions,
   claimBadgeLabel,
   claimedByLabel,
   locale,
+  untitledLabel,
 }: HelpdeskInquiryListClientProps) {
   const t = useTranslations("helpdeskInquiries.list");
   const [filters, setFilters] = useState(EMPTY_HELPDESK_INQUIRY_FILTERS);
@@ -57,6 +64,7 @@ export function HelpdeskInquiryListClient({
         onClear={() => setFilters(EMPTY_HELPDESK_INQUIRY_FILTERS)}
         countryOptions={countryOptions}
         categoryOptions={categoryOptions}
+        statusOptions={statusOptions}
       />
       {filteredInquiries.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("noResults")}</p>
@@ -76,6 +84,7 @@ export function HelpdeskInquiryListClient({
               claimBadgeLabel={claimBadgeLabel}
               claimedByLabel={claimedByLabel}
               locale={locale}
+              untitledLabel={untitledLabel}
             />
           ))}
         </ul>

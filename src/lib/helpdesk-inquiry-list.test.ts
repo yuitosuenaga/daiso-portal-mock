@@ -24,11 +24,27 @@ function buildInquiry(overrides: Partial<Inquiry>): Inquiry {
 }
 
 describe("sortInquiriesForHelpdesk", () => {
-  it("緊急度（高→中→低）を最優先の基準として並び替える", () => {
+  it("対応状況（新規→対応中→解決済み）を最優先の基準として並び替える", () => {
     const inquiries = [
-      buildInquiry({ id: "low", urgency: "low", createdAt: "2026-06-03T00:00:00.000Z" }),
-      buildInquiry({ id: "high", urgency: "high", createdAt: "2026-06-01T00:00:00.000Z" }),
-      buildInquiry({ id: "medium", urgency: "medium", createdAt: "2026-06-02T00:00:00.000Z" }),
+      buildInquiry({ id: "resolved", status: "resolved", urgency: "high" }),
+      buildInquiry({ id: "new", status: "new", urgency: "low" }),
+      buildInquiry({ id: "in_progress", status: "in_progress", urgency: "medium" }),
+    ];
+
+    const result = sortInquiriesForHelpdesk(inquiries);
+
+    expect(result.map((item) => item.id)).toEqual([
+      "new",
+      "in_progress",
+      "resolved",
+    ]);
+  });
+
+  it("同一対応状況内では緊急度（高→中→低）で並び替える", () => {
+    const inquiries = [
+      buildInquiry({ id: "low", status: "new", urgency: "low", createdAt: "2026-06-03T00:00:00.000Z" }),
+      buildInquiry({ id: "high", status: "new", urgency: "high", createdAt: "2026-06-01T00:00:00.000Z" }),
+      buildInquiry({ id: "medium", status: "new", urgency: "medium", createdAt: "2026-06-02T00:00:00.000Z" }),
     ];
 
     const result = sortInquiriesForHelpdesk(inquiries);
@@ -36,15 +52,15 @@ describe("sortInquiriesForHelpdesk", () => {
     expect(result.map((item) => item.id)).toEqual(["high", "medium", "low"]);
   });
 
-  it("同一緊急度内では受付日時（createdAt）の降順で並び替える", () => {
+  it("同一対応状況・同一緊急度内では受付日時（createdAt）の昇順（古いものが先）で並び替える", () => {
     const inquiries = [
-      buildInquiry({ id: "older", urgency: "high", createdAt: "2026-06-01T00:00:00.000Z" }),
-      buildInquiry({ id: "newer", urgency: "high", createdAt: "2026-06-05T00:00:00.000Z" }),
+      buildInquiry({ id: "newer", status: "new", urgency: "high", createdAt: "2026-06-05T00:00:00.000Z" }),
+      buildInquiry({ id: "older", status: "new", urgency: "high", createdAt: "2026-06-01T00:00:00.000Z" }),
     ];
 
     const result = sortInquiriesForHelpdesk(inquiries);
 
-    expect(result.map((item) => item.id)).toEqual(["newer", "older"]);
+    expect(result.map((item) => item.id)).toEqual(["older", "newer"]);
   });
 
   it("元の配列を変更しない", () => {
@@ -62,12 +78,16 @@ describe("filterInquiriesForHelpdesk", () => {
     buildInquiry({
       id: "1",
       category: "defect",
+      status: "new",
+      title: "商品破損の報告",
       submittedBy: { companyName: "Daiso Vietnam Co., Ltd.", country: "VN" },
       originalText: "商品が破損しています。",
     }),
     buildInquiry({
       id: "2",
       category: "order",
+      status: "resolved",
+      title: "追加発注のお願い",
       submittedBy: { companyName: "Daiso USA Inc.", country: "US" },
       originalText: "Additional order request.",
     }),
@@ -98,6 +118,33 @@ describe("filterInquiriesForHelpdesk", () => {
     });
 
     expect(result.map((item) => item.id)).toEqual(["2"]);
+  });
+
+  it("キーワードでタイトル（title）を部分一致検索する", () => {
+    const result = filterInquiriesForHelpdesk(inquiries, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      keyword: "破損",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["1"]);
+  });
+
+  it("対応状況で絞り込む", () => {
+    const result = filterInquiriesForHelpdesk(inquiries, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      status: "resolved",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["2"]);
+  });
+
+  it("対応状況を指定しない既定状態では全件を返す", () => {
+    const result = filterInquiriesForHelpdesk(
+      inquiries,
+      EMPTY_HELPDESK_INQUIRY_FILTERS
+    );
+
+    expect(result).toHaveLength(2);
   });
 
   it("国で絞り込む", () => {

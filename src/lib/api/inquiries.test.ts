@@ -12,6 +12,7 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   markInquiryRead: vi.fn(),
   setClaim: vi.fn(),
   updateStatus: vi.fn(),
+  updateStatusIfCurrent: vi.fn(),
 }));
 
 import { getSession } from "@/lib/server/get-session";
@@ -25,6 +26,7 @@ import {
   markInquiryRead as markInquiryReadService,
   setClaim,
   updateStatus,
+  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 import {
   createInquiry,
@@ -37,6 +39,7 @@ import {
   markInquiryRead,
   setInquiryClaim,
   updateInquiryStatus,
+  updateInquiryStatusIfCurrent,
 } from "@/lib/api/inquiries";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 
@@ -306,6 +309,34 @@ describe("updateInquiryStatus", () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
     await expect(updateInquiryStatus("inquiry-1", "resolved")).rejects.toThrow();
+  });
+});
+
+describe("updateInquiryStatusIfCurrent", () => {
+  it("ヘルプデスクセッションでupdateStatusIfCurrentに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(updateStatusIfCurrent).mockResolvedValue(true);
+
+    const result = await updateInquiryStatusIfCurrent(
+      "inquiry-1",
+      "new",
+      "in_progress"
+    );
+
+    expect(updateStatusIfCurrent).toHaveBeenCalledWith(
+      "inquiry-1",
+      "new",
+      "in_progress"
+    );
+    expect(result).toBe(true);
+  });
+
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      updateInquiryStatusIfCurrent("inquiry-1", "new", "in_progress")
+    ).rejects.toThrow();
   });
 });
 

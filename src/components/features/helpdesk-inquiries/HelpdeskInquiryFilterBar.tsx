@@ -13,10 +13,11 @@ export interface HelpdeskInquiryFilterBarProps {
   onClear: () => void;
   countryOptions: SelectOption[];
   categoryOptions: SelectOption[];
+  statusOptions: SelectOption[];
 }
 
 /**
- * 会社名・キーワード・国・カテゴリの絞り込み条件を入力するフィルタバー。
+ * 会社名・キーワード・国・カテゴリ・対応状況の絞り込み条件を入力するフィルタバー。
  * 状態は保持せず、変更を都度 `onChange` で呼び出し元へ通知する。
  */
 export function HelpdeskInquiryFilterBar({
@@ -25,11 +26,12 @@ export function HelpdeskInquiryFilterBar({
   onClear,
   countryOptions,
   categoryOptions,
+  statusOptions,
 }: HelpdeskInquiryFilterBarProps) {
   const t = useTranslations("helpdeskInquiries.filter");
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
       <div className="space-y-1">
         <Label htmlFor="helpdesk-filter-company">{t("companyLabel")}</Label>
         <Input
@@ -65,16 +67,30 @@ export function HelpdeskInquiryFilterBar({
       </div>
       <div className="space-y-1">
         <Label htmlFor="helpdesk-filter-category">{t("categoryLabel")}</Label>
+        <Select
+          id="helpdesk-filter-category"
+          value={filters.category}
+          options={[
+            { value: "", label: t("categoryAll") },
+            ...categoryOptions,
+          ]}
+          onChange={(event) =>
+            onChange({ ...filters, category: event.target.value })
+          }
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="helpdesk-filter-status">{t("statusLabel")}</Label>
         <div className="flex gap-2">
           <Select
-            id="helpdesk-filter-category"
-            value={filters.category}
-            options={[
-              { value: "", label: t("categoryAll") },
-              ...categoryOptions,
-            ]}
+            id="helpdesk-filter-status"
+            value={filters.status}
+            options={[{ value: "", label: t("statusAll") }, ...statusOptions]}
             onChange={(event) =>
-              onChange({ ...filters, category: event.target.value })
+              onChange({
+                ...filters,
+                status: event.target.value as HelpdeskInquiryFilters["status"],
+              })
             }
           />
           <Button type="button" variant="outline" onClick={onClear}>

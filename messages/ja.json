@@ -223,10 +223,11 @@
   "helpdeskInquiries": {
     "list": {
       "title": "申請管理",
-      "description": "全社分の申請を緊急度順に確認できます。",
+      "description": "全社分の申請を対応状況・緊急度順に確認できます。",
       "empty": "申請はありません",
       "error": "申請の取得に失敗しました",
-      "noResults": "条件に合致する申請はありません"
+      "noResults": "条件に合致する申請はありません",
+      "untitled": "(タイトル未設定)"
     },
     "detail": {
       "notFound": "問い合わせが見つかりません",
@@ -234,7 +235,8 @@
       "backToList": "一覧へ戻る",
       "attachmentsLabel": "添付ファイル",
       "translatedTextLabel": "日本語訳",
-      "originalTextLabel": "原文"
+      "originalTextLabel": "原文",
+      "untitled": "(タイトル未設定)"
     },
     "filter": {
       "companyLabel": "会社名",
@@ -245,6 +247,8 @@
       "countryAll": "すべての国",
       "categoryLabel": "案件種別",
       "categoryAll": "すべての種別",
+      "statusLabel": "対応状況",
+      "statusAll": "すべての対応状況",
       "clearButton": "条件をクリア"
     },
     "claim": {

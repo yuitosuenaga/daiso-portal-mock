@@ -11,6 +11,8 @@ export interface HelpdeskInquiryListItemProps {
   claimBadgeLabel: string;
   claimedByLabel: string;
   locale: string;
+  /** `inquiry.title`が空文字の場合に表示する代替ラベル */
+  untitledLabel: string;
 }
 
 /**
@@ -26,6 +28,7 @@ export function HelpdeskInquiryListItem({
   claimBadgeLabel,
   claimedByLabel,
   locale,
+  untitledLabel,
 }: HelpdeskInquiryListItemProps) {
   return (
     <li className="flex items-start justify-between gap-4 py-3">
@@ -34,8 +37,11 @@ export function HelpdeskInquiryListItem({
           href={`/helpdesk/inquiries/${inquiry.id}`}
           className="text-sm font-medium hover:underline"
         >
-          {inquiry.submittedBy.companyName} / {categoryLabel}
+          {inquiry.title || untitledLabel}
         </Link>
+        <p className="text-xs text-muted-foreground">
+          {inquiry.submittedBy.companyName} / {categoryLabel}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={`status-${inquiry.status}`}>{statusLabel}</Badge>
           <Badge variant={`urgency-${inquiry.urgency}`}>{urgencyLabel}</Badge>

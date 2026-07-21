@@ -9,6 +9,7 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   findInquiryById: vi.fn(),
   setClaim: vi.fn(),
   updateStatus: vi.fn(),
+  updateStatusIfCurrent: vi.fn(),
   appendHistoryEntry: vi.fn(),
 }));
 vi.mock("@/lib/api/reply-templates", () => ({
@@ -39,6 +40,7 @@ import {
   findInquiryById as findInquiryByIdService,
   setClaim,
   updateStatus,
+  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 import {
   claimInquiryAction,
@@ -307,6 +309,54 @@ describe("sendInquiryReplyAction", () => {
     await expect(
       sendInquiryReplyAction("inquiry-002", "返信本文", attachments)
     ).rejects.toThrow();
+  });
+
+  it("送信時点のstatusがnewのとき、in_progressへ原子的に変更し履歴に記録する", async () => {
+    vi.mocked(updateStatusIfCurrent).mockResolvedValue(true);
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-011",
+      type: "reply_sent",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
+    await sendInquiryReplyAction("inquiry-011", "対応いたします。");
+
+    expect(updateStatusIfCurrent).toHaveBeenCalledWith(
+      "inquiry-011",
+      "new",
+      "in_progress"
+    );
+    expect(appendHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "status_changed",
+        actorName: "鈴木 花子",
+        detail: "新規 → 対応中",
+      })
+    );
+  });
+
+  it("送信時点のstatusがnew以外のとき（updateStatusIfCurrentがfalseを返す）、status_changedを記録しない", async () => {
+    vi.mocked(updateStatusIfCurrent).mockResolvedValue(false);
+    vi.mocked(appendHistoryEntry).mockResolvedValue({
+      id: "history-1",
+      inquiryId: "inquiry-012",
+      type: "reply_sent",
+      actorName: "鈴木 花子",
+      occurredAt: "2026-07-01T00:00:00.000Z",
+    });
+
+    await sendInquiryReplyAction("inquiry-012", "追加のご連絡です。");
+
+    expect(updateStatusIfCurrent).toHaveBeenCalledWith(
+      "inquiry-012",
+      "new",
+      "in_progress"
+    );
+    expect(appendHistoryEntry).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "status_changed" })
+    );
   });
 });
 

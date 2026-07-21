@@ -657,3 +657,148 @@ Requirement 16（対応履歴タイムラインの視覚的表示形式）への
 
 ### Testing Strategy（追加分）
 - 既存の`HistoryTimeline.test.tsx`（種別ラベル・担当者名・添付ファイル表示の検証）を変更なしで再利用し、全件成功することを確認する（表示形式の変更であり、表示される情報・DOM上のテキスト内容は保持される設計のため）
+
+## 追加（2026-07-21・2）: 一覧のステータス絞り込み・ソート見直し、タイトルの活用、返信送信時のステータス自動遷移
+
+### Overview（追加分）
+Requirement 1 AC2/AC7、Requirement 2 AC1/AC3/AC6、Requirement 3 AC5、Requirement 6 AC4/AC5、Requirement 7 AC7への対応。既存のモックAPI境界（`lib/api/inquiries.ts`・`lib/server/inquiry-service.ts`）・`InquiryHistoryEntry`型・`Inquiry`型は変更しない。変更は次の3ファイル群に閉じる。
+
+1. 一覧の絞り込み・ソートロジック（`src/lib/helpdesk-inquiry-list.ts`）とフィルタUI（`HelpdeskInquiryFilterBar`）・結線（`HelpdeskInquiryListClient`/`HelpdeskInquiryList`）
+2. 一覧項目・詳細画面の見出し（`HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`）
+3. 返信送信のServer Action（`src/lib/actions/helpdesk.ts`の`sendInquiryReplyAction`）
+
+### Component Design（追加分）
+
+**`src/lib/helpdesk-inquiry-list.ts`（変更）**
+- `HelpdeskInquiryFilters`に`status: "" | Inquiry["status"]`を追加し、`EMPTY_HELPDESK_INQUIRY_FILTERS`にも`status: ""`を追加する
+- `filterInquiriesForHelpdesk`のキーワード判定を`inquiry.title`・`inquiry.originalText`のいずれかへの部分一致に変更する（申請者側`inquiry-filter.ts`の`filterInquiries`と同じ考え方）。`status`が指定されているときは一致しない問い合わせを除外する
+- `sortInquiriesForHelpdesk`の比較関数を、(1) 対応状況グルーピング（`new`→`in_progress`→`resolved`の順、`STATUS_SORT_PRIORITY`定数で表現）、(2) 緊急度（既存の`URGENCY_PRIORITY`、高→中→低）、(3) 受付日時の昇順（`new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()`、既存の降順から変更）の順に比較する形へ変更する。関数シグネチャ・引数の非破壊性（コピーしてからソート）は変更しない
+
+```typescript
+const STATUS_SORT_PRIORITY: Record<Inquiry["status"], number> = {
+  new: 0,
+  in_progress: 1,
+  resolved: 2,
+};
+
+export function sortInquiriesForHelpdesk(inquiries: Inquiry[]): Inquiry[] {
+  return [...inquiries].sort((a, b) => {
+    const statusDiff = STATUS_SORT_PRIORITY[a.status] - STATUS_SORT_PRIORITY[b.status];
+    if (statusDiff !== 0) return statusDiff;
+
+    const urgencyDiff = URGENCY_PRIORITY[a.urgency] - URGENCY_PRIORITY[b.urgency];
+    if (urgencyDiff !== 0) return urgencyDiff;
+
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+}
+```
+
+**`HelpdeskInquiryFilterBar`（変更）**: `InquiryFilterBar`（申請者側、`inquiry-list`spec所有）の`statusLabel`/`statusAll`パターンを踏襲し、`statusOptions: SelectOption[]`propを追加、会社名・キーワード・国・カテゴリの並びに対応状況の`Select`を追加する（`grid-cols`を5列相当に調整、レスポンシブは既存の`sm:grid-cols-2 lg:grid-cols-4`を`lg:grid-cols-5`等に拡張）。翻訳キーは新規に`helpdeskInquiries.filter.statusLabel`/`statusAll`を追加する（`inquiryList.status`の`new`/`in_progress`/`resolved`ラベルは`HelpdeskInquiryList`側で既に`statusLabels`として算出済みのため、`statusOptions`はそこから生成し新規翻訳キーは選択肢ラベル自体には追加しない）。
+
+**`HelpdeskInquiryListClient`/`HelpdeskInquiryList`（変更）**: `statusOptions`（`INQUIRY_STATUS_CODES`と既存の`statusLabels`から生成）を`HelpdeskInquiryFilterBar`まで配線する。既存の`inquiries`（`sortInquiriesForHelpdesk`適用済み）・`filterInquiriesForHelpdesk`呼び出し自体の配線構造は変更しない。
+
+**`HelpdeskInquiryListItem`（変更）**: 見出しリンクのテキストを`{inquiry.submittedBy.companyName} / {categoryLabel}`から`{inquiry.title}`に変更し、会社名・カテゴリはバッジ行の直前に補足行（`text-xs text-muted-foreground`）として表示する。
+
+**`HelpdeskInquiryDetail`（変更）**: `CardTitle`の内容を`{inquiry.submittedBy.companyName} / {tCategories(inquiry.category)}`から`{inquiry.title}`に変更し、会社名・カテゴリを`CardTitle`の直下に補足テキスト（`text-sm text-muted-foreground`）として表示する。バッジ行（緊急度・対応状況・国・地域・日時）自体は変更しない。
+
+**`sendInquiryReplyAction`（`src/lib/actions/helpdesk.ts`、変更）**: 返信本文・添付ファイルのバリデーション後、`reply_sent`エントリを記録してから、`updateInquiryStatusIfCurrent(id, "new", "in_progress")`（新設、後述）で`status`が`"new"`である場合にのみ`"in_progress"`へ原子的に変更する。この関数が`true`を返した（＝実際に変更された）ときのみ、`changeInquiryStatusAction`と同様の`inquiryList.status`翻訳キーを用いた`detail`（例:「新規 → 対応中」）を持つ`status_changed`エントリを追記する。`false`が返った（送信時点で既に`"in_progress"`/`"resolved"`だった、または他の担当者による変更と競合した）ときは何もしない。一覧画面の対応状況表示も更新されるよう、`revalidatePath(INQUIRY_DETAIL_PATH, "page")`単体呼び出しを既存の`revalidateInquiryRoutes()`（一覧・詳細の両方を再検証）に置き換える。
+
+`updateInquiryStatusIfCurrent`（`src/lib/api/inquiries.ts`、新設）は`requireHelpdeskStaffSession`でセッションを要求したうえで、`src/lib/server/inquiry-service.ts`に新設する`updateStatusIfCurrent(id, expectedStatus, nextStatus)`に委譲する。この関数は`prisma.inquiry.updateMany({ where: { id, status: expectedStatus }, data: { status: nextStatus } })`によって「現在の`status`を読み取ってから条件なしで書き込む」のではなく、`WHERE`条件付きの単一クエリで原子的に判定・更新する。これは、読み取り（`getInquiryById`）と書き込み（`updateInquiryStatus`）を別クエリに分けた場合、その間に別の担当者が`changeInquiryStatusAction`で`status`を変更する競合が起こり得て、`resolved`案件へ返信した際に意図せず`in_progress`へ上書きしてしまう可能性があるため（静的レビューで指摘された論点）。既存の`updateStatus`（無条件更新、`changeInquiryStatusAction`が使用）はそのまま維持し、本ラウンドの自動遷移専用に新しい関数を追加する形で分離する。
+
+```typescript
+// src/lib/server/inquiry-service.ts（新設）
+export async function updateStatusIfCurrent(
+  id: string,
+  expectedStatus: Inquiry["status"],
+  nextStatus: Inquiry["status"]
+): Promise<boolean> {
+  const result = await prisma.inquiry.updateMany({
+    where: { id, status: expectedStatus },
+    data: { status: nextStatus },
+  });
+  return result.count > 0;
+}
+
+// src/lib/api/inquiries.ts（新設）
+export async function updateInquiryStatusIfCurrent(
+  id: string,
+  expectedStatus: Inquiry["status"],
+  nextStatus: Inquiry["status"]
+): Promise<boolean> {
+  await requireHelpdeskStaffSession();
+  return updateStatusIfCurrent(id, expectedStatus, nextStatus);
+}
+
+// src/lib/actions/helpdesk.ts（変更）
+export async function sendInquiryReplyAction(
+  inquiryId: string,
+  replyBody: string,
+  attachments: InquiryAttachment[] = []
+): Promise<void> {
+  const id = inquiryIdSchema.parse(inquiryId);
+  const body = replyBodySchema.parse(replyBody);
+  const validatedAttachments = inquiryAttachmentsArraySchema.parse(attachments);
+  const { claims } = await requireHelpdeskStaffSession();
+
+  await appendInquiryHistoryEntry({
+    inquiryId: id,
+    type: "reply_sent",
+    actorName: claims.displayName,
+    occurredAt: new Date().toISOString(),
+    detail: body,
+    attachments: validatedAttachments.length > 0 ? validatedAttachments : undefined,
+  });
+
+  const didAutoTransition = await updateInquiryStatusIfCurrent(id, "new", "in_progress");
+
+  if (didAutoTransition) {
+    const t = await getTranslations("inquiryList.status");
+    await appendInquiryHistoryEntry({
+      inquiryId: id,
+      type: "status_changed",
+      actorName: claims.displayName,
+      occurredAt: new Date().toISOString(),
+      detail: `${t("new")} → ${t("in_progress")}`,
+    });
+  }
+
+  revalidateInquiryRoutes();
+}
+```
+
+一覧・詳細見出しでは、`inquiry.title`が空文字（フェーズ1のDB/シードデータ整備漏れにより実在する）の場合の代替表示を、申請者側`InquiryListItem`が既に持つ`untitledLabel`パターン（`inquiry.title || untitledLabel`）に倣って追加する。翻訳キーは`helpdeskInquiries.list.untitled`（`HelpdeskInquiryListItem`用）・`helpdeskInquiries.detail.untitled`（`HelpdeskInquiryDetail`用）を新設する。空文字のまま`<Link>`のテキストにすると、リンクにアクセシブルネームが存在しない状態になるため（ライブ検証で確認された実データでの再現事象）、これを避ける。
+
+### Modified Files（追加分）
+- `src/lib/helpdesk-inquiry-list.ts`（変更: `status`絞り込み追加、キーワード検索対象に`title`追加、ソート基準の変更）
+- `src/lib/helpdesk-inquiry-list.test.ts`（変更: ソート・フィルタの新仕様に合わせたテスト更新・追加）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar.tsx`（変更: 対応状況`Select`の追加）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryListClient.tsx`（変更: `statusOptions`・`untitledLabel`の配線）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryList.tsx`（変更: `statusOptions`の算出・`untitledLabel`の配線）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryListItem.tsx`（変更: 見出しを`title`に変更、空文字時のフォールバック追加）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryListItem.test.tsx`（新設）
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx`（変更: 見出しを`title`に変更、空文字時のフォールバック追加）
+- `src/lib/actions/helpdesk.ts`（変更: `sendInquiryReplyAction`のステータス自動遷移）
+- `src/lib/actions/helpdesk.test.ts`（変更: ステータス自動遷移のテスト追加）
+- `src/lib/server/inquiry-service.ts`（変更: `updateStatusIfCurrent`の新設）
+- `src/lib/server/inquiry-service.test.ts`（変更: `updateStatusIfCurrent`のテスト追加）
+- `src/lib/api/inquiries.ts`（変更: `updateInquiryStatusIfCurrent`の新設）
+- `src/lib/api/inquiries.test.ts`（変更: `updateInquiryStatusIfCurrent`のテスト追加）
+- `messages/ja.json` / `messages/en.json`（変更: `helpdeskInquiries.filter.statusLabel`/`statusAll`、`helpdeskInquiries.list.untitled`、`helpdeskInquiries.detail.untitled`翻訳キー追加、`list.description`の文言更新）
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 1.2, 1.7 | ソート基準の見直し・一覧見出しへの`title`追加 | HelpdeskInquiryList, sortInquiriesForHelpdesk, HelpdeskInquiryListItem |
+| 2.1, 2.3, 2.6 | 対応状況絞り込みの追加・キーワード検索対象への`title`追加 | HelpdeskInquiryFilterBar, filterInquiriesForHelpdesk |
+| 3.5 | 詳細見出しへの`title`追加 | HelpdeskInquiryDetail |
+| 6.4, 6.5, 7.7 | 返信送信時のステータス自動遷移 | sendInquiryReplyAction, updateInquiryStatusIfCurrent |
+
+### Error Handling（追加分）
+`updateInquiryStatusIfCurrent`は`requireHelpdeskStaffSession`によるセッション確認後に実行される。対象の問い合わせが存在しない場合、`prisma.inquiry.updateMany`はマッチ0件（`count: 0`）で正常終了するため例外にはならず、`sendInquiryReplyAction`側は単に自動遷移をスキップする（返信自体の記録は既存どおり継続する）。
+
+### Testing Strategy（追加分）
+- `sortInquiriesForHelpdesk`/`filterInquiriesForHelpdesk`の単体テストを、新しいソート基準（対応状況→緊急度→受付日時昇順）・`status`絞り込み・`title`キーワード検索を含めて更新する
+- `updateStatusIfCurrent`（`inquiry-service`）・`updateInquiryStatusIfCurrent`（`lib/api/inquiries`）の単体テストで、条件一致時に`true`を返し更新すること、不一致時に`false`を返し更新しないことを検証する
+- `sendInquiryReplyAction`の単体テストに、`updateStatusIfCurrent`相当が`true`を返したとき`status_changed`エントリが追記されるケース、`false`を返したとき追記されないケースを追加する
+- `HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`の表示テストに、見出しが`title`になっていること、`title`が空文字のとき代替ラベルが表示されアクセシブルネームのないリンクが生じないことを検証するケースを追加する（既存の会社名・カテゴリ表示のテストは補足行としての表示に更新する）
