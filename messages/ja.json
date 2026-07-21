@@ -772,8 +772,11 @@
       "empty": "まだ対応履歴はありません",
       "error": "対応履歴の取得に失敗しました",
       "replyLabel": "返信",
+      "claimedLabel": "対応開始",
       "claimedMessage": "対応中になりました",
+      "releasedLabel": "対応解除",
       "releasedMessage": "対応中の状態を解除しました",
+      "statusChangedLabel": "ステータス変更",
       "requesterMessageLabel": "送信したメッセージ"
     },
     "message": {

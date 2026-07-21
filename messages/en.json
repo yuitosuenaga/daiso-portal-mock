@@ -772,8 +772,11 @@
       "empty": "No history yet",
       "error": "Failed to load the history",
       "replyLabel": "Reply",
+      "claimedLabel": "Started",
       "claimedMessage": "Marked as in progress",
+      "releasedLabel": "Released",
       "releasedMessage": "In-progress status was cleared",
+      "statusChangedLabel": "Status Changed",
       "requesterMessageLabel": "Your Message"
     },
     "message": {

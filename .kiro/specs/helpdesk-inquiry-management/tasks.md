@@ -534,3 +534,22 @@
   - ヘルプデスクサイドバーの`helpdeskNav.inquiries`および問い合わせ管理一覧ページの見出し（`helpdeskInquiries.list.title`）が「申請管理」表記になっていることを`messages/ja.json`で確認する
   - 機能・データモデル（`Inquiry`型、モックAPI、対応状況の変更・返信機能等）に変更がないことを確認する
   - _Requirements: 9.3（新規）_
+
+## 追加（2026-07-21）: 対応履歴タイムラインの視覚的表示形式（縦タイムライン）
+
+- [x] 30. コア: 対応履歴タイムラインの縦タイムライン表示
+- [x] 30.1 `src/lib/inquiry-history-style.tsx`を新規作成する（本spec所有、`inquiry-list`spec 要件15と共有）
+  - `InquiryHistoryEntryType`ごとのアイコン（`lucide-react`）・配色（`globals.css`の既存トークンのみ）マッピングを定義する
+  - _Requirements: 16.2, 16.5, 16.6_
+- [x] 30.2 `HistoryTimeline`を縦タイムライン形式に変更する
+  - `getInquiryHistoryStyle`を用いたアイコン付きマーカー・連結線、種別バッジ（既存`typeLabels`をそのまま使用）、等幅日時、返信本文のブロック表示を実装する
+  - `actorName`の表示（Requirement 5.3）は既存どおり維持する
+  - _Requirements: 16.1, 16.2, 16.3, 16.4_
+  - _Depends: 30.1_
+- [x] 31. 検証（対応履歴タイムラインの視覚的表示形式）
+- [x] 31.1 既存の`HistoryTimeline.test.tsx`が変更なしで全件成功することを確認する
+  - _Requirements: 16.1〜16.6_
+  - _Depends: 30.2_
+- [x] 31.2 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 16.1〜16.6_
+  - _Depends: 31.1_

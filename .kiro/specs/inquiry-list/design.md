@@ -615,3 +615,25 @@ sequenceDiagram
 ### Security Considerations（追加分）
 - `markInquiryRead`・`getUnreadReplyInquiryIds`はいずれも申請者セッション（`requireApplicantSession`）を要求し、自社スコープ（`companyId`）に限定する。他社の問い合わせIDを指定しても既読更新・未読参照はできない（`findInquiryForCompany`と同じ所有権判定をDBクエリ側で行う）。
 - 既読記録は`lastReadAt`のみを書き換える冪等な更新であり、`status`・`claim`・履歴には一切書き込まない。改ざん・エスカレーションの余地を持たない。
+
+## 追加（2026-07-21）: 対応履歴の視覚的表示形式（縦タイムライン）
+
+### Overview（追加分）
+要件15（対応履歴の視覚的表示形式）への対応。対応履歴の対象データ・取得ロジック（`getInquiryHistory`）は変更せず、`InquiryHistoryList`の表示形式のみを縦型タイムラインに変更する。配色マッピングは`helpdesk-inquiry-management`spec 要件16（同ラウンドで対応）と共有し、2画面で視覚的一貫性を持たせる。
+
+### Component Design（追加分）
+- **`getInquiryHistoryStyle`（`src/lib/inquiry-history-style.tsx`、新規、`helpdesk-inquiry-management`spec所有）**: `InquiryHistoryEntryType`をキーに、種別ごとの`lucide-react`アイコン（`Reply`/`MessageSquare`/`CheckCircle2`/`Undo2`/`RefreshCcw`）とTailwindクラス（マーカー用`markerClassName`・バッジ用`badgeClassName`）を返す。配色は`globals.css`の既存トークンのみ使用: `reply_sent`→`primary`、`requester_message`→`accent`、`claimed`→`success`、`released`→`secondary`、`status_changed`→`muted`。本specはこの関数を読み取り専用で呼び出すのみで、マッピング自体は変更しない
+- **`InquiryHistoryList`（変更）**: `<ul>`をタイムライン化（`before:`擬似要素による縦の連結線、各`<li>`にアイコン付きマーカー）。各項目の先頭に種別バッジ（`getEntryLabel`。返信=`replyLabel`、対応開始=`claimedLabel`（新規）、対応解除=`releasedLabel`（新規）、ステータス変更=`statusChangedLabel`（新規）、申請者メッセージ=`requesterMessageLabel`）と等幅フォント（`font-mono tabular-nums`）の日時を表示。返信・申請者メッセージの本文は背景色付きのブロック（`rounded-md border bg-muted/40`）として区切って表示する。表示する情報・`actorName`を表示しない制約（要件8.4）は変更しない
+
+### Modified Files（追加分）
+- `src/lib/inquiry-history-style.tsx`（新規、`helpdesk-inquiry-management`spec所有） — 種別→アイコン・配色のマッピング
+- `src/components/features/inquiry-list/InquiryHistoryList.tsx` — 縦タイムライン形式への表示変更（データ取得・情報内容は変更なし）
+- `messages/ja.json` / `messages/en.json` — `inquiryList.history`に`claimedLabel`/`releasedLabel`/`statusChangedLabel`を追加（既存の`claimedMessage`/`releasedMessage`等の文言・情報内容は変更しない、種別バッジ用の短いラベルを追加するのみ）
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 15.1〜15.5 | 対応履歴の視覚的表示形式 | InquiryHistoryList, getInquiryHistoryStyle（helpdesk-inquiry-management所有・共有） |
+
+### Testing Strategy（追加分）
+- 既存の`InquiryHistoryList.test.tsx`（種別ごとの文言表示・担当者名非表示・添付ファイル表示の検証）を変更なしで再利用し、全件成功することを確認する（表示形式の変更であり、表示される情報・DOM上のテキスト内容は保持される設計のため）

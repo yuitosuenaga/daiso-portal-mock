@@ -636,3 +636,24 @@ async function onSubmit(values: ReplyTemplateFormValues) {
 ## 追加（2026-07-15）: 表示文言変更（問い合わせ管理→申請管理）
 
 別ブランチ（`chore/rename-inquiry-to-application-labels`）でのUI表示文言のみの変更（要件9.3新規）であり、コンポーネント構成・データフロー・データモデルへの設計変更は発生しない。翻訳キー（`helpdeskNav.inquiries`・`helpdeskInquiries.list.title`）の値変更のみ。
+
+## 追加（2026-07-21）: 対応履歴タイムラインの視覚的表示形式（縦タイムライン）
+
+### Overview（追加分）
+Requirement 16（対応履歴タイムラインの視覚的表示形式）への対応。対応履歴のデータモデル・記録ロジック（`InquiryHistoryEntry`型、`getInquiryHistory`/`appendInquiryHistoryEntry`関数）は変更せず、`HistoryTimeline`の表示形式のみを縦型タイムラインに変更する。配色マッピングは本specが所有し、`inquiry-list`spec 要件15（同ラウンドで対応）が読み取り専用で共有利用する。
+
+### Component Design（追加分）
+- **`getInquiryHistoryStyle`（`src/lib/inquiry-history-style.tsx`、新規、本spec所有）**: `InquiryHistoryEntryType`をキーに、種別ごとの`lucide-react`アイコンとTailwindクラス（マーカー用・バッジ用）を返す。配色は`globals.css`の既存トークンのみ使用: `reply_sent`→`primary`、`requester_message`→`accent`、`claimed`→`success`、`released`→`secondary`、`status_changed`→`muted`。`inquiry-list`spec からはこの関数を読み取り専用で参照される
+- **`HistoryTimeline`（変更）**: `<ul>`をタイムライン化（縦の連結線、アイコン付きマーカー）。既存の`typeLabels`プロパティの値をそのまま種別バッジのラベルとして使用（新規翻訳キー不要）。担当者名（`actorName`）は既存どおり日時の隣に表示を維持する（Requirement 5.3、本specの既存仕様）。返信・申請者メッセージの本文は背景色付きのブロックとして区切って表示する
+
+### Modified Files（追加分）
+- `src/lib/inquiry-history-style.tsx`（新規、本spec所有） — 種別→アイコン・配色のマッピング
+- `src/components/features/helpdesk-inquiries/HistoryTimeline.tsx` — 縦タイムライン形式への表示変更（データ・担当者名表示の有無は変更なし）
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 16.1〜16.6 | 対応履歴タイムラインの視覚的表示形式 | HistoryTimeline, getInquiryHistoryStyle |
+
+### Testing Strategy（追加分）
+- 既存の`HistoryTimeline.test.tsx`（種別ラベル・担当者名・添付ファイル表示の検証）を変更なしで再利用し、全件成功することを確認する（表示形式の変更であり、表示される情報・DOM上のテキスト内容は保持される設計のため）

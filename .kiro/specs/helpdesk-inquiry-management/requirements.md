@@ -271,3 +271,33 @@ Requirement 8（テンプレート管理画面）への追加Acceptance Criteria
 
 Requirement 9（ナビゲーション追加）への追加Acceptance Criteria:
 3. （新規）The Portal shall Requirement 9で追加したナビゲーション項目のうち、問い合わせ管理画面への項目の表示文言を「申請管理」とする（`helpdeskNav.inquiries`翻訳キー）。
+
+---
+
+### 追加要望（2026-07-21）: 対応履歴表示の視覚的改善（縦タイムライン形式）
+
+Requirement 5で対応履歴タイムラインの表示自体は実装済みだが、各項目が種別（対応中/対応解除/ステータス変更/返信/申請者メッセージ）を問わず同じ見た目のテキストリストとして並んでおり、種別の違いが視覚的に判別しづらいという指摘があった（申請者側`inquiry-list`spec 要件15と同時に対応）。壁打ちの結果、対応履歴の対象データ・記録ロジック（`InquiryHistoryEntry`型・`getInquiryHistory`/`appendInquiryHistoryEntry`関数）・表示する情報自体は変更せず、表示形式のみを縦型タイムライン（種別ごとの色分け・アイコン、本文の視覚的な区切り）に変更することが決まった。配色は`globals.css`で定義済みの既存デザイントークン（`--primary`のブランドピンク、`--success`の緑、`--muted`/`--secondary`系のグレー）のみを用いて表現し、新規の色を追加しない。この配色・アイコンのマッピングは申請者側`inquiry-list`spec所有の対応履歴表示と共有し、2画面で視覚的な一貫性を持たせる。担当者名（`actorName`）の表示は本specの既存仕様（Requirement 5.3）どおり維持する。
+
+要件:
+- 対応履歴タイムラインの各項目を、時系列を示す縦線とアイコン付きのマーカーを伴う表示形式に変更する
+- 対応履歴の種別（対応中・対応解除・ステータス変更・返信・申請者メッセージ）ごとに、アイコン・バッジの配色を変える
+- 返信・申請者メッセージの本文は、操作者・日時等のメタ情報と視覚的に区別できる（背景色等で区切られた）ブロックとして表示する
+- 日時表示は等幅数字（tabular figures）で表示し、桁が揃うようにする
+- 配色は既存の`globals.css`デザイントークン（`--primary`/`--success`/`--muted`/`--secondary`等）のみを使用し、新規のカラー値を追加しない
+- 配色・アイコンのマッピングは、申請者側`inquiry-list`spec所有の対応履歴表示（`InquiryHistoryList`）と共有する
+
+スコープ外:
+- 対応履歴のデータモデル・記録ロジック（`InquiryHistoryEntry`型、`getInquiryHistory`/`appendInquiryHistoryEntry`関数）自体の変更
+- 表示する情報の追加・削除（Requirement 5・14で定義済みの表示内容、担当者名の表示有無は変更しない）
+- ダークモード対応（本アプリは現状ライトテーマのみのため対象外）
+
+### Requirement 16: 対応履歴タイムラインの視覚的表示形式（追加・2026-07-21）
+**Objective:** As a ヘルプデスク担当者, I want 対応履歴の各項目がどんな種類の出来事なのかをひと目で見分けたい, so that 履歴が増えても目的の情報を素早く探せる
+
+#### Acceptance Criteria
+1. The Portal shall 問い合わせ詳細画面の対応履歴タイムラインを、縦の連結線とマーカーを伴う表示形式で表示する。
+2. The Portal shall 対応履歴の種別（対応中・対応解除・ステータス変更・返信・申請者メッセージ）ごとに、マーカーのアイコンと配色を変えて表示する。
+3. The Portal shall 返信・申請者メッセージの本文を、操作者・日時等のメタ情報と視覚的に区別できるブロックとして表示する。
+4. The Portal shall 対応履歴の日時表示に等幅数字（tabular figures）を用いる。
+5. The Portal shall 本要件の配色に、既存の`globals.css`デザイントークン（`--primary`・`--success`・`--muted`・`--secondary`等）のみを使用し、新規のカラー値を追加しない。
+6. The Portal shall 配色・アイコンのマッピングを、申請者側`inquiry-list`spec所有の対応履歴表示と共有する。
