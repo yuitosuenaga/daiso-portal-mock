@@ -15,6 +15,7 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 - **対象外**: 実際のメール送信によるパスワードリセット・アカウント招待メール（メール送信基盤が存在しないため将来フェーズで対応）、多要素認証（MFA）、CSVインポート等の一括登録・一括無効化（将来検討）、`ApplicantUser`の物理削除（既存の`Inquiry.companyId`・`AnnouncementRecipient.companyId`等の外部キー参照整合性の観点から無効化のみを対象とし削除機能は設けない）、`Company`の削除・無効化（既存の申請者アカウント・問い合わせ等の参照元となるため本specでは対象外とし、将来要件として扱う）、`HelpdeskStaff`（ヘルプデスク担当者自身のアカウント）の管理画面（別画面・別ユーザー種別であり本specの対象外）、ログイン画面自体の変更（既存の`/helpdesk/login`・`/login`の実装は変更しない。無効化されたアカウントのログイン拒否ロジックの追加のみが本specの対象）。
 - **隣接仕様との境界**: `helpdesk-portal-layout`specが確立した`HelpdeskSidebar`・ルート保護（ミドルウェアによる`/helpdesk/*`配下のヘルプデスクセッション必須化）の仕組みをそのまま利用し、本spec側で新たなルート保護の仕組みを作らない。認証（Auth.js Credentials Provider、`src/lib/server/authorize.ts`）は既存実装を前提とし、本specは「無効化されたアカウントでの認証を拒否する」という認可判定への追加要件のみを持つ。既存の`src/lib/server/company-service.ts`（`listCompaniesForHelpdesk`、ヘルプデスク側代理問い合わせ登録画面向けの`Company`読み取り専用関数）は`helpdesk-inquiry-management`spec所有のまま変更せず、本specは`Company`の書き込み系（作成・更新）とより詳細な読み取り（一覧・詳細）を新たに設計する。
 - **隣接仕様との境界（`AnnouncementRecipient`。2026-07-17 追記）**: `AnnouncementRecipient`（お知らせの確認済み・実施済み・リマインド送信状態を追跡する会社単位のマスタ）は`announcements-management`・`announcements`・`backend-db-foundation`specが所有する。本specは、`Company`を新規作成した瞬間から当該会社がお知らせトラッキングの対象になるよう、`Company`作成時に対応する`AnnouncementRecipient`を同期生成する部分（および過去に本spec経由で作成され`AnnouncementRecipient`が欠落している`Company`の補完）のみを担当する。`AnnouncementRecipient`の型定義（`src/types/announcement-recipient.ts`）・Prismaスキーマ定義・トラッキング/自己申告/リマインド送信のロジック（`announcement-service.ts`等）は本specの対象外であり、変更しない。
+- **スコープ拡張（セッション即時失効。2026-07-21 追記）**: 要件7.5「無効化された`ApplicantUser`のログイン拒否」は元々ログイン試行時のみを対象としていたが、本追記により「ログイン済みセッションの即時失効」（要件15）を対象に加える。認証の主要実装（`src/auth.config.ts`・`src/auth.ts`・`src/lib/server/authorize.ts`、Auth.js Credentials Provider）自体は変更せず、セッション参照層（`src/lib/server/get-session.ts`・`src/lib/server/auth-session.ts`）と申請者側レイアウト（`src/app/[locale]/(applicant)/layout.tsx`）への追加のみを行う。
 
 ## 要件
 
@@ -218,3 +219,24 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 1. The ヘルプデスクポータル shall `ApplicantUser`の新規作成時に`AnnouncementRecipient`を生成・変更しない。
 2. The ヘルプデスクポータル shall この扱いの根拠として、`AnnouncementRecipient`が`Company`に対して多対一（会社単位）のマスタであり、`ApplicantUser`とはリレーション（外部キー）を持たず`companyCode`（会社）でのみ引かれること、およびお知らせのトラッキング・自己申告・リマインド選択が会社単位で成立することを、設計に明記する。
 3. The ヘルプデスクポータル shall `AnnouncementRecipient`の同期生成を`Company`作成時のみに限定し、`ApplicantUser`作成・編集・無効化・再有効化のフローでは`AnnouncementRecipient`に触れない。
+
+---
+
+## セキュリティ修正: 無効化された申請者アカウントのセッション即時失効（2026-07-21 追記）
+
+### 背景（バグ）
+
+認証はJWTセッション戦略（`session: { strategy: "jwt" }`、`src/auth.config.ts`）であり、`ApplicantUser.isActive`のチェックは要件7.5の通りログイン時（`src/lib/server/authorize.ts`）のみ行われていた。既存の`jwt`/`session`コールバックはトークンの内容を透過するだけでDB再照会を行わないため、ヘルプデスク担当者が要件7（申請者アカウントの無効化・再有効化）に基づき`ApplicantUser`を無効化しても、そのユーザーが既にログイン済みであれば、JWTの有効期限が切れるまで既存セッションで全機能へのアクセスが継続してしまう（退職者・不正利用者を即座に締め出せないセキュリティギャップ）。要件7.5は「ログインを試みたとき」の拒否のみを定めており、「ログイン済みセッションの即時失効」は本specのスコープ境界に明記されていなかったため、本追記で対象範囲を拡張する。
+
+### 要件 15: ログイン済みセッションの即時失効（無効化後のアクセス遮断）
+
+**目的:** ヘルプデスク担当者として、申請者アカウントを無効化した際、そのアカウントが既にログイン済みであっても、以後のアクセスを速やかに遮断したい。そうすることで、退職・異動した担当者や不正利用の疑いがあるアカウントを、JWTの有効期限切れを待たずに締め出せる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall 申請者セッションが参照される都度（Server Actions・Route Handler・申請者側画面のレイアウトを含む）、対象`ApplicantUser`の`isActive`をDBへ再照会する。
+2. If 参照時点で対象`ApplicantUser`の`isActive`が`false`であるとき、the ヘルプデスクポータル shall 当該セッションのクレームを無効なものとして扱い、以後のデータアクセス（Server Actions・Route Handler経由のAPI）を拒否する。
+3. When 無効化された申請者アカウントの既存セッションで申請者側画面（`/[locale]/(applicant)`配下）へ次にアクセスしたとき、the ヘルプデスクポータル shall 申請者ログイン画面（`/login`）へリダイレクトする。
+4. The ヘルプデスクポータル shall 本要件の再照会をJWT自体のコールバック（Edge Runtimeでも実行されるミドルウェアと共有される）ではなく、Node.jsランタイムで実行されるセッション参照処理（`getSession`・`requireApplicantSession`等）に実装し、既存のEdge Runtime対応方針（`src/auth.config.ts`の「Prisma・bcryptjsに依存する処理を含めない」制約）を変更しない。
+5. The ヘルプデスクポータル shall `HelpdeskStaff`について、本specのスコープ外（要件のスコープ境界に既存記載の通り、`HelpdeskStaff`自身のアカウント管理は対象外）であり、かつ現時点で`isActive`相当のフィールドが存在しないことを踏まえ、本要件の再照会対象に含めない。将来`HelpdeskStaff`に無効化フィールドが追加された場合は別途検討する。
+6. The ヘルプデスクポータル shall 再有効化された`ApplicantUser`について、再ログイン後の新規セッションで通常通りアクセスできることを妨げない（既存の要件7.7と整合する）。

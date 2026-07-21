@@ -220,4 +220,29 @@
   - `applicant-user-service.ts`の`createApplicantUser`・`updateApplicantUser`・`setApplicantUserActive`が`AnnouncementRecipient`を生成・変更しないこと（既存実装のまま）をコードレビュー/テストで確認する
   - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 14.1, 14.2, 14.3_
+
+---
+
+## セキュリティ修正: 無効化された申請者アカウントのセッション即時失効（2026-07-21 追記）
+
+- [x] 30. `getSession()`に申請者セッションの`isActive`再照会を追加する
+  - `src/lib/server/get-session.ts`の`getSession()`を、`session.claims.role === "applicant"`のとき`prisma.applicantUser.findUnique({ where: { id: claims.applicantUserId }, select: { isActive: true } })`で`isActive`を再照会するように拡張する
+  - `isActive`が`false`、または対象`ApplicantUser`が存在しないとき、`session.claims`を`null`に差し替えて返す。ヘルプデスクセッション・未ログイン時はDB再照会を行わない
+  - `src/auth.config.ts`・`src/auth.ts`・`src/middleware.ts`・`src/lib/server/authorize.ts`は変更しない（Edge Runtime対応方針を維持する）
+  - 単体テスト（新規`src/lib/server/get-session.test.ts`）で、申請者セッション×`isActive: true/false/レコード不在`、ヘルプデスクセッション、未ログインの各ケースを検証し、通ることで完了とする
+  - _Requirements: 15.1, 15.2, 15.4, 15.5_
+  - _Boundary: src/lib/server/get-session.ts_
+
+- [x] 31. 申請者側レイアウトで無効化後のログイン画面リダイレクトを実装する
+  - `src/app/[locale]/(applicant)/layout.tsx`を非同期Server Componentとし、子要素を描画する前に`requireApplicantSession()`を呼び出す
+  - `UnauthorizedSessionError`送出時は`next/navigation`の`redirect()`でロケール付きログイン画面（`/${locale}/login`）へ遷移させ、それ以外の例外は再送出する
+  - ミドルウェア（`src/middleware.ts`）・ヘルプデスク側レイアウト（`helpdesk/(dashboard)/layout.tsx`）は変更しない
+  - 単体テスト（新規`src/app/[locale]/(applicant)/layout.test.tsx`）で、セッション有効時は子要素をそのまま描画すること、`UnauthorizedSessionError`時はロケールごとのログイン画面へリダイレクトすること、想定外の例外は再送出されることを検証し、通ることで完了とする
+  - _Requirements: 15.1, 15.2, 15.3, 15.6_
+  - _Boundary: src/app/[locale]/(applicant)/layout.tsx_
+  - _Depends: 30_
+
+- [x] 32. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 15.1〜15.6_
+  - _Depends: 30, 31_
   - _Depends: 26, 27, 28_
