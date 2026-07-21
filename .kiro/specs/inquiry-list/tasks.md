@@ -450,3 +450,25 @@
   - ヘルプデスク側で返信を記録→申請一覧に新着インジケーターが表示される→詳細画面を開く→一覧へ戻ると新着インジケーターが消えることを日本語・英語の両方で確認する
   - _Requirements: 14.1, 14.4, 14.6_
   - _Depends: 31.2_
+
+## 追加（2026-07-21）: 対応履歴の視覚的表示形式（縦タイムライン）
+
+- [x] 32. コア: 対応履歴の縦タイムライン表示
+- [x] 32.1 (P) `src/lib/inquiry-history-style.tsx`を新規作成する（`helpdesk-inquiry-management`spec所有、`inquiry-list`から読み取り専用で共有利用）
+  - `InquiryHistoryEntryType`ごとのアイコン（`lucide-react`）・配色（`globals.css`の既存トークンのみ）マッピングを定義する
+  - _Requirements: 15.2, 15.5_
+- [x] 32.2 (P) `messages/ja.json`/`messages/en.json`の`inquiryList.history`に`claimedLabel`/`releasedLabel`/`statusChangedLabel`を追加する
+  - _Requirements: 15.2_
+  - _Depends: なし_
+- [x] 32.3 `InquiryHistoryList`を縦タイムライン形式に変更する
+  - `getInquiryHistoryStyle`を用いたアイコン付きマーカー・連結線、種別バッジ、等幅日時、返信/申請者メッセージ本文のブロック表示を実装する
+  - `actorName`を表示しない既存制約（要件8.4）を維持する
+  - _Requirements: 15.1, 15.2, 15.3, 15.4_
+  - _Depends: 32.1, 32.2_
+- [x] 33. 検証（対応履歴の視覚的表示形式）
+- [x] 33.1 既存の`InquiryHistoryList.test.tsx`が変更なしで全件成功することを確認する
+  - _Requirements: 15.1〜15.5_
+  - _Depends: 32.3_
+- [x] 33.2 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 15.1〜15.5_
+  - _Depends: 33.1_
