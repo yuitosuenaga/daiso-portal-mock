@@ -33,11 +33,12 @@ export interface PriorityInquiriesPreviewPanelProps {
 export async function PriorityInquiriesPreviewPanel({
   viewAllHref,
 }: PriorityInquiriesPreviewPanelProps) {
-  const [t, tOptions, tStatus, tClaim, locale] = await Promise.all([
+  const [t, tOptions, tStatus, tClaim, tHelpdeskList, locale] = await Promise.all([
     getTranslations("dashboard.priorityInquiriesPreview"),
     getTranslations("inquiryForm.options"),
     getTranslations("inquiryList.status"),
     getTranslations("helpdeskInquiries.claim"),
+    getTranslations("helpdeskInquiries.list"),
     getLocale(),
   ]);
 
@@ -104,6 +105,7 @@ export async function PriorityInquiriesPreviewPanel({
                 claimBadgeLabel={tClaim("inProgressBadge")}
                 claimedByLabel={tClaim("claimedByLabel")}
                 locale={locale}
+                untitledLabel={tHelpdeskList("untitled")}
               />
             ))}
           </ul>

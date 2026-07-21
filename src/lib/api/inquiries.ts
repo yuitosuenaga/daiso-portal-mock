@@ -17,6 +17,7 @@ import {
   markInquiryRead as markInquiryReadService,
   setClaim,
   updateStatus,
+  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 
 function summarize(inquiries: Inquiry[]): InquiryStatusSummary {
@@ -126,6 +127,22 @@ export async function updateInquiryStatus(
   await requireHelpdeskStaffSession();
 
   return updateStatus(id, status);
+}
+
+/**
+ * 現在の`status`が`expectedStatus`である場合にのみ`nextStatus`へ原子的に変更する。
+ * ヘルプデスク担当者のセッションを要求する。返信送信時の自動遷移（新規→対応中）など、
+ * 読み取り時点と書き込み時点の間に他の担当者による状態変更が入り込む競合を避ける
+ * 用途で使用する。マッチして変更した場合は`true`を返す。
+ */
+export async function updateInquiryStatusIfCurrent(
+  id: string,
+  expectedStatus: Inquiry["status"],
+  nextStatus: Inquiry["status"]
+): Promise<boolean> {
+  await requireHelpdeskStaffSession();
+
+  return updateStatusIfCurrent(id, expectedStatus, nextStatus);
 }
 
 /**

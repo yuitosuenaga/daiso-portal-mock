@@ -175,6 +175,25 @@ export async function updateStatus(
   return mapInquiry(record);
 }
 
+/**
+ * 現在の`status`が`expectedStatus`である場合にのみ`nextStatus`へ原子的に更新する。
+ * 返信送信時の自動遷移（新規→対応中）のように、状態を読み取ってから書き込むまでの
+ * 間に他の担当者による変更が入り込む競合を避けるため、読み取り＋条件なし書き込みではなく
+ * DB側の`WHERE`条件で単一クエリとして完結させる。マッチした場合は`true`を返す。
+ */
+export async function updateStatusIfCurrent(
+  id: string,
+  expectedStatus: Inquiry["status"],
+  nextStatus: Inquiry["status"]
+): Promise<boolean> {
+  const result = await prisma.inquiry.updateMany({
+    where: { id, status: expectedStatus },
+    data: { status: nextStatus },
+  });
+
+  return result.count > 0;
+}
+
 /** 対応履歴を1件追記する。追記のみで更新・削除は行わない。 */
 export async function appendHistoryEntry(
   entry: Omit<InquiryHistoryEntry, "id">

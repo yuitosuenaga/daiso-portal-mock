@@ -107,6 +107,11 @@ export async function HelpdeskInquiryList() {
     label: categoryLabels[code],
   }));
 
+  const statusOptions = INQUIRY_STATUS_CODES.map((code) => ({
+    value: code,
+    label: statusLabels[code],
+  }));
+
   return (
     <div>
       {heading}
@@ -123,9 +128,11 @@ export async function HelpdeskInquiryList() {
             countryLabels={countryLabels}
             countryOptions={countryOptions}
             categoryOptions={categoryOptions}
+            statusOptions={statusOptions}
             claimBadgeLabel={tClaim("inProgressBadge")}
             claimedByLabel={tClaim("claimedByLabel")}
             locale={locale}
+            untitledLabel={t("untitled")}
           />
         </CardContent>
       </Card>

@@ -112,6 +112,61 @@ describe("HelpdeskInquiryDetail", () => {
     expect(screen.getByText(messages.helpdeskInquiries.history.empty)).toBeTruthy();
   });
 
+  it("見出しにtitleを表示し、会社名・カテゴリを補足テキストとして表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      title: "商品破損についての問い合わせ",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-001" });
+    renderWithProvider(jsx);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "商品破損についての問い合わせ",
+      })
+    ).toBeTruthy();
+    expect(screen.getByText("Daiso Japan Trading Co. / 不具合")).toBeTruthy();
+  });
+
+  it("titleが空文字のとき、代替ラベルを見出しに表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      title: "",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-001" });
+    renderWithProvider(jsx);
+
+    expect(
+      screen.getByRole("heading", {
+        name: messages.helpdeskInquiries.detail.untitled,
+      })
+    ).toBeTruthy();
+  });
+
   it("問い合わせ本文に添付ファイルがある場合、プレビュー・ダウンロードリンクを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",

@@ -81,9 +81,12 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
       {backToListLink}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>
-            {inquiry.submittedBy.companyName} / {tCategories(inquiry.category)}
-          </CardTitle>
+          <div>
+            <CardTitle>{inquiry.title || t("detail.untitled")}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {inquiry.submittedBy.companyName} / {tCategories(inquiry.category)}
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
               <Badge variant={`urgency-${inquiry.urgency}`}>

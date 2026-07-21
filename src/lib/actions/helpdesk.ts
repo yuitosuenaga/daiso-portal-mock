@@ -9,6 +9,7 @@ import {
   getInquiryById,
   setInquiryClaim,
   updateInquiryStatus,
+  updateInquiryStatusIfCurrent,
 } from "@/lib/api/inquiries";
 import {
   createReplyTemplate,
@@ -107,8 +108,18 @@ export async function changeInquiryStatusAction(
 }
 
 /**
- * 返信送信内容（添付ファイルを含む）を対応履歴に記録し、詳細ルートを再検証する。
+ * 返信送信内容（添付ファイルを含む）を対応履歴に記録し、一覧・詳細ルートを再検証する。
  * 添付ファイルは`inquiry-form`spec所有の`inquiryAttachmentsArraySchema`（件数上限・サイズ・形式を検証）でサーバー側検証する。
+ *
+ * 送信直前の`status`が`new`（新規）の場合、返信をもって対応が開始されたとみなし
+ * `in_progress`（対応中）へ自動的に変更する（変更内容は対応履歴にも記録する）。
+ * 既に`in_progress`・`resolved`の問い合わせに返信しても`status`は変更しない
+ * （`resolved`案件への返信で自動的に再オープンはしない）。
+ *
+ * `status`が`new`かどうかの判定と変更は、`updateInquiryStatusIfCurrent`による
+ * `WHERE status = 'new'`条件付きの単一更新で原子的に行う。読み取ってから条件なしで
+ * 書き込む方式だと、読み取り後・書き込み前に他の担当者が`changeInquiryStatusAction`で
+ * 状態を変えた場合（例: 先に`resolved`にした直後）に上書きしてしまう競合が起こり得るため。
  */
 export async function sendInquiryReplyAction(
   inquiryId: string,
@@ -129,7 +140,25 @@ export async function sendInquiryReplyAction(
     attachments:
       validatedAttachments.length > 0 ? validatedAttachments : undefined,
   });
-  revalidatePath(INQUIRY_DETAIL_PATH, "page");
+
+  const didAutoTransition = await updateInquiryStatusIfCurrent(
+    id,
+    "new",
+    "in_progress"
+  );
+
+  if (didAutoTransition) {
+    const t = await getTranslations("inquiryList.status");
+    await appendInquiryHistoryEntry({
+      inquiryId: id,
+      type: "status_changed",
+      actorName: claims.displayName,
+      occurredAt: new Date().toISOString(),
+      detail: `${t("new")} → ${t("in_progress")}`,
+    });
+  }
+
+  revalidateInquiryRoutes();
 }
 
 /**
