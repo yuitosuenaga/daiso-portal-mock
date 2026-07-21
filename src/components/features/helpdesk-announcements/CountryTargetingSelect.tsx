@@ -15,8 +15,14 @@ export interface CountryTargetingSelectProps {
   /** 現在選択済みの国コード一覧。 */
   value: string[];
   onChange: (value: string[]) => void;
-  /** バリデーションエラー時にtrueを渡す。候補一覧のグループにaria-invalidとして反映する。 */
+  /** バリデーションエラー時にtrueを渡す。候補一覧のグループの視覚的なエラー表示（赤枠）に反映する。 */
   ariaInvalid?: boolean;
+  /**
+   * エラーメッセージ要素のid。`ariaInvalid`がtrueのとき、候補一覧のグループから
+   * `aria-describedby`で参照する（`role="group"`は`aria-invalid`をサポートしないため、
+   * `aria-describedby`によるエラーメッセージとの関連付けで代替する）。
+   */
+  errorMessageId?: string;
   /** 候補一覧のグループ（`role="group"`）に付与するアクセシブルな名前（例: 「国・地域（複数選択可）」）。 */
   groupLabel: string;
   searchPlaceholder: string;
@@ -59,6 +65,7 @@ export function CountryTargetingSelect({
   value,
   onChange,
   ariaInvalid,
+  errorMessageId,
   groupLabel,
   searchPlaceholder,
   selectAllButtonLabel,
@@ -109,6 +116,7 @@ export function CountryTargetingSelect({
   const allVisibleSelected =
     filteredOptions.length > 0 &&
     filteredOptions.every((option) => value.includes(option.value));
+  const selectAllDisabled = filteredOptions.length === 0 || allVisibleSelected;
 
   return (
     <div className="flex flex-col gap-2">
@@ -125,7 +133,7 @@ export function CountryTargetingSelect({
           type="button"
           variant="outline"
           size="sm"
-          disabled={allVisibleSelected}
+          disabled={selectAllDisabled}
           onClick={selectAllVisible}
         >
           {selectAllButtonLabel}
@@ -169,6 +177,7 @@ export function CountryTargetingSelect({
         id={groupId}
         role="group"
         aria-label={groupLabel}
+        aria-describedby={ariaInvalid ? errorMessageId : undefined}
         data-invalid={ariaInvalid ? true : undefined}
         className={cn(
           "max-h-56 overflow-y-auto rounded-md border border-input bg-background p-2",

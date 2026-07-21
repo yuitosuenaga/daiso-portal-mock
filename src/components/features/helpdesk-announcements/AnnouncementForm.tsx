@@ -596,6 +596,7 @@ export function AnnouncementForm({
               ? countriesRequiredErrorMessage
               : undefined
           }
+          errorId="announcement-targeting-countries-error"
         >
           <Controller
             control={control}
@@ -611,6 +612,7 @@ export function AnnouncementForm({
                     ? true
                     : undefined
                 }
+                errorMessageId="announcement-targeting-countries-error"
                 groupLabel={countriesLabel}
                 searchPlaceholder={countriesSearchPlaceholder}
                 selectAllButtonLabel={countriesSelectAllButtonLabel}
