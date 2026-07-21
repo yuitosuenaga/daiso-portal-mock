@@ -38,6 +38,7 @@
 - `HelpdeskSidebar`への「販社管理」ナビゲーション項目の追加
 - （2026-07-17 追記）`Company`新規作成時に対応する`AnnouncementRecipient`を同一トランザクションで同期生成する処理（`company-service.ts`の`createCompany`拡張）
 - （2026-07-17 追記）`AnnouncementRecipient`が欠落している既存`Company`を補完する冪等バックフィルスクリプト（新規`prisma/backfill-announcement-recipients.ts` + `package.json`スクリプト）
+- （2026-07-21 追記）無効化された`ApplicantUser`のログイン済みセッションを次回参照時に失効させる処理（`src/lib/server/get-session.ts`への`isActive`再照会追加）、および申請者側レイアウト（`src/app/[locale]/(applicant)/layout.tsx`）でのログイン画面へのリダイレクト
 
 ### Out of Boundary
 - 既存の`listCompaniesForHelpdesk`（`helpdesk-inquiry-management`spec所有、代理問い合わせ登録画面向け）のシグネチャ・戻り値・呼び出し元。本specは変更せず、別関数を追加する
@@ -568,3 +569,66 @@ sequenceDiagram
 
 - `createCompany`が`Company`と`AnnouncementRecipient`（`contactName` = 会社名）を1トランザクションで作成すること、および作成直後に当該会社が`getAnnouncementRecipientStatuses`の結果へ含まれることを単体/結合テストで検証する。
 - backfillスクリプトが、担当者0件の`Company`にのみ1件補完し、既に担当者を持つ会社には追加しない（冪等）ことを検証する。
+
+## 追加設計: 無効化された`ApplicantUser`のセッション即時失効（2026-07-21 追記）
+
+### 根本原因と制約
+
+認証はJWTセッション戦略（`session: { strategy: "jwt" }`）であり、`src/auth.config.ts`の`jwt`/`session`コールバックはトークンの内容を素通しするのみでDB再照会を行わない。`ApplicantUser.isActive`の検証は`authorize.ts`のログイン時のみ（要件7.5）であるため、無効化後もトークン有効期限までセッションが有効に見え続ける。
+
+`src/auth.config.ts`はミドルウェア（Edge Runtime）と`src/auth.ts`（Node.jsランタイム、Route Handler・Server Action・Server Component向け）の双方で共有される設定であり、既存のコメントの通り「Prisma・bcryptjsに依存する処理をこの設定に含めない」という制約がある（Prismaの標準クライアントはEdge Runtimeで動作しないため）。したがって`jwt`/`session`コールバック自体でDB再照会を行う設計（候補(a)の素朴な実装）は、ミドルウェアとの共有部分（`auth.config.ts`）に手を入れることになり、この制約に抵触する。
+
+一方、申請者側の実際のデータアクセス（一覧・詳細取得、問い合わせ登録、お知らせ既読記録等）はすべてServer Actions・Route Handler・Server Component経由でNode.jsランタイム上の`src/lib/server/get-session.ts`（`auth()`を呼び出す）・`src/lib/server/auth-session.ts`の`requireApplicantSession`/`requireHelpdeskStaffSession`を通じて行われる（`src/lib/api/*.ts`が一貫してこれらを呼び出している）。ミドルウェア自体はJWTのrole検証のみを行い、実データへのアクセス可否はこのセッション参照層が担っている。
+
+### 採用する設計（候補(a)の実装場所をNode.jsランタイム側に限定）
+
+`src/lib/server/get-session.ts`の`getSession()`を、申請者セッション（`claims.role === "applicant"`）の場合にのみ`prisma.applicantUser.findUnique({ where: { id: claims.applicantUserId }, select: { isActive: true } })`で`isActive`を再照会するように拡張する。`isActive`が`false`（またはレコードが既に存在しない）場合は、`session.claims`を`null`に差し替えて返す。
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant RH as Route Handler / Server Action / Server Component
+    participant GS as getSession()
+    participant Auth as auth()（JWTデコードのみ）
+    participant DB as Prisma / ApplicantUser
+
+    C->>RH: リクエスト
+    RH->>GS: getSession()
+    GS->>Auth: auth()
+    Auth-->>GS: session（claims: role=applicant）
+    GS->>DB: findUnique({ id: applicantUserId }, select isActive)
+    DB-->>GS: isActive
+    alt isActive === false
+        GS-->>RH: session（claims: null）
+        RH-->>C: requireApplicantSession等がUnauthorizedSessionErrorを送出→401 / ログイン画面へリダイレクト
+    else isActive === true
+        GS-->>RH: sessionそのまま
+        RH-->>C: 通常の処理を継続
+    end
+```
+
+この設計により:
+- `requireApplicantSession`・`requireHelpdeskStaffSession`（両者とも内部で`getSession()`を呼ぶ）、および`src/lib/api/inquiries.ts`内の`getSession()`直接呼び出し箇所を含め、申請者セッションを参照する**すべての**Node.js側の経路が1箇所の変更で保護される（要件15.1、15.2）。
+- `src/auth.config.ts`・`src/auth.ts`・`middleware.ts`・`authorize.ts`は一切変更せず、既存のEdge Runtime対応方針を維持する（要件15.4）。
+- `HelpdeskStaff`には`isActive`相当のフィールドが存在しないため、`claims.role === "helpdesk"`の場合はDB再照会を行わない（要件15.5）。
+
+### ページ遷移時のログイン画面リダイレクト
+
+ミドルウェア（Edge Runtime）はJWTのrole検証のみを行うため、上記の`getSession()`拡張だけでは「無効化後、次にページ遷移したときにログイン画面へ誘導される」という体験は保証されない（ミドルウェア自体は無効化を検知できないため、ページのシェル自体は表示され得る）。
+
+このため、申請者側の共通レイアウト`src/app/[locale]/(applicant)/layout.tsx`をServer Component化し、子要素を描画する前に`requireApplicantSession()`を呼び出す。`UnauthorizedSessionError`が送出された場合（セッションなし、ロール不一致、または本追記による`isActive: false`のいずれの場合も含む）、`next/navigation`の`redirect()`で申請者ログイン画面（`/${locale}/login`）へ遷移させる。
+
+- ミドルウェアは変更しない（既存のJWT roleチェックのみを維持）。レイアウト側の追加チェックは、ミドルウェアを通過した後の多層防御（要件8.2と同じ設計思想）として位置づける。
+- ヘルプデスク側レイアウト（`helpdesk/(dashboard)/layout.tsx`）は変更しない。`HelpdeskStaff`に対応する無効化フィールドが存在しないため、対応するチェックを追加する対象が無い。
+- 各コンポーネント（`InquiryListCard`・`AnnouncementsCard`・`ReminderAnnouncementsPanel`等）が個別に呼び出す`requireApplicantSession()`は、レイアウトのチェックと重複するが、多層防御として意図的に残す（1リクエストあたりの`ApplicantUser`再照会はPrimary Key検索でありコストは無視できる小規模ポータルであるため、リクエスト単位のメモ化等の追加最適化は行わない）。
+
+### 設計判断（代替案との比較）
+
+- 「`jwt`コールバックでの再照会＋トークンへの最終チェック時刻埋め込みによるスロットリング（候補(b)）」は、`auth.config.ts`がミドルウェア（Edge Runtime）と共有されるためPrismaを直接呼び出せず、実現するには内部APIへの`fetch`呼び出し等の追加の間接層が必要になり、本ポータルの規模（限られた社数・利用者数の内部ポータル）に対して複雑さが見合わないため採用しない。
+- 「ミドルウェアからNode.js製の内部検証APIを`fetch`する」案も同様の理由（新規エンドポイント・スロットリング・フェイルオープン/クローズ判断・追加のテスト複雑性）で見送り、Node.jsランタイム側のセッション参照層の拡張に一本化する。
+- React `cache()`によるリクエスト単位のメモ化は、本リポジトリの`react`が安定版（canaryではない）であり`cache`エクスポートを持たないため（vitest等スタンドアロン実行時に解決エラーとなる）採用しない。`ApplicantUser.isActive`の照会は主キー検索でありコストが小さいため、素朴な複数回呼び出しで許容する。
+
+### テスト追加方針
+
+- `getSession()`が、申請者セッションかつ`isActive: false`（またはレコード不在）のとき`claims`を`null`に差し替えること、`isActive: true`のときセッションをそのまま返すこと、ヘルプデスクセッション・未ログイン時はDB再照会を行わないことを単体テストで検証する（`src/lib/server/get-session.test.ts`）。
+- `ApplicantLayout`が、`requireApplicantSession()`成功時は子要素をそのまま描画し、`UnauthorizedSessionError`送出時はロケールに応じたログイン画面（`/ja/login`・`/en/login`）へ`redirect()`すること、それ以外の例外は再送出されることを単体テストで検証する（`src/app/[locale]/(applicant)/layout.test.tsx`）。
