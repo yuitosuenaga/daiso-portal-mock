@@ -145,3 +145,48 @@ interface LogoProps {
 - **Contrast Check**: `--primary` と `--primary-foreground`、`--foreground` と `--background` の組み合わせについて、コントラスト比がWCAG AA（通常テキストで4.5:1以上）を満たすことを手動計算またはツールで確認する（Requirement 5.1, 5.2）
 - **Build Verification**: `npm run lint` / `npm run typecheck` / `npm run build` がエラーなく完了することを確認する（Requirement 1.4, tech.md運用ルール）
 - **Regression Check**: バッジ・アラートの既存バリアント（`maintenance`, `status-*`, `urgency-*`, `success`, `destructive`）が新トークン適用後も意味の異なる色として区別できることを目視確認する
+
+## 追加設計: 残存するスレート系デザイントークンの中立グレー化（2026-07-22 追記）
+
+Requirement 6 に対応する。初回のブランド化（本design.md「Design Token Values」節）は `--primary` 系・`--accent` 系・`--foreground` / `--ring` の更新に限定し、その他のトークン（`--secondary`・`--muted`・`--border`・`--input` 等）は明示的に「既存値を維持する」と記載していた。この維持対象のうち、shadcn/ui デフォルト由来のスレート色（hue 210〜215）を持つトークンが `.kiro/steering/brand.md`「やってはいけないこと」に抵触するため、色相・彩度のみを無彩色化する。
+
+### 対象ファイル
+- `src/app/globals.css` の `:root` ブロックのみ（1ファイル）。`tailwind.config.ts`・`src/components/**`・`messages/**` は変更しない。
+
+### Design Token Values（中立グレー化）
+明度（lightness）は変更前の値をそのまま据え置き、色相を `0`・彩度を `0%` に置き換える。明度据え置きにより、テキスト／背景のコントラスト比は変更前と不変となり、アクセシビリティ回帰は生じない。
+
+| トークン | 現状値（HSL） | 変更後（HSL） | 用途・意図 |
+|---|---|---|---|
+| `--secondary` | `210 40% 96.1%` | `0 0% 96%` | secondaryボタン・淡色背景。青みを除去 |
+| `--muted` | `210 40% 96.1%` | `0 0% 96%` | muted背景（補助エリア）。青みを除去 |
+| `--muted-foreground` | `215.4 16.3% 46.9%` | `0 0% 47%` | 補助テキスト。明度47%を据え置きコントラスト維持 |
+| `--border` | `214.3 31.8% 91.4%` | `0 0% 91%` | 枠線。brand.md「中立グレー基調」に合わせ青みを除去 |
+| `--input` | `214.3 31.8% 91.4%` | `0 0% 91%` | 入力欄の枠線。同上 |
+| `--destructive-foreground` | `210 40% 98%` | `0 0% 98%` | destructive上のテキスト（ほぼ白）。青み除去 |
+| `--success-foreground` | `210 40% 98%` | `0 0% 98%` | success上のテキスト（ほぼ白）。青み除去 |
+
+**Key Decisions**:
+- 明度は据え置く（例: `--muted-foreground` は 46.9% → 47%、`--border`/`--input` は 91.4% → 91%）。丸め誤差の範囲でコントラスト比は変わらない。彩度を 0% にすることで hue 値は視覚的に無効化されるが、可読性・一貫性のため hue も `0` に統一表記する。
+- `--destructive`（`0 84.2% 60.2%`, 赤）と `--success`（`142 71% 45%`, 緑）は本追記の対象外。これらは元々ブランドピンク（hue 327）と分離された意味色であり、hue 0（赤）・hue 142（緑）を保持する。`--destructive` の hue は 0 だが彩度が高い赤であり、無彩色化対象の「スレート系」ではない。
+- 初回設計の「記載のないトークンは既存値を維持する」という方針は本追記により上書きされる（該当7トークンに限る）。
+
+### 影響範囲（確認観点）
+- `--secondary` を参照する箇所: `Button` の `secondary` バリアント、`Badge` の一部バリアント等。塗り色の明度は不変のため見た目は「青みが取れる」以外変化しない。
+- `--border` / `--input` を参照する箇所: 全カード枠・フォーム入力枠・区切り線（`* { @apply border-border }` によりほぼ全要素）。中立グレーになるが明度不変。
+- `--muted-foreground` を参照する箇所: ヘッダーのサブテキスト・ヒント文（`text-muted-foreground`）等。明度据え置きで可読性維持。
+
+### テスト追加方針
+- `npm run lint` / `tsc --noEmit` / `npm run build` がエラーなく完了することを確認する（Requirement 6.4）。
+- `globals.css` に対し、hue 210〜215 を持つトークン行が残っていないことを目視／grep（`210 |214|215`）で確認する（Requirement 6.3）。
+- playwright-mcp で代表画面（dashboard・inquiry-form・helpdesk-companies）を日本語・英語で開き、枠線・補助テキストの明度が変更前と同等でレイアウト崩れがないことを目視確認する（Requirement 6.2・6.5）。
+
+### Requirements Traceability（2026-07-22 追記分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 6.1 | スレート系7トークンを hue 0・彩度0% へ | globals.css tokens | CSS変数 |
+| 6.2 | 明度据え置きでコントラスト維持 | globals.css tokens | CSS変数 |
+| 6.3 | hue 210〜215 のトークンを残さない | globals.css tokens | CSS変数 |
+| 6.4 | 変更後もビルド・型・Lintが成功 | globals.css tokens | npm run build |
+| 6.5 | 参照コンポーネントの見た目を青み除去以外変えない | 全UI（トークン継承のみ） | — |

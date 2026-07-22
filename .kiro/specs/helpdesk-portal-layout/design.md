@@ -511,3 +511,51 @@ interface MobileNavProps {
   - 幅375px（モバイル）で申請者側・ヘルプデスク側の各ページにハンバーガーが表示され、開くとそのポータルの全ナビゲーション項目が出ること。項目クリックで遷移しドロワーが閉じること。Escape/オーバーレイクリック/閉じるボタンで閉じ、閉じた後トグルへフォーカスが戻ること。
   - 幅768px以上でハンバーガーが表示されず、既存サイドバー・折りたたみトグルの挙動が不変であること（横スクロールなし）。
   - 幅768/834/1024/1280で申請者側・ヘルプデスク側ヘッダーのタイトルに「…」省略が発生しないこと（副題は表示または非表示のいずれかで、途中省略は起きない）、および横スクロールが発生しないこと。
+
+## 認証済みヘッダーからの反対ロール切り替えリンクの撤去（2026-07-22 追記）
+
+Requirement 17 に対応する。ロール別ルート保護によりデッドリンク化している「反対ロールへの画面切り替えリンク」を、認証済みヘッダー（`Header.tsx`・`HelpdeskHeader.tsx`）から撤去する。
+
+### 根本原因（コードで確認済み）
+- `src/lib/server/route-protection.ts`の`resolveLoginRedirectPath`は、`/helpdesk`配下を「helpdeskロール必須」、それ以外を「applicantロール必須」として、ロール不一致時に対応するログイン画面へリダイレクトする。`src/middleware.ts`がこれを全ページに適用する。
+- `Header.tsx`（申請者ロール文脈でのみ描画）の`href="/helpdesk"`リンク → applicantロールでは`/helpdesk/login`へリダイレクトされる。
+- `HelpdeskHeader.tsx`（ヘルプデスクロール文脈でのみ描画）の`href="/"`リンク → helpdeskロールでは`/login`へリダイレクトされる。
+- セッションは単一ロールのため、両リンクは認証済みヘッダー上で常にデッドリンク。
+
+### 採用する設計: リンクの完全撤去（条件付き非表示ではなく削除）
+「現在のロールに応じて非表示にする」案は、各ヘッダーが単一ロール専用であるため実質「常に非表示」と同義になり、条件分岐を足すだけ複雑化する。よって条件分岐ではなく、両ヘッダーから切り替えリンクの要素そのものを削除する。反対ポータルへ移る正規の手段は「ログアウト（Requirement 13の導線）→ ログイン画面のクロスログインリンク」であり、これは既に実装済みで変更しない。
+
+### 対象ファイルと変更内容
+- `src/components/layout/Header.tsx`:
+  - `header.switchToHelpdesk`を表示する`<Link href="/helpdesk">`要素（`ArrowLeftRight`アイコン＋テキスト）を削除する。
+  - 未使用になる`ArrowLeftRight`のインポートを削除する。`useLocale`はログアウトの`callbackUrl`で引き続き使用するため残す。
+  - ロゴ／タイトルのダッシュボードリンク（Requirement 12）・`LanguageSwitcher`・ログアウトボタン（Requirement 13）は変更しない。
+- `src/components/layout/HelpdeskHeader.tsx`:
+  - `helpdeskHeader.switchToApplicant`を表示する`<Link href="/">`要素を削除する。
+  - 未使用になる`ArrowLeftRight`のインポートを削除する。
+- `messages/ja.json`・`messages/en.json`:
+  - `header.switchToHelpdesk`・`helpdeskHeader.switchToApplicant`のキーを削除する。
+  - ログイン画面用の`login.switchToHelpdeskLogin`・`login.switchToApplicantLogin`は変更しない。
+- `src/components/layout/Header.test.tsx`・`HelpdeskHeader.test.tsx`:
+  - 「切り替えリンクが表示される」ことを検証していた既存アサーション（`messages.header.switchToHelpdesk`等をnameに用いる`getByRole("link")`）を、「切り替えリンクが存在しない」ことを検証する内容（`queryByRole`でnullを確認）へ更新する。ロゴ・言語切替・ログアウトに関する既存アサーションは維持する。
+
+### 他要件との整合
+- Requirement 16（副題の省略回避）: 切り替えリンク撤去でヘッダー右側の要素が1つ減り、タイトル領域の残余幅が広がる方向に作用する。副題の省略回避と矛盾せず、むしろ有利。実装順に依存関係はないが、両方を同一実装ラウンドで行う場合は撤去後の幅でRequirement 16の副題表示境界を確定してよい。
+- Requirement 15（モバイルドロワー）: ドロワー内のナビゲーションは同一ポータル内の項目のみを列挙するものであり、反対ロールへの切り替えは元々含まない。本撤去と独立。
+
+### テスト追加方針
+- `npm run lint` / `tsc --noEmit`（未使用インポートを含め）がエラーなく通ること（Requirement 17.6）。
+- `Header.test.tsx` / `HelpdeskHeader.test.tsx` が更新後のアサーション（切り替えリンク不在）で通ること（Requirement 17.7）。
+- playwright（日英両ロケール）で、申請者側・ヘルプデスク側の各ヘッダーに切り替えリンクが表示されないこと、ロゴ・言語切替・ログアウトは従来どおり機能すること、各幅で横スクロールが発生しないことを確認する（Requirement 17.1〜17.4・17.8）。
+
+### Requirements Traceability（2026-07-22 追記・Requirement 17）
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 17.1 | 申請者側ヘッダーからヘルプデスク切替リンクを撤去 | Header | — |
+| 17.2 | ヘルプデスク側ヘッダーから申請者切替リンクを撤去 | HelpdeskHeader | — |
+| 17.3 | 他ヘッダー要素（ロゴ・言語切替・ログアウト）は不変 | Header, HelpdeskHeader | — |
+| 17.4 | ログイン画面のクロスログイン導線は維持 | login pages（変更なし） | — |
+| 17.5 | 不要な翻訳キーを削除 | messages/ja.json, messages/en.json | i18n keys |
+| 17.6 | 未使用インポート除去・Lint/型が通る | Header, HelpdeskHeader | — |
+| 17.7 | ヘッダーテストを不在検証へ更新 | Header.test.tsx, HelpdeskHeader.test.tsx | — |
+| 17.8 | 全幅で横スクロールなし・Req16と整合 | Header, HelpdeskHeader | — |
