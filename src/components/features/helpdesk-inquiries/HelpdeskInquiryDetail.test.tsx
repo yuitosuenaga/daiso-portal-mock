@@ -264,6 +264,11 @@ describe("HelpdeskInquiryDetail", () => {
     expect(
       screen.getByText("We would like to place an additional order.")
     ).toBeTruthy();
+    expect(
+      screen.queryByText(
+        messages.helpdeskInquiries.detail.translationUnavailable
+      )
+    ).toBeNull();
   });
 
   it("原文が日本語の場合、日本語訳セクションを表示せず原文のみを表示する", async () => {
@@ -295,9 +300,14 @@ describe("HelpdeskInquiryDetail", () => {
       screen.queryByText(messages.helpdeskInquiries.detail.originalTextLabel)
     ).toBeNull();
     expect(screen.getByText("テスト本文")).toBeTruthy();
+    expect(
+      screen.queryByText(
+        messages.helpdeskInquiries.detail.translationUnavailable
+      )
+    ).toBeNull();
   });
 
-  it("外国語原文だが日本語訳が未設定の場合、日本語訳セクションを表示せず原文のみを表示する", async () => {
+  it("外国語原文だが日本語訳が未設定の場合、翻訳未対応の注記と原文を表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-003",
       title: "テストタイトル",
@@ -318,12 +328,14 @@ describe("HelpdeskInquiryDetail", () => {
     renderWithProvider(jsx);
 
     expect(
+      screen.getByText(
+        messages.helpdeskInquiries.detail.translationUnavailable
+      )
+    ).toBeTruthy();
+    expect(
       screen.queryByText(
         messages.helpdeskInquiries.detail.translatedTextLabel
       )
-    ).toBeNull();
-    expect(
-      screen.queryByText(messages.helpdeskInquiries.detail.originalTextLabel)
     ).toBeNull();
     expect(screen.getByText("원문 텍스트")).toBeTruthy();
   });

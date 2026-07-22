@@ -343,19 +343,19 @@
 
 ## 追加タスク（2026-07-22）: 投稿時の`translatedText`を書き込まないことの保証（要件13）
 
-- [ ] 18. `createInquiryRecord`が`translatedText`を書き込まないことの回帰テストを追加する
+- [x] 18. `createInquiryRecord`が`translatedText`を書き込まないことの回帰テストを追加する
   - 対象: `src/lib/server/inquiry-service.test.ts`
   - `createInquiryRecord`を呼び出したとき、`prisma.inquiry.create`に渡る`data`に`translatedText`が含まれない（＝DB既定の`null`のまま作成される）ことを検証するケースを追加する。既存テストのモック方針（`prisma`のモック）に合わせて、`create`呼び出し引数の`data`をアサートする形でよい
   - 併せて、返却された`Inquiry`（`mapInquiry`経由）の`translatedText`が`undefined`であることを検証してもよい
   - _Requirements: 13.1, 13.3, 13.4_
   - _Boundary: createInquiryRecord (inquiry-service)_
 
-- [ ]* 19. （任意）`createInquiryRecord`付近に意図を示すコメントを追加する
+- [x]* 19. （任意）`createInquiryRecord`付近に意図を示すコメントを追加する
   - `src/lib/server/inquiry-service.ts`の`createInquiryRecord`付近に、`translatedText`を投稿時に書き込まない理由（フェーズ3の実翻訳API導入まで`null`維持、表示側の未翻訳注記は`helpdesk-inquiry-management`spec Requirement 17が担当）を短く記載し、将来の誤改修を防ぐ
   - _Requirements: 13.3_
   - _Boundary: createInquiryRecord (inquiry-service)_
 
-- [ ] 20. 検証（投稿時translatedText非書き込みの保証）
+- [x] 20. 検証（投稿時translatedText非書き込みの保証）
   - `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する
   - _Requirements: 13.1, 13.2, 13.3, 13.4_
   - _Depends: 18_

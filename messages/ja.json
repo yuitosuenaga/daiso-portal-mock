@@ -242,6 +242,7 @@
       "attachmentsLabel": "添付ファイル",
       "translatedTextLabel": "日本語訳",
       "originalTextLabel": "原文",
+      "translationUnavailable": "自動翻訳は未対応です。以下の原文をご確認ください。",
       "untitled": "(タイトル未設定)"
     },
     "filter": {
