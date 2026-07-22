@@ -313,10 +313,72 @@ interface LinkActions {
 ## Security Considerations
 フェーズ1は認証未実装のため、ヘルプデスク側のリンク作成・編集・削除画面は`helpdesk-portal-layout`の前提通り制限なくアクセス可能である。リンクは可視性スコープを持たない全社共通データであり、公開範囲による情報分離は行わない。ユーザーが入力したURLはリンク先の内容を検証せず、`<a href>`として提示するのみとする（既存`links-page`specの前提を踏襲。リンク先の安全性検証はフェーズ1の対象外）。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御（ヘルプデスク担当者のみ書き込み可）を追加できることを設計上の前提とする。
 
-## 設計追記（2026-07-22）: リンク削除確認のアプリ内モーダル化（要件10）
+---
+
+## 追加設計（追記日: 2026-07-22）: 管理一覧のキーワード検索・カテゴリ絞り込み・ページネーション
+
+> 対応要件: 要件10。現状の`LinkManagementList`（Server Component）は`listLinksForHelpdesk()`で取得した全件を`ManagementListRow`で直接描画している。検索・絞り込み・ページネーションはクライアント状態を要するため、`documents-management`spec が確立済みの「Server Componentが全件取得 → Client Componentが絞り込み・ページ分割して描画」パターン（`DocumentManagementList` → `DocumentManagementListClient` + `DocumentManagementFilterBar` + `DocumentManagementPagination`）をそのまま踏襲する。データ取得・並び順（`createdAt`降順）・行の表示項目・編集/削除導線は変更しない。
+
+### 設計方針の全体像
+
+- `LinkManagementList`（Server, 既存）は`listLinksForHelpdesk()`での取得・`heading`・エラー/空状態の分岐を維持しつつ、一覧本体の描画を新規の`LinkManagementListClient`（Client）へ委譲する（`DocumentManagementList`と同一の責務分担）。カテゴリ表示名（`tCategories`）・`locale`・各翻訳済みラベルはServer側で解決し、propsでClientへ渡す。
+- サービス層（`listLinksForHelpdesk`）・Server Actions・バリデーション・ルート構成は**変更しない**。絞り込み・ページングはクライアント側の表示制御のみで完結する（取得件数は現状どおり全件。`documents-management`と同じ方針で、フェーズ1のデータ規模ではクライアント側ページングで十分）。
+
+### 新規・変更コンポーネント
+
+- 新規 `src/components/features/helpdesk-links/LinkManagementFilterBar.tsx`（Client）: `DocumentManagementFilterBar`と同型。`filters`（`{ keyword: string; category: LinkManagementCategoryFilter }`）・`onChange`・`onClear`をpropsで受け、キーワード`Input`＋カテゴリ`Select`＋クリア`Button`で構成。ラベルは`useTranslations("helpdeskLinks.list.filter")`で解決。カテゴリ`Select`の選択肢は「すべてのカテゴリ」＋`LINK_CATEGORY_CODES`（4値）で、各カテゴリラベルは`links.categories.*`を再利用する（propsで翻訳済みラベル配列を受け取る形とし、Client内で`links`名前空間を直接参照しない設計でもよい）。
+- 新規 `src/components/features/helpdesk-links/LinkManagementPagination.tsx`（Client）: `DocumentManagementPagination`と同型。`page`・`totalPages`・`onPageChange`をpropsで受け、前へ／次へ`Button`と`pageStatus`表示を持つ。ラベルは`useTranslations("helpdeskLinks.list.pagination")`。
+- 新規 `src/components/features/helpdesk-links/LinkManagementListClient.tsx`（Client）: `DocumentManagementListClient`と同型。propsで`links: LinkWithTimestamp[]`・`locale`・各翻訳済みラベルを受け取り、`useState`で`filters`と`page`を保持する。`useMemo`で「キーワード（title・URL・description の部分一致・大文字小文字非依存）」＋「カテゴリ一致（`all`は全件）」のAND絞り込みを行い、`LINK_MANAGEMENT_PAGE_SIZE`件ごとに`slice`でページ分割する。`handleFiltersChange`で`page`を1に戻す。0件時は`helpdeskLinks.list.filter.noResults`を表示する。各行の描画（タイトル・URL・カテゴリ表示名・登録日・編集リンク・`DeleteLinkButton`）は現行`LinkManagementList`の行と同一にする。
+- 変更 `src/components/features/helpdesk-links/LinkManagementList.tsx`（Server）: 一覧本体の`ManagementListCard`/`ManagementListRows`描画を`LinkManagementListClient`呼び出しに置き換える。取得・`heading`・エラー/空状態分岐・`LinkManagementListSkeleton`は維持する。
+
+### 絞り込みユーティリティ
+
+- 管理側のキーワード絞り込みは、`links-page`spec が要件10で新設する`src/lib/link-utils.ts`の`filterLinks(links, keyword)`（title・description・URL部分一致）を再利用してよい（`LinkWithTimestamp[]`を扱えるジェネリック／構造的型で実装されている前提）。カテゴリ絞り込みはClient内の単純な`filter`で行う。`link-utils.ts`が`links-page`側タスクで未実装の段階でも、管理側で同等の絞り込み関数を用意して先行実装できる（重複を避けるため最終的には`link-utils.ts`へ集約する）。
+
+### 定数
+
+- 新規 `src/lib/constants/link-options.ts`（既存ファイル）に `LINK_MANAGEMENT_PAGE_SIZE = 10` と、フィルタ用の型 `LinkManagementCategoryFilter = LinkCategory | "all"` を追加する（`document.ts`の`DOCUMENT_MANAGEMENT_PAGE_SIZE`・`DocumentManagementScopeFilter`と同一方針）。
+
+### 翻訳キー
+
+`messages/ja.json`・`messages/en.json` の `helpdeskLinks.list` 名前空間に以下を追加する（`helpdeskDocuments.list.filter`/`pagination`と同構造。`ja`/`en`でキー構造を一致させる）:
+
+```
+helpdeskLinks.list.filter.keywordLabel        // 例(ja): "キーワード検索"
+helpdeskLinks.list.filter.keywordPlaceholder  // 例(ja): "タイトル・URL・説明に含まれる語句"
+helpdeskLinks.list.filter.categoryLabel       // 例(ja): "カテゴリ"
+helpdeskLinks.list.filter.categoryAll         // 例(ja): "すべてのカテゴリ"
+helpdeskLinks.list.filter.clearButton         // 例(ja): "条件をクリア"
+helpdeskLinks.list.filter.noResults           // 例(ja): "該当するリンクがありません"
+helpdeskLinks.list.pagination.previousLabel   // 例(ja): "前へ"
+helpdeskLinks.list.pagination.nextLabel       // 例(ja): "次へ"
+helpdeskLinks.list.pagination.pageStatus      // 例(ja): "{current} / {total} ページ"
+```
+
+- 各カテゴリの表示ラベルは`links.categories.*`（`links-page`spec所有）を再利用し、二重定義しない。
+
+### 影響ファイル一覧（追加設計分）
+
+| 区分 | ファイル | 変更内容 |
+|---|---|---|
+| 変更 | `src/lib/constants/link-options.ts` | `LINK_MANAGEMENT_PAGE_SIZE`・`LinkManagementCategoryFilter`型を追加 |
+| 変更 | `src/components/features/helpdesk-links/LinkManagementList.tsx` | 一覧本体を`LinkManagementListClient`へ委譲（取得・heading・状態分岐は維持） |
+| 新規 | `src/components/features/helpdesk-links/LinkManagementListClient.tsx` | 検索＋カテゴリ絞り込み＋ページネーション状態保持と行描画 |
+| 新規 | `src/components/features/helpdesk-links/LinkManagementFilterBar.tsx` | キーワード＋カテゴリ絞り込みバー |
+| 新規 | `src/components/features/helpdesk-links/LinkManagementPagination.tsx` | 前へ／次へ・ページ状態表示 |
+| 変更 | `messages/ja.json` / `messages/en.json` | `helpdeskLinks.list.filter.*`・`helpdeskLinks.list.pagination.*` を追加 |
+| 再利用 | `src/lib/link-utils.ts`（`links-page`側で新設） | `filterLinks` をキーワード絞り込みに再利用 |
+
+### テスト方針（追加分）
+
+- Unit/Component: `LinkManagementListClient` のキーワード絞り込み（title/URL/description・大文字小文字非依存）、カテゴリ絞り込み（`all`で全件・特定カテゴリで該当のみ）、AND条件、ページ分割（`LINK_MANAGEMENT_PAGE_SIZE`超で複数ページ・条件変更で1ページ目に戻る）、0件メッセージ表示を検証する。
+- 既存の`LinkManagementList.test.tsx`が壊れないこと（並び順・行項目・導線の維持）を確認する。
+- E2E/UI（任意）: 日英で検索欄・絞り込み・ページネーションのラベルが切り替わること、タブレット幅で横スクロールしないこと。
+
+## 設計追記（2026-07-22）: リンク削除確認のアプリ内モーダル化（要件11）
 
 ### 変更対象
-- `src/components/features/helpdesk-links/DeleteLinkButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。確認押下時に既存削除処理を`onConfirm`で実行、`isPending`を伝播。
+- `src/components/features/helpdesk-links/DeleteLinkButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）でラップ。確認押下時に既存削除処理を`onConfirm`で実行、`isPending`を伝播。
 - Props: `title`（対象リンクタイトル）と確認モーダル用文言を追加。既存`confirmMessage` propは`{title}`埋め込み済み本文へ置換。
 
 ### i18n

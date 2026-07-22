@@ -272,3 +272,120 @@ function getFaqs(): Promise<Faq[]>;
 
 ## Security Considerations
 - 本仕様は読み取り専用のモックデータのみを扱い、外部入力の受け付けは行わない。質問・回答文の表示はReactの標準エスケープに依拠し、`dangerouslySetInnerHTML`を使用しない
+
+---
+
+# 追加設計: 申請者側FAQ UX改善（2026-07-22 追記）
+
+2026-07-22 のプロダクト全体レビューで発見した申請者側FAQの3課題（回答の改行消失・更新日/新着表示なし・キーワード検索なし）への対応設計。要件8・9・10 に対応する。既存の Server/Client 分離アーキテクチャは維持し、開閉状態に加えて「キーワード検索状態」を`FaqAccordion`より上位のClient Componentへ持ち上げる点のみが構造上の変更となる。
+
+## Requirements Traceability（追記分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 8.1–8.2 | 回答の改行・書式保持表示 | FaqAccordion | - | - |
+| 9.1 | `updatedAt`カラム新設 | （データモデル）Faq / faq-service | listFaqs 拡張 | - |
+| 9.2–9.5 | 更新日・新着バッジ表示 | FaqAccordion（またはFaqListClient） | faq-utils.isRecentlyUpdated | - |
+| 10.1–10.6 | 申請者側キーワード検索 | FaqListClient（新規, Client）, FaqList | faq-utils.filterFaqs | 検索フィルタフロー |
+
+## Boundary Commitments（追記分）
+
+### This Spec Owns（追記）
+- 申請者側FAQ表示のための `Faq` 型へのタイムスタンプ追加（`createdAt`/`updatedAt`）
+- 申請者側読み取り経路（`lib/api/faqs.ts` の `getFaqs`、`lib/server/faq-service.ts` の `mapFaq`/`listFaqs`）のタイムスタンプ露出
+- FAQ用ユーティリティ（`src/lib/faq-utils.ts`、新規）: 新着判定・キーワード絞り込み
+- 申請者側の検索UI・状態管理（`FaqListClient`、新規Client Component）
+- `faq` 名前空間への翻訳キー追加（更新日ラベル・新着バッジ・検索欄）
+
+### 共有基盤への変更（画面ではないため 1画面=1spec に非抵触）
+- `prisma/schema.prisma` の `Faq` モデルへの `updatedAt DateTime @updatedAt` 追加と対応するPrismaマイグレーション新規作成
+- `faq-service.ts` は `faq-management`spec が作成・所有するが、`mapFaq`/`listFaqs`（申請者側読み取り経路）へのタイムスタンプ露出は後方互換な追加であり、`faq-management` の書き込み経路・ヘルプデスク一覧（`listFaqsForHelpdesk`）の既存挙動を壊さない
+
+## データモデル変更（要件9.1）
+
+### schema.prisma
+```prisma
+model Faq {
+  id        String      @id @default(cuid())
+  category  FaqCategory
+  question  String
+  answer    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt   // 追加
+}
+```
+- 既存レコードへのバックフィル: `@updatedAt`は既存行に対してマイグレーション時のデフォルトが必要。マイグレーションは `updatedAt` を `NOT NULL` で追加し、既存行には `createdAt` 相当（またはマイグレーション実行時刻）を初期値として設定する（`ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP` 後にデフォルト除去、もしくはPrisma生成のマイグレーションSQLを手直しして既存行を`createdAt`で埋める）
+- 本番反映（Cloud SQL への `prisma migrate deploy`）は main 統合後に別途手動実行が必要（プロジェクト既知の運用: マイグレーション反映漏れに注意）
+
+### 型・サービス層の変更
+- `src/types/faq.ts`: `Faq` インターフェースに `createdAt: string` と `updatedAt: string`（ISO文字列）を追加する。`CreateFaqInput = Omit<Faq, "id" | "createdAt" | "updatedAt">` に修正し、`faq-management` の作成・更新入力からタイムスタンプを除外する（後方互換: フォーム側は question/answer/category のみを送るため影響なし）
+- `src/lib/server/faq-service.ts`: `mapFaq` の戻り値に `createdAt`/`updatedAt`（`toISOString()`）を含める。`listFaqs` はこの拡張された `mapFaq` を通すのみ。`FaqWithTimestamp` は `Faq` が既に両タイムスタンプを持つため冗長化する場合は `Faq` へ統合可（互換維持のため別名は残してよい）
+- `src/lib/api/faqs.ts`: `getFaqs` の戻り値型は `Faq[]` のまま（型拡張により自動的にタイムスタンプを含む）
+
+## Components and Interfaces（追記分）
+
+### FaqAccordion の変更（要件8, 9）
+- **改行保持（要件8）**: `AccordionContent` 内の回答表示に `whitespace-pre-wrap`（および長い行の折り返し用に `break-words`）クラスを付与する。現在の `<AccordionContent>{faq.answer}</AccordionContent>` を `<AccordionContent><p className="whitespace-pre-wrap break-words">{faq.answer}</p></AccordionContent>` 相当に変更する。`dangerouslySetInnerHTML` は使わずReact標準エスケープを維持する
+- **更新日・新着バッジ（要件9）**: 各 `AccordionTrigger`（またはその近傍）に、更新日（`updatedAt` を `toLocaleDateString(locale)` で整形）と、`isRecentlyUpdated(updatedAt)` が真のとき既存 `Badge` コンポーネントで「新着」ラベルを表示する。ロケールは Server Component（`FaqList`）から props で受け取るか、`FaqAccordion` を薄いClient のままにするため日付整形済み文字列・新着フラグを props で渡す設計を推奨（Client Component内で `getLocale` は使えないため、整形はServer側 or `next-intl`クライアントフックで行う）
+
+### faq-utils.ts（新規, 要件9.5・10.2）
+```typescript
+// 新着判定（documents の isRecentlyUploaded を踏襲）
+export const FAQ_NEW_BADGE_DAYS = 7;
+export function isRecentlyUpdated(updatedAt: string, now?: Date): boolean;
+
+// キーワード絞り込み（question / answer の部分一致・大文字小文字非依存）
+export function filterFaqs(faqs: Faq[], keyword: string): Faq[];
+```
+- `isRecentlyUpdated`: `document-utils.ts` の `isRecentlyUploaded` と同一ロジック（`diffDays <= FAQ_NEW_BADGE_DAYS`、未来日は false）。基準日数は本定数の変更のみで調整可能（要件9.5）
+- `filterFaqs`: `filterDocuments` を踏襲。`keyword` を trim+lowercase し、空なら入力配列をそのまま返す。`question`・`answer` のいずれかに部分一致するものを返す（要件10.2, 10.3）
+
+### FaqListClient（新規, Client Component, 要件10）
+- **配置**: `FaqList`（Server）が全件取得・エラー/空状態のハンドリングを担い、正常系のFAQ配列を `FaqListClient` に渡す。`FaqListClient` がキーワード状態（`useState`）を保持し、`filterFaqs` で絞り込んだ結果をカテゴリ別グループ（`FaqCategoryGroup`）へ流す。`DocumentManagementListClient`（ドキュメント管理側のクライアント絞り込み）と同じ設計方針
+- **カテゴリ別グループ化の移設**: 現在 `FaqList`（Server）が持つ `FAQ_CATEGORY_CODES.map` によるグループ化ループを `FaqListClient` 側へ移す（絞り込み後の配列に対してグループ化するため）。空カテゴリの非表示挙動（要件10.6）は既存ロジックをそのまま維持
+- **検索UI**: 上部にキーワード入力欄（既存 `Input` + `Label`）を配置。`DocumentManagementFilterBar` のキーワード欄と同じ構成。カテゴリ絞り込みセレクトは申請者側要件になし（キーワードのみ）
+- **0件表示（要件10.4）**: 絞り込み結果が0件のとき `faq.search.noResults` を表示
+- **ロケール依存の日付整形**: `FaqListClient` は Client のため、`next-intl` の `useFormatter`/`useLocale` を用いて更新日を整形するか、Server側で整形済み文字列を各FAQに付与して渡す。実装者はいずれかを選択（推奨: `useLocale()` + `toLocaleDateString`）
+
+### 翻訳キー（追記分, `faq` 名前空間）
+`messages/ja.json` / `messages/en.json` の `faq` に以下を追加（ja例）:
+```jsonc
+"faq": {
+  "list": {
+    "updatedLabel": "更新日",          // 要件9.4
+    "newBadge": "新着"                 // 要件9.3, 9.4
+  },
+  "search": {                          // 要件10.5
+    "label": "キーワード検索",
+    "placeholder": "質問や回答に含まれる語句",
+    "noResults": "該当するFAQがありません",
+    "clearButton": "条件をクリア"
+  }
+}
+```
+en 側も同一キー構造で英語文言を追加する（`updatedLabel`="Updated", `newBadge`="New", `search.label`="Search", `search.placeholder`="Keyword in question or answer", `search.noResults`="No matching FAQs", `search.clearButton`="Clear"）。
+
+## File Structure Plan（追記分）
+
+### 新規
+```
+src/lib/faq-utils.ts                         # isRecentlyUpdated / FAQ_NEW_BADGE_DAYS / filterFaqs
+src/components/features/faq/FaqListClient.tsx # 検索状態＋カテゴリ別グループ化（Client）
+prisma/migrations/<timestamp>_add_faq_updated_at/  # updatedAt追加マイグレーション
+```
+
+### 変更
+```
+prisma/schema.prisma                         # Faq に updatedAt @updatedAt 追加
+src/types/faq.ts                             # Faq に createdAt/updatedAt 追加、CreateFaqInput 修正
+src/lib/server/faq-service.ts                # mapFaq にタイムスタンプ露出
+src/components/features/faq/FaqList.tsx      # グループ化を FaqListClient へ委譲、client へ配列を受け渡し
+src/components/features/faq/FaqAccordion.tsx # whitespace-pre-wrap、更新日・新着バッジ表示
+messages/ja.json, messages/en.json           # faq.list.updatedLabel / faq.list.newBadge / faq.search.*
+```
+
+## Error Handling / Testing（追記分）
+- 検索は純粋にクライアント側フィルタで完結し、取得エラー・空状態は既存の `FaqList`（Server）のハンドリングを維持する
+- **Unit**: `faq-utils` の `isRecentlyUpdated`（境界値: 7日ちょうど=true、7日超=false、未来日=false）、`filterFaqs`（空キーワード=全件、question一致、answer一致、大文字小文字非依存、0件）
+- **Integration**: `FaqAccordion` の回答に改行を含むデータで `whitespace-pre-wrap` が適用されること、更新日が新しいFAQに新着バッジが出ること、`FaqListClient` のキーワード入力で該当FAQのみ表示・0件時メッセージ表示
+- **E2E**: 日英で検索欄ラベル・更新日・新着バッジ・0件メッセージが切り替わること、タブレット幅で検索欄・アコーディオンが横スクロールを起こさないこと

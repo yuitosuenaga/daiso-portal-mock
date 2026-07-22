@@ -243,18 +243,49 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 
 ---
 
+## 機能追加: 申請者アカウントの通知言語（preferredLocale）設定（2026-07-22 追記）
+
+### 背景（機能ギャップ）
+
+`ApplicantUser`には通知言語を保持する`preferredLocale`フィールドが既に存在し（`prisma/schema.prisma`、`String @default("en")`）、お知らせ通知メールの送信処理（`src/lib/server/announcement-notifications.ts`）はこの値を用いてメール本文の言語（`resolveAnnouncementContent(announcement, recipient.preferredLocale)`）と詳細リンクのUIロケール（`resolveUiLocale`）を切り替える仕組みを持っている。しかし、申請者アカウントの新規作成・編集フォームおよびAPI入力契約（`CreateApplicantUserInput`・`UpdateApplicantUserInput`、`src/types/applicant-user.ts`）には`preferredLocale`が存在せず、サービス層（`createApplicantUser`・`updateApplicantUser`）も当該フィールドを保存していない。そのため管理画面から作成した申請者アカウントは常に既定値`"en"`のままとなり、タイ・ベトナム等の担当者を登録しても通知メールが英語固定になる。ヘルプデスク担当者がアカウント作成・編集時に通知言語を選択できるようにする。
+
+本追記は本specが所有する申請者アカウント作成・編集画面（`/helpdesk/companies/[id]/applicant-users/new`・`.../[userId]/edit`）と、そのフォーム・入力契約・サービス層・翻訳の範囲であり、新規画面は追加しない。
+
+スコープ:
+- 対象: `CreateApplicantUserInput`・`UpdateApplicantUserInput`・`ApplicantUserSummary`（`src/types/applicant-user.ts`）、`applicantUserCreateFormSchema`・`applicantUserUpdateFormSchema`（`src/lib/validation/applicant-user.ts`）、`ApplicantUserForm.tsx`、作成・編集ページ、`createApplicantUser`・`updateApplicantUser`・`mapApplicantUser`（`src/lib/server/applicant-user-service.ts`）、`createApplicantUserAction`・`updateApplicantUserAction`（`src/lib/actions/applicant-users.ts`）、選択肢定数（`src/lib/constants/applicant-user.ts`）、翻訳（`messages/ja.json`・`messages/en.json`の`helpdeskCompanies`名前空間）
+- 対象外: 通知メール送信処理（`announcement-notifications.ts`）・`resolveUiLocale`・`resolveAnnouncementContent`のロジック（既に`preferredLocale`対応済みのため変更しない）、`prisma/schema.prisma`（`preferredLocale`は既存のため変更しない）、`HelpdeskStaff`（通知対象外）、申請者本人による自己設定UI（本specはヘルプデスク側管理画面のみ）、お知らせ側の翻訳データ入力
+
+### 要件 16: 申請者アカウントの通知言語（preferredLocale）設定
+
+**目的:** ヘルプデスク担当者として、申請者アカウントの作成・編集時に、その担当者が通知メールを受け取る言語を選択したい。そうすることで、タイ・ベトナム等の海外販社担当者に、英語固定ではなくその担当者の言語でお知らせ通知を届けられる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall 申請者アカウント新規作成画面（`/helpdesk/companies/[id]/applicant-users/new`）に、通知言語（`preferredLocale`）を選択するプルダウン（`Select`）を、既存のメールアドレス・表示名・初期パスワードの各項目に加えて提供する。
+2. The ヘルプデスクポータル shall 申請者アカウント編集画面（`/helpdesk/companies/[id]/applicant-users/[userId]/edit`）に、対象アカウントの現在の`preferredLocale`を初期選択状態とした通知言語プルダウンを提供する。
+3. The ヘルプデスクポータル shall 通知言語の選択肢を、あらかじめ定義した言語コード一覧（`src/lib/constants/applicant-user.ts`の新規定数`APPLICANT_USER_PREFERRED_LOCALE_CODES`）から生成する。当該一覧は海外販社担当者が用いる言語（少なくとも `en`・`ja`・`zh`・`ko`・`th`・`vi`・`id`・`ms`・`tl`）を含み、各選択肢の表示ラベルは`next-intl`の翻訳キー経由（`helpdeskCompanies`名前空間）で日本語・英語ともに提供する。
+4. When ユーザーが通知言語を選択せずに新規作成を保存したとき、the ヘルプデスクポータル shall 既定値`"en"`（`ApplicantUser.preferredLocale`のスキーマ既定値と一致）を通知言語として扱う。
+5. When ユーザーが必要項目を入力し通知言語を選択して新規作成を保存したとき、the ヘルプデスクポータル shall 選択された`preferredLocale`を`ApplicantUser`に保存する。
+6. When ユーザーが編集画面で通知言語を変更して保存したとき、the ヘルプデスクポータル shall 対象`ApplicantUser`の`preferredLocale`を選択値へ更新する（パスワード欄が空欄でも通知言語の更新は反映する）。
+7. The ヘルプデスクポータル shall 通知言語の入力値を、クライアント側（zodスキーマ`applicantUserCreateFormSchema`・`applicantUserUpdateFormSchema`）とServer Actionsによるサーバー側の両方で、`APPLICANT_USER_PREFERRED_LOCALE_CODES`に含まれる値のみを許容する形で検証する。
+8. If 保存された`preferredLocale`に対応するお知らせ翻訳が存在しない言語であるとき、the ヘルプデスクポータル shall 既存の通知送信処理のフォールバック（`resolveAnnouncementContent`が既定言語へフォールバックする挙動）に委ね、本要件では通知送信ロジックを変更しない。
+9. The ヘルプデスクポータル shall 通知言語プルダウンの追加によって、既存のメールアドレス・表示名・パスワードの各項目の挙動（必須/任意・重複検証・パスワード平文の非残存＝要件5.9）を変更しない。
+10. The ヘルプデスクポータル shall 通知言語プルダウンのラベル・選択肢文言を`messages/ja.json`・`messages/en.json`で管理し、選択された言語の翻訳キーが存在しないときは英語（`en`）にフォールバックして表示する（要件10と整合）。
+
+---
+
 **背景（2026-07-22 追記）: 運用UX改善（確認モーダルのアプリ内化・販社コード入力ガイド）**
-2026-07-21のプロダクト全体レビューにより、本specが所有する画面で2点の運用UX課題が指摘された。(1) 申請者アカウントの無効化・再有効化の確認がブラウザ標準`window.confirm()`で行われ、対象アカウント名が確認文言に含まれずUIトーンとも不一致（要件16で解消）。(2) 販社（Company）作成フォームの`companyCode`が自由入力欄のみで、既存の命名規則（例: `vn-daiso-vietnam`）の案内や重複チェックのタイミングが不明瞭（要件17で解消）。
+2026-07-21のプロダクト全体レビューにより、本specが所有する画面で2点の運用UX課題が指摘された。(1) 申請者アカウントの無効化・再有効化の確認がブラウザ標準`window.confirm()`で行われ、対象アカウント名が確認文言に含まれずUIトーンとも不一致（要件17で解消）。(2) 販社（Company）作成フォームの`companyCode`が自由入力欄のみで、既存の命名規則（例: `vn-daiso-vietnam`）の案内や重複チェックのタイミングが不明瞭（要件18で解消）。
 
-### 要件 16: アカウント無効化・再有効化確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
+### 要件 17: アカウント無効化・再有効化確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
 
-**背景:** 現状、申請者アカウントの無効化・再有効化は`ToggleApplicantUserActiveButton`（`src/components/features/helpdesk-companies/ToggleApplicantUserActiveButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`）に対象アカウント名が含まれず、どのアカウントを操作しようとしているか曖昧である。またOSネイティブダイアログのためポータルのUIトーンと不一致。`helpdesk-portal-layout`spec（要件15）が新設する共通`ConfirmDialog`でアプリ内モーダル化し、対象アカウント名を明示する。
+**背景:** 現状、申請者アカウントの無効化・再有効化は`ToggleApplicantUserActiveButton`（`src/components/features/helpdesk-companies/ToggleApplicantUserActiveButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`）に対象アカウント名が含まれず、どのアカウントを操作しようとしているか曖昧である。またOSネイティブダイアログのためポータルのUIトーンと不一致。`helpdesk-portal-layout`spec（要件18）が新設する共通`ConfirmDialog`でアプリ内モーダル化し、対象アカウント名を明示する。
 
 **目的:** ヘルプデスク担当者として、アカウント無効化・再有効化の確認モーダルに対象アカウント名が明示された状態で確認したい。そうすることで、誤って別のアカウントを無効化する事故を防げる。
 
 #### 受け入れ基準
 
-1. The ヘルプデスクポータル shall `ToggleApplicantUserActiveButton`の確認を、`window.confirm()`ではなく共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）で行う。
+1. The ヘルプデスクポータル shall `ToggleApplicantUserActiveButton`の確認を、`window.confirm()`ではなく共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）で行う。
 2. The ヘルプデスクポータル shall 確認モーダルの本文に、対象申請者アカウントの氏名（`name`）を明示する（メールアドレス`email`を補助的に併記してよい）。例: 無効化時「『{name}』を無効化します。無効化するとこのアカウントでログインできなくなります。よろしいですか？」。
 3. The ヘルプデスクポータル shall 無効化と再有効化で異なる見出し・本文・確認ボタン文言を表示する（無効化は`destructive`、再有効化は通常系）。
 4. The ヘルプデスクポータル shall 対象名を埋め込むための翻訳キー（`helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`を`{name}`プレースホルダー付きに変更、および確認見出し・確認/キャンセルボタン文言）を`messages/ja.json`・`messages/en.json`の両方に用意する。
@@ -262,7 +293,7 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 6. The ヘルプデスクポータル shall `ToggleApplicantUserActiveButton`へ対象アカウント名を渡せるよう、必要に応じて呼び出し側から`name`（必要なら`email`）をpropsで受け取る。
 7. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`ToggleApplicantUserActiveButton.test.tsx`）を、`ConfirmDialog`ベースの操作へ更新する。
 
-### 要件 17: 販社コード（companyCode）入力ガイドと重複チェックの明確化（2026-07-22 追記）
+### 要件 18: 販社コード（companyCode）入力ガイドと重複チェックの明確化（2026-07-22 追記）
 
 **背景:** 販社作成フォーム（`CompanyForm`, `src/components/features/helpdesk-companies/CompanyForm.tsx`）の`companyCode`は必須の自由入力欄（`companyFormSchema`は`min(1)`のみ）で、命名規則の案内が一切ない。実データ（`prisma/seed.ts`）では`{ISO国コード小文字2桁}-daiso-{国名小文字・ハイフン区切り}`（例: `vn-daiso-vietnam`, `jp-daiso-japan-trading`）という規則が使われており、`companyCode`はDB上ユニーク制約（`Company_companyCode_key`）を持つ。現状は重複検知が送信時（`createCompanyAction`のユニーク制約違反）に限られ、入力者が規則や重複を事前に把握できない。
 

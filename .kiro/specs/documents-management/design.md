@@ -483,12 +483,12 @@ interface DocumentActions {
 | 14.12 | アップロード日降順・行表示項目・導線・バッジの維持 | DocumentManagementList, DocumentManagementListClient |
 | 14.13 | 追加UIのi18n | i18n messages |
 | 14.14 | 追加UIのレスポンシブ対応 | DocumentManagementFilterBar, DocumentManagementPagination |
-| 15.1〜15.6 | ドキュメント削除確認のアプリ内モーダル化・対象名明示 | DeleteDocumentButton, ConfirmDialog（helpdesk-portal-layout要件15）, i18n messages |
+| 15.1〜15.6 | ドキュメント削除確認のアプリ内モーダル化・対象名明示 | DeleteDocumentButton, ConfirmDialog（helpdesk-portal-layout要件18）, i18n messages |
 
 ## 設計追記（2026-07-22）: ドキュメント削除確認のアプリ内モーダル化（要件15）
 
 ### 変更対象
-- `src/components/features/helpdesk-documents/DeleteDocumentButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。確認押下時に既存削除処理を`onConfirm`で実行、`isPending`を伝播。
+- `src/components/features/helpdesk-documents/DeleteDocumentButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）でラップ。確認押下時に既存削除処理を`onConfirm`で実行、`isPending`を伝播。
 - Props: `title`（対象ドキュメントタイトル）と確認モーダル用文言を追加。既存`confirmMessage` propは`{title}`埋め込み済み本文へ置換。
 
 ### i18n

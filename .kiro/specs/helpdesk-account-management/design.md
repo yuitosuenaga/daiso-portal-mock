@@ -633,15 +633,100 @@ sequenceDiagram
 - `getSession()`が、申請者セッションかつ`isActive: false`（またはレコード不在）のとき`claims`を`null`に差し替えること、`isActive: true`のときセッションをそのまま返すこと、ヘルプデスクセッション・未ログイン時はDB再照会を行わないことを単体テストで検証する（`src/lib/server/get-session.test.ts`）。
 - `ApplicantLayout`が、`requireApplicantSession()`成功時は子要素をそのまま描画し、`UnauthorizedSessionError`送出時はロケールに応じたログイン画面（`/ja/login`・`/en/login`）へ`redirect()`すること、それ以外の例外は再送出されることを単体テストで検証する（`src/app/[locale]/(applicant)/layout.test.tsx`）。
 
-## 設計追記（2026-07-22）: 運用UX改善（要件16・17）
+## 追加設計: 申請者アカウントの通知言語（preferredLocale）設定（2026-07-22 追記）
 
-### 要件16: アカウント無効化・再有効化確認のアプリ内モーダル化
-- 変更対象: `src/components/features/helpdesk-companies/ToggleApplicantUserActiveButton.tsx`。`window.confirm()`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。確認押下時に既存の`setApplicantUserActiveAction(applicantUserId, !isActive)`を`onConfirm`で実行、`isPending`を伝播。トグル状態（`isActive`）で見出し・本文・確認ボタン文言・`confirmVariant`（無効化=`destructive`、再有効化=`outline`/通常）を切り替える。
+要件16に対応する。`ApplicantUser.preferredLocale`は既に永続化層（Prisma）と通知送信層（`announcement-notifications.ts`）に存在するが、作成・編集フォームおよびその入力契約・サービス層に欠落しているため、その経路を追加する。通知送信ロジック・Prismaスキーマは変更しない。
+
+### 対象ファイルと変更内容
+- `src/types/applicant-user.ts`:
+  - `ApplicantUserSummary`に`preferredLocale: string`を追加する（一覧・編集画面での初期表示に使用）。
+  - `CreateApplicantUserInput`・`UpdateApplicantUserInput`に`preferredLocale: string`を追加する。
+- `src/lib/constants/applicant-user.ts`（既存。現状`APPLICANT_USER_PASSWORD_MIN_LENGTH`のみ）:
+  - `APPLICANT_USER_PREFERRED_LOCALE_CODES` を新規追加する。初期値は海外販社担当者が用いる言語コードの配列 `["en", "ja", "zh", "ko", "th", "vi", "id", "ms", "tl"] as const`（先頭の`en`が既定値）。将来の言語追加は本定数への追記で行う。
+  - 既定値定数 `APPLICANT_USER_DEFAULT_LOCALE = "en"` を定義し、Prismaスキーマの`@default("en")`と一致させる。
+- `src/lib/validation/applicant-user.ts`:
+  - 両スキーマ（`applicantUserCreateFormSchema`・`applicantUserUpdateFormSchema`）に `preferredLocale: z.enum(APPLICANT_USER_PREFERRED_LOCALE_CODES).default(APPLICANT_USER_DEFAULT_LOCALE)` を追加する。`z.enum`により定数一覧外の値をサーバー/クライアント双方で弾く（要件16.7）。
+  - `ApplicantUserCreateFormValues`・`ApplicantUserUpdateFormValues`（`z.infer`）に`preferredLocale`が自動的に含まれる。
+- `src/components/features/helpdesk-companies/ApplicantUserForm.tsx`:
+  - `CompanyForm.tsx`が国選択で用いる`Select`（`@/components/ui/select`）・`SelectOption[]`パターンを踏襲し、通知言語プルダウンを追加する。
+  - Propsに `preferredLocaleLabel: string` と `preferredLocaleOptions: SelectOption[]` を追加する。`defaultValues`の型を `{ email: string; displayName: string; preferredLocale?: string }` に拡張し、`useForm`の`defaultValues.preferredLocale`に `defaultValues?.preferredLocale ?? APPLICANT_USER_DEFAULT_LOCALE` を設定する。
+  - `register("preferredLocale")`した`<Select id="applicant-user-preferred-locale" options={preferredLocaleOptions} ... />`を`FormField`でラップして表示する。
+  - `onSubmit`の作成分岐（現状`email`/`displayName`/`password`のみを明示的に組み立てている箇所）に`preferredLocale: values.preferredLocale`を追加する。編集分岐は`values`をそのまま渡すため`preferredLocale`が自動的に含まれる。
+- 作成・編集ページ（`src/app/[locale]/helpdesk/companies/[id]/applicant-users/new/page.tsx` および `.../[userId]/edit/page.tsx`。実ファイル名は既存実装に合わせる）:
+  - `APPLICANT_USER_PREFERRED_LOCALE_CODES.map((code) => ({ value: code, label: t(\`applicantUserForm.preferredLocaleOptions.${code}\`) }))` で`preferredLocaleOptions`を組み立て、`preferredLocaleLabel`とともに`ApplicantUserForm`へ渡す。
+  - 編集ページは取得済みの`ApplicantUserSummary.preferredLocale`を`defaultValues.preferredLocale`として渡す。
+- `src/lib/server/applicant-user-service.ts`:
+  - `mapApplicantUser`の戻り値に`preferredLocale: record.preferredLocale`を含める。
+  - `createApplicantUser`の`prisma.applicantUser.create`の`data`に`preferredLocale: input.preferredLocale`を追加する。
+  - `updateApplicantUser`の`prisma.applicantUser.update`の`data`に`preferredLocale: input.preferredLocale`を追加する（パスワード有無に関わらず更新）。
+- `src/lib/actions/applicant-users.ts`:
+  - `createApplicantUserAction`・`updateApplicantUserAction`は既に`schema.parse(input)`の結果を渡しているため、スキーマに`preferredLocale`が加わることで透過的に伝播する。明示的なフィールド追加が必要な箇所（もしあれば）を`parsed`経由に統一する。
+- `messages/ja.json`・`messages/en.json`（`helpdeskCompanies`名前空間）:
+  - `helpdeskCompanies.applicantUserForm.preferredLocaleLabel`（例: ja「通知言語」/ en「Notification language」）を追加する。
+  - `helpdeskCompanies.applicantUserForm.preferredLocaleOptions.<code>`（`en`/`ja`/`zh`/`ko`/`th`/`vi`/`id`/`ms`/`tl`）の各ラベルを日本語・英語で追加する（例: ja `th`=「タイ語」/ en `th`=「Thai」）。既存の`inquiryForm.options.originalLanguage`の文言に倣ってよいが、キーは本spec所有の`helpdeskCompanies`名前空間に独立して定義する（spec間のnamespace依存を作らない）。
+
+### 型・データ契約
+```typescript
+// src/lib/constants/applicant-user.ts
+export const APPLICANT_USER_PREFERRED_LOCALE_CODES = [
+  "en", "ja", "zh", "ko", "th", "vi", "id", "ms", "tl",
+] as const;
+export const APPLICANT_USER_DEFAULT_LOCALE = "en";
+
+// src/types/applicant-user.ts（追加分）
+export interface ApplicantUserSummary {
+  // ...existing fields...
+  preferredLocale: string;
+}
+export interface CreateApplicantUserInput {
+  email: string;
+  displayName: string;
+  password: string;
+  preferredLocale: string;
+}
+export interface UpdateApplicantUserInput {
+  email: string;
+  displayName: string;
+  password?: string;
+  preferredLocale: string;
+}
+```
+
+### 設計判断（代替案との比較）
+- **選択肢を`z.enum(固定定数)`にする vs 自由入力**: お知らせ側の翻訳locale（`announcement.ts`）は自由入力だが、アカウント作成UIでは誤入力を防ぎ選択を明快にするため固定enumを採用する。定数に無い言語が将来必要になれば定数へ追記する（1箇所変更で選択肢・バリデーションの双方に反映される）。
+- **`INQUIRY_ORIGINAL_LANGUAGE_CODES`の再利用 vs 専用定数**: 値集合は近いが、`inquiry-options.ts`は`inquiry-form`specの所有物であり意味論（問い合わせ原文言語）も異なる。spec境界を保つため、本spec所有の`applicant-user.ts`に専用定数`APPLICANT_USER_PREFERRED_LOCALE_CODES`を定義する。
+- **既定値**: Prismaスキーマの`@default("en")`と一致させ、未選択時・既存データとの整合を保つ。
+
+### テスト追加方針
+- `applicant-user`バリデーション: `preferredLocale`が定数一覧内の値を受理し、一覧外の値・未指定時に既定`"en"`となることを検証する。
+- `ApplicantUserForm.test.tsx`: 通知言語プルダウンが表示され選択肢が定数から生成されること、編集モードで`defaultValues.preferredLocale`が初期選択されること、送信時に`preferredLocale`がアクション引数に含まれることを検証する。
+- `applicant-user-service`（テストがあれば）: `createApplicantUser`/`updateApplicantUser`が`preferredLocale`を永続化し、`mapApplicantUser`が返すこと、`updateApplicantUser`がパスワード空欄でも`preferredLocale`を更新することを検証する。
+- 実機（playwright, 日英）: 作成画面で通知言語を「タイ語」等に設定して保存→編集画面で当該値が初期選択されていることを確認する。
+- `tsc --noEmit` / `npm run lint` / `npm test` / `npm run build` が通ること。
+
+### Requirements Traceability（2026-07-22 追記・要件16）
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 16.1 | 作成画面に通知言語プルダウン追加 | ApplicantUserForm, 作成ページ | Select, SelectOption[] |
+| 16.2 | 編集画面に現在値初期選択のプルダウン | ApplicantUserForm, 編集ページ | defaultValues.preferredLocale |
+| 16.3 | 選択肢は定数から生成・翻訳ラベル | applicant-user.ts定数, messages | APPLICANT_USER_PREFERRED_LOCALE_CODES |
+| 16.4 | 未選択時は既定"en" | validation schema | z.enum(...).default("en") |
+| 16.5 | 作成時にpreferredLocaleを保存 | ApplicantUserService.createApplicantUser | Prisma create data |
+| 16.6 | 編集時にpreferredLocaleを更新 | ApplicantUserService.updateApplicantUser | Prisma update data |
+| 16.7 | クライアント/サーバー双方でenum検証 | validation schema, Server Actions | z.enum |
+| 16.8 | 翻訳欠落時は既存フォールバックに委譲 | （通知送信は変更なし） | resolveAnnouncementContent |
+| 16.9 | 既存項目の挙動を変えない | ApplicantUserForm | — |
+| 16.10 | ラベル・選択肢のi18n・enフォールバック | messages/ja.json, messages/en.json | i18n keys |
+
+## 設計追記（2026-07-22）: 運用UX改善（要件17・18）
+
+### 要件17: アカウント無効化・再有効化確認のアプリ内モーダル化
+- 変更対象: `src/components/features/helpdesk-companies/ToggleApplicantUserActiveButton.tsx`。`window.confirm()`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）でラップ。確認押下時に既存の`setApplicantUserActiveAction(applicantUserId, !isActive)`を`onConfirm`で実行、`isPending`を伝播。トグル状態（`isActive`）で見出し・本文・確認ボタン文言・`confirmVariant`（無効化=`destructive`、再有効化=`outline`/通常）を切り替える。
 - Props追加: `applicantUserName`（対象氏名）、必要なら`applicantUserEmail`。確認モーダル用文言（無効化/再有効化それぞれの見出し・本文・確認ボタン）を追加。既存の`deactivateConfirmMessage`/`activateConfirmMessage`は`{name}`埋め込み済みの本文へ置換。
 - i18n: `helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`を`{name}`プレースホルダー付きに変更（ja/en）、確認見出し・確認/キャンセルボタン文言のキーを追加。
 - テスト: `ToggleApplicantUserActiveButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（無効化/再有効化それぞれトリガー→確認でaction実行、キャンセルで未実行、本文に対象名表示）。
 
-### 要件17: 販社コード入力ガイドと重複チェック
+### 要件18: 販社コード入力ガイドと重複チェック
 - 変更対象:
   - `src/lib/validation/company.ts`: `companyFormSchema.companyCode`に正規表現検証を追加（例: `/^[a-z0-9]+(-[a-z0-9]+)*$/`＝半角英小文字・数字・ハイフンのみ、先頭末尾・連続ハイフン禁止）。必須エラーとフォーマットエラーを区別できるようにする（`refine`/カスタムメッセージ or `min(1)`と`regex`の併用）。
   - `src/components/features/helpdesk-companies/CompanyForm.tsx`: `companyCode`欄にプレースホルダー（`vn-daiso-vietnam`）とヘルプテキスト（命名規則・一意性の案内）を表示。`FormField`のエラー表示ロジックを、必須／フォーマット／重複（既存の`duplicate`）の3種を出し分ける形に拡張。blur時に重複照会するため`onBlur`ハンドラを追加し、`checkCompanyCodeAvailabilityAction`を呼んで重複時に`setError("companyCode", { type: "duplicate", ... })`相当の警告を表示。編集モードでは自分自身のコードを重複対象から除外（`companyId`を渡す）。

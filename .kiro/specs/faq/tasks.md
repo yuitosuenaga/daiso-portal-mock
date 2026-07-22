@@ -86,3 +86,69 @@
   - キーボード操作（Enter/Space）での開閉と`aria-expanded`属性の切り替わりを確認する
   - _Requirements: 3.4, 3.5, 6.2, 7.1, 7.2_
   - _Depends: 5_
+
+---
+
+## 追加タスク: 申請者側FAQ UX改善（2026-07-22 追記, 要件8/9/10）
+
+- [ ] 7. 回答の改行・書式を保持して表示する（要件8）
+  - `src/components/features/faq/FaqAccordion.tsx` の `AccordionContent` 内の回答表示に `whitespace-pre-wrap break-words` を付与し、改行を含む回答が複数行で表示され横スクロールが発生しないようにする（`dangerouslySetInnerHTML` は使わない）
+  - 改行を含む回答データで、展開時に改行が保持されて表示されることで完了とする
+  - _Requirements: 8.1, 8.2_
+  - _Boundary: FaqAccordion_
+
+- [ ] 8. `Faq` モデルに `updatedAt` を追加する（要件9.1）
+  - `prisma/schema.prisma` の `Faq` モデルに `updatedAt DateTime @updatedAt` を追加する
+  - 対応するPrismaマイグレーションを新規作成し、既存行の `updatedAt` を `createdAt` 相当（または実行時刻）で埋める（`NOT NULL` 追加時のバックフィル）
+  - `npx prisma generate` と `npx prisma migrate dev` がローカルで通ることで完了とする。本番（Cloud SQL）への `migrate deploy` は main 統合後に別途手動実行（実装スコープ外だが申し送る）
+  - _Requirements: 9.1_
+  - _Boundary: prisma/schema.prisma_
+
+- [ ] 9. 型・サービス層にタイムスタンプを露出する（要件9.2）
+  - `src/types/faq.ts` の `Faq` に `createdAt: string`・`updatedAt: string` を追加し、`CreateFaqInput` を `Omit<Faq, "id" | "createdAt" | "updatedAt">` に修正する
+  - `src/lib/server/faq-service.ts` の `mapFaq` の戻り値に `createdAt`/`updatedAt`（`toISOString()`）を含める（`listFaqs`・`listFaqsForHelpdesk`・`findFaqById` が自動的にタイムスタンプを返すようになる）
+  - `npx tsc --noEmit` が通り、既存の `faq-management` の作成・更新・ヘルプデスク一覧テストが引き続き通ることで完了とする
+  - _Requirements: 9.1, 9.2_
+  - _Boundary: Faq型定義, FaqService_
+  - _Depends: 8_
+
+- [ ] 10. FAQユーティリティ（新着判定・キーワード絞り込み）を実装する（要件9.3, 9.5, 10.2）
+  - `src/lib/faq-utils.ts`（新規）に `FAQ_NEW_BADGE_DAYS`（既定7）・`isRecentlyUpdated(updatedAt, now?)`・`filterFaqs(faqs, keyword)` を実装する（`document-utils.ts` の `isRecentlyUploaded`/`filterDocuments` を踏襲）
+  - `filterFaqs` は `question`・`answer` の部分一致（trim + 大文字小文字非依存）、空キーワードは全件返却
+  - 単体テストで、`isRecentlyUpdated`（7日ちょうど=true・7日超=false・未来日=false）と `filterFaqs`（空=全件・question一致・answer一致・0件）を検証し通ることで完了とする
+  - _Requirements: 9.3, 9.5, 10.2, 10.3_
+  - _Boundary: faq-utils_
+
+- [ ] 11. `FaqAccordion` に更新日・新着バッジを表示する（要件9.2, 9.3, 9.4）
+  - 各質問に更新日（`updatedAt` をロケール書式で整形）を表示し、`isRecentlyUpdated` が真のとき既存 `Badge` で「新着」を表示する
+  - ラベル・バッジ文言は `faq.list.updatedLabel`・`faq.list.newBadge` の翻訳キー経由で提供する（ja/en 追加）
+  - ブラウザで最近更新したFAQに新着バッジと更新日が表示されることで完了とする
+  - _Requirements: 9.2, 9.3, 9.4_
+  - _Boundary: FaqAccordion_
+  - _Depends: 9, 10_
+
+- [ ] 12. 申請者側キーワード検索（`FaqListClient`）を実装する（要件10）
+  - `src/components/features/faq/FaqListClient.tsx`（新規, Client）に、キーワード入力欄（`Input`+`Label`）と `useState` による検索状態、`filterFaqs` による絞り込み、`FAQ_CATEGORY_CODES` によるカテゴリ別グループ化（`FaqCategoryGroup` へ委譲）を実装する
+  - `FaqList`（Server）からグループ化ループを `FaqListClient` へ移設し、`FaqList` は取得・エラー/空状態ハンドリングと正常系配列の受け渡しに専念する
+  - 絞り込み結果0件のとき `faq.search.noResults` を表示し、空カテゴリグループは非表示にする
+  - 検索欄ラベル・プレースホルダ・0件・クリアボタンは `faq.search.*` 翻訳キー経由（ja/en 追加）
+  - ブラウザでキーワード入力により該当FAQのみがカテゴリ別に表示され、0件時にメッセージが出ることで完了とする
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
+  - _Boundary: FaqListClient, FaqList_
+  - _Depends: 10_
+
+- [ ] 13. 翻訳キーを追加する（要件9.4, 10.5）
+  - `messages/ja.json`・`messages/en.json` の `faq` 名前空間に `list.updatedLabel`・`list.newBadge`・`search.label`・`search.placeholder`・`search.noResults`・`search.clearButton` を追加する
+  - `ja.json` で追加した全キーが `en.json` にも存在しキー構造が一致することで完了とする
+  - _Requirements: 9.4, 10.5_
+  - _Boundary: i18n messages_
+
+- [ ] 14. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることを確認する
+  - _Requirements: 8.1〜10.6_
+  - _Depends: 7, 11, 12, 13_
+
+- [ ]* 15. 多言語・レスポンシブ・改行表示のE2E確認を行う
+  - 日英で更新日・新着バッジ・検索欄・0件メッセージが切り替わることを確認する
+  - 改行を含む回答が複数行で表示されること、タブレット幅で横スクロールが発生しないことを確認する
+  - _Requirements: 8.2, 9.4, 10.5_
+  - _Depends: 14_

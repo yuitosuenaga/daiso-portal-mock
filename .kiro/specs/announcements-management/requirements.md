@@ -577,7 +577,7 @@
 
 ### Requirement 37: お知らせ削除確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
 
-**背景:** 現状、お知らせ削除は`DeleteAnnouncementButton`（`src/components/features/helpdesk-announcements/DeleteAnnouncementButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskAnnouncements.list.deleteConfirm` = 「このお知らせを削除しますか？」）に削除対象のお知らせタイトルが含まれず、どのお知らせを削除しようとしているか曖昧である。また、OSネイティブダイアログのためポータルのUIトーンと一致していない。`helpdesk-portal-layout`spec（要件15）が新設する共通`ConfirmDialog`を用いてアプリ内モーダル化し、対象タイトルを明示する。
+**背景:** 現状、お知らせ削除は`DeleteAnnouncementButton`（`src/components/features/helpdesk-announcements/DeleteAnnouncementButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskAnnouncements.list.deleteConfirm` = 「このお知らせを削除しますか？」）に削除対象のお知らせタイトルが含まれず、どのお知らせを削除しようとしているか曖昧である。また、OSネイティブダイアログのためポータルのUIトーンと一致していない。`helpdesk-portal-layout`spec（要件18）が新設する共通`ConfirmDialog`を用いてアプリ内モーダル化し、対象タイトルを明示する。
 
 **Objective:** As a ヘルプデスク担当者, I want お知らせ削除の確認モーダルに対象のお知らせタイトルが明示された状態で確認したい, so that 誤って別のお知らせを削除する事故を防げる
 

@@ -315,10 +315,102 @@ interface FaqActions {
 ## Security Considerations
 フェーズ1は認証未実装のため、ヘルプデスク側のFAQ作成・編集・削除画面は`helpdesk-portal-layout`の前提通り制限なくアクセス可能である。FAQは可視性スコープを持たない全社共通データであり、公開範囲による情報分離は行わない。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御（ヘルプデスク担当者のみ書き込み可）を追加できることを設計上の前提とする。
 
-## 設計追記（2026-07-22）: FAQ削除確認のアプリ内モーダル化（要件10）
+---
+
+# 追加設計: FAQ管理一覧の検索・絞り込み・ページネーション（2026-07-22 追記）
+
+2026-07-22 のプロダクト全体レビューで発見した「管理一覧が全件単純表示のみ」という課題への対応設計。要件10 に対応する。`documents-management`spec の `DocumentManagementListClient` / `DocumentManagementFilterBar` / `DocumentManagementPagination` を FAQ 版に写経する構成で、新規の抽象化・依存ライブラリは追加しない。
+
+## 関連する前提: `faq` spec 側の `Faq` 型変更（2026-07-22）
+- 同日付で `faq` spec が `Faq` 型に `createdAt`/`updatedAt`（ISO文字列）を追加し、`CreateFaqInput = Omit<Faq, "id" | "createdAt" | "updatedAt">` に修正する予定。本specの `createFaq`/`updateFaq`/`FaqForm`/`faqFormSchema` は question/answer/category のみを扱うため後方互換（影響なし）。`FaqWithTimestamp` は `Faq` が両タイムスタンプを持つようになるため冗長化するが、互換のため別名は残してよい（既存の `FaqManagementList` は `createdAt` を参照済み）。両specを同一実装エージェントが担当する場合、`faq` spec 側の型変更タスクを先に完了させること。
+
+## Requirements Traceability（追記分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 10.1, 10.3 | キーワード検索（question/answer 部分一致） | FaqManagementListClient | faq-utils.filterFaqs 再利用 | クライアント側フィルタ |
+| 10.2, 10.3 | カテゴリ絞り込み | FaqManagementFilterBar, FaqManagementListClient | — | — |
+| 10.4, 10.5 | ページネーション | FaqManagementPagination, FaqManagementListClient | FAQ_MANAGEMENT_PAGE_SIZE | — |
+| 10.6 | 0件メッセージ | FaqManagementListClient | — | — |
+| 10.7 | 条件クリア | FaqManagementFilterBar | — | — |
+| 10.8 | i18n | 全新規コンポーネント | messages/helpdeskFaq.list.filter/pagination | — |
+| 10.9 | 並び順維持 | FaqManagementList（Server） | listFaqsForHelpdesk | — |
+
+## アーキテクチャ方針
+- **サーバー/クライアント分離**: `FaqManagementList`（Server）は従来通り `getFaqsForHelpdesk()` で `createdAt` 降順の全件を取得し、ヘッダー・エラー/空状態を担う。取得済み配列を新規 `FaqManagementListClient`（Client）へ渡し、検索・絞り込み・ページネーションの状態（`useState`）と描画をクライアント側で完結させる（`DocumentManagementListClient` と同一方針）。ページネーションはクライアント側スライスで実現し、サーバー側クエリは変更しない（要件10.9 の並び順は取得時点の降順を維持）。
+- **絞り込みロジックの共有**: キーワードの question/answer 部分一致は、`faq` spec が新設する `src/lib/faq-utils.ts` の `filterFaqs` を再利用する（重複実装を避ける）。カテゴリ絞り込みは `FaqManagementListClient` 内で `faq.category === filters.category` により行う。
+
+## Components and Interfaces（追記分）
+
+### FaqManagementListClient（新規, Client）
+- `src/components/features/helpdesk-faq/FaqManagementListClient.tsx`
+- props: 整列済み `FaqWithTimestamp[]`（= 拡張後は `Faq[]`）、`locale`、および行描画・削除に必要なラベル群（`DocumentManagementListClient` と同様に翻訳済み文字列を props で受け取る。`FaqManagementList`(Server) が `getTranslations` で解決して渡す）
+- 状態: `filters`（`{ keyword: string; category: "all" | FaqCategory }`）と `page`（1始まり）を `useState` で保持
+- `useMemo` で `filterFaqs(faqs, filters.keyword)` → カテゴリ一致で絞り込み → 総ページ数算出 → 現在ページ分をスライス
+- 条件変更時は `page` を1へリセット（要件10.5）、クリアで初期状態へ（要件10.7）
+- 0件時は `helpdeskFaq.list.filter.noResults` を表示（要件10.6）
+- 各行は既存 `FaqManagementList` の行（質問・カテゴリ表示名・登録日・編集リンク・`DeleteFaqButton`）をそのまま踏襲
+
+### FaqManagementFilterBar（新規, Client）
+- `src/components/features/helpdesk-faq/FaqManagementFilterBar.tsx`
+- `DocumentManagementFilterBar` を踏襲。キーワード入力（`Input`+`Label`）、カテゴリ `Select`（`all` + `FaqCategory` 4値、ラベルは `faq.categories.*` を再利用）、クリアボタン（`Button variant="outline"`）
+- 状態は持たず `onChange`/`onClear` で親へ通知
+
+### FaqManagementPagination（新規, Client）
+- `src/components/features/helpdesk-faq/FaqManagementPagination.tsx`
+- `DocumentManagementPagination` と同型。前へ／次へ（境界で `disabled`）と `pageStatus`（`{current} / {total} ページ`）
+
+### FaqManagementList（変更, Server）
+- 全件取得・エラー/空状態・見出しは維持しつつ、行の直接描画をやめ、取得配列と翻訳済みラベル群を `FaqManagementListClient` へ受け渡す構成に変更する
+
+### 定数
+- `src/lib/constants/faq.ts`（新規）に `FAQ_MANAGEMENT_PAGE_SIZE = 10` と、必要なら `FaqManagementCategoryFilter = "all" | FaqCategory` 型を定義（`document.ts` の `DOCUMENT_MANAGEMENT_PAGE_SIZE` 踏襲）
+
+### 翻訳キー（追記分, `helpdeskFaq.list` 名前空間）
+`messages/ja.json` / `messages/en.json` に `helpdeskDocuments.list.filter`/`pagination` と同一構造で追加（ja例）:
+```jsonc
+"helpdeskFaq": {
+  "list": {
+    "filter": {
+      "keywordLabel": "キーワード検索",
+      "keywordPlaceholder": "質問や回答に含まれる語句",
+      "categoryLabel": "カテゴリ",
+      "categoryAll": "すべて",
+      "clearButton": "条件をクリア",
+      "noResults": "該当するFAQがありません"
+    },
+    "pagination": {
+      "previousLabel": "前へ",
+      "nextLabel": "次へ",
+      "pageStatus": "{current} / {total} ページ"
+    }
+  }
+}
+```
+en 側も同一キー構造で追加（`keywordLabel`="Search", `keywordPlaceholder`="Keyword in question or answer", `categoryLabel`="Category", `categoryAll`="All", `clearButton`="Clear", `noResults`="No matching FAQs", `previousLabel`="Previous", `nextLabel`="Next", `pageStatus`="{current} / {total}"）。カテゴリの選択肢ラベル自体は `faq.categories.*` を再利用し二重定義しない（要件10.8）。
+
+## File Structure Plan（追記分）
+```
+新規:
+src/components/features/helpdesk-faq/FaqManagementListClient.tsx
+src/components/features/helpdesk-faq/FaqManagementFilterBar.tsx
+src/components/features/helpdesk-faq/FaqManagementPagination.tsx
+src/lib/constants/faq.ts                       # FAQ_MANAGEMENT_PAGE_SIZE ほか
+
+変更:
+src/components/features/helpdesk-faq/FaqManagementList.tsx  # 行描画を Client へ委譲
+messages/ja.json, messages/en.json                          # helpdeskFaq.list.filter / .pagination
+```
+
+## Testing Strategy（追記分）
+- **Unit**: カテゴリ絞り込み・ページ分割（境界: 10件ちょうどで1ページ、11件で2ページ）・条件変更時のページリセットのロジック（`filterFaqs` 自体の網羅は `faq` spec 側テストで担保）
+- **Integration**: `FaqManagementListClient` にキーワード/カテゴリを入力すると該当行のみ表示、0件時メッセージ、前へ/次へでページ遷移、クリアで全件復帰
+- **E2E**: 日英で検索欄・カテゴリ・ページネーション文言が切り替わること、タブレット幅で横スクロールが発生しないこと
+
+## 設計追記（2026-07-22）: FAQ削除確認のアプリ内モーダル化（要件11）
 
 ### 変更対象
-- `src/components/features/helpdesk-faq/DeleteFaqButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。トリガー＝既存削除ボタン（`variant="destructive"`）、確認押下時に既存の削除処理を`onConfirm`として実行、`isPending`を伝播。
+- `src/components/features/helpdesk-faq/DeleteFaqButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）でラップ。トリガー＝既存削除ボタン（`variant="destructive"`）、確認押下時に既存の削除処理を`onConfirm`として実行、`isPending`を伝播。
 - Props: `question`（対象質問文）と確認モーダル用文言（見出し・本文・確認/キャンセル）を追加。既存の`confirmMessage` propは`{question}`埋め込み済み本文へ置換。
 
 ### i18n

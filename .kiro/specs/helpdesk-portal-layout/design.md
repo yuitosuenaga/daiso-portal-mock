@@ -362,9 +362,206 @@ const isActive =
 |-------------|---------|------------|------------|-------|
 | 13.1〜13.7 | ログアウト導線の追加 | Header, HelpdeskHeader | signOut（`src/auth.ts` / `next-auth/react`） | ログアウト→サインイン画面遷移 |
 | 14.1〜14.4 | HelpdeskAppShell開閉ボタンのi18n化 | HelpdeskAppShell | — | — |
-| 15.1〜15.9 | 共通アプリ内確認モーダルの新設 | ConfirmDialog（新規, `src/components/ui/confirm-dialog.tsx`） | Dialog系プリミティブ（`src/components/ui/dialog.tsx`）, Button | トリガー押下→モーダル表示→確認/キャンセル |
 
-## 設計追記（2026-07-22）: 共通アプリ内確認モーダル `ConfirmDialog`（要件15）
+## モバイル幅のドロワー型ナビゲーション・ヘッダー副題の省略回避（2026-07-22 追記）
+
+### 対象ファイル
+- `src/components/layout/nav-items.ts`（新規: 申請者側・ヘルプデスク側のナビゲーション項目定義とアクティブ判定ロジックを一元化する共有モジュール）
+- `src/components/layout/MobileNav.tsx`（新規: モバイル幅のハンバーガートグル＋ドロワーを内包する共有クライアントコンポーネント）
+- `src/components/layout/Sidebar.tsx`（変更: 項目定義・アクティブ判定を`nav-items.ts`から取り込むリファクタ。表示・挙動は現状維持）
+- `src/components/layout/HelpdeskSidebar.tsx`（変更: 同上）
+- `src/components/layout/Header.tsx`（変更: モバイル用`MobileNav`をヘッダー左端に追加、タイトル領域の副題分離）
+- `src/components/layout/HelpdeskHeader.tsx`（変更: 同上、ヘルプデスク側の項目・名前空間・ホーム遷移先を用いる）
+- `messages/ja.json` / `messages/en.json`（変更: ハンバーガー/ドロワー/閉じる操作の`aria-label`翻訳キーを追加）
+
+`AppShell.tsx`・`HelpdeskAppShell.tsx`はモバイルドロワーの状態を持たない設計とする（下記「配置と状態管理」参照）。したがってシェル本体（`md`以上のサイドバー`hidden md:block`・折りたたみトグル`md:flex lg:hidden`）は変更しない（Requirement 15.2, 15.10）。
+
+### 課題1: モバイル幅のドロワー型ナビゲーション（Requirement 15）
+
+#### 方針の全体像
+既存レイアウトはブレークポイントで挙動が3段に分かれる。本追記は`< md`帯（モバイル）にのみ新しい導線を足し、`md`以上の既存挙動には一切干渉しない。
+
+| 帯 | 幅 | サイドバー | 既存トグル | 本追記で足すもの |
+|----|----|-----------|-----------|-----------------|
+| モバイル | `< md`（768px未満） | 非表示（`hidden md:block`） | 非表示（`md:flex lg:hidden`） | **ハンバーガー＋ドロワー（新規）** |
+| タブレット | `md`〜`< lg` | アイコンのみ折りたたみ表示 | 表示（折りたたみ/展開） | なし（現状維持） |
+| PC | `>= lg` | 展開表示 | 非表示 | なし（現状維持） |
+
+- ハンバーガートグルは`md:hidden`で表示し、既存の折りたたみトグル（`md:flex lg:hidden`）とはブレークポイントが重ならない（前者は`< md`のみ、後者は`md`〜`< lg`のみ）。よって同一画面幅で両者が同時に見えることはない。
+- ドロワー自体も`md:hidden`側の文脈でのみ開けるため、`md`以上のレンダリング結果は不変（Requirement 15.10）。
+
+#### 共有 vs 個別実装の判断
+既存の`Sidebar.tsx`と`HelpdeskSidebar.tsx`は「No Hidden Shared Ownership」の観点から別コンポーネントとして分離されているが、**項目配列（`NAV_ITEMS`/`HELPDESK_NAV_ITEMS`）とアクティブ判定は同種のロジックを重複保持している**。モバイルドロワーを追加すると、同じ項目定義が「デスクトップ用サイドバー」「モバイル用ドロワー」の2箇所で必要になり、二重管理による乖離リスク（Requirement 15.4が明示的に禁止）が生じる。
+
+そこで次の分担とする:
+- **項目定義・アクティブ判定は共有化**（`nav-items.ts`に集約）。申請者側・ヘルプデスク側それぞれの配列をこの単一ソースからエクスポートし、`Sidebar`・`HelpdeskSidebar`・`MobileNav`が同じソースを参照する。これにより項目の乖離を構造的に防ぐ。
+- **ドロワーの「外枠」（オーバーレイ・フォーカストラップ・開閉・スクロール抑止）は`MobileNav`として1コンポーネントに共通化**し、申請者側・ヘルプデスク側は`items`・`namespace`・`rootHref`をpropsで注入して同一コンポーネントを再利用する。デスクトップ用の`Sidebar`/`HelpdeskSidebar`は視覚要素（折りたたみ幅・PC常時展開）が異なるため従来どおり分離を維持し、モバイルドロワーのみ共通化する。
+
+#### `nav-items.ts`（新規・共有モジュール）
+`Sidebar.tsx`/`HelpdeskSidebar.tsx`に現在ハードコードされている項目配列とアクティブ判定を、そのまま移設・共通化する。既存の挙動を1ミリも変えないことが条件（リファクタであり仕様変更ではない）。
+
+```typescript
+import type { LucideIcon } from "lucide-react";
+
+export interface NavItem {
+  translationKey: string; // 既存の nav / helpdeskNav 名前空間のキー
+  href: string;
+  icon: LucideIcon;
+}
+
+// 既存 Sidebar.tsx の NAV_ITEMS をそのまま移設
+export const APPLICANT_NAV_ITEMS: NavItem[];
+// 既存 HelpdeskSidebar.tsx の HELPDESK_NAV_ITEMS をそのまま移設
+export const HELPDESK_NAV_ITEMS: NavItem[];
+
+/**
+ * 既存 Sidebar.tsx の resolveActiveHref を一般化。
+ * rootHref は "/"（申請者側）または "/helpdesk"（ヘルプデスク側）を受け取り、
+ * ルート直下は完全一致のみ・それ以外はパス区切りを伴う前方一致でアクティブ判定する。
+ * 最長一致（最も具体的な href）を優先する既存ロジックを踏襲する。
+ */
+export function resolveActiveHref(
+  pathname: string,
+  items: NavItem[],
+  rootHref: string
+): string | undefined;
+```
+
+- `Sidebar.tsx`は`APPLICANT_NAV_ITEMS`と`resolveActiveHref(pathname, APPLICANT_NAV_ITEMS, "/")`を用いるよう変更する。現行の`item.href !== "/"`分岐が`rootHref`引数に一般化されるだけで、表示・アクティブ判定結果は不変。
+- `HelpdeskSidebar.tsx`は`HELPDESK_NAV_ITEMS`と`resolveActiveHref(pathname, HELPDESK_NAV_ITEMS, "/helpdesk")`を用いる。現行は最長一致を採らず「該当した全項目をアクティブ」にする単純判定だが、ヘルプデスク側項目は互いにプレフィックス衝突しない（`/helpdesk/inquiry/new`と`/helpdesk/inquiries`等は前方一致しない）ため、最長一致方式へ統一しても既存の見え方は変わらない。統一により両サイドバーとモバイルドロワーのアクティブ判定が一致する（Requirement 15.5）。
+- リグレッション防止として、リファクタ後に既存のサイドバー関連テスト（存在すれば）と`npm run build`が通ることを完了条件にする。
+
+#### `MobileNav.tsx`（新規・共有クライアントコンポーネント）
+`@radix-ui/react-dialog`（プロジェクト導入済み。`src/components/ui/dialog.tsx`が同ライブラリを使用）を土台に、左からスライドインするドロワーとして実装する。Radix Dialogはフォーカストラップ・Escapeでのクローズ・背後スクロール抑止・クローズ時のトリガーへのフォーカス復帰を標準提供するため、Requirement 15.7・15.8をライブラリ機能で満たせる。
+
+```typescript
+"use client";
+
+interface MobileNavProps {
+  items: NavItem[];
+  /** 翻訳名前空間: "nav"（申請者側）または "helpdeskNav"（ヘルプデスク側） */
+  namespace: "nav" | "helpdeskNav";
+  /** アクティブ判定のルート: "/" または "/helpdesk" */
+  rootHref: string;
+}
+```
+
+構造（Radix Dialogの制御コンポーネントとして`useState`でopen状態を保持する自己完結型）:
+- `Dialog.Root`（`open`/`onOpenChange`を内部stateで制御）
+- `Dialog.Trigger`: `md:hidden`のハンバーガーボタン（`Menu`アイコン, lucide）。`aria-label`は翻訳キー（例: `{namespace}.openMenu`）。
+- `Dialog.Portal` → `Dialog.Overlay`（`fixed inset-0 z-40 bg-background/80`）＋`Dialog.Content`（`fixed left-0 top-0 bottom-0 z-50 w-72 max-w-[80vw] bg-sidebar` の左スライドインパネル、`data-[state=open]`のトランジション）。
+- `Dialog.Title`: 既存の`{namespace}.sidebarLabel`（「メインナビゲーション」/「ヘルプデスクナビゲーション」）をドロワーのアクセシブルなタイトルに流用（Radix Dialogは`Title`必須。視覚的に出したくない場合は`sr-only`可、ただし本設計ではヘッダー的に表示してよい）。
+- `Dialog.Close`: パネル内右上に閉じるボタン（`X`アイコン）。`aria-label`は翻訳キー（例: `{namespace}.closeMenu`）。
+- ナビゲーション項目: `items.map(...)`で`@/i18n/navigation`の`Link`を描画。各`Link`の`onClick`で`setOpen(false)`を呼び、遷移とドロワークローズを両立（Requirement 15.6）。アクティブ判定は`resolveActiveHref(pathname, items, rootHref)`を用い、既存サイドバーと同一のアクティブ表現（`bg-primary text-primary-foreground font-semibold` / 非アクティブは`text-sidebar-foreground hover:bg-accent hover:text-accent-foreground`）を踏襲。
+- ラベルは`useTranslations(namespace)`経由で`t(item.translationKey)`。
+
+#### 配置と状態管理
+- `MobileNav`はヘッダー内（`Header.tsx`/`HelpdeskHeader.tsx`）の左端（ロゴ・タイトルリンクの直前）に配置する。トグルが`md:hidden`のためモバイルでのみ視認される。
+- 状態はドロワー自身（`MobileNav`内の`useState`）に閉じ込め、`AppShell`/`HelpdeskAppShell`には持たせない。これによりシェルの既存コード（Requirement 15.10で保護）を変更せず、ヘッダーへのコンポーネント追加のみで完結する。
+- `Header.tsx`は`<MobileNav items={APPLICANT_NAV_ITEMS} namespace="nav" rootHref="/" />`を、`HelpdeskHeader.tsx`は`<MobileNav items={HELPDESK_NAV_ITEMS} namespace="helpdeskNav" rootHref="/helpdesk" />`を描画する（Requirement 15.11）。
+
+#### i18n追加キー（Requirement 15.9）
+`nav`・`helpdeskNav`名前空間の双方に、以下を`ja.json`/`en.json`で追加する（既存キーは変更しない。ドロワーのタイトルは既存の`sidebarLabel`を再利用）。
+
+| キー | ja | en |
+|------|----|----|
+| `nav.openMenu` | メニューを開く | Open menu |
+| `nav.closeMenu` | メニューを閉じる | Close menu |
+| `helpdeskNav.openMenu` | メニューを開く | Open menu |
+| `helpdeskNav.closeMenu` | メニューを閉じる | Close menu |
+
+### 課題2: ヘッダー副題（screenName）の省略回避（Requirement 16）
+
+#### 現状分析
+両ヘッダーのタイトルは以下の1要素にまとめられ、`truncate`（`white-space:nowrap; overflow:hidden; text-overflow:ellipsis`）が付いている。
+
+```tsx
+<span className="hidden sm:inline truncate text-lg text-foreground">
+  <span className="font-semibold">{t("portalName")}</span>
+  <span className="font-medium text-muted-foreground"> / {t("screenName")}</span>
+</span>
+```
+
+`portalName`と`screenName`が同一の`truncate`要素に同居しているため、幅が不足すると副題が途中で「…」省略される。左リンクは`min-w-0`で縮むが、右側クラスター（切り替えリンク・言語切替・ログアウト）は`shrink-0`で優先的に幅を確保するため、タブレット・英語表示でタイトル側が圧迫される。
+
+#### 変更方針
+「省略（…）を出さず、入らないなら副題ごと非表示にする」段階的開示（progressive disclosure）とする。
+
+1. タイトルリンクを残余幅占有・縮小許容にする: 左リンクのクラスを`flex items-center gap-3 min-w-0`に加えて`flex-1`相当（利用可能幅を占有）とし、ヘッダー全体で横スクロールを起こさない（Requirement 16.5）。
+2. `portalName`と`screenName`を別要素に分離する（Requirement 16.1）:
+   - `portalName`要素: `hidden sm:inline`。`truncate`は付けない（`portalName`単体は「海外運用ポータル」/「Overseas Operations Portal」で、右クラスターと同居してもタブレット幅に収まる短さのため省略不要）。
+   - `screenName`要素（区切り「 / 」を含む）: 副題を省略なく表示できる幅でのみ`inline`にし、それ未満では非表示（`display:none`）にする。`truncate`は付けず、`display`の切替のみで「…」の発生を回避する（Requirement 16.3, 16.4）。
+3. 副題を表示するブレークポイントは、英語の最長文言（申請者側「Overseas Operations Portal / Overseas Sales Agent View」）を基準に、右クラスターと衝突しない最小の境界を実機（playwright）で確認して確定する。既定の推奨は`hidden xl:inline`（≒1280px以上で副題表示）とし、`lg`(1024px)で余裕がある場合は`hidden lg:inline`に緩める。最終境界は実装時に768/834/1024/1280の各幅・日英で「…」が出ないことを確認して決定する（Requirement 16.7）。
+4. 右クラスターの表示密度調整（任意・Requirement 16.6の許容範囲）: 上記2〜3で副題の省略が解消しない帯が残る場合に限り、タブレット帯でポータル切り替えリンクをアイコンのみ表示に切り替える等の密度調整を行ってよい。ただし機能・遷移先・アクセシブルな名前（`aria-label`/`sr-only`）は保持し、既存の`sm`以下でのアイコン表示（`ArrowLeftRight` + `sr-only sm:not-sr-only`）パターンを踏襲する。まずは2〜3のみで解消できるかを優先検証し、不足時のフォールバックとして扱う。
+
+#### 適用範囲
+`Header.tsx`・`HelpdeskHeader.tsx`の双方に同一方針を適用する（Requirement 16.7）。両者はタイトル領域の構造が同一のため、変更内容も対称になる。
+
+### Requirements Traceability（2026-07-22 追記分）
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 15.1〜15.11 | モバイル幅のドロワー型ナビゲーション | MobileNav（新規）, nav-items（新規）, Header, HelpdeskHeader, Sidebar, HelpdeskSidebar | Radix Dialog（`@radix-ui/react-dialog`）, `resolveActiveHref` | ハンバーガー操作→ドロワー開→項目選択→遷移＋クローズ |
+| 16.1〜16.7 | ヘッダー副題の省略回避・余白確保 | Header, HelpdeskHeader | — | — |
+
+### Testing Strategy（2026-07-22 追記分）
+- **Unit / Component**:
+  - `resolveActiveHref`が申請者側（`rootHref="/"`）・ヘルプデスク側（`rootHref="/helpdesk"`）の双方で、ルート直下は完全一致・子ルートは前方一致・最長一致優先となること。
+  - リファクタ後の`Sidebar`/`HelpdeskSidebar`が従来と同一の項目・アクティブ表示を保つこと（既存テストがあれば流用、なければ追加）。
+- **E2E/UI（playwright, 日英両ロケール）**:
+  - 幅375px（モバイル）で申請者側・ヘルプデスク側の各ページにハンバーガーが表示され、開くとそのポータルの全ナビゲーション項目が出ること。項目クリックで遷移しドロワーが閉じること。Escape/オーバーレイクリック/閉じるボタンで閉じ、閉じた後トグルへフォーカスが戻ること。
+  - 幅768px以上でハンバーガーが表示されず、既存サイドバー・折りたたみトグルの挙動が不変であること（横スクロールなし）。
+  - 幅768/834/1024/1280で申請者側・ヘルプデスク側ヘッダーのタイトルに「…」省略が発生しないこと（副題は表示または非表示のいずれかで、途中省略は起きない）、および横スクロールが発生しないこと。
+
+## 認証済みヘッダーからの反対ロール切り替えリンクの撤去（2026-07-22 追記）
+
+Requirement 17 に対応する。ロール別ルート保護によりデッドリンク化している「反対ロールへの画面切り替えリンク」を、認証済みヘッダー（`Header.tsx`・`HelpdeskHeader.tsx`）から撤去する。
+
+### 根本原因（コードで確認済み）
+- `src/lib/server/route-protection.ts`の`resolveLoginRedirectPath`は、`/helpdesk`配下を「helpdeskロール必須」、それ以外を「applicantロール必須」として、ロール不一致時に対応するログイン画面へリダイレクトする。`src/middleware.ts`がこれを全ページに適用する。
+- `Header.tsx`（申請者ロール文脈でのみ描画）の`href="/helpdesk"`リンク → applicantロールでは`/helpdesk/login`へリダイレクトされる。
+- `HelpdeskHeader.tsx`（ヘルプデスクロール文脈でのみ描画）の`href="/"`リンク → helpdeskロールでは`/login`へリダイレクトされる。
+- セッションは単一ロールのため、両リンクは認証済みヘッダー上で常にデッドリンク。
+
+### 採用する設計: リンクの完全撤去（条件付き非表示ではなく削除）
+「現在のロールに応じて非表示にする」案は、各ヘッダーが単一ロール専用であるため実質「常に非表示」と同義になり、条件分岐を足すだけ複雑化する。よって条件分岐ではなく、両ヘッダーから切り替えリンクの要素そのものを削除する。反対ポータルへ移る正規の手段は「ログアウト（Requirement 13の導線）→ ログイン画面のクロスログインリンク」であり、これは既に実装済みで変更しない。
+
+### 対象ファイルと変更内容
+- `src/components/layout/Header.tsx`:
+  - `header.switchToHelpdesk`を表示する`<Link href="/helpdesk">`要素（`ArrowLeftRight`アイコン＋テキスト）を削除する。
+  - 未使用になる`ArrowLeftRight`のインポートを削除する。`useLocale`はログアウトの`callbackUrl`で引き続き使用するため残す。
+  - ロゴ／タイトルのダッシュボードリンク（Requirement 12）・`LanguageSwitcher`・ログアウトボタン（Requirement 13）は変更しない。
+- `src/components/layout/HelpdeskHeader.tsx`:
+  - `helpdeskHeader.switchToApplicant`を表示する`<Link href="/">`要素を削除する。
+  - 未使用になる`ArrowLeftRight`のインポートを削除する。
+- `messages/ja.json`・`messages/en.json`:
+  - `header.switchToHelpdesk`・`helpdeskHeader.switchToApplicant`のキーを削除する。
+  - ログイン画面用の`login.switchToHelpdeskLogin`・`login.switchToApplicantLogin`は変更しない。
+- `src/components/layout/Header.test.tsx`・`HelpdeskHeader.test.tsx`:
+  - 「切り替えリンクが表示される」ことを検証していた既存アサーション（`messages.header.switchToHelpdesk`等をnameに用いる`getByRole("link")`）を、「切り替えリンクが存在しない」ことを検証する内容（`queryByRole`でnullを確認）へ更新する。ロゴ・言語切替・ログアウトに関する既存アサーションは維持する。
+
+### 他要件との整合
+- Requirement 16（副題の省略回避）: 切り替えリンク撤去でヘッダー右側の要素が1つ減り、タイトル領域の残余幅が広がる方向に作用する。副題の省略回避と矛盾せず、むしろ有利。実装順に依存関係はないが、両方を同一実装ラウンドで行う場合は撤去後の幅でRequirement 16の副題表示境界を確定してよい。
+- Requirement 15（モバイルドロワー）: ドロワー内のナビゲーションは同一ポータル内の項目のみを列挙するものであり、反対ロールへの切り替えは元々含まない。本撤去と独立。
+
+### テスト追加方針
+- `npm run lint` / `tsc --noEmit`（未使用インポートを含め）がエラーなく通ること（Requirement 17.6）。
+- `Header.test.tsx` / `HelpdeskHeader.test.tsx` が更新後のアサーション（切り替えリンク不在）で通ること（Requirement 17.7）。
+- playwright（日英両ロケール）で、申請者側・ヘルプデスク側の各ヘッダーに切り替えリンクが表示されないこと、ロゴ・言語切替・ログアウトは従来どおり機能すること、各幅で横スクロールが発生しないことを確認する（Requirement 17.1〜17.4・17.8）。
+
+### Requirements Traceability（2026-07-22 追記・Requirement 17）
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 17.1 | 申請者側ヘッダーからヘルプデスク切替リンクを撤去 | Header | — |
+| 17.2 | ヘルプデスク側ヘッダーから申請者切替リンクを撤去 | HelpdeskHeader | — |
+| 17.3 | 他ヘッダー要素（ロゴ・言語切替・ログアウト）は不変 | Header, HelpdeskHeader | — |
+| 17.4 | ログイン画面のクロスログイン導線は維持 | login pages（変更なし） | — |
+| 17.5 | 不要な翻訳キーを削除 | messages/ja.json, messages/en.json | i18n keys |
+| 17.6 | 未使用インポート除去・Lint/型が通る | Header, HelpdeskHeader | — |
+| 17.7 | ヘッダーテストを不在検証へ更新 | Header.test.tsx, HelpdeskHeader.test.tsx | — |
+| 17.8 | 全幅で横スクロールなし・Req16と整合 | Header, HelpdeskHeader | — |
+| 18.1〜18.9 | 共通アプリ内確認モーダルの新設 | ConfirmDialog（新規, `src/components/ui/confirm-dialog.tsx`） | Dialog系プリミティブ（`src/components/ui/dialog.tsx`）, Button | トリガー押下→モーダル表示→確認/キャンセル |
+
+## 設計追記（2026-07-22）: 共通アプリ内確認モーダル `ConfirmDialog`（要件18）
 
 ### 配置とアーキテクチャ
 - 新規ファイル `src/components/ui/confirm-dialog.tsx`（`"use client"`）。既存の`Dialog` / `DialogContent` / `DialogHeader` / `DialogTitle` / `DialogDescription`（`src/components/ui/dialog.tsx`, Radix Dialogベース）と`Button`（`src/components/ui/button.tsx`）を用いて構築する。汎用UIプリミティブとして`src/components/ui/`に置き、ヘルプデスク・申請者双方から再利用可能とする。
