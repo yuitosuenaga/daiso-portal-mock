@@ -176,3 +176,63 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 13.3, 13.4, 13.5, 14.2, 14.3_
   - _Depends: 6.2, 6.3, 6.4_
+
+---
+
+## 追加ラウンド（2026-07-22）: モバイル幅のドロワー型ナビゲーション・ヘッダー副題の省略回避
+
+- [ ] 7. モバイルドロワーナビゲーションとヘッダー副題の省略回避
+- [ ] 7.1 ナビゲーション項目定義・アクティブ判定を共有モジュールへ集約する
+  - `src/components/layout/nav-items.ts`を新設し、`Sidebar.tsx`の`NAV_ITEMS`を`APPLICANT_NAV_ITEMS`として、`HelpdeskSidebar.tsx`の`HELPDESK_NAV_ITEMS`をそのまま移設する（項目・アイコン・並び順・翻訳キー・遷移先を1件も変えない）
+  - `Sidebar.tsx`の`resolveActiveHref`を`resolveActiveHref(pathname, items, rootHref)`の形に一般化して移設する（ルート直下は完全一致のみ、それ以外はパス区切りを伴う前方一致、最長一致優先）
+  - `Sidebar.tsx`を`APPLICANT_NAV_ITEMS`＋`resolveActiveHref(..., "/")`を参照するよう変更し、表示・アクティブ判定結果が変更前と同一であることを確認する
+  - `HelpdeskSidebar.tsx`を`HELPDESK_NAV_ITEMS`＋`resolveActiveHref(..., "/helpdesk")`を参照するよう変更し、既存の見え方（各項目のアクティブ表示）が変わらないことを確認する
+  - 観測可能な完了条件: `npm run lint`・`npm run typecheck`・`npm run build`が成功し、申請者側・ヘルプデスク側サイドバーの項目表示・子ルートでのアクティブ表示が従来と同一であること
+  - _Requirements: 15.4, 15.5_
+  - _Boundary: nav-items（新規）, Sidebar, HelpdeskSidebar_
+
+- [ ] 7.2 モバイルドロワー用の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`nav`・`helpdeskNav`名前空間に、`openMenu`（メニューを開く / Open menu）・`closeMenu`（メニューを閉じる / Close menu）を追加する
+  - 既存キー（`sidebarLabel`等）は変更しない。ドロワーのタイトルには既存の`sidebarLabel`を再利用する
+  - 観測可能な完了条件: `ja.json`で追加したキーが全て`en.json`にも存在し、キー構造が一致していること
+  - _Requirements: 15.9_
+  - _Boundary: i18n messages_
+
+- [ ] 7.3 共有MobileNav（ハンバーガー＋ドロワー）コンポーネントを実装する
+  - `src/components/layout/MobileNav.tsx`を新設する。`@radix-ui/react-dialog`を土台に、`md:hidden`のハンバーガートグル（`Menu`アイコン）と左スライドインのドロワー（オーバーレイ＋パネル）を実装する
+  - props（`items: NavItem[]`, `namespace: "nav" | "helpdeskNav"`, `rootHref: string`）を受け取り、`items`から`@/i18n/navigation`の`Link`でナビゲーション項目を描画する。ラベルは`useTranslations(namespace)`経由で解決する
+  - アクティブ判定は`resolveActiveHref(pathname, items, rootHref)`を用い、既存サイドバーと同一のアクティブ表現（`bg-primary text-primary-foreground font-semibold`等）を適用する
+  - 項目クリックでドロワーを閉じてから遷移する（`onOpenChange`と各`Link`の`onClick`で`open`状態を制御）
+  - トグルの`aria-label`に`{namespace}.openMenu`、閉じるボタンの`aria-label`に`{namespace}.closeMenu`、ドロワーのタイトル（`Dialog.Title`）に`{namespace}.sidebarLabel`を用いる
+  - Radix Dialogの標準機能によりフォーカストラップ・Escapeでのクローズ・オーバーレイクリックでのクローズ・背後スクロール抑止・クローズ時のトリガーへのフォーカス復帰が働くことを確認する
+  - 観測可能な完了条件: モバイル幅で`MobileNav`単体が開閉でき、項目・アクティブ表示・キーボード操作（Enter/Space/Escape/Tab）が期待どおり動作すること
+  - _Requirements: 15.1, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9_
+  - _Boundary: MobileNav（新規）_
+  - _Depends: 7.1, 7.2_
+
+- [ ] 7.4 両ヘッダーにMobileNavを組み込む
+  - `Header.tsx`のヘッダー左端（ロゴ・タイトルリンクの直前）に`<MobileNav items={APPLICANT_NAV_ITEMS} namespace="nav" rootHref="/" />`を追加する
+  - `HelpdeskHeader.tsx`の同位置に`<MobileNav items={HELPDESK_NAV_ITEMS} namespace="helpdeskNav" rootHref="/helpdesk" />`を追加する
+  - `AppShell.tsx`・`HelpdeskAppShell.tsx`は変更しない（状態は`MobileNav`内に閉じる）。`md`以上の既存レイアウト（サイドバー`hidden md:block`・折りたたみトグル`md:flex lg:hidden`）が不変であることを確認する
+  - 観測可能な完了条件: 幅375px（モバイル）で申請者側・ヘルプデスク側の各ページにハンバーガーが表示され、開くとそのポータルの全ナビゲーション項目が表示され、項目クリックで遷移して閉じる。幅768px以上ではハンバーガーが表示されず、既存サイドバー・トグルの挙動が変わらず横スクロールも発生しない
+  - _Requirements: 15.1, 15.2, 15.10, 15.11_
+  - _Boundary: Header, HelpdeskHeader_
+  - _Depends: 7.3_
+
+- [ ] 7.5 両ヘッダーのタイトル領域を副題省略回避構造に変更する
+  - `Header.tsx`・`HelpdeskHeader.tsx`のタイトル`<span>`を、`portalName`要素と`screenName`（区切り「 / 」を含む）要素に分離する
+  - タイトルリンクを残余幅占有・縮小許容（`min-w-0`＋`flex-1`相当）にし、ヘッダー全体で横スクロールを起こさない
+  - `portalName`は`hidden sm:inline`とし`truncate`を付けない。`screenName`は副題を省略なく表示できる幅でのみ`inline`にし、それ未満では非表示（`display:none`）にする（`truncate`による「…」を出さない）
+  - 副題を表示する境界（推奨既定`hidden xl:inline`、余裕があれば`lg:inline`に緩める）は、7.6の実機確認で768/834/1024/1280・日英に対し「…」が出ない最小境界に確定する
+  - 必要な場合に限り、タブレット帯でポータル切り替えリンクをアイコンのみ表示にする密度調整を行ってよい（機能・遷移先・アクセシブルな名前は保持）
+  - 観測可能な完了条件: いずれの対象幅・ロケールでもタイトルに「…」省略が発生せず、副題は「完全表示」か「非表示」のいずれかになること
+  - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7_
+  - _Boundary: Header, HelpdeskHeader_
+
+- [ ] 7.6 (P) モバイルドロワー・ヘッダー副題の多言語/レスポンシブ実機確認
+  - playwrightで日本語・英語両ロケールを対象に、幅375px（モバイル）でハンバーガー→ドロワー開閉・項目遷移・Escape/オーバーレイ/閉じるボタンでのクローズ・クローズ後のトグルへのフォーカス復帰を、申請者側・ヘルプデスク側の双方で確認する
+  - 幅768px以上でハンバーガーが非表示、既存サイドバー・折りたたみトグルの挙動不変、横スクロールなしを確認する
+  - 幅768/834/1024/1280で両ヘッダーのタイトルに「…」省略が発生しないこと・横スクロールが発生しないことを確認し、7.5の副題表示境界を確定する
+  - 観測可能な完了条件: 上記確認が全ロケール・全対象幅で問題ないこと
+  - _Requirements: 15.1〜15.11, 16.1〜16.7_
+  - _Depends: 7.4, 7.5_
