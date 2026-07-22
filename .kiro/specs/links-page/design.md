@@ -219,3 +219,74 @@ function getLinks(): Promise<Link[]>;
 
 ## Security Considerations
 - 新しいタブで開く外部リンクには`rel="noopener noreferrer"`を付与し、開いた先のページから`window.opener`経由で元のページを操作されるリスク（タブナビング攻撃）を防止する
+
+---
+
+## 追加設計（追記日: 2026-07-22）: 説明文改行保持・更新日/新着表示・キーワード検索
+
+> 対応要件: 要件8（説明文の改行保持）・要件9（更新日/新着表示）・要件10（キーワード検索）。既存の`LinkList`（Server Component）・`LinkCategoryGroup`・`LinkItem`の構成を維持しつつ、`documents`機能で確立済みの「Server Componentがデータ取得 → Client Componentがキーワード状態を保持して絞り込み描画」パターン（`DocumentList` → `DocumentListClient`）を踏襲する。
+
+### 設計方針の全体像
+
+- 現状の`LinkList`はServer Componentで、取得したリンクを`LINK_CATEGORY_CODES`順に`LinkCategoryGroup`へ渡している。キーワード検索はクライアント状態を要するため、**取得は`LinkList`（Server）に残し、絞り込み・グループ描画を新規の`LinkListClient`（Client）へ移す**（`DocumentList`→`DocumentListClient`と同型）。
+- 登録日・新着判定には`Link`の`createdAt`が必要。`Link`基底型（`id`・`title`・`url`・`category`・`description`）は**変更しない**（`links-management`spec の`CreateLinkInput = Omit<Link,"id">`等に影響させないため）。申請者側の表示専用に`createdAt`を含む型を用いる。
+
+### データ供給（要件9）
+
+- Prisma `Link` モデルには既に `createdAt DateTime @default(now())` が存在するため、**スキーマ変更・マイグレーションは不要**。
+- 申請者側の読み取り経路に`createdAt`を供給する。対象と変更内容:
+  - `src/lib/server/link-service.ts` の `mapLink` は`createdAt`を含めないため、**申請者側一覧用に`createdAt`を含めて返すよう変更する**。具体的には、既存の`listLinks(): Promise<Link[]>`の戻り値を`createdAt`付きに拡張する（`LinkWithTimestamp[]`を返す）。`listLinks`の`findMany`は`orderBy`を持たないため、`createdAt: "desc"`の並びを付与してよい（カテゴリ別グループ化は表示側の責務のため並び順は表示に影響しないが、同一カテゴリ内は新しい順が自然）。
+  - `LinkWithTimestamp`（`{ ...Link; createdAt: string }`、`createdAt`はISO文字列）は現状`link-service.ts`に定義され`links-management`側も参照している。申請者側コンポーネントからも型参照できるよう、**この表示用型を`src/types/link.ts`へ移設し、`link-service.ts`はそこから`import`して再利用する**（`Link`基底型は変更しない）。`links-management`側の`import`元は必要に応じて`@/types/link`へ向け直す（後方互換のため`link-service.ts`から`export`を残してもよい）。
+  - `src/lib/api/links.ts` の `getLinks()` の戻り値を `Promise<LinkWithTimestamp[]>` に変更する（`listLinks`の拡張に追随）。呼び出し側（`LinkList`）は`createdAt`を`LinkListClient`経由で`LinkItem`へ渡す。
+- 新着判定ユーティリティ（`documents`の`isRecentlyUploaded`/`DOCUMENT_NEW_BADGE_DAYS`と同一方針）:
+  - 新規 `src/lib/link-utils.ts` に `LINK_NEW_BADGE_DAYS = 7`（定数）と `isRecentlyCreated(createdAt: string, now?: Date): boolean` を実装する。負の差分（未来日時）は`false`、基準日数以内を`true`とする（`document-utils.ts`の`isRecentlyUploaded`と同一ロジック）。
+- 表示（`LinkItem`）:
+  - `LinkItem`のprops に`createdAt: string`・`locale: string`・`newBadgeLabel: string`を追加する。
+  - タイトル行の下に、`<time dateTime={createdAt}>`で`new Date(createdAt).toLocaleDateString(locale, { year:"numeric", month:"short", day:"numeric" })`を表示する（`DocumentListItem`と同一書式）。
+  - `isRecentlyCreated(createdAt)`が`true`のとき`<Badge>{newBadgeLabel}</Badge>`（新着バッジ）を表示する。
+
+### 説明文の改行保持（要件8）
+
+- `src/components/features/links/LinkItem.tsx` の説明文表示 `<p className="mt-1 text-xs text-muted-foreground">` に **`whitespace-pre-wrap` を追加**する（`DocumentListItem.tsx`の`<p className="whitespace-pre-wrap text-sm text-muted-foreground">`と同方針）。折り返しは既存のカードレイアウトで担保され、横スクロールは発生しない。未登録時に非表示とする既存の条件分岐は維持する。
+
+### キーワード検索（要件10）
+
+- 新規 `src/components/features/links/LinkSearchBar.tsx`（Client）: `documents`の`DocumentSearchBar`と同型。`keyword`・`onChange`・`onClear`をpropsで受け、`Input`＋`Label`＋クリア`Button`で構成。ラベル等は`useTranslations("links.search")`で自己解決する。
+- 新規 `src/components/features/links/LinkListClient.tsx`（Client）: `documents`の`DocumentListClient`と同型。propsで`links: LinkWithTimestamp[]`・`locale`・各翻訳済みラベルを受け取り、`useState`でキーワードを保持。`useMemo`で`filterLinks(links, keyword)`により絞り込み、絞り込み結果を`LINK_CATEGORY_CODES`順に走査して、該当リンクを持つカテゴリのみ`LinkCategoryGroup`で描画する。該当0件のときは`links.search.noResults`メッセージを表示する。
+- 絞り込みユーティリティ: `src/lib/link-utils.ts` に `filterLinks(links, keyword): LinkWithTimestamp[]` を実装する。キーワードを`trim().toLowerCase()`し、空なら入力をそのまま返す。非空なら`title`・`description`・`url`のいずれかに部分一致するものを返す（`document-utils.ts`の`filterDocuments`はtitle+descriptionだが、リンクはURLも検索対象に含める）。
+- `LinkList`（Server）は取得後、`heading`＋`<LinkListClient links={links} locale={locale} ... />`を描画する形へ変更する。空状態（0件）・エラー・スケルトンの既存分岐は`LinkList`側に維持する（`DocumentList`と同一の責務分担）。
+
+### 翻訳キー（要件8・9・10）
+
+`messages/ja.json`・`messages/en.json` の `links` 名前空間に以下を追加する（`ja`/`en`でキー構造を一致させる）:
+
+```
+links.item.newBadge            // 例(ja): "新着" / (en): "New"
+links.search.keywordLabel      // 例(ja): "キーワード検索"
+links.search.keywordPlaceholder// 例(ja): "タイトル・説明・URLに含まれる語句"
+links.search.clearButton       // 例(ja): "条件をクリア"
+links.search.noResults         // 例(ja): "該当するリンクがありません"
+```
+
+- 登録日は既存の日付書式（`toLocaleDateString`）で表示するため専用の翻訳キーは不要（`documents`と同じ扱い）。
+
+### 影響ファイル一覧（追加設計分）
+
+| 区分 | ファイル | 変更内容 |
+|---|---|---|
+| 変更 | `src/types/link.ts` | 表示用型 `LinkWithTimestamp`（`{ ...Link; createdAt: string }`）を移設・定義。`Link`基底型は不変 |
+| 変更 | `src/lib/server/link-service.ts` | `listLinks`を`createdAt`付き（`LinkWithTimestamp[]`、`createdAt`降順）で返すよう変更。`LinkWithTimestamp`は`@/types/link`から参照 |
+| 変更 | `src/lib/api/links.ts` | `getLinks()`の戻り値を`Promise<LinkWithTimestamp[]>`に変更 |
+| 新規 | `src/lib/link-utils.ts` | `LINK_NEW_BADGE_DAYS`・`isRecentlyCreated`・`filterLinks` |
+| 変更 | `src/components/features/links/LinkList.tsx` | 取得結果を`LinkListClient`へ渡す形へ変更（空/エラー/スケルトンは維持） |
+| 新規 | `src/components/features/links/LinkListClient.tsx` | キーワード状態保持＋絞り込み＋カテゴリ別描画 |
+| 新規 | `src/components/features/links/LinkSearchBar.tsx` | キーワード検索欄 |
+| 変更 | `src/components/features/links/LinkCategoryGroup.tsx` | `LinkItem`へ`locale`・`newBadgeLabel`を渡すためのprops追加（透過） |
+| 変更 | `src/components/features/links/LinkItem.tsx` | 説明文に`whitespace-pre-wrap`、登録日`<time>`・新着バッジ表示、props追加 |
+| 変更 | `messages/ja.json` / `messages/en.json` | `links.item.newBadge`・`links.search.*` を追加 |
+
+### テスト方針（追加分）
+
+- Unit: `isRecentlyCreated`（境界7日・未来日時）、`filterLinks`（空キーワードで全件・title/description/URL部分一致・大文字小文字非依存）、`getLinks`が`createdAt`を含むこと。
+- Integration: `LinkListClient`のキーワード入力で該当カテゴリのみ表示・0件メッセージ表示、`LinkItem`が改行を保持し新着バッジを条件表示すること。
+- E2E/UI（任意）: 日英で新着バッジ・検索欄ラベルが切り替わること、タブレット幅で横スクロールしないこと。

@@ -103,3 +103,47 @@
   - タブレット幅（768px）で新規画面が横スクロールを起こさないことを確認する
   - _Requirements: 8.1, 8.2, 8.3, 9.1_
   - _Depends: 12_
+
+---
+
+## 追加タスク（追記日: 2026-07-22）: 管理一覧の検索・絞り込み・ページネーション
+
+> 対応要件: 要件10。設計は`design.md`「追加設計（追記日: 2026-07-22）」を参照。既存の実装済みタスク1〜13は保持し、以下を積み増す。`documents-management`の`DocumentManagementListClient`/`FilterBar`/`Pagination`を参照実装とする。
+
+- [ ] 14. 定数・フィルタ型を追加する
+  - `src/lib/constants/link-options.ts` に `LINK_MANAGEMENT_PAGE_SIZE = 10` と `LinkManagementCategoryFilter = LinkCategory | "all"` 型を追加する（`document.ts`の`DOCUMENT_MANAGEMENT_PAGE_SIZE`・`DocumentManagementScopeFilter`と同一方針）
+  - `npx tsc --noEmit` が通ることで完了とする
+  - _Requirements: 10.3, 10.5_
+
+- [ ] 15. 管理一覧の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json` の `helpdeskLinks.list` に `filter.keywordLabel`・`filter.keywordPlaceholder`・`filter.categoryLabel`・`filter.categoryAll`・`filter.clearButton`・`filter.noResults`・`pagination.previousLabel`・`pagination.nextLabel`・`pagination.pageStatus` を追加する（`helpdeskDocuments.list.filter`/`pagination`と同構造）
+  - カテゴリ表示名は`links.categories.*`を再利用し二重定義しない
+  - `ja.json` で定義した新規キーが全て `en.json` にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 10.9_
+
+- [ ] 16. `LinkManagementFilterBar` を実装する
+  - `src/components/features/helpdesk-links/LinkManagementFilterBar.tsx`（新規、Client）を `DocumentManagementFilterBar` と同型で実装する。`filters`（`{ keyword; category }`）・`onChange`・`onClear` を props で受け、キーワード`Input`＋カテゴリ`Select`（「すべてのカテゴリ」＋`LINK_CATEGORY_CODES`の4値）＋クリア`Button` で構成する
+  - _Requirements: 10.1, 10.2, 10.3_
+  - _Depends: 14, 15_
+
+- [ ] 17. `LinkManagementPagination` を実装する
+  - `src/components/features/helpdesk-links/LinkManagementPagination.tsx`（新規、Client）を `DocumentManagementPagination` と同型で実装する（前へ／次へ`Button`・`pageStatus`表示、端ページで無効化）
+  - _Requirements: 10.5_
+  - _Depends: 15_
+
+- [ ] 18. `LinkManagementListClient` を実装し `LinkManagementList` から委譲する
+  - `src/components/features/helpdesk-links/LinkManagementListClient.tsx`（新規、Client）を `DocumentManagementListClient` と同型で実装する。`filters`・`page` を状態保持し、キーワード（title・URL・description 部分一致・大文字小文字非依存）＋カテゴリのAND絞り込み・`LINK_MANAGEMENT_PAGE_SIZE`件ごとのページ分割を行う。条件変更時は1ページ目に戻す。0件時は `filter.noResults` を表示する。各行は現行と同一（タイトル・URL・カテゴリ表示名・登録日・編集リンク・`DeleteLinkButton`）とする。キーワード絞り込みは`links-page`側`src/lib/link-utils.ts`の`filterLinks`を再利用する（未実装なら同等関数を用意し最終的に集約する）
+  - `src/components/features/helpdesk-links/LinkManagementList.tsx`（Server）を、一覧本体の描画を `LinkManagementListClient` 呼び出しへ置き換える形に変更する（取得・`heading`・エラー/空状態分岐・`LinkManagementListSkeleton`は維持）
+  - 単体/コンポーネントテストで、キーワード絞り込み・カテゴリ絞り込み・AND条件・ページ分割・条件変更で1ページ目に戻る・0件メッセージ表示を検証し通すこと。既存`LinkManagementList.test.tsx`が壊れないことを確認する
+  - _Requirements: 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8_
+  - _Depends: 16, 17_
+
+- [ ] 19. 検証
+  - `npx tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることで完了とする
+  - _Requirements: 10.1〜10.10_
+  - _Depends: 18_
+
+- [ ]* 20. 多言語・レスポンシブのE2E確認を行う
+  - 日英で検索欄・カテゴリ絞り込み・ページネーションのラベルが切り替わること、タブレット幅（768px）で横スクロールが発生しないことを確認する
+  - _Requirements: 10.9, 10.10_
+  - _Depends: 19_
