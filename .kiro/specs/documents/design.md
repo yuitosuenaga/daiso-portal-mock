@@ -328,3 +328,42 @@ interface DocumentsReadOnlyApi {
 | 13.4 | Google型でのダウンロードリンク代替（元ドキュメントを開くリンク） | PdfViewer |
 | 13.5 | 検索・グリッド・並び順の`sourceType`非依存の維持 | DocumentList, DocumentListClient |
 | 13.6 | Google埋め込み表示失敗時のブラウザ標準動作への委任 | PdfViewer |
+
+## 追加ラウンド（2026-07-22）: 一覧のプレビュー性能・表示品質の改善
+
+### Overview（追加分）
+申請者側ドキュメント一覧（`/documents`）の4課題（性能・説明文の改行・新着強調・Google埋め込み失敗時のフォールバック）を、既存の「クリック操作なしで全件をその場プレビュー」構成（要件10・11）を維持したまま改善する。変更は既存コンポーネント（`PdfViewer`・`DocumentListItem`）への追記が中心で、新規の日付判定ユーティリティと翻訳キーを追加する。
+
+### Component Design（追加分）
+
+- **PdfViewer（変更・要件14/17）**:
+  - 現状はサーバーコンポーネント（`"use client"`なし）。要件17のiframe `error`イベント検知のため、`variant: "google"`の描画に限りクライアント側の状態（`hasError`）が必要となる。方針は次のいずれかとし、実装時に選択する:
+    - (A) `PdfViewer`全体を`"use client"`化し、`variant: "google"`時のみ`useState`で`hasError`を管理する（`variant: "upload"`の描画・props契約は不変）。
+    - (B) `variant: "google"`のフォールバック描画部分のみを担う小さなクライアント子コンポーネント（例: `GooglePreviewFrame`）を切り出し、`PdfViewer`はサーバーコンポーネントのまま維持する。
+  - いずれの方針でも、両`variant`のiframeに`loading="lazy"`属性を付与する（要件14.1）。
+  - `variant: "google"`のとき:
+    - iframeの`onError`（`error`イベント）で`hasError`を`true`にし、iframeに代えてフォールバックブロック（メッセージ＋「元のドキュメントを開く」リンク）を描画する（要件17.1）。
+    - `error`イベントが発火しないクロスオリジンのエラーページ表示ケースに備え、プレビュー成否によらず常時、iframe直下に補助案内文（例:「プレビューが表示されない場合は、元のドキュメントを開いてください」）＋元リンク導線を表示する（要件17.2）。既存の「元のドキュメントを開く」リンク（要件13.4）はこの導線として流用してよい。
+    - フォールバックメッセージ・補助案内文は新規propsとして受け取り、翻訳解決は呼び出し元が行う（既存のラベルprops規約を踏襲）。
+  - `variant: "upload"`はフォールバックUIの対象外（要件17.4）。`loading="lazy"`のみ適用する。
+- **DocumentListItem（変更・要件15/16/17）**:
+  - 説明（`description`）表示の`<p>`に`whitespace-pre-wrap`を付与する（要件15.1）。既存の`{document.description && (...)}`条件付き描画は維持する（要件15.2）。
+  - 新着バッジ: `isRecentlyUploaded(document.uploadedAt)`（新規ユーティリティ）が`true`のとき、既存のメタ情報行（ファイルサイズ・`<time>`）に併記する形で「新着」バッジ（`Badge`相当）を表示する（要件16.1・16.5）。ラベルは翻訳キーから解決してpropsで受け取る。
+  - `variant: "google"`のドキュメントについて、`PdfViewer`へフォールバック用の翻訳文字列（メッセージ・補助案内文）をpropsで渡す（要件17.3）。
+- **DocumentList / page.tsx（変更・要件16/17）**: 追加した翻訳キー（新着バッジラベル、Googleフォールバックメッセージ・補助案内文）を`getTranslations("documents.list")`から解決し、`DocumentListClient` → `DocumentListItem` → `PdfViewer`へ受け渡す（既存のラベル受け渡し経路を踏襲）。
+- **新着判定ユーティリティ（新規・要件16.2）**: `src/lib/document-utils.ts`に`isRecentlyUploaded(uploadedAt: string, now?: Date): boolean`を追加し、基準日数は同ファイル内の定数（例: `DOCUMENT_NEW_BADGE_DAYS = 7`）で一元管理する。`now`引数はテスト容易性のため任意で受け取れるようにする。
+
+### Modified Files（追加分）
+- `src/components/features/documents/PdfViewer.tsx` — 両variantのiframeに`loading="lazy"`を付与。`variant: "google"`にiframe `error`検知によるフォールバック描画と常時表示の補助案内文を追加（必要に応じて`"use client"`化またはクライアント子コンポーネント切り出し）
+- `src/components/features/documents/DocumentListItem.tsx` — 説明`<p>`に`whitespace-pre-wrap`付与、新着バッジ表示、Googleフォールバック文字列のprops受け渡し
+- `src/components/features/documents/DocumentList.tsx` — 新規翻訳キー（新着バッジ・Googleフォールバック）の解決と受け渡し
+- `src/lib/document-utils.ts` — `isRecentlyUploaded`と基準日数定数`DOCUMENT_NEW_BADGE_DAYS`を追加
+- `messages/ja.json` / `messages/en.json` — `documents.list`に`newBadge`（新着ラベル）・`googlePreviewError`（フォールバックメッセージ）・`googlePreviewHint`（常時表示の補助案内文）を追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 14.1〜14.3 | プレビューiframeの遅延描画（`loading="lazy"`）・既存挙動の維持 | PdfViewer, DocumentListItem |
+| 15.1〜15.2 | 説明文の改行保持（`whitespace-pre-wrap`） | DocumentListItem |
+| 16.1〜16.5 | 新着バッジ表示・基準日数の一元管理・i18n | DocumentListItem, DocumentList, document-utils, i18n messages |
+| 17.1〜17.5 | Google埋め込み失敗時のフォールバックUI・常時案内文・i18n（13.6の上書き） | PdfViewer, DocumentListItem, DocumentList, i18n messages |

@@ -445,3 +445,41 @@ interface DocumentActions {
 公開範囲フィルタは表示範囲の制御であり、認証・認可の代替ではない。フェーズ1は認証未実装のため、ヘルプデスク側の作成・編集・削除画面は`helpdesk-portal-layout`の前提通り制限なくアクセス可能である。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御を追加できることを設計上の前提とする。アップロードされたPDFはBase64データURLとしてサーバーメモリ・クライアント双方に保持されるため、機密性の高い文書の取り扱いはフェーズ3の実ファイルストレージ移行まで運用上の注意が必要である旨を非機能上の制約として明記する。
 
 **2026-07-16追記（Googleドキュメント連携）**: ポータルの公開範囲（`targeting`）は、あくまで「一覧にその項目を表示するかどうか」を制御するものであり、Google側のファイル自体の共有設定（誰がそのGoogleドキュメントを直接閲覧できるか）には一切影響しない。この2つの権限は完全に独立しており、Googleファイル側を「リンクを知っている全員が閲覧可」に設定した場合、ポータルの公開範囲外の第三者であっても、共有リンクを直接入手すればGoogle側でその内容を閲覧できてしまう。本specはこの非対称性を解消する仕組み（Google Drive APIによるアクセス制御・OAuth連携等）を実装しない（Non-Goals参照）ため、`DocumentGoogleLinkField`のヘルプテキスト（要件13.2関連UI文言）に、Google側の共有設定を適切に行う必要がある旨の運用上の注意を含める。また、サーバー側が`googleEmbedUrl`をクライアント入力から信頼せず`googleUrl`から再計算する設計（DocumentActions参照）は、クライアントが任意の埋め込みURLを注入する経路を防ぐための措置である。
+
+## 追加ラウンド（2026-07-22）: ドキュメント管理一覧の検索・絞り込み・ページネーション
+
+### Overview（追加分）
+ヘルプデスク側ドキュメント管理一覧（`/helpdesk/documents`）に、キーワード検索・登録方式/公開範囲種別による絞り込み・クライアント側ページネーションを追加する。データ取得（`getAllDocuments`によるサーバー側の全件取得、アップロード日降順）・行の表示項目・編集/削除導線・登録方式バッジ（要件13.9）は変更せず、取得済みの全件配列に対してクライアント側で検索・絞り込み・ページ分割を行う。実装は申請者側`documents`spec の`DocumentListClient`（クライアント状態保持＋`filterDocuments`再利用）のパターンを踏襲する。
+
+### Component Design（追加分）
+
+- **DocumentManagementList（変更・サーバーコンポーネント）**: 現状は`getAllDocuments()`で取得した全件を直接`map`している。取得・エラー/0件ハンドリング・見出し（`ManagementListHeading`）・ラベル辞書（`countryLabels`/`companyLabels`）の生成はサーバー側に残し、行の描画とインタラクティブUIを新規クライアントコンポーネントへ委譲する。取得した`documents`・`locale`・各種ラベル辞書・行描画に必要な翻訳文字列を`DocumentManagementListClient`へprops渡しする。
+- **DocumentManagementListClient（新規・クライアントコンポーネント）**: 申請者側`DocumentListClient`に相当する。以下の状態と処理を持つ:
+  - 状態: `keyword`（検索語）、`sourceTypeFilter`（`"all" | "upload" | "google"`）、`scopeFilter`（`"all" | "all-scope" | "countries" | "companies"`。表示ラベルと`targeting.scope`の対応に注意）、`page`（現在ページ、1始まり）。
+  - 絞り込み: `filterDocuments(documents, keyword)`（`src/lib/document-utils.ts`を再利用、要件14.2）に加え、`sourceType`一致・`targeting.scope`一致の述語を合成する（要件14.3〜14.5）。並び順は入力（アップロード日降順）を維持する（要件14.12）。
+  - ページネーション: 絞り込み後配列を1ページ`DOCUMENT_MANAGEMENT_PAGE_SIZE`件（既定10、定数で一元管理）に分割し、現在ページ分のみ`ManagementListRow`で描画する（要件14.9・14.10）。`useMemo`で絞り込み結果とページ総数を算出する。
+  - 条件変更時のページリセット: `keyword`/`sourceTypeFilter`/`scopeFilter`変更時に`page`を1へ戻す（要件14.11）。
+  - 0件表示: 絞り込み結果が0件のとき「該当するドキュメントがありません」を表示する（要件14.8。既存の全体0件＝`ManagementListMessageCard`とは別の、絞り込み後0件メッセージ）。
+  - 行の中身（タイトル・バッジ・ファイルサイズ・アップロード日・公開範囲・編集/削除）は既存`DocumentManagementList`の描画をそのまま移設する。`DeleteDocumentButton`はクライアントコンポーネントのため子として問題なく配置できる。
+- **絞り込み・ページネーションUI（新規）**: 検索欄＋絞り込みセレクトを、見出し（`ManagementListHeading`）の下・一覧カード（`ManagementListCard`）の上に配置する。申請者側`DocumentSearchBar`はキーワードのみで管理側の絞り込みセレクトを持たないため、そのままの再利用ではなく、本spec側に管理一覧用の検索・絞り込みバー（例: `DocumentManagementFilterBar`）を新設する（`DocumentSearchBar`のレイアウト方針＝`AnnouncementFilterBar`パターンを参考にする）。ページネーションUI（前へ／次へ・現在ページ/総ページ表示）は本ラウンドで新規に用意する（既存の共有ページネーションコンポーネントは存在しないため、`ManagementList`系と整合する軽量な実装を`helpdesk-documents`配下に置く）。
+- **共通ユーティリティの扱い**: `filterDocuments`（`documents`spec がタイトル/説明の部分一致で実装済み・`src/lib/document-utils.ts`）を再利用する。これは読み取り専用の純関数であり、`documents`spec の所有物だが型・シグネチャを変更せず利用するのみのため、隣接仕様との境界（後方互換）に反しない。ページサイズ・絞り込み選択肢の定数は本spec側（`helpdesk-documents`配下または`src/lib/constants`）で定義する。
+
+### Modified / New Files（追加分）
+- `src/components/features/helpdesk-documents/DocumentManagementList.tsx`（変更） — 取得・ラベル辞書生成・見出し・エラー/全体0件はサーバー側に残し、行描画とインタラクティブUIを`DocumentManagementListClient`へ委譲
+- `src/components/features/helpdesk-documents/DocumentManagementListClient.tsx`（新規） — キーワード/登録方式/公開範囲種別の絞り込み状態、ページネーション状態、絞り込み後0件メッセージ、行描画
+- `src/components/features/helpdesk-documents/DocumentManagementFilterBar.tsx`（新規） — キーワード検索欄＋登録方式セレクト＋公開範囲種別セレクト＋条件クリア
+- ページネーションUIコンポーネント（新規、例: `src/components/features/helpdesk-documents/DocumentManagementPagination.tsx`、または`helpdesk-shared`配下の汎用実装） — 前へ／次へ・現在ページ/総ページ表示
+- ページサイズ・絞り込み選択肢の定数（新規、`helpdesk-documents`配下または`src/lib/constants/document.ts`等）
+- `messages/ja.json` / `messages/en.json` — `helpdeskDocuments.list`（または新設の`helpdeskDocuments.filter`）に検索欄プレースホルダー・登録方式/公開範囲種別の絞り込みラベル・クリアボタン・絞り込み後0件メッセージ・ページネーション操作ラベルを追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 14.1〜14.2 | キーワード検索（`filterDocuments`再利用） | DocumentManagementFilterBar, DocumentManagementListClient, filterDocuments |
+| 14.3〜14.5 | 登録方式・公開範囲種別による絞り込みと条件合成 | DocumentManagementFilterBar, DocumentManagementListClient |
+| 14.6〜14.7 | 再読込なしの即時反映・条件クリア | DocumentManagementListClient, DocumentManagementFilterBar |
+| 14.8 | 絞り込み後0件メッセージ | DocumentManagementListClient |
+| 14.9〜14.11 | ページネーション・ページ切替・条件変更時のページリセット | DocumentManagementListClient, DocumentManagementPagination |
+| 14.12 | アップロード日降順・行表示項目・導線・バッジの維持 | DocumentManagementList, DocumentManagementListClient |
+| 14.13 | 追加UIのi18n | i18n messages |
+| 14.14 | 追加UIのレスポンシブ対応 | DocumentManagementFilterBar, DocumentManagementPagination |
