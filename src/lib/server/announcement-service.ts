@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
 import {
+  addedTargetApplicantUsersWhere,
   ANNOUNCEMENT_INCLUDE,
   DEFAULT_ANNOUNCEMENT_LOCALE,
   mapAnnouncement,
@@ -15,9 +16,11 @@ import {
 import {
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
+  notifyAnnouncementTargetExpanded,
 } from "@/lib/server/announcement-notifications";
 import type {
   Announcement,
+  AnnouncementTargeting,
   CreateAnnouncementInput,
 } from "@/types/announcement";
 import type {
@@ -254,11 +257,16 @@ export async function updateAnnouncementRecord(
 ): Promise<Announcement> {
   const current = await prisma.announcement.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, targetingScope: true, targetingCountries: true },
   });
   if (!current) {
     throw new AnnouncementNotFoundError(id);
   }
+
+  const previousTargeting: AnnouncementTargeting =
+    current.targetingScope === "countries"
+      ? { scope: "countries", countries: current.targetingCountries }
+      : { scope: "all" };
 
   const shouldStampPublishedAt = current.status !== "published" && input.status === "published";
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
@@ -297,7 +305,19 @@ export async function updateAnnouncementRecord(
 
     const announcement = mapAnnouncement(record);
     if (shouldStampPublishedAt) {
+      // 下書き→公開への遷移では、既存の公開通知が全対象者へ通知するため、
+      // 配信対象拡大の追加通知は行わない（要件35.6、二重送信防止）。
       await notifyAnnouncementPublished(announcement.id);
+    } else if (announcement.status === "published") {
+      // 公開のまま保存された場合のみ、配信対象の拡大差分を検出し、
+      // 新規追加分の対象者にのみ追加通知を送る（要件35.1, 35.2, 35.7）。
+      const addedWhere = addedTargetApplicantUsersWhere(
+        { targeting: previousTargeting },
+        { targeting: announcement.targeting }
+      );
+      if (addedWhere) {
+        await notifyAnnouncementTargetExpanded(announcement.id, addedWhere);
+      }
     }
 
     return announcement;

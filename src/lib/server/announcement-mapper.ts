@@ -148,3 +148,47 @@ export function targetApplicantUsersWhere(
   }
   return { isActive: true };
 }
+
+/**
+ * 公開済みお知らせの編集前後の`targeting`を比較し、「新たに配信対象へ含まれることに
+ * なった国」に属する有効な`ApplicantUser`を表す`where`を算出する（要件35）。
+ * 新規追加が生じないケース（編集前が既に`all`、縮小、同一）では`null`を返し、
+ * 呼び出し元（`updateAnnouncementRecord`）が追加通知の送信自体をスキップできるようにする。
+ *
+ * `announcement-service.ts`・`announcement-notifications.ts`双方から参照されうるため、
+ * 循環importを避けるべく本モジュール（leafモジュール）に置く。
+ */
+export function addedTargetApplicantUsersWhere(
+  previous: Pick<Announcement, "targeting">,
+  next: Pick<Announcement, "targeting">
+): Prisma.ApplicantUserWhereInput | null {
+  const previousTargeting = previous.targeting;
+  const nextTargeting = next.targeting;
+
+  // 編集前から全体一律（all）だった場合、既に全受信者が対象であり新規追加は生じ得ない（要件35.3）。
+  if (previousTargeting.scope === "all") {
+    return null;
+  }
+
+  // 編集前が特定国（countries）、編集後が全体一律（all）へ変更された場合、
+  // 編集前の対象国に含まれていなかった国が新規追加分となる（要件35.4）。
+  if (nextTargeting.scope === "all") {
+    return {
+      isActive: true,
+      company: { country: { notIn: previousTargeting.countries } },
+    };
+  }
+
+  // 両者とも特定国（countries）の場合、差集合（編集後にのみ含まれる国）が新規追加分となる。
+  // 差集合が空（縮小・同一）であれば新規追加は生じない（要件35.5）。
+  const addedCountries = nextTargeting.countries.filter(
+    (country) => !previousTargeting.countries.includes(country)
+  );
+  if (addedCountries.length === 0) {
+    return null;
+  }
+  return {
+    isActive: true,
+    company: { country: { in: addedCountries } },
+  };
+}

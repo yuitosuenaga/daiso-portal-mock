@@ -138,6 +138,7 @@ enum AnnouncementStatus {
 enum AnnouncementNotificationKind {
   publish
   reminder
+  target_added
 }
 
 enum AnnouncementNotificationStatus {
