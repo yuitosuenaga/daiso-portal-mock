@@ -150,3 +150,20 @@
 8. The ヘルプデスクポータル shall 既存の一覧の並び順（登録日 `createdAt` 降順）・各行の表示項目（タイトル・URL・カテゴリ表示名・登録日）・編集/削除の導線を維持する。
 9. The ヘルプデスクポータル shall 検索欄・絞り込み欄・ページネーションのラベル・プレースホルダー・0件メッセージを`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する。カテゴリ表示名は`links-page`spec既存の翻訳キーを再利用し二重定義しない。
 10. The ヘルプデスクポータル shall 検索・絞り込み・ページネーションのUIをタブレット幅（768px以上）で横スクロールを発生させずに表示する。
+
+---
+
+### 要件 11: リンク削除確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
+
+**背景:** 現状、リンク削除は`DeleteLinkButton`（`src/components/features/helpdesk-links/DeleteLinkButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskLinks.list.deleteConfirm` = 「このリンクを削除しますか？」）に削除対象のリンクタイトルが含まれず曖昧である。またOSネイティブダイアログのためポータルのUIトーンと不一致。`helpdesk-portal-layout`spec（要件18）が新設する共通`ConfirmDialog`でアプリ内モーダル化し、対象のリンクタイトルを明示する。
+
+**目的:** ヘルプデスク担当者として、リンク削除の確認モーダルに対象のリンクタイトルが明示された状態で確認したい。そうすることで、誤って別のリンクを削除する事故を防げる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `DeleteLinkButton`の削除確認を、`window.confirm()`ではなく共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）で行う。
+2. The ヘルプデスクポータル shall 確認モーダルの本文に、削除対象のリンクタイトル（`title`）を明示する（例: 「『{title}』を削除します。この操作は取り消せません。よろしいですか？」）。
+3. The ヘルプデスクポータル shall 対象タイトルを埋め込むための翻訳キー（`helpdeskLinks.list.deleteConfirm`を`{title}`プレースホルダー付きに変更、および確認見出し・確認/キャンセルボタン文言）を`messages/ja.json`・`messages/en.json`の両方に用意する。
+4. When 利用者が確認モーダルで確定したときのみ, the ヘルプデスクポータル shall 既存の削除処理を実行し、成功後の挙動・失敗時のエラー表示を維持する。キャンセル時は何も実行しない。
+5. The ヘルプデスクポータル shall `DeleteLinkButton`へ対象タイトルを渡せるよう、必要に応じて呼び出し側から`title`をpropsで受け取る。
+6. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`DeleteLinkButton.test.tsx`）を、`ConfirmDialog`ベースの操作へ更新する。

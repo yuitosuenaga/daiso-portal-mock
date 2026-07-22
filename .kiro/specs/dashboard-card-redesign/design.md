@@ -685,3 +685,17 @@ graph TB
   - 既存テストが`getRecentAnnouncements`/`getAnnouncements`をモックしている場合、呼び出し引数の期待値を`{ locale }`付きに更新する
 - **E2E/UI Tests**:
   - UIロケールを`en`に切り替えたとき、ダッシュボードのお知らせ系プレビューと一覧ページで同一お知らせのタイトル・本文が一致すること
+
+## 設計追記（2026-07-22）: ヘルプデスクダッシュボードの未対応件数KPIと販社管理カード（要件13・14）
+
+### 要件13: 未対応件数KPI
+- 変更対象: `src/app/[locale]/helpdesk/(dashboard)/page.tsx`。`PriorityInquiriesPreviewPanel`の上位（最上部）に新規のKPIコンポーネントを配置する。
+- 新規コンポーネント案: `src/components/features/dashboard/UnresolvedInquiriesKpiPanel.tsx`（Server Component）。`getAllInquiries()`を呼び、`status ∈ {new, in_progress}`の件数（全社未対応）と、そのうち`createdAt`がサーバー基準の当日（ロケールのタイムゾーン考慮は既存日付表示の実装に合わせる）である件数（本日受付未対応）を算出。`Card`ベースで大きな数字を強調表示し、`/helpdesk/inquiries`へのリンクを持つ。0件時は「未対応なし」表現。取得失敗時はパネル内エラー表示（例外を伝播させない。`PriorityInquiriesPreviewPanel`の`try/catch`パターンを踏襲）。
+- `Suspense`でラップし、スケルトン（`UnresolvedInquiriesKpiPanelSkeleton`）をフォールバックにする（既存パネルと同方針）。
+- i18n: `helpdeskDashboard`名前空間にKPI見出し・「未対応」「本日受付」「未対応なし」「一覧を見る」等のキーを追加（ja/en）。
+- テスト: 未対応件数・本日受付件数の算出（境界: 前日/当日、new/in_progress以外の除外）、0件時表現、取得失敗時エラー表示を単体テストで検証する。
+
+### 要件14: 販社管理カード
+- 変更対象: `src/app/[locale]/helpdesk/(dashboard)/page.tsx`の「対応業務（support）」セクションに`NavigationCard`を1枚追加。`title={nav("companies")}`（`helpdeskNav.companies`）、`icon={Building2}`（`lucide-react`）、`href="/helpdesk/companies"`、`description={t("companies.description")}`。
+- i18n: `helpdeskDashboard.companies.description`をja/enに追加。
+- 既存カード・順序・KPI・プレビューパネルには影響を与えない。

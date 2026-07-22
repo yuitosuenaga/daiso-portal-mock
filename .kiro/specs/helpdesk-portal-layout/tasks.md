@@ -263,3 +263,15 @@
   - 反対ポータルへの正規導線（ログアウト→ログイン画面のクロスログインリンク）が引き続き機能することを確認する
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.8_
   - _Depends: 8.1, 8.2_
+
+- [ ] 9. 共通アプリ内確認モーダル `ConfirmDialog` を新設する（2026-07-22 追記 / 要件18）
+  - `src/components/ui/confirm-dialog.tsx`（`"use client"`）を新規作成し、既存の`Dialog`系プリミティブ（`src/components/ui/dialog.tsx`）と`Button`を用いて、トリガーボタン・見出し・本文（対象名を含められるReactNode）・確認/キャンセルボタンを表示する再利用可能コンポーネントを実装する
+  - propsで全表示文言・`onConfirm`・`isPending`・各`variant`を受け取り、確認押下時のみ`onConfirm`を実行、`isPending`中は確認ボタンを`disabled`にする。キャンセル/Overlay/Escでは`onConfirm`を呼ばずに閉じる
+  - コンポーネント内に固定の表示文言・翻訳キーを持たせない（i18nは利用側の責務）
+  - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7, 18.9_
+  - _Depends: なし（既存 dialog.tsx / button.tsx を利用）_
+
+- [ ]* 9.1 `ConfirmDialog` の単体テストを追加する
+  - トリガー押下でモーダルが開き`title`・`description`が表示されること、確認押下で`onConfirm`が1回呼ばれること、キャンセル/Esc/Overlayで`onConfirm`が呼ばれず閉じること、`isPending`中は確認ボタンが`disabled`になることを`src/components/ui/confirm-dialog.test.tsx`で検証する
+  - _Requirements: 18.3, 18.4, 18.5, 18.6_
+  - _Depends: 9_

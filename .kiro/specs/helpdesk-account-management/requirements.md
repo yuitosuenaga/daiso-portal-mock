@@ -271,3 +271,40 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 8. If 保存された`preferredLocale`に対応するお知らせ翻訳が存在しない言語であるとき、the ヘルプデスクポータル shall 既存の通知送信処理のフォールバック（`resolveAnnouncementContent`が既定言語へフォールバックする挙動）に委ね、本要件では通知送信ロジックを変更しない。
 9. The ヘルプデスクポータル shall 通知言語プルダウンの追加によって、既存のメールアドレス・表示名・パスワードの各項目の挙動（必須/任意・重複検証・パスワード平文の非残存＝要件5.9）を変更しない。
 10. The ヘルプデスクポータル shall 通知言語プルダウンのラベル・選択肢文言を`messages/ja.json`・`messages/en.json`で管理し、選択された言語の翻訳キーが存在しないときは英語（`en`）にフォールバックして表示する（要件10と整合）。
+
+---
+
+**背景（2026-07-22 追記）: 運用UX改善（確認モーダルのアプリ内化・販社コード入力ガイド）**
+2026-07-21のプロダクト全体レビューにより、本specが所有する画面で2点の運用UX課題が指摘された。(1) 申請者アカウントの無効化・再有効化の確認がブラウザ標準`window.confirm()`で行われ、対象アカウント名が確認文言に含まれずUIトーンとも不一致（要件17で解消）。(2) 販社（Company）作成フォームの`companyCode`が自由入力欄のみで、既存の命名規則（例: `vn-daiso-vietnam`）の案内や重複チェックのタイミングが不明瞭（要件18で解消）。
+
+### 要件 17: アカウント無効化・再有効化確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
+
+**背景:** 現状、申請者アカウントの無効化・再有効化は`ToggleApplicantUserActiveButton`（`src/components/features/helpdesk-companies/ToggleApplicantUserActiveButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`）に対象アカウント名が含まれず、どのアカウントを操作しようとしているか曖昧である。またOSネイティブダイアログのためポータルのUIトーンと不一致。`helpdesk-portal-layout`spec（要件18）が新設する共通`ConfirmDialog`でアプリ内モーダル化し、対象アカウント名を明示する。
+
+**目的:** ヘルプデスク担当者として、アカウント無効化・再有効化の確認モーダルに対象アカウント名が明示された状態で確認したい。そうすることで、誤って別のアカウントを無効化する事故を防げる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `ToggleApplicantUserActiveButton`の確認を、`window.confirm()`ではなく共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）で行う。
+2. The ヘルプデスクポータル shall 確認モーダルの本文に、対象申請者アカウントの氏名（`name`）を明示する（メールアドレス`email`を補助的に併記してよい）。例: 無効化時「『{name}』を無効化します。無効化するとこのアカウントでログインできなくなります。よろしいですか？」。
+3. The ヘルプデスクポータル shall 無効化と再有効化で異なる見出し・本文・確認ボタン文言を表示する（無効化は`destructive`、再有効化は通常系）。
+4. The ヘルプデスクポータル shall 対象名を埋め込むための翻訳キー（`helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`を`{name}`プレースホルダー付きに変更、および確認見出し・確認/キャンセルボタン文言）を`messages/ja.json`・`messages/en.json`の両方に用意する。
+5. When 利用者が確認モーダルで確定したときのみ, the ヘルプデスクポータル shall 既存の`setApplicantUserActiveAction`を実行し、成功後の挙動・失敗時のエラー表示を維持する。キャンセル時は何も実行しない。
+6. The ヘルプデスクポータル shall `ToggleApplicantUserActiveButton`へ対象アカウント名を渡せるよう、必要に応じて呼び出し側から`name`（必要なら`email`）をpropsで受け取る。
+7. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`ToggleApplicantUserActiveButton.test.tsx`）を、`ConfirmDialog`ベースの操作へ更新する。
+
+### 要件 18: 販社コード（companyCode）入力ガイドと重複チェックの明確化（2026-07-22 追記）
+
+**背景:** 販社作成フォーム（`CompanyForm`, `src/components/features/helpdesk-companies/CompanyForm.tsx`）の`companyCode`は必須の自由入力欄（`companyFormSchema`は`min(1)`のみ）で、命名規則の案内が一切ない。実データ（`prisma/seed.ts`）では`{ISO国コード小文字2桁}-daiso-{国名小文字・ハイフン区切り}`（例: `vn-daiso-vietnam`, `jp-daiso-japan-trading`）という規則が使われており、`companyCode`はDB上ユニーク制約（`Company_companyCode_key`）を持つ。現状は重複検知が送信時（`createCompanyAction`のユニーク制約違反）に限られ、入力者が規則や重複を事前に把握できない。
+
+**目的:** ヘルプデスク担当者として、販社コードの命名規則と重複可否を入力時点で把握したい。そうすることで、規則から外れたコードや重複コードの入力による作成失敗・データ不整合を未然に防げる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall 販社作成フォームの`companyCode`入力欄に、命名規則の実例を示すプレースホルダー（例: `vn-daiso-vietnam`）を表示する。
+2. The ヘルプデスクポータル shall `companyCode`入力欄付近にヘルプテキストを表示し、命名規則（`{ISO国コード小文字2桁}-daiso-{国名小文字・ハイフン区切り}`、使用可能文字は半角英小文字・数字・ハイフンのみ）と、コードが全販社で一意である必要があることを案内する。
+3. The ヘルプデスクポータル shall `companyCode`のフォーマット検証（半角英小文字・数字・ハイフンのみ、先頭・末尾のハイフン禁止、連続ハイフン禁止）を`companyFormSchema`（`src/lib/validation/company.ts`）に追加し、規則違反時は必須エラーとは別の専用エラーメッセージを`companyCode`フィールドに表示する。
+4. The ヘルプデスクポータル shall 重複チェックのタイミングを次のとおり明確化する: (a) 送信時は既存どおり`createCompanyAction`のユニーク制約違反を検知して`companyCode`フィールドへ重複エラー（既存の`companyCodeDuplicateMessage`）を表示する（最終的な一意性はサーバー側で担保）。(b) 加えて、`companyCode`入力欄のblur時に軽量なServer Action（例: `checkCompanyCodeAvailabilityAction`）で既存コードとの重複を非同期照会し、重複時は送信前に`companyCode`フィールドへ警告を表示する。
+5. The ヘルプデスクポータル shall 編集モード（既存Company）でも同じフォーマット検証・入力ガイド・重複チェックを適用する（ただし自分自身の現在のコードは重複とみなさない）。
+6. The ヘルプデスクポータル shall 本要件で追加するプレースホルダー・ヘルプテキスト・フォーマットエラー文言・重複警告文言を`next-intl`翻訳キーで`messages/ja.json`・`messages/en.json`の両方に追加する。
+7. The ヘルプデスクポータル shall 本要件による変更で、既存の会社名・国の入力・検証、および保存後の遷移（`/helpdesk/companies/{id}`）の挙動を変更しない。

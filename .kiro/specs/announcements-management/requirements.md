@@ -572,3 +572,20 @@
 5. The Portal shall 要件31.4・33.2で定めた「`ja`へフォールバック」の記述を、本要件の「`en`優先（`en`が無い場合のみ`ja`）」に読み替える（`resolveAnnouncementContent`の単一実装変更で両要件の挙動を同時に更新する）。
 6. The Portal shall 通知メールの詳細リンクに用いるUIロケール（`resolveUiLocale`）について、`routing.locales`（`ja`/`en`）に含まれない`preferredLocale`のフォールバック先を、`routing.defaultLocale`（`ja`）ではなく`en`とする（本文言語とリンク先UIロケールの整合をとる）。
 7. The Portal shall 本変更により影響を受ける既存の単体テスト（`resolveAnnouncementContent`の`th`フォールバック、通知メールの`preferredLocale: "th"`時の件名・本文・詳細リンク）の期待値を、`en`優先の新挙動に更新する。
+
+---
+
+### Requirement 37: お知らせ削除確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
+
+**背景:** 現状、お知らせ削除は`DeleteAnnouncementButton`（`src/components/features/helpdesk-announcements/DeleteAnnouncementButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskAnnouncements.list.deleteConfirm` = 「このお知らせを削除しますか？」）に削除対象のお知らせタイトルが含まれず、どのお知らせを削除しようとしているか曖昧である。また、OSネイティブダイアログのためポータルのUIトーンと一致していない。`helpdesk-portal-layout`spec（要件18）が新設する共通`ConfirmDialog`を用いてアプリ内モーダル化し、対象タイトルを明示する。
+
+**Objective:** As a ヘルプデスク担当者, I want お知らせ削除の確認モーダルに対象のお知らせタイトルが明示された状態で確認したい, so that 誤って別のお知らせを削除する事故を防げる
+
+#### Acceptance Criteria
+
+1. The Portal shall `DeleteAnnouncementButton`の削除確認を、`window.confirm()`ではなく`helpdesk-portal-layout`spec提供の共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`）で行う。
+2. The Portal shall 確認モーダルの本文に、削除対象のお知らせタイトル（表示中UIロケールで解決したタイトル）を明示する（例: 「『{title}』を削除します。この操作は取り消せません。よろしいですか？」）。
+3. The Portal shall 対象タイトルを埋め込むための翻訳キー（`helpdeskAnnouncements.list.deleteConfirm`を`{title}`プレースホルダー付きに変更、および確認ダイアログ見出し・確認/キャンセルボタン用の翻訳キー）を`messages/ja.json`・`messages/en.json`の両方に用意する。
+4. When 利用者が確認モーダルで確定したときのみ, the Portal shall 既存の削除Server Action（`deleteAnnouncementAction`）を実行し、成功後の遷移（`/helpdesk/announcements`）・失敗時のエラー表示の既存挙動を維持する。キャンセル時は何も実行しない。
+5. The Portal shall `DeleteAnnouncementButton`へ削除対象タイトルを渡せるよう、必要に応じて呼び出し側（一覧・編集画面）からタイトルをpropsで受け取る。
+6. The Portal shall 既存の`window.confirm`をモックする単体テスト（`DeleteAnnouncementButton.test.tsx`）を、`ConfirmDialog`ベースの操作（トリガー押下→確認ボタン押下で削除実行、キャンセルで未実行）に更新する。

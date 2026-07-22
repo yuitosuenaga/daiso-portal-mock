@@ -2164,3 +2164,15 @@ function resolveUiLocale(preferredLocale: string): string {
   - 通知メール: `preferredLocale: "th"`のとき件名・本文が`en`翻訳内容になること、詳細リンクが`/en/announcements/...`になること
 - **Integration Tests**:
   - `en`翻訳のみ登録したお知らせで、`preferredLocale: "th"`の`ApplicantUser`向け公開通知が`en`本文・`/en/`リンクで送信されること
+
+## 設計追記（2026-07-22）: お知らせ削除確認のアプリ内モーダル化（要件37）
+
+### 変更対象
+- `src/components/features/helpdesk-announcements/DeleteAnnouncementButton.tsx`: `window.confirm(confirmMessage)`を廃止し、`helpdesk-portal-layout`spec提供の`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`）でラップする。トリガー＝既存の削除ボタン（`variant="destructive"`）、確認押下時に`startTransition`内で`deleteAnnouncementAction`→`router.push("/helpdesk/announcements")`を実行（既存ロジックを`onConfirm`に移す）。`isPending`をConfirmDialogへ渡す。
+- Props追加: `announcementTitle`（表示ロケールで解決済みのタイトル）と、確認モーダル用文言（`confirmTitle` / `confirmDescription` / `confirmLabel` / `cancelLabel`）。呼び出し側（お知らせ管理一覧・編集画面）が`next-intl`で解決して渡す。既存の`confirmMessage` propは`confirmDescription`（`{title}`埋め込み済み文字列）へ置き換える。
+
+### i18n
+- `helpdeskAnnouncements.list.deleteConfirm`を`{title}`プレースホルダー付き文言に変更（ja/en）。確認見出し・確認/キャンセルボタン文言のキーを追加（既存の削除・キャンセル系キーがあれば再利用）。
+
+### テスト
+- `DeleteAnnouncementButton.test.tsx`を`vi.spyOn(window, "confirm")`前提から`ConfirmDialog`操作前提へ更新: トリガー押下→確認ボタン押下で`deleteAnnouncementAction`が呼ばれ遷移すること、キャンセルで呼ばれないこと、本文に対象タイトルが表示されることを検証。

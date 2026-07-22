@@ -200,3 +200,35 @@
 3. Where UIロケールに対応するタイトル・本文が未登録である場合, the Dashboard Service shall `announcements-management`spec側の解決ロジック（`resolveAnnouncementContent`）が定めるフォールバック結果をそのまま表示する（本specは独自のフォールバック判定を行わない）。
 4. The Dashboard Service shall 本追記による変更を、両パネルの既存のレイアウト・最大件数・並び順・空状態・エラー処理・カテゴリバッジ・日付フォーマット・本文要約（要件5・9・10）を変更せずに行う（`getRecentAnnouncements`/`getAnnouncements`への`locale`引数追加のみ）。
 5. The Dashboard Service shall UIロケールを`en`に切り替えたとき、ダッシュボードのお知らせ系プレビューと一覧ページ（`announcements`spec所有）とで、同一お知らせのタイトル・本文表示が一致するようにする。
+
+---
+
+### Requirement 13: ヘルプデスク側ダッシュボードの未対応件数KPI強調表示（2026-07-22 追記）
+
+**背景:** 2026-07-21のプロダクト全体レビューで、ヘルプデスク側ダッシュボード（`/helpdesk`）には業務上最重要の指標である「対応が必要な件数」を一目で把握できる強調表示がなく、未対応件数は`PriorityInquiriesPreviewPanel`のリスト表示（および控えめな件数）に留まっているとの指摘があった。未対応件数、特に「本日受付」の未対応件数を大きく強調するKPIをダッシュボード最上部に配置する。
+
+**Objective:** As a ヘルプデスク担当者, I want ダッシュボードを開いた瞬間に全社の未対応件数・本日受付の未対応件数を大きく把握したい, so that その日の対応優先度を即座に判断できる
+
+#### Acceptance Criteria
+
+1. The Portal shall ヘルプデスク側ダッシュボード（`/helpdesk`）の最上部に、全社の未対応（`status`が`new`または`in_progress`）問い合わせ件数を大きく強調表示するKPIを配置する。
+2. The Portal shall 「本日受付の未対応件数」をKPIとして併せて表示する。「本日」は各問い合わせの受付日時（`Inquiry.createdAt`）がビュー表示日の当日（ローカル日付基準）であるものを対象とする。
+3. When 利用者がKPIを操作したとき, the Portal shall 問い合わせ一覧（`/helpdesk/inquiries`）へ遷移できる導線（KPIカード自体のリンクまたは明示リンク）を提供する。
+4. When 未対応件数が0件のとき, the Portal shall 「未対応なし」等の状態表現を表示する（数字の0のみで放置しない）。
+5. The Portal shall 既存の`PriorityInquiriesPreviewPanel`（対応が必要な申請プレビュー）の表示・並び順・件数を維持し、その上位に本KPIを追加する形とする（表示順は「KPI → プレビューパネル → ナビゲーションカード群」とし、要件9の追記（プレビューパネルを上部・カード群を下部）を尊重する）。
+6. When KPI用のデータ取得に失敗したとき, the Portal shall KPI領域内にエラー状態を表示し、例外を上位へ伝播させず、プレビューパネル・カード群の表示に影響を与えない。
+7. The Portal shall KPIの見出し・件数ラベル・状態表現（未対応なし等）・リンク文言を`next-intl`翻訳キー（`helpdeskDashboard`名前空間）で提供し、`messages/ja.json`・`messages/en.json`で管理する。
+
+### Requirement 14: ヘルプデスク側ダッシュボードへの「販社管理」カード追加（2026-07-22 追記）
+
+**背景:** ヘルプデスク側サイドバー（`HelpdeskSidebar`）には「販社管理」項目（href `/helpdesk/companies`、`Building2`アイコン）が存在するが、ダッシュボードのナビゲーションカード群には対応するカードが無く、サイドバー項目とダッシュボードカードの間で導線が非一貫になっている。ダッシュボードからも販社管理へ到達できるようカードを追加する。
+
+**Objective:** As a ヘルプデスク担当者, I want ダッシュボードのカードからも販社管理画面へ移動したい, so that サイドバーと同様にトップページから主要機能へ一貫して到達できる
+
+#### Acceptance Criteria
+
+1. The Portal shall ヘルプデスク側ダッシュボードのナビゲーションカード群に「販社管理」カード（href `/helpdesk/companies`）を追加する。
+2. The Portal shall 当該カードのタイトルをサイドバーと同一の翻訳キー（`helpdeskNav.companies`）で表示し、アイコンをサイドバーと同じ`Building2`とする。
+3. The Portal shall 当該カードの説明文を`helpdeskDashboard`名前空間の新規翻訳キー（例: `helpdeskDashboard.companies.description`）で提供し、`messages/ja.json`・`messages/en.json`で管理する。
+4. The Portal shall 当該カードを既存のカードセクション構成（対応業務＝support／参照情報＝reference）のうち「対応業務（support）」セクションに配置する（販社・アカウントの運用管理は対応業務系のため）。
+5. The Portal shall 本カード追加により、既存の他カード・プレビューパネル・表示順・KPI（要件13）の挙動を変更しない。

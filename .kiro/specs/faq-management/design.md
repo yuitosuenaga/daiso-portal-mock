@@ -406,3 +406,15 @@ messages/ja.json, messages/en.json                          # helpdeskFaq.list.f
 - **Unit**: カテゴリ絞り込み・ページ分割（境界: 10件ちょうどで1ページ、11件で2ページ）・条件変更時のページリセットのロジック（`filterFaqs` 自体の網羅は `faq` spec 側テストで担保）
 - **Integration**: `FaqManagementListClient` にキーワード/カテゴリを入力すると該当行のみ表示、0件時メッセージ、前へ/次へでページ遷移、クリアで全件復帰
 - **E2E**: 日英で検索欄・カテゴリ・ページネーション文言が切り替わること、タブレット幅で横スクロールが発生しないこと
+
+## 設計追記（2026-07-22）: FAQ削除確認のアプリ内モーダル化（要件11）
+
+### 変更対象
+- `src/components/features/helpdesk-faq/DeleteFaqButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件18）でラップ。トリガー＝既存削除ボタン（`variant="destructive"`）、確認押下時に既存の削除処理を`onConfirm`として実行、`isPending`を伝播。
+- Props: `question`（対象質問文）と確認モーダル用文言（見出し・本文・確認/キャンセル）を追加。既存の`confirmMessage` propは`{question}`埋め込み済み本文へ置換。
+
+### i18n
+- `helpdeskFaq.list.deleteConfirm`を`{question}`プレースホルダー付きに変更（ja/en）。確認見出し・確認/キャンセルボタン文言のキーを追加。
+
+### テスト
+- `DeleteFaqButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（トリガー→確認で削除、キャンセルで未実行、本文に質問文表示）。
