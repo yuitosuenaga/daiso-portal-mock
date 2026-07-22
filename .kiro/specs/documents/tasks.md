@@ -230,3 +230,59 @@
   - 全テストがパスすることで完了とする
   - _Requirements: 13.1, 13.2, 13.3, 13.4_
   - _Depends: 10.3_
+
+---
+
+## 追加ラウンド（2026-07-22）: 一覧のプレビュー性能・表示品質の改善
+
+- [ ] 11. 一覧のプレビュー性能・表示品質を改善する
+
+- [ ] 11.1 プレビューiframeに遅延読み込みを付与する（性能改善）
+  - `PdfViewer`の`<iframe>`（`variant: "upload"`・`variant: "google"`の両方）に`loading="lazy"`属性を付与する
+  - 付与後も要件10.1（クリック操作なしのプレビュー）・10.2（`title`属性）・11（2列グリッド/レスポンシブ）・13（sourceType分岐）の挙動が維持されること、ダウンロードリンク等のメタ情報が従来どおり即時表示されることをコードレビューで確認することで完了とする
+  - _Requirements: 14.1, 14.2, 14.3_
+  - _Boundary: PdfViewer_
+
+- [ ] 11.2 (P) 説明文の改行を保持する
+  - `DocumentListItem`の説明（`description`）表示`<p>`に`whitespace-pre-wrap`を付与する
+  - `description`未設定時は説明要素を描画しない既存の条件付き描画を維持する
+  - 複数行の説明が改行を保ったまま表示されることで完了とする
+  - _Requirements: 15.1, 15.2_
+  - _Boundary: DocumentListItem_
+
+- [ ] 11.3 新着判定ユーティリティと基準日数定数を追加する
+  - `src/lib/document-utils.ts`に基準日数定数（例: `DOCUMENT_NEW_BADGE_DAYS = 7`）と`isRecentlyUploaded(uploadedAt: string, now?: Date): boolean`を追加する
+  - `now`引数を任意で受け取れるようにし、基準期間内は`true`・期間外は`false`を返すことで完了とする
+  - _Requirements: 16.2, 16.3_
+  - _Boundary: document-utils_
+
+- [ ] 11.4 (P) 新着バッジ・Googleフォールバック関連の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`documents.list`に、新着バッジラベル（`newBadge`）・Googleプレビュー失敗メッセージ（`googlePreviewError`）・常時表示の補助案内文（`googlePreviewHint`）を追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在することで完了とする
+  - _Requirements: 16.4, 17.3_
+  - _Boundary: i18n messages_
+
+- [ ] 11.5 新着バッジを一覧カードに表示する
+  - `DocumentList`で新着バッジラベルを解決し、`DocumentListClient`経由で`DocumentListItem`へ受け渡す
+  - `DocumentListItem`で`isRecentlyUploaded(document.uploadedAt)`が`true`のとき、既存のメタ情報行（ファイルサイズ・`<time>`）に併記する形で新着バッジを表示する
+  - 既存のアップロード日表示・並び順（要件3.1）を変更しないことで完了とする
+  - _Requirements: 16.1, 16.5_
+  - _Boundary: DocumentListItem, DocumentList_
+  - _Depends: 11.3, 11.4_
+
+- [ ] 11.6 Google埋め込み失敗時のフォールバックUIを実装する（要件13.6の上書き）
+  - `PdfViewer`の`variant: "google"`について、iframeの`error`イベントを検知してフォールバックブロック（メッセージ＋「元のドキュメントを開く」リンク）を表示できるようにする（`error`検知のため`PdfViewer`の`"use client"`化、またはGoogleプレビュー部分のクライアント子コンポーネント切り出しのいずれかを採用する）
+  - `error`が発火しないクロスオリジンのエラーページ表示に備え、`variant: "google"`ではプレビュー成否によらず常時、iframe直下に補助案内文＋元リンク導線を表示する
+  - フォールバックメッセージ・補助案内文は`DocumentList`→`DocumentListItem`経由でpropsとして受け取り、`variant: "upload"`にはフォールバックUIを適用しない
+  - Googleリンク型でプレビューが表示できない場合に案内文と元リンクが表示され、アップロード型では従来どおりの描画が維持されることで完了とする
+  - _Requirements: 17.1, 17.2, 17.4, 17.5_
+  - _Boundary: PdfViewer, DocumentListItem, DocumentList_
+  - _Depends: 11.4_
+
+- [ ] 11.7 (P) 単体テストを追加・更新する
+  - `isRecentlyUploaded`が基準期間内/外・境界値に対して期待通りの真偽を返すことを検証するテストを追加する
+  - `DocumentListItem`が新着ドキュメントに新着バッジを表示し、非新着では表示しないこと、説明文に改行保持スタイルが適用されることを検証するテストを追加する
+  - `PdfViewer`が`variant: "google"`でiframe `error`時にフォールバックUIを表示し、`variant: "upload"`では表示しないこと、両variantのiframeに`loading="lazy"`が付与されることを検証するテストを追加する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 14.1, 15.1, 16.1, 16.3, 17.1, 17.4_
+  - _Depends: 11.1, 11.2, 11.5, 11.6_
