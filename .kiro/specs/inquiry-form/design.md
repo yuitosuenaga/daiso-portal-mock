@@ -577,3 +577,20 @@ sequenceDiagram
 ## Supporting References
 - 選択肢コード（`category`/`urgency`/国/言語）の暫定リストと出典は `research.md` の Design Decisions を参照
 - 添付ファイルのデータURL方式選定・上限値・共有モジュール設計の根拠は `research.md` の「追加ラウンド（2026-07-03）」を参照
+
+## 追加設計（2026-07-22）: 投稿時の`translatedText`の扱いの明文化（要件13）
+
+### 背景と方針
+`Inquiry.translatedText`（日本語訳）は、本spec所有の投稿処理（`createInquiry`→`createInquiryRecord`）で一度も書き込まれておらず、seed投入データにのみ値が存在する。実運用の非日本語投稿は常に`translatedText === null`となる。実翻訳API連携はフェーズ3以降に据え置く方針を変更せず、投稿時に虚偽の訳文・原文コピー・固定プレースホルダーで列を埋めることはしない。**投稿時は`translatedText`を`null`のまま維持する**方針を仕様として固定し、回帰テストで保証する。表示側での「翻訳未対応」注記は`helpdesk-inquiry-management`spec（Requirement 17）が担当する。
+
+### Boundary Commitments（追加分・2026-07-22）
+- **This Spec Owns**: `translatedText`の型定義（`src/types/inquiry.ts`）、`CreateInquiryInput`（`Omit<Inquiry, "id" | "translatedText">`）、投稿処理`createInquiry`（`src/lib/api/inquiries.ts`）・`createInquiryRecord`（`src/lib/server/inquiry-service.ts`）における`translatedText`の扱い（＝書き込まない方針）とその回帰テスト。
+- **Out of Boundary**: 「翻訳未対応」注記の表示・`HelpdeskInquiryDetail`変更・注記のi18nキー（`helpdesk-inquiry-management`spec所有）、実翻訳API連携（フェーズ3以降）。
+
+### 実装方針（コード変更）
+- **コード変更は不要**（現状の`createInquiryRecord`は`translatedText`を`data`に含めておらず、既に`null`のまま作成している）。本ラウンドは現状挙動を仕様として固定し、回帰テストで保証する。
+- 任意（推奨）: `createInquiryRecord`（`src/lib/server/inquiry-service.ts`）付近に、`translatedText`を意図的に書き込まない旨（フェーズ3の実翻訳API導入まで`null`維持。表示側の未翻訳注記は`helpdesk-inquiry-management`が担当）の短いコメントを追加し、将来の誤改修を防ぐ。
+
+### Testing Strategy（追加分・2026-07-22）
+- `src/lib/server/inquiry-service.test.ts`に、`createInquiryRecord`を呼び出した結果の`Inquiry`（またはmapに渡るPrismaレコード）で`translatedText`が未設定（`undefined`/`null`）であることを検証するケースを追加する。`prisma.inquiry.create`に渡る`data`に`translatedText`が含まれないことをアサートする形でもよい（既存テストのモック方針に合わせる）。
+- 型レベルの保証: `CreateInquiryInput`が`translatedText`を含まないことは既存の`Omit<Inquiry, "id" | "translatedText">`で担保済み。型定義は変更しない。

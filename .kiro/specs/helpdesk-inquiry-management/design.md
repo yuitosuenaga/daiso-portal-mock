@@ -802,3 +802,41 @@ export async function sendInquiryReplyAction(
 - `updateStatusIfCurrent`（`inquiry-service`）・`updateInquiryStatusIfCurrent`（`lib/api/inquiries`）の単体テストで、条件一致時に`true`を返し更新すること、不一致時に`false`を返し更新しないことを検証する
 - `sendInquiryReplyAction`の単体テストに、`updateStatusIfCurrent`相当が`true`を返したとき`status_changed`エントリが追記されるケース、`false`を返したとき追記されないケースを追加する
 - `HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`の表示テストに、見出しが`title`になっていること、`title`が空文字のとき代替ラベルが表示されアクセシブルネームのないリンクが生じないことを検証するケースを追加する（既存の会社名・カテゴリ表示のテストは補足行としての表示に更新する）
+
+## 追加設計（2026-07-22）: 新規投稿の未翻訳状態の明示表示（Requirement 17 / 13.4改訂）
+
+### 背景と方針
+実運用の投稿（`createInquiryRecord`）では`translatedText`が常に`null`のため、非日本語の問い合わせは注記なしで原文のみが表示されていた（`translatedText`死蔵）。本ラウンドでは、投稿側で`translatedText`へ値を書き込まない方針（`inquiry-form`spec 追記2026-07-22・要件13で確定、`translatedText`は`null`のまま）を前提に、**表示側でのみ**「非日本語かつ未翻訳」の場合に翻訳未対応の注記を明示表示する。虚偽の訳文・プレースホルダーは一切生成しない。
+
+### Boundary Commitments（追加分）
+- **This Spec Owns（追加・2026-07-22）**: `HelpdeskInquiryDetail`の問い合わせ本文セクションにおける「非日本語かつ`translatedText`未設定」時の翻訳未対応注記の表示ロジック、および注記のi18nキー（`helpdeskInquiries.detail.translationUnavailable`）。
+- **Out of Boundary（追加・2026-07-22）**: 投稿時に`translatedText`へ値を設定する処理・`createInquiryRecord`/`CreateInquiryInput`（`inquiry-form`spec所有）、実翻訳API連携（フェーズ3以降）、申請者側画面での注記表示（`inquiry-list`spec所有）。
+- **Revalidation Triggers（追加・2026-07-22）**: `inquiry-form`specが投稿時に`translatedText`へ値を書き込む方針へ変更した場合、本specの表示分岐（未翻訳注記の表示条件）を再確認する。
+
+### 表示分岐ロジック（`HelpdeskInquiryDetail.tsx`）
+対象は既存の問い合わせ本文セクション（現行コードの L114〜138 付近、`inquiry.originalLanguage !== "ja" && inquiry.translatedText` の三項分岐）。この分岐を次の3分岐へ拡張する（判定順を固定する）。
+
+1. `inquiry.originalLanguage !== "ja" && inquiry.translatedText`（真）: 従来どおり、`translatedTextLabel`（「日本語訳」）付きで`translatedText`をメイン表示し、その下に`originalTextLabel`（「原文」）付きで`originalText`を表示する（Requirement 13.1・13.2、変更なし）。
+2. `inquiry.originalLanguage !== "ja" && !inquiry.translatedText`（＝非日本語かつ未翻訳、**本ラウンドの新規分岐**）: 翻訳未対応の注記（`t("detail.translationUnavailable")`）を、原文の上に**補足情報として控えめに**表示（例: `text-sm text-muted-foreground` のテキスト、または`bg-muted`の控えめなボックス。`--destructive`等のエラー配色は使わない）し、その下に`originalText`を表示する。注記には`translatedTextLabel`ラベルは付けない（訳文ではないため）。Requirement 17.1・17.2・13.4改訂に対応。
+3. 上記以外（`originalLanguage === "ja"`）: 従来どおりラベルなしで`originalText`のみを表示する（Requirement 13.3・17.3、変更なし）。
+
+判定は「空文字も未設定として扱う」ため、真偽判定に`inquiry.translatedText`（`undefined`/空文字はfalsy）をそのまま用いれば要件13.4改訂（`null`または空文字）を満たす。
+
+### i18n（`messages/ja.json` / `messages/en.json`）
+`helpdeskInquiries.detail`名前空間に次のキーを1つ追加する（既存キー`translatedTextLabel`/`originalTextLabel`/`attachmentsLabel`等は変更しない）。
+
+- キー: `helpdeskInquiries.detail.translationUnavailable`
+- `ja.json`: 「自動翻訳は未対応です。以下の原文をご確認ください。」
+- `en.json`: "Automatic translation is not available yet. Please refer to the original text below."
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 13.4（改訂）, 17.1〜17.4 | 非日本語かつ未翻訳時の翻訳未対応注記の表示 | HelpdeskInquiryDetail |
+| 17.5 | 注記文言のi18nキー提供 | messages/ja.json, messages/en.json |
+| 17.6 | 虚偽訳文・翻訳API・自動生成を追加しない（表示のみ） | HelpdeskInquiryDetail（表示ロジックのみ） |
+
+### Testing Strategy（追加分・2026-07-22）
+- `HelpdeskInquiryDetail.test.tsx`の既存ケース「外国語原文だが日本語訳が未設定の場合、日本語訳セクションを表示せず原文のみを表示する」（現行 L300〜329 付近）を、**翻訳未対応の注記（`messages.helpdeskInquiries.detail.translationUnavailable`）が表示され、かつ`translatedTextLabel`は表示されないこと**を検証する内容に更新する。
+- 既存ケース「外国語原文かつ日本語訳が設定されている場合」（L236〜267）・「原文が日本語の場合」（L269〜298）は、注記が表示されないことを併せて確認する（`queryByText(...translationUnavailable)` が `null`）。
+- `ja.json`/`en.json`に`translationUnavailable`キーが存在し、両言語で値を持つこと（i18nキー網羅のスナップショット/整合テストがある場合はそれに追随）。

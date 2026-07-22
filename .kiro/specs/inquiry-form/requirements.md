@@ -221,3 +221,29 @@
 7. When ヘルプデスク代理登録モードで対象会社が未選択のまま送信が試行されたとき、the ヘルプデスクポータル shall 保存操作をブロックし入力を促す。
 8. When ヘルプデスク代理登録モードで送信が成功したとき、the ヘルプデスクポータル shall 選択された会社の`id`を`createInquiry`の`companyId`引数として渡す。
 9. The ヘルプデスクポータル shall 会社選択欄のラベル・プレースホルダー・バリデーションエラーメッセージを next-intl の翻訳キー経由で提供する。
+
+---
+
+### 追記（2026-07-22）: 投稿時の`translatedText`（日本語訳）の扱いの明文化
+
+2026-07-21のプロダクト全体レビューにより、`Inquiry.translatedText`（日本語訳）が本spec所有の投稿処理（`createInquiry`（`src/lib/api/inquiries.ts`）→`createInquiryRecord`（`src/lib/server/inquiry-service.ts`））で一度も書き込まれておらず、値が存在するのはseed投入データ（`prisma/seed.ts`・`prisma/seed.sql`）のみである点が判明した。`translatedText`の型定義（`src/types/inquiry.ts`）・`CreateInquiryInput`（`Omit<Inquiry, "id" | "translatedText">`）・投稿処理（`createInquiry`/`createInquiryRecord`）はいずれも本spec（`inquiry-form`）が所有するため、投稿時に`translatedText`をどう扱うかの方針は本specで明文化する。
+
+**方針**: 実際の機械翻訳API連携（Google Cloud Translation API等）はフェーズ3以降に据え置く既存方針（本spec「スコープ境界」・`helpdesk-inquiry-management`spec Requirement 13.6）を変更しない。壁打ちの結果、投稿時に虚偽の翻訳文言を生成したり、原文コピー・固定プレースホルダーで`translatedText`列を埋めたりする案は、いずれも「`translatedText`＝実在する日本語訳がある場合のみ値を持つ」という意味を汚し、フェーズ3の実翻訳投入時に判別・上書き処理を要するため採らない。**投稿時は`translatedText`を`null`のまま維持する**（＝`createInquiryRecord`は`translatedText`を書き込まず、`CreateInquiryInput`も従来どおり`translatedText`を含めない）。この決定を回帰的に保証するため、`createInquiryRecord`が`translatedText`を書き込まないことを検証する単体テストを追加する。
+
+「非日本語かつ`translatedText`未設定」の問い合わせについて、ヘルプデスク詳細画面で「自動翻訳は未対応である」旨の注記を明示表示する対応は、表示側を所有する`helpdesk-inquiry-management`spec（同spec「追加要望（2026-07-22）」・Requirement 17）が担当する。本specは投稿側（値を書き込まないこと）のみを担当する。
+
+スコープ外:
+- 「翻訳未対応」注記の詳細画面表示・`HelpdeskInquiryDetail`の変更・関連翻訳キー（`helpdesk-inquiry-management`spec所有、同spec Requirement 17）
+- 実際の翻訳API連携・`translatedText`の自動生成（フェーズ3以降、既存方針を変更しない）
+- `Inquiry`型・`CreateInquiryInput`型の構造変更（`translatedText`は既存のまま。本追記は値を書き込まない方針の明文化とその回帰テスト追加のみ）
+
+### 要件 13: 投稿時に`translatedText`を書き込まないことの保証（追加・2026-07-22）
+
+**目的:** 投稿処理の実装者・将来の改修者が、投稿時に`translatedText`へ値を書き込む（＝虚偽の訳文やプレースホルダーで列を埋める）改修を誤って行わないよう、現状の「`null`のまま維持する」挙動を仕様として固定する。そうすることで、`translatedText`が「実在する日本語訳がある場合のみ値を持つ」という意味を保ち、フェーズ3の実翻訳投入をスムーズにする。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `createInquiryRecord`（`src/lib/server/inquiry-service.ts`）において、`translatedText`へ値を設定せず、DB既定（`null`）のまま`Inquiry`を作成する。
+2. The ヘルプデスクポータル shall `CreateInquiryInput`型（`src/types/inquiry.ts`）に`translatedText`を含めない（現行の`Omit<Inquiry, "id" | "translatedText">`を維持する）。
+3. The ヘルプデスクポータル shall 投稿時に、虚偽の翻訳文言・原文コピー・固定プレースホルダー等を`translatedText`へ書き込まない。
+4. The ヘルプデスクポータル shall 上記1を回帰的に保証する単体テスト（`createInquiryRecord`の呼び出し後に`translatedText`が未設定であることを検証する）を備える。
