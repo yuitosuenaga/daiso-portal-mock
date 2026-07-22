@@ -240,3 +240,34 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 4. The ヘルプデスクポータル shall 本要件の再照会をJWT自体のコールバック（Edge Runtimeでも実行されるミドルウェアと共有される）ではなく、Node.jsランタイムで実行されるセッション参照処理（`getSession`・`requireApplicantSession`等）に実装し、既存のEdge Runtime対応方針（`src/auth.config.ts`の「Prisma・bcryptjsに依存する処理を含めない」制約）を変更しない。
 5. The ヘルプデスクポータル shall `HelpdeskStaff`について、本specのスコープ外（要件のスコープ境界に既存記載の通り、`HelpdeskStaff`自身のアカウント管理は対象外）であり、かつ現時点で`isActive`相当のフィールドが存在しないことを踏まえ、本要件の再照会対象に含めない。将来`HelpdeskStaff`に無効化フィールドが追加された場合は別途検討する。
 6. The ヘルプデスクポータル shall 再有効化された`ApplicantUser`について、再ログイン後の新規セッションで通常通りアクセスできることを妨げない（既存の要件7.7と整合する）。
+
+---
+
+## 機能追加: 申請者アカウントの通知言語（preferredLocale）設定（2026-07-22 追記）
+
+### 背景（機能ギャップ）
+
+`ApplicantUser`には通知言語を保持する`preferredLocale`フィールドが既に存在し（`prisma/schema.prisma`、`String @default("en")`）、お知らせ通知メールの送信処理（`src/lib/server/announcement-notifications.ts`）はこの値を用いてメール本文の言語（`resolveAnnouncementContent(announcement, recipient.preferredLocale)`）と詳細リンクのUIロケール（`resolveUiLocale`）を切り替える仕組みを持っている。しかし、申請者アカウントの新規作成・編集フォームおよびAPI入力契約（`CreateApplicantUserInput`・`UpdateApplicantUserInput`、`src/types/applicant-user.ts`）には`preferredLocale`が存在せず、サービス層（`createApplicantUser`・`updateApplicantUser`）も当該フィールドを保存していない。そのため管理画面から作成した申請者アカウントは常に既定値`"en"`のままとなり、タイ・ベトナム等の担当者を登録しても通知メールが英語固定になる。ヘルプデスク担当者がアカウント作成・編集時に通知言語を選択できるようにする。
+
+本追記は本specが所有する申請者アカウント作成・編集画面（`/helpdesk/companies/[id]/applicant-users/new`・`.../[userId]/edit`）と、そのフォーム・入力契約・サービス層・翻訳の範囲であり、新規画面は追加しない。
+
+スコープ:
+- 対象: `CreateApplicantUserInput`・`UpdateApplicantUserInput`・`ApplicantUserSummary`（`src/types/applicant-user.ts`）、`applicantUserCreateFormSchema`・`applicantUserUpdateFormSchema`（`src/lib/validation/applicant-user.ts`）、`ApplicantUserForm.tsx`、作成・編集ページ、`createApplicantUser`・`updateApplicantUser`・`mapApplicantUser`（`src/lib/server/applicant-user-service.ts`）、`createApplicantUserAction`・`updateApplicantUserAction`（`src/lib/actions/applicant-users.ts`）、選択肢定数（`src/lib/constants/applicant-user.ts`）、翻訳（`messages/ja.json`・`messages/en.json`の`helpdeskCompanies`名前空間）
+- 対象外: 通知メール送信処理（`announcement-notifications.ts`）・`resolveUiLocale`・`resolveAnnouncementContent`のロジック（既に`preferredLocale`対応済みのため変更しない）、`prisma/schema.prisma`（`preferredLocale`は既存のため変更しない）、`HelpdeskStaff`（通知対象外）、申請者本人による自己設定UI（本specはヘルプデスク側管理画面のみ）、お知らせ側の翻訳データ入力
+
+### 要件 16: 申請者アカウントの通知言語（preferredLocale）設定
+
+**目的:** ヘルプデスク担当者として、申請者アカウントの作成・編集時に、その担当者が通知メールを受け取る言語を選択したい。そうすることで、タイ・ベトナム等の海外販社担当者に、英語固定ではなくその担当者の言語でお知らせ通知を届けられる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall 申請者アカウント新規作成画面（`/helpdesk/companies/[id]/applicant-users/new`）に、通知言語（`preferredLocale`）を選択するプルダウン（`Select`）を、既存のメールアドレス・表示名・初期パスワードの各項目に加えて提供する。
+2. The ヘルプデスクポータル shall 申請者アカウント編集画面（`/helpdesk/companies/[id]/applicant-users/[userId]/edit`）に、対象アカウントの現在の`preferredLocale`を初期選択状態とした通知言語プルダウンを提供する。
+3. The ヘルプデスクポータル shall 通知言語の選択肢を、あらかじめ定義した言語コード一覧（`src/lib/constants/applicant-user.ts`の新規定数`APPLICANT_USER_PREFERRED_LOCALE_CODES`）から生成する。当該一覧は海外販社担当者が用いる言語（少なくとも `en`・`ja`・`zh`・`ko`・`th`・`vi`・`id`・`ms`・`tl`）を含み、各選択肢の表示ラベルは`next-intl`の翻訳キー経由（`helpdeskCompanies`名前空間）で日本語・英語ともに提供する。
+4. When ユーザーが通知言語を選択せずに新規作成を保存したとき、the ヘルプデスクポータル shall 既定値`"en"`（`ApplicantUser.preferredLocale`のスキーマ既定値と一致）を通知言語として扱う。
+5. When ユーザーが必要項目を入力し通知言語を選択して新規作成を保存したとき、the ヘルプデスクポータル shall 選択された`preferredLocale`を`ApplicantUser`に保存する。
+6. When ユーザーが編集画面で通知言語を変更して保存したとき、the ヘルプデスクポータル shall 対象`ApplicantUser`の`preferredLocale`を選択値へ更新する（パスワード欄が空欄でも通知言語の更新は反映する）。
+7. The ヘルプデスクポータル shall 通知言語の入力値を、クライアント側（zodスキーマ`applicantUserCreateFormSchema`・`applicantUserUpdateFormSchema`）とServer Actionsによるサーバー側の両方で、`APPLICANT_USER_PREFERRED_LOCALE_CODES`に含まれる値のみを許容する形で検証する。
+8. If 保存された`preferredLocale`に対応するお知らせ翻訳が存在しない言語であるとき、the ヘルプデスクポータル shall 既存の通知送信処理のフォールバック（`resolveAnnouncementContent`が既定言語へフォールバックする挙動）に委ね、本要件では通知送信ロジックを変更しない。
+9. The ヘルプデスクポータル shall 通知言語プルダウンの追加によって、既存のメールアドレス・表示名・パスワードの各項目の挙動（必須/任意・重複検証・パスワード平文の非残存＝要件5.9）を変更しない。
+10. The ヘルプデスクポータル shall 通知言語プルダウンのラベル・選択肢文言を`messages/ja.json`・`messages/en.json`で管理し、選択された言語の翻訳キーが存在しないときは英語（`en`）にフォールバックして表示する（要件10と整合）。

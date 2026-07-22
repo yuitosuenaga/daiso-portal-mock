@@ -227,3 +227,39 @@
 5. The Portal shall タイトル領域が右側の要素群（ポータル切り替えリンク・言語切替・ログアウト）と衝突した場合でも、ヘッダー全体で横スクロールを発生させず、タイトル領域が利用可能な残余幅を占有するレイアウト（`min-w-0`を伴う伸縮）とする。
 6. The Portal shall 本要件による変更で、ヘッダー右側の要素（ポータル切り替えリンク・言語切替・ログアウト）の機能・遷移先・翻訳キーを変更しない。ただし副題を判読可能な幅で維持するために、これら右側要素の表示密度（例: タブレット帯でのラベルの表示/非表示の切り替え）を調整することは、機能・遷移先・アクセシブルな名前を保つ限りにおいて許容する。
 7. The Portal shall 申請者側・ヘルプデスク側の双方のヘッダーに本要件を適用し、日本語・英語の両ロケールで副題の省略（…）が発生しないことを確認する。
+
+---
+
+### 追記（2026-07-22）: 認証済みヘッダーからの反対ロール切り替えリンク（デッドリンク）の撤去
+
+2026-07-21のプロダクト全体レビューで、本specが所有する共通レイアウトコンポーネント（申請者側`Header.tsx`・ヘルプデスク側`HelpdeskHeader.tsx`）に残る「反対ロールへの画面切り替えリンク」が、実際にはミドルウェアのロール別ルート保護により機能しないデッドリンクであることが判明した。両ヘッダーとも本specが所有するため、新規specを作らず本specへ追記する。
+
+**問題の詳細（現状のコードで裏取り済み）**:
+- 申請者側`Header.tsx`は「日本大創側画面へ」（`header.switchToHelpdesk`）リンクを`href="/helpdesk"`で常時表示する。しかし申請者ロール（`claims.role === "applicant"`）でログイン中のユーザーがこれを踏むと、`src/middleware.ts`→`src/lib/server/route-protection.ts`の`resolveLoginRedirectPath`が「ヘルプデスクパス かつ role !== helpdesk」と判定し、`/{locale}/helpdesk/login`へリダイレクトする。結果、ログイン中にもかかわらずログイン画面に飛ばされる無意味な導線になる。
+- ヘルプデスク側`HelpdeskHeader.tsx`は「海外販社代理店画面へ」（`helpdeskHeader.switchToApplicant`）リンクを`href="/"`で常時表示する。ヘルプデスクロール（`claims.role === "helpdesk"`）でこれを踏むと、同ロジックが「非ヘルプデスクパス かつ role !== applicant」と判定し`/{locale}/login`へリダイレクトする。同じくデッドリンクである。
+- セッションは単一ロール（`ApplicantUser`＝applicant / `HelpdeskStaff`＝helpdesk）であり、`Header.tsx`は常に申請者ロール文脈、`HelpdeskHeader.tsx`は常にヘルプデスクロール文脈でのみレンダリングされる。したがって「反対ロールの画面へ」のリンクは、認証済みヘッダー上では常にデッドリンクである。
+- 認証前の正規のクロスロール導線は既にログイン画面側に存在する（`/[locale]/login`の`login.switchToHelpdeskLogin`＝「日本大創側のログインへ」、`/[locale]/helpdesk/login`の`login.switchToApplicantLogin`＝「海外販社代理店側のログインへ」）。反対ロールへ移るには別アカウントでのログインが必要であり、その導線はログイン画面が担う。
+
+**本追記による既存要件の上書き**:
+- 2026-07-08追記のスコープ外記述「ヘッダー右側の切り替えリンク・言語切替の変更（対象外、現状維持）」のうち、**切り替えリンクの現状維持**は本要件（Requirement 17）により上書きする（言語切替の現状維持は継続）。
+- Requirement 12.4・13.6・16.6 が「変更しない既存要素」として列挙する「ポータル切り替えリンク」は、本要件で撤去されるため、以後は保持対象から除外される（撤去後は存在しない要素として扱う）。
+
+スコープ外:
+- ログイン画面（`/login`・`/helpdesk/login`）のクロスログインリンク（`switchToHelpdeskLogin`・`switchToApplicantLogin`）の変更（正規の導線であり現状維持）
+- ミドルウェア・ルート保護ロジック（`src/middleware.ts`・`src/lib/server/route-protection.ts`）の変更（対象外。挙動は正しく、UI側のデッドリンクを除去するのが本要件）
+- ログアウト導線（Requirement 13）・言語切替・ロゴのダッシュボードリンク（Requirement 12）の挙動（現状維持）
+
+### Requirement 17: 認証済みヘッダーからの反対ロール切り替えリンクの撤去
+
+**Objective:** As a ログイン中のポータル利用者（申請者・ヘルプデスク双方）, I want 押しても機能しない（ログイン画面へ飛ばされるだけの）反対ロールへの画面切り替えリンクがヘッダーに表示されないこと, so that 実際には辿り着けない画面への誤誘導に惑わされず、自分のロールで利用可能な機能に集中できる
+
+#### Acceptance Criteria
+
+1. The Portal shall 申請者側ヘッダー（`Header.tsx`）から、ヘルプデスク側画面（`/helpdesk`）への切り替えリンク（`header.switchToHelpdesk`）を表示しない。
+2. The Portal shall ヘルプデスク側ヘッダー（`HelpdeskHeader.tsx`）から、申請者側画面（`/`）への切り替えリンク（`helpdeskHeader.switchToApplicant`）を表示しない。
+3. The Portal shall 本要件による切り替えリンク撤去の後も、両ヘッダーの他要素（ロゴ／タイトルのダッシュボードリンク・言語切替・ログアウト）の表示・配置・機能・遷移先・アクセシブルな名前を変更しない。
+4. The Portal shall 認証前のクロスロール導線（ログイン画面の`login.switchToHelpdeskLogin`・`login.switchToApplicantLogin`）を変更せず維持する。
+5. The Portal shall 切り替えリンク撤去に伴い不要となった翻訳キー（`header.switchToHelpdesk`・`helpdeskHeader.switchToApplicant`）を`messages/ja.json`・`messages/en.json`から削除し、他の翻訳キー・文言には影響を与えない。
+6. The Portal shall 切り替えリンク撤去に伴い未使用となるインポート（例: `ArrowLeftRight`アイコン、`useLocale`が他で不要になる場合）を残さず、Lint・型チェックがエラーなく通る状態にする。
+7. The Portal shall 両ヘッダーの既存テスト（`Header.test.tsx`・`HelpdeskHeader.test.tsx`）を、切り替えリンクが表示されないことを検証する内容へ更新し、他のヘッダー要素（ロゴ・言語切替・ログアウト）に関する既存アサーションは維持する。
+8. While ビューポート幅がモバイル・タブレット・PCのいずれであっても, the Portal shall 切り替えリンク撤去後に両ヘッダーで横スクロールを発生させず、Requirement 16（副題の省略回避）と矛盾しない（撤去により生まれた余白はタイトル領域が占有してよい）。

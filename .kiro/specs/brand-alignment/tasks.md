@@ -78,3 +78,13 @@
   - タブレット幅・PC幅で既存のレスポンシブ挙動が崩れていない状態を確認できる
   - _Requirements: 2.5, 4.1, 4.2, 4.3, 5.3, 5.4_
   - _Depends: 4.1, 4.2, 4.3_
+
+- [ ] 6. 残存するスレート系デザイントークンを中立グレー化する（2026-07-22 追記）
+  - `src/app/globals.css` の `:root` の `--secondary` / `--muted` / `--muted-foreground` / `--border` / `--input` / `--destructive-foreground` / `--success-foreground` の各値を、色相 `0`・彩度 `0%` の無彩色に置き換える（明度は変更前の値を据え置く）
+  - 具体値: `--secondary: 0 0% 96%` / `--muted: 0 0% 96%` / `--muted-foreground: 0 0% 47%` / `--border: 0 0% 91%` / `--input: 0 0% 91%` / `--destructive-foreground: 0 0% 98%` / `--success-foreground: 0 0% 98%`
+  - `--primary`（hue 327）/`--accent`（hue 327）/`--destructive`（hue 0 の赤）/`--success`（hue 142 の緑）/`--sidebar`/`--foreground`/`--background`/`--card`/`--ring`/`--radius` は変更しない
+  - `globals.css` に hue 210〜215 を持つトークン行が残っていないことをgrep（例: `210 |214|215`）で確認する
+  - `npm run lint` / `tsc --noEmit` / `npm run build` がエラーなく完了することを確認する
+  - 代表画面（dashboard・inquiry-form・helpdesk-companies）を日本語・英語で開き、枠線・補助テキストの明度・レイアウトが変更前と同等（青みが取れる以外の変化がない）ことを目視確認する
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+  - _Boundary: globals.css tokens_
