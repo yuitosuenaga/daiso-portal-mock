@@ -176,3 +176,15 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 13.3, 13.4, 13.5, 14.2, 14.3_
   - _Depends: 6.2, 6.3, 6.4_
+
+- [ ] 7. 共通アプリ内確認モーダル `ConfirmDialog` を新設する（2026-07-22 追記 / 要件15）
+  - `src/components/ui/confirm-dialog.tsx`（`"use client"`）を新規作成し、既存の`Dialog`系プリミティブ（`src/components/ui/dialog.tsx`）と`Button`を用いて、トリガーボタン・見出し・本文（対象名を含められるReactNode）・確認/キャンセルボタンを表示する再利用可能コンポーネントを実装する
+  - propsで全表示文言・`onConfirm`・`isPending`・各`variant`を受け取り、確認押下時のみ`onConfirm`を実行、`isPending`中は確認ボタンを`disabled`にする。キャンセル/Overlay/Escでは`onConfirm`を呼ばずに閉じる
+  - コンポーネント内に固定の表示文言・翻訳キーを持たせない（i18nは利用側の責務）
+  - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7, 15.9_
+  - _Depends: なし（既存 dialog.tsx / button.tsx を利用）_
+
+- [ ]* 7.1 `ConfirmDialog` の単体テストを追加する
+  - トリガー押下でモーダルが開き`title`・`description`が表示されること、確認押下で`onConfirm`が1回呼ばれること、キャンセル/Esc/Overlayで`onConfirm`が呼ばれず閉じること、`isPending`中は確認ボタンが`disabled`になることを`src/components/ui/confirm-dialog.test.tsx`で検証する
+  - _Requirements: 15.3, 15.4, 15.5, 15.6_
+  - _Depends: 7_

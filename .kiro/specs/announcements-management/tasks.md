@@ -1010,3 +1010,15 @@
   - `en`翻訳のみを登録したお知らせで、`preferredLocale: "th"`の`ApplicantUser`向け公開通知が`en`本文・`/en/`詳細リンクで送信されることを検証する
   - _Requirements: 36.4, 36.6_
   - _Depends: 50.1, 50.2_
+
+- [ ] 52. お知らせ削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象タイトルを明示する（2026-07-22 追記 / 要件37）
+  - `DeleteAnnouncementButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップする。確認押下時のみ`deleteAnnouncementAction`実行→`/helpdesk/announcements`へ遷移（既存ロジックを`onConfirm`へ移設）、`isPending`を伝播する
+  - `announcementTitle`と確認モーダル用文言propsを追加し、呼び出し側（一覧・編集画面）から表示ロケールで解決したタイトル・文言を渡す
+  - `helpdeskAnnouncements.list.deleteConfirm`を`{title}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
+  - _Requirements: 37.1, 37.2, 37.3, 37.4, 37.5_
+  - _Depends: helpdesk-portal-layout タスク7（ConfirmDialog新設）_
+
+- [ ]* 52.1 `DeleteAnnouncementButton.test.tsx` をConfirmDialogベースへ更新する
+  - `window.confirm`モック前提のテストを、トリガー押下→確認押下で削除実行・遷移、キャンセルで未実行、本文に対象タイトル表示、を検証する形へ更新する
+  - _Requirements: 37.6_
+  - _Depends: 52_

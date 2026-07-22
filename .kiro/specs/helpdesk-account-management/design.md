@@ -632,3 +632,19 @@ sequenceDiagram
 
 - `getSession()`が、申請者セッションかつ`isActive: false`（またはレコード不在）のとき`claims`を`null`に差し替えること、`isActive: true`のときセッションをそのまま返すこと、ヘルプデスクセッション・未ログイン時はDB再照会を行わないことを単体テストで検証する（`src/lib/server/get-session.test.ts`）。
 - `ApplicantLayout`が、`requireApplicantSession()`成功時は子要素をそのまま描画し、`UnauthorizedSessionError`送出時はロケールに応じたログイン画面（`/ja/login`・`/en/login`）へ`redirect()`すること、それ以外の例外は再送出されることを単体テストで検証する（`src/app/[locale]/(applicant)/layout.test.tsx`）。
+
+## 設計追記（2026-07-22）: 運用UX改善（要件16・17）
+
+### 要件16: アカウント無効化・再有効化確認のアプリ内モーダル化
+- 変更対象: `src/components/features/helpdesk-companies/ToggleApplicantUserActiveButton.tsx`。`window.confirm()`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。確認押下時に既存の`setApplicantUserActiveAction(applicantUserId, !isActive)`を`onConfirm`で実行、`isPending`を伝播。トグル状態（`isActive`）で見出し・本文・確認ボタン文言・`confirmVariant`（無効化=`destructive`、再有効化=`outline`/通常）を切り替える。
+- Props追加: `applicantUserName`（対象氏名）、必要なら`applicantUserEmail`。確認モーダル用文言（無効化/再有効化それぞれの見出し・本文・確認ボタン）を追加。既存の`deactivateConfirmMessage`/`activateConfirmMessage`は`{name}`埋め込み済みの本文へ置換。
+- i18n: `helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`を`{name}`プレースホルダー付きに変更（ja/en）、確認見出し・確認/キャンセルボタン文言のキーを追加。
+- テスト: `ToggleApplicantUserActiveButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（無効化/再有効化それぞれトリガー→確認でaction実行、キャンセルで未実行、本文に対象名表示）。
+
+### 要件17: 販社コード入力ガイドと重複チェック
+- 変更対象:
+  - `src/lib/validation/company.ts`: `companyFormSchema.companyCode`に正規表現検証を追加（例: `/^[a-z0-9]+(-[a-z0-9]+)*$/`＝半角英小文字・数字・ハイフンのみ、先頭末尾・連続ハイフン禁止）。必須エラーとフォーマットエラーを区別できるようにする（`refine`/カスタムメッセージ or `min(1)`と`regex`の併用）。
+  - `src/components/features/helpdesk-companies/CompanyForm.tsx`: `companyCode`欄にプレースホルダー（`vn-daiso-vietnam`）とヘルプテキスト（命名規則・一意性の案内）を表示。`FormField`のエラー表示ロジックを、必須／フォーマット／重複（既存の`duplicate`）の3種を出し分ける形に拡張。blur時に重複照会するため`onBlur`ハンドラを追加し、`checkCompanyCodeAvailabilityAction`を呼んで重複時に`setError("companyCode", { type: "duplicate", ... })`相当の警告を表示。編集モードでは自分自身のコードを重複対象から除外（`companyId`を渡す）。
+  - Server Action追加: `src/lib/actions/companies.ts`（既存）に`checkCompanyCodeAvailabilityAction(code, excludeCompanyId?)`を追加し、`company-service`側で当該コードの存在有無を返す（読み取り専用）。最終的な一意性担保は既存の`createCompanyAction`/`updateCompanyAction`のユニーク制約に依存。
+- i18n: プレースホルダー・ヘルプテキスト・フォーマットエラー・重複警告の翻訳キーを`helpdeskCompanies.form`配下に追加（ja/en）。
+- テスト: `companyFormSchema`のフォーマット検証（正常系/異常系）、`CompanyForm`のヘルプテキスト表示・フォーマットエラー表示・blur重複警告表示・編集モードでの自コード除外を単体テストで検証する。

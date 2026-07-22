@@ -312,3 +312,15 @@ interface LinkActions {
 
 ## Security Considerations
 フェーズ1は認証未実装のため、ヘルプデスク側のリンク作成・編集・削除画面は`helpdesk-portal-layout`の前提通り制限なくアクセス可能である。リンクは可視性スコープを持たない全社共通データであり、公開範囲による情報分離は行わない。ユーザーが入力したURLはリンク先の内容を検証せず、`<a href>`として提示するのみとする（既存`links-page`specの前提を踏襲。リンク先の安全性検証はフェーズ1の対象外）。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御（ヘルプデスク担当者のみ書き込み可）を追加できることを設計上の前提とする。
+
+## 設計追記（2026-07-22）: リンク削除確認のアプリ内モーダル化（要件10）
+
+### 変更対象
+- `src/components/features/helpdesk-links/DeleteLinkButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。確認押下時に既存削除処理を`onConfirm`で実行、`isPending`を伝播。
+- Props: `title`（対象リンクタイトル）と確認モーダル用文言を追加。既存`confirmMessage` propは`{title}`埋め込み済み本文へ置換。
+
+### i18n
+- `helpdeskLinks.list.deleteConfirm`を`{title}`プレースホルダー付きに変更（ja/en）。確認見出し・確認/キャンセルボタン文言のキーを追加。
+
+### テスト
+- `DeleteLinkButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（トリガー→確認で削除、キャンセルで未実行、本文にタイトル表示）。

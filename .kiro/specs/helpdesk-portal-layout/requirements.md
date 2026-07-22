@@ -176,3 +176,23 @@
 2. The Portal shall 折りたたみ状態と展開状態のそれぞれに対応する`aria-label`文言を`messages/ja.json`・`messages/en.json`で管理する。
 3. When 選択された言語の翻訳キーが存在しないとき、the Portal shall 既存と同様に英語（`en`）にフォールバックして表示する。
 4. The Portal shall 本要件による変更で、サイドバーの開閉挙動・レイアウト・折りたたみ状態のロジック自体を変更しない（`aria-label`の文言取得元のみを変更する）。
+
+---
+
+### Requirement 15: 共通アプリ内確認モーダル（`ConfirmDialog`）の新設（2026-07-22 追記）
+
+**背景:** 破壊的操作（お知らせ・FAQ・リンク・ドキュメントの削除、申請者アカウントの無効化・再有効化）の確認が、各機能で個別にブラウザ標準の`window.confirm()`を用いて行われている。この方式には、(a) 確認文言に操作対象名（会社名・お知らせタイトル等）が含まれず「何を操作しようとしているか」が曖昧、(b) OSネイティブのダイアログでありポータルのUIトーン（Radixベースのダイアログ）と不一致、という2つの課題がある。ヘルプデスク側の共通UI基盤を所有する本specにて、既存の`src/components/ui/dialog.tsx`（Radix Dialog）上に構築する再利用可能な確認モーダル`ConfirmDialog`を新設し、各機能specがこれを共通利用する形に統一する。
+
+**Objective:** As a ヘルプデスク担当者, I want 破壊的操作の確認をポータル内の統一されたモーダルで、かつ操作対象名が明示された状態で行いたい, so that 誤操作を防ぎつつ一貫したUIで安心して操作できる
+
+#### Acceptance Criteria
+
+1. The Portal shall `src/components/ui/confirm-dialog.tsx`に、既存の`Dialog`プリミティブ（`src/components/ui/dialog.tsx`）を基盤とする再利用可能なクライアントコンポーネント`ConfirmDialog`を提供する。
+2. The `ConfirmDialog` shall 少なくとも次の入力を受け取る: トリガーボタンの文言と`variant`、確認ダイアログの見出し（`title`）、本文（`description`。操作対象名を含められるよう文字列または`ReactNode`を許容）、確認ボタン文言（`confirmLabel`）、キャンセルボタン文言（`cancelLabel`）、確認ボタンの`variant`（既定は`destructive`）、確認時に実行するコールバック（`onConfirm`。非同期を許容）、処理中フラグ（`isPending`）。最終的なprops名・シグネチャは実装時に調整してよい。
+3. When 利用側がトリガーボタンを押下したとき, the `ConfirmDialog` shall モーダルを開き、`title`・`description`・確認/キャンセルの2ボタンを表示する。
+4. When 利用者が確認ボタンを押下したとき, the `ConfirmDialog` shall `onConfirm`を実行し、`isPending`が`true`の間は確認ボタンを`disabled`にして二重実行を防止する。
+5. When 利用者がキャンセルボタン・閉じるボタン・オーバーレイクリック・Escキーのいずれかを操作したとき, the `ConfirmDialog` shall `onConfirm`を実行せずにモーダルを閉じる。
+6. The `ConfirmDialog` shall アクセシビリティ（フォーカストラップ、`role="dialog"`、見出し・本文への`aria-labelledby`/`aria-describedby`相当の関連付け、Escでのクローズ）をRadix Dialogの機能により満たす。
+7. The `ConfirmDialog` shall 表示する全ての文言を利用側からprops経由で受け取り（コンポーネント内に固定の表示文言を持たない）、i18nは各利用側specが`next-intl`で解決した文字列を渡す形とする。
+8. The Portal shall 本コンポーネントを、`window.confirm()`をアプリ内モーダルへ置き換える対象（`announcements-management`・`faq-management`・`links-management`・`documents-management`・`helpdesk-account-management`の各削除/無効化操作）に共通利用させることを前提とし、各利用側specが独自の確認モーダルUIを重複実装しないようにする。
+9. The Portal shall 本コンポーネントの追加により、既存のレイアウト・ナビゲーション・ルーティングの挙動を変更しない（純粋な新規UIプリミティブの追加とする）。

@@ -124,3 +124,20 @@
 #### 受け入れ基準
 
 1. The ヘルプデスクポータル shall 本specで追加する画面をタブレット幅（768px以上）のビューポートで横スクロールを発生させることなく表示する。
+
+---
+
+### 要件 10: FAQ削除確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
+
+**背景:** 現状、FAQ削除は`DeleteFaqButton`（`src/components/features/helpdesk-faq/DeleteFaqButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskFaq.list.deleteConfirm` = 「このFAQを削除しますか？」）に削除対象のFAQ質問文が含まれず、どのFAQを削除しようとしているか曖昧である。またOSネイティブダイアログのためポータルのUIトーンと不一致。`helpdesk-portal-layout`spec（要件15）が新設する共通`ConfirmDialog`でアプリ内モーダル化し、対象の質問文を明示する。
+
+**目的:** ヘルプデスク担当者として、FAQ削除の確認モーダルに対象の質問文が明示された状態で確認したい。そうすることで、誤って別のFAQを削除する事故を防げる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `DeleteFaqButton`の削除確認を、`window.confirm()`ではなく共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）で行う。
+2. The ヘルプデスクポータル shall 確認モーダルの本文に、削除対象のFAQ質問文（`question`）を明示する（例: 「『{question}』を削除します。この操作は取り消せません。よろしいですか？」）。質問文が長い場合は適切に省略表示してよい。
+3. The ヘルプデスクポータル shall 対象質問文を埋め込むための翻訳キー（`helpdeskFaq.list.deleteConfirm`を`{question}`プレースホルダー付きに変更、および確認見出し・確認/キャンセルボタン文言）を`messages/ja.json`・`messages/en.json`の両方に用意する。
+4. When 利用者が確認モーダルで確定したときのみ, the ヘルプデスクポータル shall 既存の削除処理を実行し、成功後の挙動・失敗時のエラー表示を維持する。キャンセル時は何も実行しない。
+5. The ヘルプデスクポータル shall `DeleteFaqButton`へ対象質問文を渡せるよう、必要に応じて呼び出し側から`question`をpropsで受け取る。
+6. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`DeleteFaqButton.test.tsx`）を、`ConfirmDialog`ベースの操作（トリガー押下→確認押下で削除、キャンセルで未実行）へ更新する。

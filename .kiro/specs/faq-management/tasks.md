@@ -103,3 +103,15 @@
   - タブレット幅（768px）で新規画面が横スクロールを起こさないことを確認する
   - _Requirements: 8.1, 8.2, 8.3, 9.1_
   - _Depends: 12_
+
+- [ ] 14. FAQ削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象質問文を明示する（2026-07-22 追記 / 要件10）
+  - `DeleteFaqButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（helpdesk-portal-layout要件15）でラップ。確認押下時のみ既存削除処理を実行、`isPending`を伝播する
+  - `question` prop と確認モーダル用文言propsを追加し、呼び出し側から対象質問文を渡す
+  - `helpdeskFaq.list.deleteConfirm`を`{question}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+  - _Depends: helpdesk-portal-layout タスク7（ConfirmDialog新設）_
+
+- [ ]* 14.1 `DeleteFaqButton.test.tsx` をConfirmDialogベースへ更新する
+  - トリガー押下→確認押下で削除実行、キャンセルで未実行、本文に対象質問文表示を検証する
+  - _Requirements: 10.6_
+  - _Depends: 14_

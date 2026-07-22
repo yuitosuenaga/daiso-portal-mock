@@ -362,3 +362,34 @@ const isActive =
 |-------------|---------|------------|------------|-------|
 | 13.1〜13.7 | ログアウト導線の追加 | Header, HelpdeskHeader | signOut（`src/auth.ts` / `next-auth/react`） | ログアウト→サインイン画面遷移 |
 | 14.1〜14.4 | HelpdeskAppShell開閉ボタンのi18n化 | HelpdeskAppShell | — | — |
+| 15.1〜15.9 | 共通アプリ内確認モーダルの新設 | ConfirmDialog（新規, `src/components/ui/confirm-dialog.tsx`） | Dialog系プリミティブ（`src/components/ui/dialog.tsx`）, Button | トリガー押下→モーダル表示→確認/キャンセル |
+
+## 設計追記（2026-07-22）: 共通アプリ内確認モーダル `ConfirmDialog`（要件15）
+
+### 配置とアーキテクチャ
+- 新規ファイル `src/components/ui/confirm-dialog.tsx`（`"use client"`）。既存の`Dialog` / `DialogContent` / `DialogHeader` / `DialogTitle` / `DialogDescription`（`src/components/ui/dialog.tsx`, Radix Dialogベース）と`Button`（`src/components/ui/button.tsx`）を用いて構築する。汎用UIプリミティブとして`src/components/ui/`に置き、ヘルプデスク・申請者双方から再利用可能とする。
+- 状態管理はコンポーネント内部の`open`ステート（`useState`）で行い、`DialogTrigger`でトリガーボタンをラップする（`AnnouncementDocumentLinkDialog.tsx`の既存パターンを踏襲）。
+
+### 想定インターフェース（実装時に調整可）
+```ts
+export interface ConfirmDialogProps {
+  triggerLabel: string;
+  triggerVariant?: ButtonVariant;      // 既定は呼び出し側指定（削除系は "destructive"）
+  triggerDisabled?: boolean;
+  title: string;
+  description: React.ReactNode;         // 対象名を含む本文（例: 「『vn-daiso-vietnam』を削除しますか？」）
+  confirmLabel: string;
+  cancelLabel: string;
+  confirmVariant?: ButtonVariant;       // 既定 "destructive"
+  isPending?: boolean;
+  onConfirm: () => void | Promise<void>;
+}
+```
+- 確認ボタンは`isPending`中`disabled`。確認押下時に`onConfirm`を実行し、成功後は利用側（Server Action呼び出し・遷移）に委ねる。キャンセル/Overlay/Escでは`onConfirm`を呼ばずに`open=false`。
+- 文言は全てpropsで受け取り、i18nは利用側が`next-intl`で解決する（本コンポーネントは翻訳キーを持たない）。
+
+### テスト方針
+- `src/components/ui/confirm-dialog.test.tsx`: トリガー押下でモーダルが開き`title`・`description`が表示されること、確認ボタン押下で`onConfirm`が1回呼ばれること、キャンセル/Esc/Overlayで`onConfirm`が呼ばれずに閉じること、`isPending`中は確認ボタンが`disabled`になることを検証する。
+
+### 利用側への影響
+- 各利用側spec（`announcements-management`・`faq-management`・`links-management`・`documents-management`・`helpdesk-account-management`）は、それぞれの削除/無効化ボタンで`window.confirm()`を`ConfirmDialog`へ置き換える。対象名の埋め込み・翻訳キーの追加は各利用側specの責務とする。

@@ -356,3 +356,15 @@
   - 既存の`DocumentManagementList.test.tsx`を委譲構成に合わせて更新し、全テストがパスすることで完了とする
   - _Requirements: 14.2, 14.5, 14.8, 14.10, 14.11, 14.12_
   - _Depends: 8.5, 8.6_
+
+- [ ] 9. ドキュメント削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象タイトルを明示する（2026-07-22 追記 / 要件15）
+  - `DeleteDocumentButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（helpdesk-portal-layout要件15）でラップ。確認押下時のみ既存削除処理を実行、`isPending`を伝播する
+  - `title` prop と確認モーダル用文言propsを追加し、呼び出し側から対象タイトルを渡す
+  - `helpdeskDocuments.list.deleteConfirm`を`{title}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
+  - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
+  - _Depends: helpdesk-portal-layout タスク7（ConfirmDialog新設）_
+
+- [ ]* 9.1 `DeleteDocumentButton.test.tsx` をConfirmDialogベースへ更新する
+  - トリガー押下→確認押下で削除実行、キャンセルで未実行、本文に対象タイトル表示を検証する
+  - _Requirements: 15.6_
+  - _Depends: 9_

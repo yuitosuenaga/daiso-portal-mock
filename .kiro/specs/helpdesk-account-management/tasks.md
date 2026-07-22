@@ -246,3 +246,28 @@
   - _Requirements: 15.1〜15.6_
   - _Depends: 30, 31_
   - _Depends: 26, 27, 28_
+
+- [ ] 33. アカウント無効化・再有効化確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象名を明示する（2026-07-22 追記 / 要件16）
+  - `ToggleApplicantUserActiveButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（helpdesk-portal-layout要件15）でラップ。`isActive`に応じて見出し・本文・確認ボタン文言・`confirmVariant`を切り替え、確認押下時のみ`setApplicantUserActiveAction`を実行、`isPending`を伝播する
+  - `applicantUserName`（必要なら`applicantUserEmail`）prop と無効化/再有効化それぞれの確認モーダル文言propsを追加し、呼び出し側から渡す
+  - `helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`を`{name}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
+  - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
+  - _Depends: helpdesk-portal-layout タスク7（ConfirmDialog新設）_
+
+- [ ]* 33.1 `ToggleApplicantUserActiveButton.test.tsx` をConfirmDialogベースへ更新する
+  - 無効化/再有効化それぞれトリガー→確認でaction実行、キャンセルで未実行、本文に対象名表示を検証する
+  - _Requirements: 16.7_
+  - _Depends: 33_
+
+- [ ] 34. 販社コード入力ガイドと重複チェックを実装する（2026-07-22 追記 / 要件17）
+  - `src/lib/validation/company.ts`の`companyFormSchema.companyCode`に正規表現検証（半角英小文字・数字・ハイフンのみ、先頭末尾・連続ハイフン禁止）を追加し、必須エラーとフォーマットエラーを区別する
+  - `CompanyForm.tsx`の`companyCode`欄にプレースホルダー（`vn-daiso-vietnam`）とヘルプテキスト（命名規則・一意性の案内）を追加し、必須／フォーマット／重複の3種のエラー/警告を出し分ける
+  - blur時の重複照会用に`checkCompanyCodeAvailabilityAction(code, excludeCompanyId?)`を`src/lib/actions/companies.ts`へ追加し、`onBlur`で呼び出して重複時に警告表示する。編集モードでは自コードを重複対象から除外する
+  - 追加文言（プレースホルダー・ヘルプテキスト・フォーマットエラー・重複警告）を`helpdeskCompanies.form`配下に`messages/ja.json`・`messages/en.json`両方へ追加する
+  - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7_
+  - _Depends: なし_
+
+- [ ]* 34.1 販社コード検証・入力ガイドの単体テストを追加する
+  - `companyFormSchema`のフォーマット検証（正常系/異常系）、`CompanyForm`のヘルプテキスト表示・フォーマットエラー表示・blur重複警告表示・編集モードでの自コード除外を検証する
+  - _Requirements: 17.3, 17.4, 17.5_
+  - _Depends: 34_

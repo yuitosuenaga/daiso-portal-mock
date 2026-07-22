@@ -314,3 +314,15 @@ interface FaqActions {
 
 ## Security Considerations
 フェーズ1は認証未実装のため、ヘルプデスク側のFAQ作成・編集・削除画面は`helpdesk-portal-layout`の前提通り制限なくアクセス可能である。FAQは可視性スコープを持たない全社共通データであり、公開範囲による情報分離は行わない。フェーズ3で認証が導入される際、本specのルート境界を変更せずにアクセス制御（ヘルプデスク担当者のみ書き込み可）を追加できることを設計上の前提とする。
+
+## 設計追記（2026-07-22）: FAQ削除確認のアプリ内モーダル化（要件10）
+
+### 変更対象
+- `src/components/features/helpdesk-faq/DeleteFaqButton.tsx`: `window.confirm(confirmMessage)`を廃止し、共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）でラップ。トリガー＝既存削除ボタン（`variant="destructive"`）、確認押下時に既存の削除処理を`onConfirm`として実行、`isPending`を伝播。
+- Props: `question`（対象質問文）と確認モーダル用文言（見出し・本文・確認/キャンセル）を追加。既存の`confirmMessage` propは`{question}`埋め込み済み本文へ置換。
+
+### i18n
+- `helpdeskFaq.list.deleteConfirm`を`{question}`プレースホルダー付きに変更（ja/en）。確認見出し・確認/キャンセルボタン文言のキーを追加。
+
+### テスト
+- `DeleteFaqButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（トリガー→確認で削除、キャンセルで未実行、本文に質問文表示）。

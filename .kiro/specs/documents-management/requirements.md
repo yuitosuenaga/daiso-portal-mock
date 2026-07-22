@@ -233,3 +233,20 @@
 12. The ヘルプデスクポータル shall 絞り込み・ページ切り替えの適用後も、ドキュメントをアップロード日（`uploadedAt`）の降順で表示する順序（要件1.1）と、各行の表示項目（タイトル・ファイルサイズ・アップロード日・公開範囲・登録方式バッジ）・編集/削除の導線（要件1.2・1.6・13.9）を維持する。
 13. The ヘルプデスクポータル shall 検索欄プレースホルダー・絞り込み選択肢ラベル・クリア操作ラベル・0件時メッセージ・ページネーション操作ラベル（前へ／次へ・ページ表示等）を`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する。
 14. The ヘルプデスクポータル shall 本要件で追加するUIをタブレット幅（768px以上）のビューポートで横スクロールを発生させることなく表示する（要件10を維持する）。
+
+---
+
+### 要件 15: ドキュメント削除確認のアプリ内モーダル化と対象名の明示（2026-07-22 追記）
+
+**背景:** 現状、ドキュメント削除は`DeleteDocumentButton`（`src/components/features/helpdesk-documents/DeleteDocumentButton.tsx`）がブラウザ標準`window.confirm()`で確認しており、確認文言（`helpdeskDocuments.list.deleteConfirm` = 「このドキュメントを削除しますか？」）に削除対象のドキュメントタイトルが含まれず曖昧である。またOSネイティブダイアログのためポータルのUIトーンと不一致。`helpdesk-portal-layout`spec（要件15）が新設する共通`ConfirmDialog`でアプリ内モーダル化し、対象のドキュメントタイトルを明示する。
+
+**目的:** ヘルプデスク担当者として、ドキュメント削除の確認モーダルに対象のタイトルが明示された状態で確認したい。そうすることで、誤って別のドキュメントを削除する事故を防げる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `DeleteDocumentButton`の削除確認を、`window.confirm()`ではなく共通`ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`, helpdesk-portal-layout要件15）で行う。
+2. The ヘルプデスクポータル shall 確認モーダルの本文に、削除対象のドキュメントタイトル（`title`）を明示する（例: 「『{title}』を削除します。この操作は取り消せません。よろしいですか？」）。
+3. The ヘルプデスクポータル shall 対象タイトルを埋め込むための翻訳キー（`helpdeskDocuments.list.deleteConfirm`を`{title}`プレースホルダー付きに変更、および確認見出し・確認/キャンセルボタン文言）を`messages/ja.json`・`messages/en.json`の両方に用意する。
+4. When 利用者が確認モーダルで確定したときのみ, the ヘルプデスクポータル shall 既存の削除処理を実行し、成功後の挙動・失敗時のエラー表示を維持する。キャンセル時は何も実行しない。
+5. The ヘルプデスクポータル shall `DeleteDocumentButton`へ対象タイトルを渡せるよう、必要に応じて呼び出し側から`title`をpropsで受け取る。
+6. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`DeleteDocumentButton.test.tsx`）を、`ConfirmDialog`ベースの操作へ更新する。
