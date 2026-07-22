@@ -601,3 +601,87 @@ function getAllInquiryStatusSummary(): Promise<InquiryStatusSummary>;
 ## 追加（2026-07-15）: プレビューパネル名称・リンク文言の表示名変更
 
 別ブランチ（`chore/rename-inquiry-to-application-labels`）でのUI表示文言のみの変更（要件11.1・11.2更新）であり、コンポーネント構成・データフロー・データモデルへの設計変更は発生しない。翻訳キー（`dashboard.priorityInquiriesPreview.title`・`.viewAll`）の値変更のみ。
+
+---
+
+## 追加ラウンド（2026-07-22）: お知らせ系プレビューパネルのUIロケール反映
+
+### Overview（追加分）
+申請者側ダッシュボードのお知らせ系プレビュー（`AnnouncementsPreviewPanel`・`ReminderAnnouncementsPanel`）が、お知らせのタイトル・本文を常に日本語で表示している不具合を解消する。原因は両コンポーネントが`getRecentAnnouncements`/`getAnnouncements`を`locale`引数なしで呼び出し、サービス層で既定言語（`ja`）に解決されるためである。両コンポーネントは既に`getLocale()`で`locale`を取得済み（日付フォーマット用）であり、その値をAPI呼び出しにも渡すだけで解決する。**Purpose**: ダッシュボードと一覧ページの表示言語を一致させる。**Impact**: 2ファイルの各1行（API呼び出しへの`locale`引数追加）のみ。新規コンポーネント・新規翻訳キー・レイアウト変更は一切ない。
+
+### Goals（追加分）
+- `AnnouncementsPreviewPanel`・`ReminderAnnouncementsPanel`が、現在のUIロケールに対応するタイトル・本文を表示する
+- ダッシュボードと一覧ページ（`announcements`spec所有）で同一お知らせの表示言語が一致する
+- 既存のレイアウト・件数・並び順・空状態・エラー処理・本文要約・バッジ表示を変更しない
+
+### Non-Goals（追加分）
+- `getRecentAnnouncements`/`getAnnouncements`のロケール対応オプション自体の追加（`announcements`/`announcements-management`spec側で実装済み。本specは呼び出し側の追従のみ）
+- 言語別コンテンツの解決・フォールバックロジック（`resolveAnnouncementContent`、`announcements-management`spec所有）
+- `AnnouncementsCard`（件数バッジのみでタイトル・本文を描画しないため対象外）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `AnnouncementsPreviewPanel`・`ReminderAnnouncementsPanel`（本spec所有のダッシュボードプレビュー）における、既存API関数へのUIロケール引き渡し
+
+**Out of Boundary（追加）**
+- `getRecentAnnouncements`/`getAnnouncements`のシグネチャ・実装（`announcements`/`announcements-management`spec所有）
+- タイトル・本文の言語別解決・フォールバック（`announcements-management`spec所有）
+
+**Allowed Dependencies（追加）**
+- 既存の後方互換オプション: `getRecentAnnouncements(options?: { limit?; locale? })`・`getAnnouncements(options?: { locale? })`（`announcements`spec 2026-07-16ラウンドでデータ層追加済み）
+- 既存の`getLocale()`（`next-intl/server`、両コンポーネントで取得済み）
+
+**Revalidation Triggers（追加）**
+- `getRecentAnnouncements`/`getAnnouncements`の`locale`オプションのキー名・形状が変更された場合
+
+### Architecture（追加分）
+新規フローなし。両Server Componentは既に`Promise.all`内で`getLocale()`を呼び出して`locale`を得ている（現状は`AnnouncementListItem`への日付フォーマット用`locale` propにのみ使用）。この`locale`をお知らせ取得API呼び出しにも渡すことで、サービス層の`resolveAnnouncementContent(item, locale)`が当該ロケールのタイトル・本文に解決する。
+
+```mermaid
+graph TB
+    Preview[AnnouncementsPreviewPanel]
+    Reminder[ReminderAnnouncementsPanel]
+    GetLocale[getLocale next-intl existing]
+    Api[lib/api/announcements.ts]
+    Service[announcement-service resolveAnnouncementContent existing]
+
+    Preview --> GetLocale
+    Reminder --> GetLocale
+    Preview --> Api
+    Reminder --> Api
+    Api --> Service
+```
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし。
+
+### File Structure Plan（追加分）
+新規ファイルなし。
+
+### Modified Files（追加分）
+- `src/components/features/dashboard/AnnouncementsPreviewPanel.tsx` — `getRecentAnnouncements({ limit: PREVIEW_LIMIT })` を `getRecentAnnouncements({ limit: PREVIEW_LIMIT, locale })` に変更（`locale`は既存の`getLocale()`結果）
+- `src/components/features/dashboard/ReminderAnnouncementsPanel.tsx` — `getAnnouncements()` を `getAnnouncements({ locale })` に変更（`locale`は既存の`getLocale()`結果）
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 12.1 | 最新のお知らせプレビューのロケール反映 | AnnouncementsPreviewPanel | `getRecentAnnouncements({ locale })` |
+| 12.2 | リマインドセクションのロケール反映 | ReminderAnnouncementsPanel | `getAnnouncements({ locale })` |
+| 12.3 | フォールバックはサービス層に委譲 | （announcements-management spec所有） | `resolveAnnouncementContent` |
+| 12.4, 12.5 | 既存表示の非変更・一覧との一致 | AnnouncementsPreviewPanel, ReminderAnnouncementsPanel | — |
+
+### Components and Interfaces（追加分）
+新規コンポーネントなし。両コンポーネントのお知らせ取得呼び出しに既存の`locale`を渡すのみ（Props形状・JSX構造・スケルトンの変更なし）。
+
+### Data Models（追加分）
+本specはデータモデルを追加・参照変更しない。
+
+### Testing Strategy（追加分）
+- **Unit/Integration Tests**:
+  - `AnnouncementsPreviewPanel`: `getRecentAnnouncements`が`{ limit, locale }`付きで呼び出されること（`locale`が`getLocale()`の値と一致）。既存の正常表示・空状態・エラー時フォールバックのテストが引き続き通ること
+  - `ReminderAnnouncementsPanel`: `getAnnouncements`が`{ locale }`付きで呼び出されること。既存のリマインド対象表示・0件非表示・失敗時非表示のテストが引き続き通ること
+  - 既存テストが`getRecentAnnouncements`/`getAnnouncements`をモックしている場合、呼び出し引数の期待値を`{ locale }`付きに更新する
+- **E2E/UI Tests**:
+  - UIロケールを`en`に切り替えたとき、ダッシュボードのお知らせ系プレビューと一覧ページで同一お知らせのタイトル・本文が一致すること

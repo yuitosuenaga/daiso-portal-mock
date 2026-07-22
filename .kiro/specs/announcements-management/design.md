@@ -2055,3 +2055,112 @@ export async function notifyAnnouncementTargetExpanded(
 - 実機検証（実装担当者の完了確認、SMTPはモック/未設定で`skipped`ログ確認可）: ヘルプデスクとして公開済みお知らせの対象国を追加保存し、`AnnouncementNotificationLog`に`kind: "target_added"`の行が追加分の国の受信者数だけ記録されることを確認する。
 
 ---
+
+## 追加ラウンド（2026-07-22）: 多言語フォールバック順序の英語優先化
+
+### Overview（追加分）
+`resolveAnnouncementContent`の未整備言語フォールバックを、現状の`ja`直行から「`locale`一致 → `en` → `ja`」に変更する。2026-07-16ラウンドで実装した`ja`フォールバック（設計本文の「フォールバックは`ja`」記述、要件31.4・33.2）を本ラウンドで上書きする。**Purpose**: 20か国以上の受信者にとって共通語である英語を、未整備言語時のフォールバック先とする。**Impact**: `announcement-mapper.ts`の`resolveAnnouncementContent`（純粋関数）の分岐追加1箇所と、`announcement-notifications.ts`の`resolveUiLocale`のフォールバック先変更1箇所。データモデル・マイグレーション・UIの変更はない。既存テストの期待値更新を伴う。
+
+### Goals（追加分）
+- `resolveAnnouncementContent`が、`locale`一致翻訳が無いとき`en`翻訳を優先し、`en`も無い場合のみ`ja`（既定言語カラム）にフォールバックする
+- 通知メール（`th`/`vi`等の`preferredLocale`）が、未整備時に`en`本文で生成される
+- 通知メール詳細リンクのUIロケールも、非ルーティングロケール時に`en`へフォールバックし、本文言語とリンク先を整合させる
+
+### Non-Goals（追加分）
+- 翻訳データ自体の整備・機械翻訳（対象外）
+- `ApplicantUser.preferredLocale`の既定値（`en`）変更（要件30.2維持）
+- 申請者側UIロケールの追加（`ja`/`en`のみ）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `resolveAnnouncementContent`のフォールバック順序（`announcement-mapper.ts`、本spec所有のleafモジュール）
+- 通知メールの`resolveUiLocale`のフォールバック先（`announcement-notifications.ts`、本spec所有）
+
+**Out of Boundary（追加）**
+- 申請者側の一覧・詳細画面の表示コード（`announcements`spec所有）。ただし同specは`resolveAnnouncementContent`を`ja`/`en`のUIロケールでのみ呼ぶため、本変更による表示結果の差は生じない（`ja`は最優先確定、`en`は一致優先で確定）
+
+**Revalidation Triggers（追加）**
+- `AnnouncementTranslation`の`en`必須制約（要件31.2）が撤廃された場合、`en`フォールバックが空振りするケースが増えるため再検討が必要
+- `routing.locales`/`routing.defaultLocale`の構成が変更された場合
+
+### Architecture（追加分）
+純粋関数の分岐追加のみ。新規フロー・新規モジュールなし。
+
+```mermaid
+graph TB
+    subgraph resolveAnnouncementContent
+      L{locale === ja?}
+      M{locale一致の翻訳あり?}
+      E{en翻訳あり?}
+      RJ[jaカラム title/body を返す]
+      RM[一致翻訳を返す]
+      RE[en翻訳を返す]
+      L -- yes --> RJ
+      L -- no --> M
+      M -- yes --> RM
+      M -- no --> E
+      E -- yes --> RE
+      E -- no --> RJ
+    end
+```
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし。
+
+### File Structure Plan（追加分）
+新規ファイルなし。
+
+### Modified Files（追加分）
+- `src/lib/server/announcement-mapper.ts` — `resolveAnnouncementContent`に`en`翻訳フォールバック分岐を追加。`locale`一致が無い場合、`translations`から`en`を探し、あれば返す。無ければ既定言語カラム（`ja`）を返す
+- `src/lib/server/announcement-notifications.ts` — `resolveUiLocale`のフォールバック先を`routing.defaultLocale`（`ja`）から`"en"`に変更（`routing.locales`に含まれない`preferredLocale`のとき`en`のUIパスを用いる）
+- `src/lib/server/announcement-service.test.ts` — `resolveAnnouncementContent`の`th`ケースの期待値を`en`翻訳内容に更新
+- `src/lib/server/announcement-notifications.test.ts` — `preferredLocale: "th"`時の件名・本文の期待値を`en`内容に、詳細リンクの期待パスを`/en/...`に更新
+
+### 実装スケッチ（追加分）
+```typescript
+// announcement-mapper.ts
+export function resolveAnnouncementContent(
+  announcement: Pick<Announcement, "title" | "body" | "translations">,
+  locale: string
+): { title: string; body: string } {
+  if (locale === DEFAULT_ANNOUNCEMENT_LOCALE) {
+    return { title: announcement.title, body: announcement.body };
+  }
+  const match = announcement.translations.find((item) => item.locale === locale);
+  if (match) {
+    return { title: match.title, body: match.body };
+  }
+  // 追加: en（共通語）を ja より優先してフォールバック
+  const en = announcement.translations.find((item) => item.locale === "en");
+  if (en) {
+    return { title: en.title, body: en.body };
+  }
+  return { title: announcement.title, body: announcement.body };
+}
+```
+```typescript
+// announcement-notifications.ts
+function resolveUiLocale(preferredLocale: string): string {
+  return (routing.locales as readonly string[]).includes(preferredLocale)
+    ? preferredLocale
+    : "en"; // 変更: routing.defaultLocale(ja) → en。本文言語（enフォールバック）とリンク先を整合
+}
+```
+注: `en`もルーティングロケール（`routing.locales = ["ja","en"]`）に含まれるため、`resolveUiLocale`の戻り値は引き続き有効なUIパスになる。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 36.1〜36.3, 36.5 | `en`優先フォールバック | announcement-mapper（resolveAnnouncementContent） | `resolveAnnouncementContent` |
+| 36.4 | 通知メール本文のen優先生成 | announcement-notifications | `resolveAnnouncementContent`呼び出し |
+| 36.6 | 詳細リンクUIロケールのenフォールバック | announcement-notifications（resolveUiLocale） | — |
+| 36.7 | 既存テストの期待値更新 | announcement-service.test, announcement-notifications.test | — |
+
+### Testing Strategy（追加分）
+- **Unit Tests（更新・追加）**:
+  - `resolveAnnouncementContent`: `translations=[en]`のとき`locale="th"`で**`en`内容**を返すこと（従来`ja`から変更）。`translations=[]`（en無し）のとき`locale="th"`で`ja`カラムにフォールバックすること。`locale="ja"`は`ja`カラム、`locale="en"`は`en`翻訳（いずれも従来どおり）
+  - 通知メール: `preferredLocale: "th"`のとき件名・本文が`en`翻訳内容になること、詳細リンクが`/en/announcements/...`になること
+- **Integration Tests**:
+  - `en`翻訳のみ登録したお知らせで、`preferredLocale: "th"`の`ApplicantUser`向け公開通知が`en`本文・`/en/`リンクで送信されること

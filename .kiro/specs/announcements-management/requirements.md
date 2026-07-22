@@ -541,3 +541,34 @@
 8. The Portal shall 追加通知メールの本文を、公開通知（要件27.4・要件33）と同様に、宛先`ApplicantUser`の言語設定（要件30）に対応するお知らせのタイトル・本文（要件31）とポータルへの詳細リンクから生成する。
 9. The Portal shall 追加通知の送信について、既存の通知基盤のベストエフォート処理・送信履歴記録（要件29）を踏襲し、送信結果（`sent`/`failed`/`skipped`）を宛先ごとに`AnnouncementNotificationLog`へ記録する。履歴上、公開通知（`kind: "publish"`）・リマインド（`kind: "reminder"`）と区別できる識別子（`kind`）で記録する。
 10. The Portal shall 配信対象拡大により新たにトラッキング（確認済み・実施済み集計）対象となる会社について、既存の`AnnouncementRecipient`台帳（会社作成時・シード時に全社分作成済み）をそのまま用い、追加のレコード作成を要しないことを前提とする（`getAnnouncementRecipientStatuses`等の集計は`company.country`で動的にスコープするため、`targetingCountries`更新後に自動的に対象へ含まれる）。
+
+---
+
+### 追加要望（2026-07-22）: 未整備言語のフォールバック先を英語（共通語）優先に変更
+
+2026-07-21実施のプロダクト全体レビューにより、多言語コンテンツの解決関数`resolveAnnouncementContent`（`src/lib/server/announcement-mapper.ts`）のフォールバック順序が、20か国以上へ発信する本ポータルの実態に合っていないことが判明した。現状は、受信者の`preferredLocale`（例: `th`・`vi`）に対応する翻訳が未登録のとき、**英語（`en`）ではなく日本語（`ja`）にフォールバック**している（要件31.4・33.2で「既定言語（`ja`）にフォールバック」と定義）。しかし`en`は必須入力（要件31.2）であり実質的に全お知らせに存在する一方、`ja`（既定言語カラム）は多くの海外受信者にとって最も理解しにくい言語である。海外販社・代理店（20か国以上）の共通語は英語であるため、未整備言語のフォールバック先は`ja`ではなく`en`を優先すべきである。
+
+本追記は、`resolveAnnouncementContent`のフォールバック順序を **「`preferredLocale`一致 → `en` → `ja`」** に変更する。要件31.4・33.2で定めた「`ja`へフォールバック」の挙動を本追記の内容で上書きする（`ja`は`en`翻訳も存在しない場合の最終フォールバックとして残す）。
+
+この変更の影響範囲は`resolveAnnouncementContent`を経由する全経路である。具体的には (a) 通知メール本文の生成（要件33、`announcement-notifications.ts`、`preferredLocale`が`th`/`vi`等の受信者で実際に挙動が変わる）と、(b) 申請者側のお知らせ表示（`announcements`spec要件16、UIロケールは`ja`/`en`のみのため実挙動は不変）である。(b)は`ja`/`en`しか渡らないため表示結果は変わらないが、関数の契約としては一貫して`en`優先フォールバックとする。
+
+あわせて、通知メールの**詳細リンクのUIロケール**（`resolveUiLocale`、`announcement-notifications.ts`）も、現状は`routing.locales`に含まれない`preferredLocale`（`th`/`vi`等）を`routing.defaultLocale`（`ja`）にフォールバックしている。本文が英語で生成されるのにリンク先が日本語UIページになる不整合を避けるため、詳細リンクのUIロケールのフォールバック先も`en`に統一する。
+
+スコープ外:
+- 20か国語すべての翻訳データの整備・機械翻訳連携（引き続き対象外。あくまで未整備時のフォールバック先の変更のみ）
+- `ApplicantUser.preferredLocale`の既定値（`en`）の変更（要件30.2を維持）
+- 申請者側UIロケールの追加（`ja`/`en`以外のUIルーティングは引き続き対象外）
+
+### Requirement 36: 多言語フォールバック順序の英語優先化
+
+**Objective:** As a 海外販社担当者（英語圏外の受信者を含む）, I want 自分の言語の翻訳が未整備のとき、日本語ではなく英語で内容を受け取りたい, so that 共通語である英語で内容を理解できる
+
+#### Acceptance Criteria
+
+1. The Portal shall `resolveAnnouncementContent(announcement, locale)`のフォールバック順序を「`locale`一致 → `en` → `ja`（既定言語カラム）」とする。すなわち、`locale`に一致する翻訳が存在すればそれを、なければ`en`翻訳を、`en`翻訳も存在しなければ`ja`（既定言語カラムの`title`/`body`）を返す。
+2. When `locale`が`ja`であるとき、the Portal shall 従来どおり既定言語カラム（`announcement.title`/`body`）を返す（`ja`は最優先で確定するため`en`を経由しない）。
+3. When `locale`が`en`であり`en`翻訳が存在するとき、the Portal shall 当該`en`翻訳を返す（一致優先。要件31.2により`en`は必須のため通常はここで確定する）。
+4. When 通知メール（要件33）の宛先`preferredLocale`が`en`・`ja`以外（`th`・`vi`等）であり、対応する翻訳が未登録であるとき、the Portal shall `en`翻訳の内容でメール本文（タイトル・本文）を生成する（`en`翻訳も無い場合のみ`ja`）。
+5. The Portal shall 要件31.4・33.2で定めた「`ja`へフォールバック」の記述を、本要件の「`en`優先（`en`が無い場合のみ`ja`）」に読み替える（`resolveAnnouncementContent`の単一実装変更で両要件の挙動を同時に更新する）。
+6. The Portal shall 通知メールの詳細リンクに用いるUIロケール（`resolveUiLocale`）について、`routing.locales`（`ja`/`en`）に含まれない`preferredLocale`のフォールバック先を、`routing.defaultLocale`（`ja`）ではなく`en`とする（本文言語とリンク先UIロケールの整合をとる）。
+7. The Portal shall 本変更により影響を受ける既存の単体テスト（`resolveAnnouncementContent`の`th`フォールバック、通知メールの`preferredLocale: "th"`時の件名・本文・詳細リンク）の期待値を、`en`優先の新挙動に更新する。
