@@ -55,6 +55,9 @@ export async function DocumentList() {
         locale={locale}
         downloadLinkLabel={t("downloadLink")}
         openOriginalLinkLabel={t("openOriginalLink")}
+        newBadgeLabel={t("newBadge")}
+        googlePreviewErrorMessage={t("googlePreviewError")}
+        googlePreviewHint={t("googlePreviewHint")}
       />
     </div>
   );

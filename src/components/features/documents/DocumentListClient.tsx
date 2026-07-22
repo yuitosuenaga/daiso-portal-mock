@@ -13,6 +13,9 @@ export interface DocumentListClientProps {
   locale: string;
   downloadLinkLabel: string;
   openOriginalLinkLabel: string;
+  newBadgeLabel: string;
+  googlePreviewErrorMessage: string;
+  googlePreviewHint: string;
 }
 
 /**
@@ -24,6 +27,9 @@ export function DocumentListClient({
   locale,
   downloadLinkLabel,
   openOriginalLinkLabel,
+  newBadgeLabel,
+  googlePreviewErrorMessage,
+  googlePreviewHint,
 }: DocumentListClientProps) {
   const t = useTranslations("documents.search");
   const [keyword, setKeyword] = useState("");
@@ -51,6 +57,9 @@ export function DocumentListClient({
               locale={locale}
               downloadLinkLabel={downloadLinkLabel}
               openOriginalLinkLabel={openOriginalLinkLabel}
+              newBadgeLabel={newBadgeLabel}
+              googlePreviewErrorMessage={googlePreviewErrorMessage}
+              googlePreviewHint={googlePreviewHint}
             />
           ))}
         </div>

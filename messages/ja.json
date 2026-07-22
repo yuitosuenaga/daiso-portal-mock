@@ -61,7 +61,27 @@
       "fileSizeLabel": "ファイルサイズ",
       "uploadedAtLabel": "アップロード日",
       "sourceTypeUploadBadge": "アップロード",
-      "sourceTypeGoogleBadge": "Googleリンク"
+      "sourceTypeGoogleBadge": "Googleリンク",
+      "filter": {
+        "keywordLabel": "キーワード検索",
+        "keywordPlaceholder": "タイトルや説明に含まれる語句",
+        "sourceTypeLabel": "登録方式",
+        "sourceTypeAll": "すべての登録方式",
+        "sourceTypeUpload": "アップロード",
+        "sourceTypeGoogle": "Googleリンク",
+        "scopeLabel": "公開範囲",
+        "scopeAll": "すべての公開範囲",
+        "scopeAllScope": "全体公開",
+        "scopeCountries": "国単位",
+        "scopeCompanies": "販社単位",
+        "clearButton": "条件をクリア",
+        "noResults": "該当するドキュメントがありません"
+      },
+      "pagination": {
+        "previousLabel": "前へ",
+        "nextLabel": "次へ",
+        "pageStatus": "{current} / {total} ページ"
+      }
     },
     "form": {
       "createTitle": "ドキュメントの新規作成",
@@ -612,7 +632,10 @@
       "downloadLink": "ダウンロード",
       "openOriginalLink": "元のドキュメントを開く",
       "fileSizeLabel": "ファイルサイズ",
-      "uploadedAtLabel": "アップロード日"
+      "uploadedAtLabel": "アップロード日",
+      "newBadge": "新着",
+      "googlePreviewError": "プレビューを表示できませんでした",
+      "googlePreviewHint": "プレビューが表示されない場合は、元のドキュメントを開いてください"
     },
     "search": {
       "keywordLabel": "キーワード検索",
