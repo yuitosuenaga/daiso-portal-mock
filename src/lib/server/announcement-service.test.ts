@@ -12,6 +12,7 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     announcementRecipient: {
       findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn(),
     },
     announcementRecipientStatus: {
       upsert: vi.fn(),
@@ -27,12 +28,14 @@ vi.mock("@/lib/db/prisma", () => ({
 vi.mock("@/lib/server/announcement-notifications", () => ({
   notifyAnnouncementPublished: vi.fn().mockResolvedValue(undefined),
   notifyAnnouncementReminder: vi.fn().mockResolvedValue(undefined),
+  notifyAnnouncementTargetExpanded: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { prisma } from "@/lib/db/prisma";
 import {
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
+  notifyAnnouncementTargetExpanded,
 } from "@/lib/server/announcement-notifications";
 import {
   AnnouncementNotFoundError,
@@ -600,6 +603,237 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
         data: expect.not.objectContaining({ publishedAt: expect.anything() }),
       })
     );
+  });
+
+  it("配信対象国を拡大（VN→VN,TH）して公開のまま更新すると、新規追加分（TH）のwhereで追加通知が1回呼ばれ、公開通知は呼ばれない（要件35.1, 35.2）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "countries", countries: ["VN", "TH"] },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(notifyAnnouncementTargetExpanded).toHaveBeenCalledTimes(1);
+    expect(notifyAnnouncementTargetExpanded).toHaveBeenCalledWith("1", {
+      isActive: true,
+      company: { country: { in: ["TH"] } },
+    });
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("配信対象国が縮小（all→countries）または同一（countries→同一）のときは追加通知を呼ばない（要件35.3, 35.5）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published", targetingScope: "all" }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "countries", countries: ["VN"] },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(notifyAnnouncementTargetExpanded).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "countries", countries: ["VN"] },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(notifyAnnouncementTargetExpanded).not.toHaveBeenCalled();
+  });
+
+  it("配信対象がcountries=[VN]からallへ変更されたとき、notIn:[VN]のwhereで追加通知が呼ばれる（要件35.4）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "published", targetingScope: "all" }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(notifyAnnouncementTargetExpanded).toHaveBeenCalledWith("1", {
+      isActive: true,
+      company: { country: { notIn: ["VN"] } },
+    });
+  });
+
+  it("下書き→公開への更新ではnotifyAnnouncementPublishedのみが呼ばれ、追加通知は呼ばれない（要件35.6、二重送信防止）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "draft",
+        publishedAt: null,
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "countries", countries: ["VN", "TH"] },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(notifyAnnouncementPublished).toHaveBeenCalledTimes(1);
+    expect(notifyAnnouncementTargetExpanded).not.toHaveBeenCalled();
+  });
+
+  it("更新後が下書き（draft）のときはいずれの通知も呼ばれない（要件35.7）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "draft",
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "draft",
+      targeting: { scope: "countries", countries: ["VN", "TH"] },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+    expect(notifyAnnouncementTargetExpanded).not.toHaveBeenCalled();
+  });
+
+  it("追加通知の経路ではannouncementRecipient.createが呼ばれない（台帳を新規作成しない。要件35.10）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", {
+      title: "タイトル",
+      body: "本文",
+      category: "other",
+      status: "published",
+      targeting: { scope: "countries", countries: ["VN", "TH"] },
+      actionRequired: false,
+      attachments: [],
+      linkedDocumentIds: [],
+      translations: [],
+    });
+
+    expect(prisma.announcementRecipient.create).not.toHaveBeenCalled();
   });
 
   it("下書きとして新規作成した場合は公開日時をnullで保存する", async () => {

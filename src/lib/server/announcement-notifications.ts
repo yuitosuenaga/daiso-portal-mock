@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
+
 import { routing } from "@/i18n/routing";
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -73,7 +75,7 @@ interface NotificationRecipient {
  */
 async function sendAndLog(
   announcement: Announcement,
-  kind: "publish" | "reminder",
+  kind: "publish" | "reminder" | "target_added",
   recipient: NotificationRecipient
 ): Promise<void> {
   const { title, body } = resolveAnnouncementContent(announcement, recipient.preferredLocale);
@@ -139,6 +141,34 @@ export async function notifyAnnouncementPublished(announcementId: string): Promi
 
   await Promise.all(
     recipients.map((recipient) => sendAndLog(announcement, "publish", recipient))
+  );
+}
+
+/**
+ * 公開済みお知らせの配信対象が編集で拡大したとき、新たに配信対象へ含まれることになった国に
+ * 属する`ApplicantUser`のうち有効なメールアドレスを持つ者へのみメールで通知する（要件35）。
+ * `recipientWhere`は呼び出し元（`announcement-service.ts`の`updateAnnouncementRecord`）が
+ * `announcement-mapper.ts`の`addedTargetApplicantUsersWhere`で算出した、新規追加分のみを
+ * 表す`where`であることを前提とする（差分算出そのものは行わない）。本文は公開通知
+ * （`notifyAnnouncementPublished`）と同型（`Due:`行なし）。宛先ごとの送信はベストエフォートで
+ * 行い、この関数自体は例外をthrowしない。
+ */
+export async function notifyAnnouncementTargetExpanded(
+  announcementId: string,
+  recipientWhere: Prisma.ApplicantUserWhereInput
+): Promise<void> {
+  const announcement = await findAnnouncementForNotification(announcementId);
+  if (!announcement) {
+    return;
+  }
+
+  const recipients = await prisma.applicantUser.findMany({
+    where: recipientWhere,
+    select: { email: true, preferredLocale: true },
+  });
+
+  await Promise.all(
+    recipients.map((recipient) => sendAndLog(announcement, "target_added", recipient))
   );
 }
 

@@ -24,6 +24,7 @@ import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
 import {
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
+  notifyAnnouncementTargetExpanded,
 } from "@/lib/server/announcement-notifications";
 
 function announcementRecord(
@@ -307,5 +308,91 @@ describe("notifyAnnouncementReminder", () => {
         },
       })
     );
+  });
+});
+
+describe("notifyAnnouncementTargetExpanded", () => {
+  it("渡したwhereでapplicantUser.findManyを呼び、各宛先にkind: \"target_added\"のログを作成する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord({ targetingScope: "countries", targetingCountries: ["VN", "TH"] }) as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+      { email: "b@example.com", preferredLocale: "en" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    const recipientWhere = { isActive: true, company: { country: { in: ["TH"] } } };
+    await notifyAnnouncementTargetExpanded("announcement-1", recipientWhere);
+
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: recipientWhere })
+    );
+    expect(sendMail).toHaveBeenCalledTimes(2);
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        announcementId: "announcement-1",
+        kind: "target_added",
+        recipientEmail: "a@example.com",
+        status: "sent",
+      }),
+    });
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        announcementId: "announcement-1",
+        kind: "target_added",
+        recipientEmail: "b@example.com",
+        status: "sent",
+      }),
+    });
+  });
+
+  it("SMTP未設定（MailerNotConfiguredError）の場合はskippedとして記録し、例外を伝播させない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockRejectedValue(new MailerNotConfiguredError());
+
+    await expect(
+      notifyAnnouncementTargetExpanded("announcement-1", { isActive: true })
+    ).resolves.toBeUndefined();
+
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ kind: "target_added", status: "skipped", errorMessage: null }),
+    });
+  });
+
+  it("送信失敗時はfailedとして記録し、例外を伝播させない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockRejectedValue(new Error("SMTP timeout"));
+
+    await expect(
+      notifyAnnouncementTargetExpanded("announcement-1", { isActive: true })
+    ).resolves.toBeUndefined();
+
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: "target_added",
+        status: "failed",
+        errorMessage: "SMTP timeout",
+      }),
+    });
+  });
+
+  it("存在しないお知らせIDに対しては何もしない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
+
+    await notifyAnnouncementTargetExpanded("missing", { isActive: true });
+
+    expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
   });
 });
