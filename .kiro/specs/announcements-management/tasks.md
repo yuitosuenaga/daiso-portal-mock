@@ -923,3 +923,32 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 34.1, 34.2, 34.3, 34.4, 34.8_
   - _Depends: 46.1, 46.2_
+
+---
+
+## 追加ラウンド（2026-07-22）: 多言語フォールバック順序の英語優先化
+
+- [ ] 48. コア: フォールバック順序を英語優先に変更する
+- [ ] 48.1 `resolveAnnouncementContent`に`en`優先フォールバックを追加する
+  - `src/lib/server/announcement-mapper.ts` の `resolveAnnouncementContent` で、`locale`一致翻訳が無い場合に`translations`から`en`を探し、あれば`en`の`title`/`body`を返す。`en`も無い場合のみ既定言語カラム（`ja`）を返す
+  - `locale === "ja"`（先頭分岐）・`locale`一致時の挙動は変更しない
+  - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5_
+  - _Boundary: announcement-mapper_
+- [ ] 48.2 通知メール詳細リンクのUIロケールフォールバックを`en`に変更する
+  - `src/lib/server/announcement-notifications.ts` の `resolveUiLocale` で、`routing.locales`に含まれない`preferredLocale`のフォールバック先を`routing.defaultLocale`（`ja`）から`"en"`に変更する
+  - _Requirements: 35.6_
+  - _Boundary: announcement-notifications_
+
+- [ ] 49. 検証: 既存テストの期待値更新と追加
+- [ ] 49.1 (P) `resolveAnnouncementContent`のテストを`en`優先に更新する
+  - `src/lib/server/announcement-service.test.ts`: `translations=[en]`で`locale="th"`のとき`en`内容を返す期待値に更新する。`en`が無いケース（`ja`フォールバック）のテストを追加する
+  - _Requirements: 35.1, 35.7_
+  - _Depends: 48.1_
+- [ ] 49.2 (P) 通知メールのフォールバックテストを`en`優先に更新する
+  - `src/lib/server/announcement-notifications.test.ts`: `preferredLocale: "th"`時の件名・本文の期待値を`en`翻訳内容に、詳細リンクの期待パスを`/en/announcements/...`に更新する
+  - _Requirements: 35.4, 35.6, 35.7_
+  - _Depends: 48.1, 48.2_
+- [ ] 49.3 統合テスト: en翻訳のみのお知らせのth宛通知がen本文・enリンクになることを確認する
+  - `en`翻訳のみを登録したお知らせで、`preferredLocale: "th"`の`ApplicantUser`向け公開通知が`en`本文・`/en/`詳細リンクで送信されることを検証する
+  - _Requirements: 35.4, 35.6_
+  - _Depends: 48.1, 48.2_

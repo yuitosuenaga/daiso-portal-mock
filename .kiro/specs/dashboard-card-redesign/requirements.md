@@ -172,3 +172,31 @@
 #### Acceptance Criteria
 1. （更新）Requirement 6の受け入れ基準1により表示されるプレビューパネルの名称は「対応が必要な申請」とする（`dashboard.priorityInquiriesPreview.title`翻訳キー）。
 2. （更新）Requirement 6の受け入れ基準6により表示される問い合わせ一覧ページへの導線文言は「申請一覧を見る」とする（`dashboard.priorityInquiriesPreview.viewAll`翻訳キー）。
+
+---
+
+### 追加要望（2026-07-22）: お知らせ系プレビューパネルのUIロケール反映
+
+2026-07-21実施のプロダクト全体レビューにより、申請者側ダッシュボードのお知らせ系プレビュー（「最新のお知らせ」プレビューパネル `AnnouncementsPreviewPanel` および「日本側からのリマインド」強調表示セクション `ReminderAnnouncementsPanel`）が、お知らせのタイトル・本文を**常に日本語で表示している**ことが判明した。原因は、両パネルがそれぞれ `getRecentAnnouncements({ limit })` / `getAnnouncements()` を**`locale`引数なしで**呼び出しており、`announcement-service.ts`側で既定言語（`ja`）にフォールバック解決されるためである。一覧ページ（`announcements`spec所有）は既に`getLocale()`の結果を渡してUIロケール別表示になっているため、同一のお知らせがダッシュボードと一覧で言語が食い違う（英語UIでもダッシュボードだけ日本語）。
+
+`announcements`spec要件16.5および同specの2026-07-16設計ラウンドでは、「`getRecentAnnouncements`にロケール対応オプションを追加する（データ層のみ）。ダッシュボードウィジェット側の呼び出しコードが追随するまでは`ja`表示のまま」と明記され、ウィジェット側の追従は本spec（`dashboard-card-redesign`、ダッシュボードプレビュー所有）の担当として持ち越されていた。本追記はその追従作業を行うものである。
+
+なお、`AnnouncementsCard`（お知らせカード）は件数バッジのみを表示しタイトル・本文を描画しないため、本追記の対象外とする（ロケールによる表示差が生じない）。
+
+スコープ外:
+- `getRecentAnnouncements`/`getAnnouncements`のロケール対応オプションの追加自体（`announcements-management`/`announcements`spec側で実装済み）
+- お知らせのタイトル・本文の言語別解決ロジック（`resolveAnnouncementContent`、`announcements-management`spec所有）
+- UIロケール自体の追加（表示対象は既存の`ja`/`en`のみ）
+- カテゴリバッジ・日付フォーマット等、既に`locale`で処理済みの表示要素の変更
+
+### Requirement 12: お知らせ系プレビューパネルのUIロケール反映
+
+**Objective:** As a 海外販社担当者（申請者）, I want ダッシュボードのお知らせプレビュー・リマインドセクションのタイトル・本文を、自分が選択しているUI言語で見たい, so that ダッシュボードと一覧ページで表示言語が食い違わず、理解できる言語で内容を把握できる
+
+#### Acceptance Criteria
+
+1. When 申請者側ダッシュボードの「最新のお知らせ」プレビューパネル（`AnnouncementsPreviewPanel`）を表示する, the Dashboard Service shall 現在のUIロケール（`getLocale()`の結果）を`getRecentAnnouncements`に渡し、当該ロケールに対応するタイトル・本文で各お知らせを表示する。
+2. When 申請者側ダッシュボードの「日本側からのリマインド」強調表示セクション（`ReminderAnnouncementsPanel`）を表示する, the Dashboard Service shall 現在のUIロケールを`getAnnouncements`に渡し、当該ロケールに対応するタイトル・本文で各お知らせを表示する。
+3. Where UIロケールに対応するタイトル・本文が未登録である場合, the Dashboard Service shall `announcements-management`spec側の解決ロジック（`resolveAnnouncementContent`）が定めるフォールバック結果をそのまま表示する（本specは独自のフォールバック判定を行わない）。
+4. The Dashboard Service shall 本追記による変更を、両パネルの既存のレイアウト・最大件数・並び順・空状態・エラー処理・カテゴリバッジ・日付フォーマット・本文要約（要件5・9・10）を変更せずに行う（`getRecentAnnouncements`/`getAnnouncements`への`locale`引数追加のみ）。
+5. The Dashboard Service shall UIロケールを`en`に切り替えたとき、ダッシュボードのお知らせ系プレビューと一覧ページ（`announcements`spec所有）とで、同一お知らせのタイトル・本文表示が一致するようにする。
