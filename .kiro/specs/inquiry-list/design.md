@@ -641,15 +641,15 @@ sequenceDiagram
 ## 追加（2026-07-22）: 申請者一覧取得の添付ファイル除外（性能）
 
 ### Overview（追加分）
-要件16への対応。共有データ取得層（`src/lib/server/inquiry-service.ts`）の取得include分離（一覧＝添付除外／詳細＝添付含む）は`helpdesk-inquiry-management`spec 要件17が所有・実装する（`INQUIRY_LIST_INCLUDE`/`INQUIRY_DETAIL_INCLUDE`への分離、`inquiry-mapper`の`attachments`任意化）。本specは申請者側の期待を保証する検証責務のみを持ち、`inquiry-service.ts`・`inquiry-mapper.ts`への変更は`helpdesk-inquiry-management`spec側のタスクで一括して行う（同一ファイルの二重編集を避けるため）。
+要件16への対応。共有データ取得層（`src/lib/server/inquiry-service.ts`）の取得include分離（一覧＝添付除外／詳細＝添付含む）は`helpdesk-inquiry-management`spec 要件18が所有・実装する（`INQUIRY_LIST_INCLUDE`/`INQUIRY_DETAIL_INCLUDE`への分離、`inquiry-mapper`の`attachments`任意化）。本specは申請者側の期待を保証する検証責務のみを持ち、`inquiry-service.ts`・`inquiry-mapper.ts`への変更は`helpdesk-inquiry-management`spec側のタスクで一括して行う（同一ファイルの二重編集を避けるため）。
 
 ### Component / Interface Design（追加分）
-- **`listInquiriesForCompany`（`inquiry-service.ts`、`helpdesk-inquiry-management`spec 要件17で変更）**: 申請者一覧取得。変更後は`INQUIRY_LIST_INCLUDE`（添付なし）を使用する。申請者一覧（`InquiryList`→`getInquiries`）は`attachments`を描画しないため影響なし（`InquiryListItem`は`attachments`を参照しない）。
+- **`listInquiriesForCompany`（`inquiry-service.ts`、`helpdesk-inquiry-management`spec 要件18で変更）**: 申請者一覧取得。変更後は`INQUIRY_LIST_INCLUDE`（添付なし）を使用する。申請者一覧（`InquiryList`→`getInquiries`）は`attachments`を描画しないため影響なし（`InquiryListItem`は`attachments`を参照しない）。
 - **`findInquiryForCompany`（`inquiry-service.ts`、同）**: 申請者詳細取得。変更後も`INQUIRY_DETAIL_INCLUDE`（添付あり）を使用し、`InquiryDetail`＋`AttachmentPreviewList`による添付表示（要件10）を維持する。
 - 本specが所有する申請者側コンポーネント（`InquiryList`・`InquiryListItem`・`InquiryDetail`）のロジックは変更しない。一覧由来の`Inquiry.attachments`が`undefined`になるが、一覧は元々添付を参照しないため表示は不変。
 
 ### Modified Files（追加分）
-- （本spec側のプロダクションコードの変更なし。`inquiry-service.ts`・`inquiry-mapper.ts`の変更は`helpdesk-inquiry-management`spec 要件17のタスクで実施）
+- （本spec側のプロダクションコードの変更なし。`inquiry-service.ts`・`inquiry-mapper.ts`の変更は`helpdesk-inquiry-management`spec 要件18のタスクで実施）
 - `src/lib/server/inquiry-service.test.ts`（`helpdesk-inquiry-management`spec所有の変更に、申請者関数`listInquiriesForCompany`＝添付なし／`findInquiryForCompany`＝添付ありの検証ケースが含まれることを確認する）
 
 ### Requirements Traceability（追加分）
@@ -660,5 +660,5 @@ sequenceDiagram
 | 16.3, 16.4 | 公開関数シグネチャ・表示挙動の不変 | InquiryList, InquiryDetail |
 
 ### Testing Strategy（追加分）
-- `inquiry-service.test.ts`（`helpdesk-inquiry-management`spec 要件17で更新）に、`listInquiriesForCompany`が添付なしinclude、`findInquiryForCompany`が添付ありincludeで`prisma`を呼ぶことの検証を含める。
+- `inquiry-service.test.ts`（`helpdesk-inquiry-management`spec 要件18で更新）に、`listInquiriesForCompany`が添付なしinclude、`findInquiryForCompany`が添付ありincludeで`prisma`を呼ぶことの検証を含める。
 - 申請者詳細画面で添付ファイル表示（要件10）が維持されることを、既存の`InquiryDetail.test.tsx`の変更なし全件成功で確認する。

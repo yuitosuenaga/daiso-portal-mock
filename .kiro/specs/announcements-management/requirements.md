@@ -513,3 +513,62 @@
 6. The Portal shall 当該UIの選択状態を、既存のreact-hook-form + zodバリデーション（要件5の1件以上選択必須の検証を含む）と統合し、送信データの形式（選択された国コードの配列、`targeting.countries`）を変更しない。
 7. The Portal shall 当該UIの選択状態表現（選択済みチェックボックス・チップの配色等）に、ブランドガイドライン（`.kiro/steering/brand.md`）のDAISOピンク（`--primary`）をCSS変数経由で使用し、色をハードコードしない。
 8. The Portal shall 当該UIの表示文字列を`next-intl`の翻訳キー経由で提供し、日本語・英語の両方に対応する。
+
+### 追加要望（2026-07-22）: 公開済みお知らせの配信対象拡大時の追加通知
+
+背景: プロダクト全体レビュー（2026-07-21）により、公開済みお知らせの配信対象国（`targetingCountries`）を後から追加編集しても、新たに対象になった相手には通知メールが飛ばないことが判明した。現状の通知（`notifyAnnouncementPublished`）は、`draft`→`published`への公開遷移時（`announcement-service.ts`の`updateAnnouncementRecord`における`shouldStampPublishedAt`判定、および`createAnnouncementRecord`で`status === "published"`のとき）にのみ発火する（要件27）。要件27.3では「公開のまま編集保存した場合は通知メールを再送しない」と定めているが、これは編集で配信対象が拡大したケースを想定しておらず、後から対象国を追加しても追加分の販社担当者はお知らせの存在に気づけない、という発信ポータルとしての構造的ギャップになっている。要件5（配信対象の指定）・要件27（公開時通知）を対象に、編集時の配信対象の差分（新たに追加された対象範囲）を検出し、新規追加分の受信者にのみ通知を送る仕組みを追加することで解消する。
+
+対応方針の選択（設計判断の根拠）: 候補として、(a)編集時に配信対象の差分（追加された国）を検出し新規追加分の対象者にのみ通知する案と、(b)対象拡大時は常に全対象者へ「更新通知」として再通知する案があった。(b)は既に前回時点で対象だった受信者にも重複してメールが届き（過剰通知）、かつ既存のトラッキング（確認済み・実施済み。`AnnouncementRecipientStatus`）との整合（再通知しても既存の確認済み状態はリセットしない）を別途整理する必要が生じる。本追加要望では、二重送信・過剰通知を避けることを優先し、(a)の差分検出方式を採用する。
+
+スコープ外:
+- 配信対象拡大以外を契機とする通知（例: 既に配信対象である国に、公開後に新規登録された`ApplicantUser`への遡及通知）。これは別のギャップであり本要件の対象外とする
+- 「更新通知」として全対象者へ再通知する挙動（上記(b)。過剰通知となるため採用しない）
+- 配信対象の縮小（対象国が減る編集）に伴う通知・お知らせ取り消し通知
+- 通知メールの文面デザインの刷新・「対象が追加されました」等の専用文言の新設（本ラウンドは既存の公開通知と同型の本文を用いる）
+
+### Requirement 35: 公開済みお知らせの配信対象拡大時の追加通知
+
+**Objective:** As a 海外販社担当者, I want お知らせの公開後に自社の国が新たに配信対象へ追加された際にもメールで知らされたい, so that 後から対象に加わった場合でもポータルにログインせずに周知事項へ気づける
+
+#### Acceptance Criteria
+1. When ヘルプデスク担当者が公開状態（`published`）のお知らせを編集保存し、その保存によって配信対象（要件5の`targeting`）に新たに含まれることになった国が1つ以上生じたとき、the Portal shall 新たに対象となった国に属する対象受信者（有効な`ApplicantUser`）へ通知メールを送信する。
+2. The Portal shall 追加通知の宛先を、「今回の編集で新たに配信対象へ含まれることになった国」に属し、かつ有効なメールアドレスを持つ`ApplicantUser`（`isActive: true`）に限定する。既に編集前の時点で配信対象に含まれていた国の受信者には再送しない（要件27.3が定める「公開のまま編集した場合に再送しない」原則を、既存対象者について維持する）。
+3. Where 編集前の配信対象が「全体一律」（`targeting.scope === "all"`）であったとき、the Portal shall 追加通知を送信しない（全受信者が既に対象であり、新規追加が生じ得ないため）。
+4. Where 編集により配信対象が「特定の国・地域」（`countries`）から「全体一律」（`all`）へ変更されたとき、the Portal shall 編集前の対象国に含まれていなかった国に属する受信者を新規追加分として通知する。
+5. Where 編集により配信対象国が縮小した（対象国が減った）だけで新規追加が生じないとき、the Portal shall 追加通知を送信しない。
+6. When お知らせが下書き（`draft`）から公開（`published`）へ遷移する編集であるとき、the Portal shall 本要件の追加通知ではなく既存の公開通知（要件27）で全対象者へ通知し、追加通知を二重に送信しない。
+7. Where 編集後のお知らせが下書き（`draft`）であるとき、the Portal shall 追加通知を送信しない。
+8. The Portal shall 追加通知メールの本文を、公開通知（要件27.4・要件33）と同様に、宛先`ApplicantUser`の言語設定（要件30）に対応するお知らせのタイトル・本文（要件31）とポータルへの詳細リンクから生成する。
+9. The Portal shall 追加通知の送信について、既存の通知基盤のベストエフォート処理・送信履歴記録（要件29）を踏襲し、送信結果（`sent`/`failed`/`skipped`）を宛先ごとに`AnnouncementNotificationLog`へ記録する。履歴上、公開通知（`kind: "publish"`）・リマインド（`kind: "reminder"`）と区別できる識別子（`kind`）で記録する。
+10. The Portal shall 配信対象拡大により新たにトラッキング（確認済み・実施済み集計）対象となる会社について、既存の`AnnouncementRecipient`台帳（会社作成時・シード時に全社分作成済み）をそのまま用い、追加のレコード作成を要しないことを前提とする（`getAnnouncementRecipientStatuses`等の集計は`company.country`で動的にスコープするため、`targetingCountries`更新後に自動的に対象へ含まれる）。
+
+---
+
+### 追加要望（2026-07-22）: 未整備言語のフォールバック先を英語（共通語）優先に変更
+
+2026-07-21実施のプロダクト全体レビューにより、多言語コンテンツの解決関数`resolveAnnouncementContent`（`src/lib/server/announcement-mapper.ts`）のフォールバック順序が、20か国以上へ発信する本ポータルの実態に合っていないことが判明した。現状は、受信者の`preferredLocale`（例: `th`・`vi`）に対応する翻訳が未登録のとき、**英語（`en`）ではなく日本語（`ja`）にフォールバック**している（要件31.4・33.2で「既定言語（`ja`）にフォールバック」と定義）。しかし`en`は必須入力（要件31.2）であり実質的に全お知らせに存在する一方、`ja`（既定言語カラム）は多くの海外受信者にとって最も理解しにくい言語である。海外販社・代理店（20か国以上）の共通語は英語であるため、未整備言語のフォールバック先は`ja`ではなく`en`を優先すべきである。
+
+本追記は、`resolveAnnouncementContent`のフォールバック順序を **「`preferredLocale`一致 → `en` → `ja`」** に変更する。要件31.4・33.2で定めた「`ja`へフォールバック」の挙動を本追記の内容で上書きする（`ja`は`en`翻訳も存在しない場合の最終フォールバックとして残す）。
+
+この変更の影響範囲は`resolveAnnouncementContent`を経由する全経路である。具体的には (a) 通知メール本文の生成（要件33、`announcement-notifications.ts`、`preferredLocale`が`th`/`vi`等の受信者で実際に挙動が変わる）と、(b) 申請者側のお知らせ表示（`announcements`spec要件16、UIロケールは`ja`/`en`のみのため実挙動は不変）である。(b)は`ja`/`en`しか渡らないため表示結果は変わらないが、関数の契約としては一貫して`en`優先フォールバックとする。
+
+あわせて、通知メールの**詳細リンクのUIロケール**（`resolveUiLocale`、`announcement-notifications.ts`）も、現状は`routing.locales`に含まれない`preferredLocale`（`th`/`vi`等）を`routing.defaultLocale`（`ja`）にフォールバックしている。本文が英語で生成されるのにリンク先が日本語UIページになる不整合を避けるため、詳細リンクのUIロケールのフォールバック先も`en`に統一する。
+
+スコープ外:
+- 20か国語すべての翻訳データの整備・機械翻訳連携（引き続き対象外。あくまで未整備時のフォールバック先の変更のみ）
+- `ApplicantUser.preferredLocale`の既定値（`en`）の変更（要件30.2を維持）
+- 申請者側UIロケールの追加（`ja`/`en`以外のUIルーティングは引き続き対象外）
+
+### Requirement 36: 多言語フォールバック順序の英語優先化
+
+**Objective:** As a 海外販社担当者（英語圏外の受信者を含む）, I want 自分の言語の翻訳が未整備のとき、日本語ではなく英語で内容を受け取りたい, so that 共通語である英語で内容を理解できる
+
+#### Acceptance Criteria
+
+1. The Portal shall `resolveAnnouncementContent(announcement, locale)`のフォールバック順序を「`locale`一致 → `en` → `ja`（既定言語カラム）」とする。すなわち、`locale`に一致する翻訳が存在すればそれを、なければ`en`翻訳を、`en`翻訳も存在しなければ`ja`（既定言語カラムの`title`/`body`）を返す。
+2. When `locale`が`ja`であるとき、the Portal shall 従来どおり既定言語カラム（`announcement.title`/`body`）を返す（`ja`は最優先で確定するため`en`を経由しない）。
+3. When `locale`が`en`であり`en`翻訳が存在するとき、the Portal shall 当該`en`翻訳を返す（一致優先。要件31.2により`en`は必須のため通常はここで確定する）。
+4. When 通知メール（要件33）の宛先`preferredLocale`が`en`・`ja`以外（`th`・`vi`等）であり、対応する翻訳が未登録であるとき、the Portal shall `en`翻訳の内容でメール本文（タイトル・本文）を生成する（`en`翻訳も無い場合のみ`ja`）。
+5. The Portal shall 要件31.4・33.2で定めた「`ja`へフォールバック」の記述を、本要件の「`en`優先（`en`が無い場合のみ`ja`）」に読み替える（`resolveAnnouncementContent`の単一実装変更で両要件の挙動を同時に更新する）。
+6. The Portal shall 通知メールの詳細リンクに用いるUIロケール（`resolveUiLocale`）について、`routing.locales`（`ja`/`en`）に含まれない`preferredLocale`のフォールバック先を、`routing.defaultLocale`（`ja`）ではなく`en`とする（本文言語とリンク先UIロケールの整合をとる）。
+7. The Portal shall 本変更により影響を受ける既存の単体テスト（`resolveAnnouncementContent`の`th`フォールバック、通知メールの`preferredLocale: "th"`時の件名・本文・詳細リンク）の期待値を、`en`優先の新挙動に更新する。

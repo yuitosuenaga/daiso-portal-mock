@@ -923,3 +923,90 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 34.1, 34.2, 34.3, 34.4, 34.8_
   - _Depends: 46.1, 46.2_
+
+## 追加ラウンド（2026-07-22）: 公開済みお知らせの配信対象拡大時の追加通知
+
+- [ ] 48. コア: 配信対象拡大の差分検出と追加通知
+- [ ] 48.1 `AnnouncementNotificationKind`に`target_added`を追加しマイグレーションを作成する
+  - `prisma/schema.prisma`の`enum AnnouncementNotificationKind`に`target_added`を追加し、`prisma migrate dev`（開発）でマイグレーションを生成する（`ALTER TYPE ... ADD VALUE 'target_added'`相当。既存行への影響なし・後方互換）
+  - 本番反映は`prisma migrate deploy`を手動で流す必要がある旨をPR説明に明記する（Cloud SQL反映漏れ防止）
+  - `prisma generate`まで通ることで完了とする
+  - _Requirements: 35.9_
+  - _Boundary: prisma/schema.prisma, prisma/migrations/*_
+
+- [ ] 48.2 `addedTargetApplicantUsersWhere`を`announcement-mapper.ts`に実装する
+  - 編集前後の`targeting`を受け取り、新規追加分の`ApplicantUser`を表す`Prisma.ApplicantUserWhereInput`を返す（新規追加なしは`null`）。判定ロジックはdesign.md「判定ロジック（実装方針）」に従う（`previous.all`→`null` / `next.all`かつ`previous.countries`→`{ country: { notIn } }` / 両`countries`は差集合を`{ country: { in } }`、差なしは`null`）
+  - 返す`where`には常に`isActive: true`を含める。包含判定は`Array.prototype.includes`／`Array.from`を用い`for...of`（`downlevelIteration`落とし穴）を避ける
+  - 全テストがパスすることで完了とする
+  - _Requirements: 35.2, 35.3, 35.4, 35.5_
+  - _Boundary: src/lib/server/announcement-mapper.ts_
+
+- [ ] 48.3 `notifyAnnouncementTargetExpanded`を`announcement-notifications.ts`に実装する
+  - `sendAndLog`の`kind`を`"publish" | "reminder" | "target_added"`へ拡張し、`target_added`は`publish`と同じ本文（本文＋詳細リンク、`Due:`行なし）で送るようにする
+  - `notifyAnnouncementTargetExpanded(announcementId, recipientWhere)`を追加し、`applicantUser.findMany({ where: recipientWhere, select: { email, preferredLocale } })`の各件に`sendAndLog(announcement, "target_added", recipient)`を`Promise.all`で呼ぶ。全例外は内部で捕捉しthrowしない
+  - 全テストがパスすることで完了とする
+  - _Requirements: 35.1, 35.8, 35.9_
+  - _Boundary: src/lib/server/announcement-notifications.ts_
+  - _Depends: 48.1, 48.2_
+
+- [ ] 48.4 `updateAnnouncementRecord`に差分検出と追加通知の呼び出しを結線する
+  - 事前取得の`select`を`{ status, targetingScope, targetingCountries }`へ拡張し`previous`の`targeting`を復元する
+  - 更新確定後、`shouldStampPublishedAt`が偽かつ`input.status === "published"`のときのみ`addedTargetApplicantUsersWhere(previousTargeting, announcement.targeting)`を算出し、非`null`なら`await notifyAnnouncementTargetExpanded(announcement.id, where)`を呼ぶ。既存の`notifyAnnouncementPublished`結線は変更しない
+  - 全テストがパスすることで完了とする
+  - _Requirements: 35.1, 35.2, 35.6, 35.7, 35.10_
+  - _Boundary: src/lib/server/announcement-service.ts_
+  - _Depends: 48.2, 48.3_
+
+- [ ] 49. 検証: 単体・統合テスト
+- [ ] 49.1 (P) `addedTargetApplicantUsersWhere`の単体テストを実装する
+  - `all`起点は`null` / `countries`→`all`は`notIn` / `countries`→拡大は`in`（差集合） / 縮小・同一は`null` / 返り値に常に`isActive: true`が含まれること、を検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 35.2, 35.3, 35.4, 35.5_
+  - _Boundary: src/lib/server/announcement-mapper.test.ts（新規または既存へ追記）_
+  - _Depends: 48.2_
+
+- [ ] 49.2 (P) `notifyAnnouncementTargetExpanded`の単体テストを実装する
+  - 渡した`where`で`applicantUser.findMany`が呼ばれること、各宛先に`kind: "target_added"`のログが作成されること、送信失敗時に`failed`／SMTP未設定時に`skipped`が記録され例外をthrowしないことを検証する
+  - 全テストがパスすることで完了とする
+  - _Requirements: 35.1, 35.8, 35.9_
+  - _Boundary: src/lib/server/announcement-notifications.test.ts_
+  - _Depends: 48.3_
+
+- [ ] 49.3 `updateAnnouncementRecord`の統合テストを実装する
+  - `countries=["VN"]`→`["VN","TH"]`で`notifyAnnouncementTargetExpanded`が追加分（`TH`を含む`where`）で1回、`notifyAnnouncementPublished`は0回
+  - `all`→`countries`（縮小）・`countries`→同一で追加通知0回、`countries=["VN"]`→`all`で`notIn: ["VN"]`の`where`で追加通知1回
+  - `draft`→`published`は`notifyAnnouncementPublished`のみ1回・追加通知0回、更新後`draft`は両方0回
+  - 追加通知経路で`announcementRecipient.create`が呼ばれないこと（台帳を新規作成しない）
+  - 全テストがパスすることで完了とする
+  - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5, 35.6, 35.7, 35.10_
+  - _Boundary: src/lib/server/announcement-service.test.ts_
+  - _Depends: 48.4_
+
+---
+
+## 追加ラウンド（2026-07-22）: 多言語フォールバック順序の英語優先化
+
+- [ ] 50. コア: フォールバック順序を英語優先に変更する
+- [ ] 50.1 `resolveAnnouncementContent`に`en`優先フォールバックを追加する
+  - `src/lib/server/announcement-mapper.ts` の `resolveAnnouncementContent` で、`locale`一致翻訳が無い場合に`translations`から`en`を探し、あれば`en`の`title`/`body`を返す。`en`も無い場合のみ既定言語カラム（`ja`）を返す
+  - `locale === "ja"`（先頭分岐）・`locale`一致時の挙動は変更しない
+  - _Requirements: 36.1, 36.2, 36.3, 36.4, 36.5_
+  - _Boundary: announcement-mapper_
+- [ ] 50.2 通知メール詳細リンクのUIロケールフォールバックを`en`に変更する
+  - `src/lib/server/announcement-notifications.ts` の `resolveUiLocale` で、`routing.locales`に含まれない`preferredLocale`のフォールバック先を`routing.defaultLocale`（`ja`）から`"en"`に変更する
+  - _Requirements: 36.6_
+  - _Boundary: announcement-notifications_
+
+- [ ] 51. 検証: 既存テストの期待値更新と追加
+- [ ] 51.1 (P) `resolveAnnouncementContent`のテストを`en`優先に更新する
+  - `src/lib/server/announcement-service.test.ts`: `translations=[en]`で`locale="th"`のとき`en`内容を返す期待値に更新する。`en`が無いケース（`ja`フォールバック）のテストを追加する
+  - _Requirements: 36.1, 36.7_
+  - _Depends: 50.1_
+- [ ] 51.2 (P) 通知メールのフォールバックテストを`en`優先に更新する
+  - `src/lib/server/announcement-notifications.test.ts`: `preferredLocale: "th"`時の件名・本文の期待値を`en`翻訳内容に、詳細リンクの期待パスを`/en/announcements/...`に更新する
+  - _Requirements: 36.4, 36.6, 36.7_
+  - _Depends: 50.1, 50.2_
+- [ ] 51.3 統合テスト: en翻訳のみのお知らせのth宛通知がen本文・enリンクになることを確認する
+  - `en`翻訳のみを登録したお知らせで、`preferredLocale: "th"`の`ApplicantUser`向け公開通知が`en`本文・`/en/`詳細リンクで送信されることを検証する
+  - _Requirements: 36.4, 36.6_
+  - _Depends: 50.1, 50.2_

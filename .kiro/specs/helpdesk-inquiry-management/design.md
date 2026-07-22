@@ -803,12 +803,12 @@ export async function sendInquiryReplyAction(
 - `sendInquiryReplyAction`の単体テストに、`updateStatusIfCurrent`相当が`true`を返したとき`status_changed`エントリが追記されるケース、`false`を返したとき追記されないケースを追加する
 - `HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`の表示テストに、見出しが`title`になっていること、`title`が空文字のとき代替ラベルが表示されアクセシブルネームのないリンクが生じないことを検証するケースを追加する（既存の会社名・カテゴリ表示のテストは補足行としての表示に更新する）
 
-## 追加（2026-07-22）: 一覧取得の添付ファイル除外（性能）と対応中フラグ解除の所有者チェック（整合性）
+## 追加（2026-07-22・2）: 一覧取得の添付ファイル除外（性能）と対応中フラグ解除の所有者チェック（整合性）
 
 ### Overview（追加分）
-Requirement 17・18への対応。`Inquiry`型・`InquiryHistoryEntry`型・公開API関数のシグネチャは変更せず、変更はデータ取得層（`src/lib/server/inquiry-service.ts`・`src/lib/server/inquiry-mapper.ts`）、エラー変換層（`src/lib/server/api-errors.ts`）、対応中フラグの呼び出し経路（`src/lib/api/inquiries.ts`・claim route・`src/lib/actions/helpdesk.ts`）、および対応中フラグUI（`ClaimToggleButton`・`HelpdeskInquiryDetail`）に閉じる。この2件はいずれも共有データ取得層`inquiry-service.ts`に対する変更のため、同一ファイルの二重編集を避ける目的で本spec側で一括所有する（申請者側の期待は`inquiry-list`spec 要件16が参照・検証する）。
+Requirement 18・19への対応。`Inquiry`型・`InquiryHistoryEntry`型・公開API関数のシグネチャは変更せず、変更はデータ取得層（`src/lib/server/inquiry-service.ts`・`src/lib/server/inquiry-mapper.ts`）、エラー変換層（`src/lib/server/api-errors.ts`）、対応中フラグの呼び出し経路（`src/lib/api/inquiries.ts`・claim route・`src/lib/actions/helpdesk.ts`）、および対応中フラグUI（`ClaimToggleButton`・`HelpdeskInquiryDetail`）に閉じる。この2件はいずれも共有データ取得層`inquiry-service.ts`に対する変更のため、同一ファイルの二重編集を避ける目的で本spec側で一括所有する（申請者側の期待は`inquiry-list`spec 要件16が参照・検証する）。
 
-### 課題1: 一覧取得時の添付ファイル除外（Requirement 17）
+### 課題1: 一覧取得時の添付ファイル除外（Requirement 18）
 
 **`src/lib/server/inquiry-service.ts`（変更）**
 現状、詳細・一覧の全取得関数と作成関数が単一の`INQUIRY_INCLUDE = { claimedByStaff: true, attachments: true }`を共有している。これを次の2定義に分離する。
@@ -833,13 +833,13 @@ type PrismaInquiryWithRelations = Prisma.InquiryGetPayload<{
 }> & { attachments?: PrismaInquiryAttachment[] };
 ```
 
-`mapInquiry`本体は既に`record.attachments?.length ? record.attachments.map(mapAttachment) : undefined`と任意アクセスで実装済みのため、ロジック変更は不要。一覧由来の`Inquiry`は`attachments: undefined`となる（一覧・プレビューは添付を描画しないため影響なし。Requirement 17.5）。
+`mapInquiry`本体は既に`record.attachments?.length ? record.attachments.map(mapAttachment) : undefined`と任意アクセスで実装済みのため、ロジック変更は不要。一覧由来の`Inquiry`は`attachments: undefined`となる（一覧・プレビューは添付を描画しないため影響なし。Requirement 18.5）。
 
 **影響範囲の確認（設計時に確認済み）**: `attachments`/`AttachmentPreviewList`を参照するのは詳細系コンポーネント（`HelpdeskInquiryDetail`・`HistoryTimeline`・申請者側`InquiryDetail`・`InquiryHistoryList`・各返信/メッセージフォーム）のみで、一覧項目（`HelpdeskInquiryListItem`・`InquiryListItem`）・ダッシュボードプレビュー（`PriorityInquiriesPreviewPanel`）は`attachments`を参照しない。詳細画面は`getInquiryById`→`findInquiry*`（詳細include）を経由するため添付は従来どおり取得される。
 
 **共有データ取得層としての所有権**: この変更は`inquiry-list`spec所有の申請者一覧（`listInquiriesForCompany`）・申請者詳細（`findInquiryForCompany`）にも同時に作用する。データ取得層（`inquiry-service.ts`）の変更は本specが一次的に所有し（1ファイルへの単一変更として実装）、`inquiry-list`spec 要件16はこの変更を参照して申請者側の期待（一覧は添付なし・詳細は添付あり、要件10の添付表示維持）を保証する。
 
-### 課題2: 対応中フラグ解除の所有者チェック（Requirement 18）
+### 課題2: 対応中フラグ解除の所有者チェック（Requirement 19）
 
 **`src/lib/server/inquiry-service.ts`（変更）**
 所有者不一致を表す専用エラーを追加する。
@@ -886,8 +886,8 @@ export async function setClaim(
 }
 ```
 
-- 対象が未claim（`claimedByStaffId`がnull）で解除要求された場合は条件に該当せず、冪等な無操作としてnull/null更新が実行される（Requirement 18.4）。
-- claim ON時の`DoubleClaimError`挙動は不変（Requirement 18.6）。
+- 対象が未claim（`claimedByStaffId`がnull）で解除要求された場合は条件に該当せず、冪等な無操作としてnull/null更新が実行される（Requirement 19.4）。
+- claim ON時の`DoubleClaimError`挙動は不変（Requirement 19.6）。
 
 **`src/lib/api/inquiries.ts`（変更）** `setInquiryClaim` — セッションから解決した`claims.staffId`を`actingStaffId`として渡す。
 
@@ -904,7 +904,7 @@ export async function setInquiryClaim(id: string, staffName: string | null): Pro
 
 **`src/app/api/inquiries/[id]/claim/route.ts`（変更）** — `setClaim`の第3引数に`session.claims.staffId`を渡す。
 
-**`src/lib/server/api-errors.ts`（変更）** — `ClaimOwnershipError`をimportし、403に対応付ける分岐を追加する（Requirement 18.3）。
+**`src/lib/server/api-errors.ts`（変更）** — `ClaimOwnershipError`をimportし、403に対応付ける分岐を追加する（Requirement 19.3）。
 
 ```typescript
 if (error instanceof ClaimOwnershipError) {
@@ -912,7 +912,7 @@ if (error instanceof ClaimOwnershipError) {
 }
 ```
 
-**`src/lib/actions/helpdesk.ts`（変更）** `releaseInquiryClaimAction` — 所有者不一致を呼び出し元（クライアント）が判別して専用メッセージを出せるよう、戻り値を判別可能な結果オブジェクトに変更する。`ClaimOwnershipError`のときは`released`履歴を記録せず（Requirement 18.5）、`{ ok: false, reason: "notOwner" }`を返す。成功時のみ`released`履歴記録＋`revalidateInquiryRoutes()`を行い`{ ok: true }`を返す。想定外の例外は再throwし、クライアントの汎用エラー表示にフォールバックさせる。
+**`src/lib/actions/helpdesk.ts`（変更）** `releaseInquiryClaimAction` — 所有者不一致を呼び出し元（クライアント）が判別して専用メッセージを出せるよう、戻り値を判別可能な結果オブジェクトに変更する。`ClaimOwnershipError`のときは`released`履歴を記録せず（Requirement 19.5）、`{ ok: false, reason: "notOwner" }`を返す。成功時のみ`released`履歴記録＋`revalidateInquiryRoutes()`を行い`{ ok: true }`を返す。想定外の例外は再throwし、クライアントの汎用エラー表示にフォールバックさせる。
 
 ```typescript
 export type ReleaseClaimResult = { ok: true } | { ok: false; reason: "notOwner" };
@@ -981,12 +981,13 @@ setErrorKind(null);
 - `messages/ja.json` / `messages/en.json` — `helpdeskInquiries.claim.notOwnerErrorMessage`追加
 
 ### Requirements Traceability（追加分）
+
 | Requirement | Summary | Components |
 |-------------|---------|------------|
-| 17.1〜17.5 | 一覧取得時の添付ファイル除外 | inquiry-service（INQUIRY_LIST_INCLUDE/INQUIRY_DETAIL_INCLUDE）, inquiry-mapper |
-| 18.1, 18.2, 18.4, 18.6 | claim解除の所有者チェック（サーバー） | inquiry-service（setClaim, ClaimOwnershipError） |
-| 18.3 | ClaimOwnershipError→403 | api-errors |
-| 18.5, 18.7 | 拒否時の履歴非記録・専用メッセージ表示・i18n | releaseInquiryClaimAction, ClaimToggleButton, messages |
+| 18.1〜18.5 | 一覧取得時の添付ファイル除外 | inquiry-service（INQUIRY_LIST_INCLUDE/INQUIRY_DETAIL_INCLUDE）, inquiry-mapper |
+| 19.1, 19.2, 19.4, 19.6 | claim解除の所有者チェック（サーバー） | inquiry-service（setClaim, ClaimOwnershipError） |
+| 19.3 | ClaimOwnershipError→403 | api-errors |
+| 19.5, 19.7 | 拒否時の履歴非記録・専用メッセージ表示・i18n | releaseInquiryClaimAction, ClaimToggleButton, messages |
 
 ### Error Handling（追加分）
 - `ClaimOwnershipError`: `setClaim`の解除パスで所有者不一致時に送出。API route経由では`api-errors`が403へ変換。Server Action（`releaseInquiryClaimAction`）経由では捕捉して`{ ok: false, reason: "notOwner" }`に変換し、`released`履歴を記録しない。
@@ -1002,3 +1003,41 @@ setErrorKind(null);
 - **Unit Tests（api/actions/route）**: `setInquiryClaim`が`setClaim`を`actingStaffId`込みで呼ぶこと。`releaseInquiryClaimAction`が所有者不一致時に`{ ok: false, reason: "notOwner" }`を返し`released`履歴を記録しないこと、成功時に`{ ok: true }`＋履歴記録＋revalidateを行うこと。claim routeが`ClaimOwnershipError`時に403を返すこと。
 - **Integration Tests（UI）**: `ClaimToggleButton`が解除の`notOwner`結果で専用メッセージを表示すること。
 - **回帰確認**: `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ること。
+
+## 追加設計（2026-07-22）: 新規投稿の未翻訳状態の明示表示（Requirement 17 / 13.4改訂）
+
+### 背景と方針
+実運用の投稿（`createInquiryRecord`）では`translatedText`が常に`null`のため、非日本語の問い合わせは注記なしで原文のみが表示されていた（`translatedText`死蔵）。本ラウンドでは、投稿側で`translatedText`へ値を書き込まない方針（`inquiry-form`spec 追記2026-07-22・要件13で確定、`translatedText`は`null`のまま）を前提に、**表示側でのみ**「非日本語かつ未翻訳」の場合に翻訳未対応の注記を明示表示する。虚偽の訳文・プレースホルダーは一切生成しない。
+
+### Boundary Commitments（追加分）
+- **This Spec Owns（追加・2026-07-22）**: `HelpdeskInquiryDetail`の問い合わせ本文セクションにおける「非日本語かつ`translatedText`未設定」時の翻訳未対応注記の表示ロジック、および注記のi18nキー（`helpdeskInquiries.detail.translationUnavailable`）。
+- **Out of Boundary（追加・2026-07-22）**: 投稿時に`translatedText`へ値を設定する処理・`createInquiryRecord`/`CreateInquiryInput`（`inquiry-form`spec所有）、実翻訳API連携（フェーズ3以降）、申請者側画面での注記表示（`inquiry-list`spec所有）。
+- **Revalidation Triggers（追加・2026-07-22）**: `inquiry-form`specが投稿時に`translatedText`へ値を書き込む方針へ変更した場合、本specの表示分岐（未翻訳注記の表示条件）を再確認する。
+
+### 表示分岐ロジック（`HelpdeskInquiryDetail.tsx`）
+対象は既存の問い合わせ本文セクション（現行コードの L114〜138 付近、`inquiry.originalLanguage !== "ja" && inquiry.translatedText` の三項分岐）。この分岐を次の3分岐へ拡張する（判定順を固定する）。
+
+1. `inquiry.originalLanguage !== "ja" && inquiry.translatedText`（真）: 従来どおり、`translatedTextLabel`（「日本語訳」）付きで`translatedText`をメイン表示し、その下に`originalTextLabel`（「原文」）付きで`originalText`を表示する（Requirement 13.1・13.2、変更なし）。
+2. `inquiry.originalLanguage !== "ja" && !inquiry.translatedText`（＝非日本語かつ未翻訳、**本ラウンドの新規分岐**）: 翻訳未対応の注記（`t("detail.translationUnavailable")`）を、原文の上に**補足情報として控えめに**表示（例: `text-sm text-muted-foreground` のテキスト、または`bg-muted`の控えめなボックス。`--destructive`等のエラー配色は使わない）し、その下に`originalText`を表示する。注記には`translatedTextLabel`ラベルは付けない（訳文ではないため）。Requirement 17.1・17.2・13.4改訂に対応。
+3. 上記以外（`originalLanguage === "ja"`）: 従来どおりラベルなしで`originalText`のみを表示する（Requirement 13.3・17.3、変更なし）。
+
+判定は「空文字も未設定として扱う」ため、真偽判定に`inquiry.translatedText`（`undefined`/空文字はfalsy）をそのまま用いれば要件13.4改訂（`null`または空文字）を満たす。
+
+### i18n（`messages/ja.json` / `messages/en.json`）
+`helpdeskInquiries.detail`名前空間に次のキーを1つ追加する（既存キー`translatedTextLabel`/`originalTextLabel`/`attachmentsLabel`等は変更しない）。
+
+- キー: `helpdeskInquiries.detail.translationUnavailable`
+- `ja.json`: 「自動翻訳は未対応です。以下の原文をご確認ください。」
+- `en.json`: "Automatic translation is not available yet. Please refer to the original text below."
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 13.4（改訂）, 17.1〜17.4 | 非日本語かつ未翻訳時の翻訳未対応注記の表示 | HelpdeskInquiryDetail |
+| 17.5 | 注記文言のi18nキー提供 | messages/ja.json, messages/en.json |
+| 17.6 | 虚偽訳文・翻訳API・自動生成を追加しない（表示のみ） | HelpdeskInquiryDetail（表示ロジックのみ） |
+
+### Testing Strategy（追加分・2026-07-22）
+- `HelpdeskInquiryDetail.test.tsx`の既存ケース「外国語原文だが日本語訳が未設定の場合、日本語訳セクションを表示せず原文のみを表示する」（現行 L300〜329 付近）を、**翻訳未対応の注記（`messages.helpdeskInquiries.detail.translationUnavailable`）が表示され、かつ`translatedTextLabel`は表示されないこと**を検証する内容に更新する。
+- 既存ケース「外国語原文かつ日本語訳が設定されている場合」（L236〜267）・「原文が日本語の場合」（L269〜298）は、注記が表示されないことを併せて確認する（`queryByText(...translationUnavailable)` が `null`）。
+- `ja.json`/`en.json`に`translationUnavailable`キーが存在し、両言語で値を持つこと（i18nキー網羅のスナップショット/整合テストがある場合はそれに追随）。

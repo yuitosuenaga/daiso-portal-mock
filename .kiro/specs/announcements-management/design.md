@@ -1921,4 +1921,246 @@ src/app/[locale]/helpdesk/(dashboard)/announcements/
   - 0件選択のまま送信するとブロックされること（既存のバリデーション挙動が維持されていること）
 - 実機検証（Cursorレビューとは別に、実装担当者が完了確認として実施）: ヘルプデスクとしてログインし、お知らせ新規作成画面で検索・全選択・全解除・チップ削除・0件送信ブロックを日本語・英語両ロケールで確認する
 
+## 追加ラウンド（2026-07-22）: 公開済みお知らせの配信対象拡大時の追加通知
+
+### Overview（追加分）
+
+公開済みお知らせの編集で配信対象（`targetingCountries`／`targetingScope`）が拡大したとき、新規に対象へ含まれることになった国の`ApplicantUser`にのみ追加の通知メールを送る。既存の通知基盤（`mailer`・`announcement-notifications`・`AnnouncementNotificationLog`・ベストエフォート方式）と多言語コンテンツ解決（`resolveAnnouncementContent`）をそのまま踏襲し、送信対象の絞り込み（差分検出）と結線点（`updateAnnouncementRecord`）のみを追加する。要件35に対応する。
+
+### Goals（追加分）
+- 編集前後の`targeting`を比較し「新たに配信対象へ含まれることになった国」を特定する差分検出ロジックを`announcement-mapper.ts`（leafモジュール）に置く
+- 差分に該当する`ApplicantUser`にのみ、公開通知と同型の本文で追加通知を送る関数を`announcement-notifications.ts`に追加する
+- `updateAnnouncementRecord`から、公開状態が維持されたまま配信対象が拡大した場合にのみ追加通知を発火する結線を追加する
+- 既存対象者への二重送信・過剰通知を発生させない
+
+### Non-Goals（追加分）
+- 全対象者への一律「更新通知」（案(b)、過剰通知のため不採用）
+- 既存対象国に後から追加された`ApplicantUser`への遡及通知
+- 配信対象の縮小・取り消しに伴う通知
+- 通知メールの専用文面（「対象に追加されました」等）の新設。本ラウンドは公開通知（`kind: "publish"`と同型）の本文を用いる
+
+### Boundary Commitments（追加分）
+- `Announcement`本体・`AnnouncementRecipient`・`AnnouncementRecipientStatus`の書き込みロジックは変更しない（追加通知は読み取りと`AnnouncementNotificationLog`への追記のみ）
+- 既存の関数シグネチャ（`createAnnouncementRecord`／`updateAnnouncementRecord`の引数・戻り値）は変更しない
+- 要件27.3（公開のまま編集した場合の再送抑止）は既存対象者について維持し、本要件は「新規追加分」に限って例外的に送信する
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 35.1, 35.2 | 拡大時に新規追加分のみへ通知 | announcement-mapper（差分検出）, announcement-notifications, announcement-service | Service | 配信対象拡大通知フロー |
+| 35.3, 35.4, 35.5 | 差分の判定（all起点は無送信 / countries→all / 縮小は無送信） | announcement-mapper（`addedTargetApplicantUsersWhere`） | Service | 配信対象拡大通知フロー |
+| 35.6, 35.7 | 公開遷移・下書きでは追加通知を発火しない | announcement-service（`updateAnnouncementRecord`結線） | Service | 配信対象拡大通知フロー |
+| 35.8 | 本文は宛先言語のタイトル・本文＋詳細リンク | announcement-notifications（`resolveAnnouncementContent`呼び出し） | Service | 配信対象拡大通知フロー |
+| 35.9 | ベストエフォート・履歴記録（`kind`で区別） | announcement-notifications, AnnouncementNotificationLog | Service | 配信対象拡大通知フロー |
+| 35.10 | 台帳（`AnnouncementRecipient`）は既存を流用しレコード作成不要 | AnnouncementRecipient（変更なし） | — | — |
+
+### System Flows（追加分）
+
+**配信対象拡大通知フロー（`updateAnnouncementRecord`内、更新確定後）**
+1. 更新前に、対象お知らせの`status`・`targetingScope`・`targetingCountries`を取得しておく（`previous`）。
+2. 通常どおり`prisma.announcement.update`を実行し、更新後レコードを`mapAnnouncement`で`Announcement`へ整形する（`next`）。
+3. `shouldStampPublishedAt`（`draft`→`published`）が真の場合は、既存の`notifyAnnouncementPublished`が全対象者へ通知するため、追加通知は行わない（要件35.6）。
+4. `input.status !== "published"`（更新後が下書き）の場合は追加通知を行わない（要件35.7）。
+5. 上記いずれにも該当しない（公開のまま保存された）場合、`addedTargetApplicantUsersWhere(previous.targeting, next.targeting)`で「新規追加分の`ApplicantUser`」を表す`where`を算出する。結果が`null`（新規追加なし）なら何もしない（要件35.3・35.5）。
+6. `where`が非`null`のとき、`notifyAnnouncementTargetExpanded(next.id, where)`を`await`で呼ぶ。以降は既存の`sendAndLog`と同一のベストエフォート送信・履歴記録に委ねる（要件35.8・35.9）。
+
+### Components and Interfaces（追加分）
+
+#### announcement-mapper（差分: 配信対象拡大の差分検出）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 編集前後の`targeting`から「新たに配信対象へ含まれることになった国に属する有効な`ApplicantUser`」を表す`where`を算出する。循環importを避けるためleafモジュール（mapper）に置く |
+| Requirements | 35.2, 35.3, 35.4, 35.5 |
+
+**Responsibilities & Constraints**
+- 既存の`targetApplicantUsersWhere`と同様、常に`isActive: true`を含める（無効化済みアカウントは対象外）
+- 「新規追加が生じない」ケースでは`null`を返し、呼び出し元が送信自体をスキップできるようにする
+
+##### Service Interface
+```typescript
+// announcement-mapper.ts
+export function addedTargetApplicantUsersWhere(
+  previous: Pick<Announcement, "targeting">,
+  next: Pick<Announcement, "targeting">
+): Prisma.ApplicantUserWhereInput | null;
+```
+
+**判定ロジック（実装方針）**
+- `previous.targeting.scope === "all"` のとき → `null`（編集前から全受信者が対象。新規追加は生じ得ない。要件35.3）。
+- `next.targeting.scope === "all"` かつ `previous.targeting.scope === "countries"` のとき → `{ isActive: true, company: { country: { notIn: previous.targeting.countries } } }`（編集前の対象国に含まれていなかった国＝新規追加分。要件35.4）。
+- 両者とも `scope === "countries"` のとき → `added = next.targeting.countries.filter((c) => !previous.targeting.countries.includes(c))`。`added.length === 0` なら `null`（縮小・同一。要件35.5）、そうでなければ `{ isActive: true, company: { country: { in: added } } }`。
+- 実装ノート: `previous.targeting.countries`はSet化して包含判定してよい（`downlevelIteration`回避のため`for...of`ではなく`Array.prototype.includes`／`Array.from`を用いる。既知の`vitest`／TS設定の落とし穴に配慮）。
+
+#### announcement-notifications（差分: 追加通知の送信）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 与えられた宛先`where`に一致する`ApplicantUser`へ、公開通知と同型の本文でメールを送り、宛先ごとに`AnnouncementNotificationLog`へ記録する |
+| Requirements | 35.1, 35.8, 35.9 |
+
+**Responsibilities & Constraints**
+- 既存の`sendAndLog`を再利用する。`kind`引数を`"publish" | "reminder" | "target_added"`へ拡張し、`target_added`は`publish`と同じ本文（本文＋詳細リンク。リマインドの`Due:`行は付けない）で送る
+- 宛先解決は引数で受け取った`where`をそのまま`prisma.applicantUser.findMany`に渡す（差分算出は`announcement-mapper`の責務）
+- 全例外を内部で捕捉し、この関数自体は例外をthrowしない（要件29.1の踏襲）
+
+##### Service Interface
+```typescript
+// announcement-notifications.ts
+export async function notifyAnnouncementTargetExpanded(
+  announcementId: string,
+  recipientWhere: Prisma.ApplicantUserWhereInput
+): Promise<void>;
+```
+- Preconditions: `announcementId`は存在し公開状態であること（呼び出し元が保証）。`recipientWhere`は`addedTargetApplicantUsersWhere`が返した非`null`値であること
+- Postconditions: 一致宛先ごとに`kind: "target_added"`の`AnnouncementNotificationLog`が1件作成される。関数自体は常に正常終了する
+- 実装ノート: 内部は`notifyAnnouncementPublished`とほぼ同型。`findAnnouncementForNotification`で対象を取得し、`prisma.applicantUser.findMany({ where: recipientWhere, select: { email, preferredLocale } })`の各件に対し`sendAndLog(announcement, "target_added", recipient)`を`Promise.all`で呼ぶ
+
+#### announcement-service（差分: 更新時の結線）
+
+**Responsibilities & Constraints（追加）**
+- `updateAnnouncementRecord`冒頭の事前取得（現在は`select: { status: true }`）を`select: { status: true, targetingScope: true, targetingCountries: true }`へ拡張し、`previous`の`targeting`を復元する（`mapTargeting`相当のロジック、または`targetingScope === "countries" ? { scope: "countries", countries: targetingCountries } : { scope: "all" }`）
+- 更新確定後、`shouldStampPublishedAt`が偽かつ`input.status === "published"`のときのみ、`addedTargetApplicantUsersWhere(previousTargeting, announcement.targeting)`を算出し、非`null`なら`await notifyAnnouncementTargetExpanded(announcement.id, where)`を呼ぶ
+- 既存の`notifyAnnouncementPublished`呼び出し（`shouldStampPublishedAt`時）は変更しない
+
+### Data Models（追加分）
+- `AnnouncementNotificationKind`（既存enumへの値追加）: `publish` / `reminder` に加えて **`target_added`** を追加する。Postgresの列挙型への値追加であり、`prisma migrate`で `ALTER TYPE "AnnouncementNotificationKind" ADD VALUE 'target_added'` に相当するマイグレーションが生成される（既存データ・既存行への影響はなく、後方互換）。**本番反映時は`prisma migrate deploy`を手動で流す必要がある点に注意（Cloud SQLへの反映漏れがあるとenum値不一致で書き込みが失敗する）**。
+- `AnnouncementNotificationLog`: モデル定義自体は変更しない（`kind`が新値`target_added`を取り得るようになるのみ）。
+- `AnnouncementRecipient` / `AnnouncementRecipientStatus`: 変更なし。配信対象拡大で新たに対象となる会社の台帳レコードは、会社作成時（`company-service.ts`の`createCompany`が`$transaction`で`announcementRecipient.create`を実行）およびシード時（`prisma/seed.ts`の`seedAnnouncementRecipients`）に全社分作成済みであることを前提とし、追加のレコード作成は行わない（要件35.10）。
+
+### Error Handling（追加分）
+- 追加通知の送信失敗・SMTP未設定は、既存の`sendAndLog`と同一の扱い（`failed`／`skipped`として`AnnouncementNotificationLog`へ記録、`updateAnnouncementRecord`自体は成功で完了）。
+- `addedTargetApplicantUsersWhere`が`null`を返す場合は送信処理へ進まない（不要なDB問い合わせを避ける）。
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**（`announcement-mapper`／新規テスト or 既存テストへ追記）:
+  - `previous.scope === "all"` は常に`null`を返す（要件35.3）
+  - `previous.countries=["VN"]` → `next.scope==="all"` で `{ company: { country: { notIn: ["VN"] } }, isActive: true }` を返す（要件35.4）
+  - `previous.countries=["VN"]` → `next.countries=["VN","TH"]` で `{ company: { country: { in: ["TH"] } }, isActive: true }` を返す
+  - `previous.countries=["VN","TH"]` → `next.countries=["VN"]`（縮小）で`null`を返す（要件35.5）
+  - `previous.countries=["VN"]` → `next.countries=["VN"]`（同一）で`null`を返す
+  - 返す`where`に常に`isActive: true`が含まれること
+- **Unit Tests**（`announcement-notifications`）:
+  - `notifyAnnouncementTargetExpanded`が、渡した`where`で`applicantUser.findMany`を呼び、各宛先に`kind: "target_added"`のログを作成すること
+  - 送信失敗時に例外を伝播させず`failed`ログを記録すること、SMTP未設定時は`skipped`を記録すること
+- **Integration Tests**（`announcement-service.test.ts`へ追記。`notifyAnnouncementPublished`／`notifyAnnouncementTargetExpanded`は既存同様`vi.fn()`でモック）:
+  - 公開済みお知らせを`countries=["VN"]`→`["VN","TH"]`に編集すると、`notifyAnnouncementTargetExpanded`が追加分（`TH`を含む`where`）で1回呼ばれ、`notifyAnnouncementPublished`は呼ばれないこと（要件35.1・35.2・二重送信防止）
+  - 公開済みお知らせを`all`→`countries=["VN"]`（縮小）や`countries=["VN"]`→`["VN"]`（同一）に編集しても、追加通知が呼ばれないこと（要件35.3・35.5）
+  - `countries=["VN"]`→`all`で、`notIn: ["VN"]`の`where`で追加通知が呼ばれること（要件35.4）
+  - `draft`→`published`への更新では`notifyAnnouncementPublished`のみが呼ばれ、`notifyAnnouncementTargetExpanded`は呼ばれないこと（要件35.6）
+  - 更新後が`draft`のときはいずれの通知も呼ばれないこと（要件35.7）
+  - 追加通知の経路で`announcementRecipient.create`が呼ばれないこと（台帳を新規作成しない。要件35.10）
+- 実機検証（実装担当者の完了確認、SMTPはモック/未設定で`skipped`ログ確認可）: ヘルプデスクとして公開済みお知らせの対象国を追加保存し、`AnnouncementNotificationLog`に`kind: "target_added"`の行が追加分の国の受信者数だけ記録されることを確認する。
+
 ---
+
+## 追加ラウンド（2026-07-22）: 多言語フォールバック順序の英語優先化
+
+### Overview（追加分）
+`resolveAnnouncementContent`の未整備言語フォールバックを、現状の`ja`直行から「`locale`一致 → `en` → `ja`」に変更する。2026-07-16ラウンドで実装した`ja`フォールバック（設計本文の「フォールバックは`ja`」記述、要件31.4・33.2）を本ラウンドで上書きする。**Purpose**: 20か国以上の受信者にとって共通語である英語を、未整備言語時のフォールバック先とする。**Impact**: `announcement-mapper.ts`の`resolveAnnouncementContent`（純粋関数）の分岐追加1箇所と、`announcement-notifications.ts`の`resolveUiLocale`のフォールバック先変更1箇所。データモデル・マイグレーション・UIの変更はない。既存テストの期待値更新を伴う。
+
+### Goals（追加分）
+- `resolveAnnouncementContent`が、`locale`一致翻訳が無いとき`en`翻訳を優先し、`en`も無い場合のみ`ja`（既定言語カラム）にフォールバックする
+- 通知メール（`th`/`vi`等の`preferredLocale`）が、未整備時に`en`本文で生成される
+- 通知メール詳細リンクのUIロケールも、非ルーティングロケール時に`en`へフォールバックし、本文言語とリンク先を整合させる
+
+### Non-Goals（追加分）
+- 翻訳データ自体の整備・機械翻訳（対象外）
+- `ApplicantUser.preferredLocale`の既定値（`en`）変更（要件30.2維持）
+- 申請者側UIロケールの追加（`ja`/`en`のみ）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `resolveAnnouncementContent`のフォールバック順序（`announcement-mapper.ts`、本spec所有のleafモジュール）
+- 通知メールの`resolveUiLocale`のフォールバック先（`announcement-notifications.ts`、本spec所有）
+
+**Out of Boundary（追加）**
+- 申請者側の一覧・詳細画面の表示コード（`announcements`spec所有）。ただし同specは`resolveAnnouncementContent`を`ja`/`en`のUIロケールでのみ呼ぶため、本変更による表示結果の差は生じない（`ja`は最優先確定、`en`は一致優先で確定）
+
+**Revalidation Triggers（追加）**
+- `AnnouncementTranslation`の`en`必須制約（要件31.2）が撤廃された場合、`en`フォールバックが空振りするケースが増えるため再検討が必要
+- `routing.locales`/`routing.defaultLocale`の構成が変更された場合
+
+### Architecture（追加分）
+純粋関数の分岐追加のみ。新規フロー・新規モジュールなし。
+
+```mermaid
+graph TB
+    subgraph resolveAnnouncementContent
+      L{locale === ja?}
+      M{locale一致の翻訳あり?}
+      E{en翻訳あり?}
+      RJ[jaカラム title/body を返す]
+      RM[一致翻訳を返す]
+      RE[en翻訳を返す]
+      L -- yes --> RJ
+      L -- no --> M
+      M -- yes --> RM
+      M -- no --> E
+      E -- yes --> RE
+      E -- no --> RJ
+    end
+```
+
+### Technology Stack（追加分・差分のみ）
+追加・変更なし。
+
+### File Structure Plan（追加分）
+新規ファイルなし。
+
+### Modified Files（追加分）
+- `src/lib/server/announcement-mapper.ts` — `resolveAnnouncementContent`に`en`翻訳フォールバック分岐を追加。`locale`一致が無い場合、`translations`から`en`を探し、あれば返す。無ければ既定言語カラム（`ja`）を返す
+- `src/lib/server/announcement-notifications.ts` — `resolveUiLocale`のフォールバック先を`routing.defaultLocale`（`ja`）から`"en"`に変更（`routing.locales`に含まれない`preferredLocale`のとき`en`のUIパスを用いる）
+- `src/lib/server/announcement-service.test.ts` — `resolveAnnouncementContent`の`th`ケースの期待値を`en`翻訳内容に更新
+- `src/lib/server/announcement-notifications.test.ts` — `preferredLocale: "th"`時の件名・本文の期待値を`en`内容に、詳細リンクの期待パスを`/en/...`に更新
+
+### 実装スケッチ（追加分）
+```typescript
+// announcement-mapper.ts
+export function resolveAnnouncementContent(
+  announcement: Pick<Announcement, "title" | "body" | "translations">,
+  locale: string
+): { title: string; body: string } {
+  if (locale === DEFAULT_ANNOUNCEMENT_LOCALE) {
+    return { title: announcement.title, body: announcement.body };
+  }
+  const match = announcement.translations.find((item) => item.locale === locale);
+  if (match) {
+    return { title: match.title, body: match.body };
+  }
+  // 追加: en（共通語）を ja より優先してフォールバック
+  const en = announcement.translations.find((item) => item.locale === "en");
+  if (en) {
+    return { title: en.title, body: en.body };
+  }
+  return { title: announcement.title, body: announcement.body };
+}
+```
+```typescript
+// announcement-notifications.ts
+function resolveUiLocale(preferredLocale: string): string {
+  return (routing.locales as readonly string[]).includes(preferredLocale)
+    ? preferredLocale
+    : "en"; // 変更: routing.defaultLocale(ja) → en。本文言語（enフォールバック）とリンク先を整合
+}
+```
+注: `en`もルーティングロケール（`routing.locales = ["ja","en"]`）に含まれるため、`resolveUiLocale`の戻り値は引き続き有効なUIパスになる。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces |
+|-------------|---------|------------|------------|
+| 36.1〜36.3, 36.5 | `en`優先フォールバック | announcement-mapper（resolveAnnouncementContent） | `resolveAnnouncementContent` |
+| 36.4 | 通知メール本文のen優先生成 | announcement-notifications | `resolveAnnouncementContent`呼び出し |
+| 36.6 | 詳細リンクUIロケールのenフォールバック | announcement-notifications（resolveUiLocale） | — |
+| 36.7 | 既存テストの期待値更新 | announcement-service.test, announcement-notifications.test | — |
+
+### Testing Strategy（追加分）
+- **Unit Tests（更新・追加）**:
+  - `resolveAnnouncementContent`: `translations=[en]`のとき`locale="th"`で**`en`内容**を返すこと（従来`ja`から変更）。`translations=[]`（en無し）のとき`locale="th"`で`ja`カラムにフォールバックすること。`locale="ja"`は`ja`カラム、`locale="en"`は`en`翻訳（いずれも従来どおり）
+  - 通知メール: `preferredLocale: "th"`のとき件名・本文が`en`翻訳内容になること、詳細リンクが`/en/announcements/...`になること
+- **Integration Tests**:
+  - `en`翻訳のみ登録したお知らせで、`preferredLocale: "th"`の`ApplicantUser`向け公開通知が`en`本文・`/en/`リンクで送信されること
