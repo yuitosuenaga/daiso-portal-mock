@@ -61,7 +61,27 @@
       "fileSizeLabel": "File size",
       "uploadedAtLabel": "Uploaded",
       "sourceTypeUploadBadge": "Upload",
-      "sourceTypeGoogleBadge": "Google link"
+      "sourceTypeGoogleBadge": "Google link",
+      "filter": {
+        "keywordLabel": "Search keyword",
+        "keywordPlaceholder": "Words in the title or description",
+        "sourceTypeLabel": "Registration method",
+        "sourceTypeAll": "All registration methods",
+        "sourceTypeUpload": "Upload",
+        "sourceTypeGoogle": "Google link",
+        "scopeLabel": "Scope",
+        "scopeAll": "All scopes",
+        "scopeAllScope": "Public to all",
+        "scopeCountries": "By country",
+        "scopeCompanies": "By company",
+        "clearButton": "Clear filters",
+        "noResults": "No matching documents found"
+      },
+      "pagination": {
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "pageStatus": "Page {current} of {total}"
+      }
     },
     "form": {
       "createTitle": "Create Document",
@@ -613,7 +633,10 @@
       "downloadLink": "Download",
       "openOriginalLink": "Open the original document",
       "fileSizeLabel": "File size",
-      "uploadedAtLabel": "Uploaded"
+      "uploadedAtLabel": "Uploaded",
+      "newBadge": "New",
+      "googlePreviewError": "Unable to display the preview",
+      "googlePreviewHint": "If the preview does not display, please open the original document"
     },
     "search": {
       "keywordLabel": "Search keyword",

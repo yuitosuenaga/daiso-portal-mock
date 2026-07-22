@@ -79,3 +79,25 @@ export function filterDocuments(
     );
   });
 }
+
+/**
+ * 「新着」バッジの判定基準日数。この値のみを変更すれば新着判定の期間を調整できる
+ * （マジックナンバーを表示コンポーネント側に散在させないための一元管理）。
+ */
+export const DOCUMENT_NEW_BADGE_DAYS = 7;
+
+/**
+ * ドキュメントのアップロード日（`uploadedAt`）が基準期間（`DOCUMENT_NEW_BADGE_DAYS`日）
+ * 以内かどうかを判定する。`now`はテスト容易性のため任意で指定でき、省略時は現在時刻を使う。
+ */
+export function isRecentlyUploaded(uploadedAt: string, now: Date = new Date()): boolean {
+  const uploadedDate = new Date(uploadedAt);
+  const diffMs = now.getTime() - uploadedDate.getTime();
+
+  if (diffMs < 0) {
+    return false;
+  }
+
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays <= DOCUMENT_NEW_BADGE_DAYS;
+}

@@ -28,16 +28,18 @@ const GOOGLE_DOCUMENT: Document = {
   uploadedAt: "2026-07-02T09:00:00Z",
 };
 
+const DEFAULT_PROPS = {
+  locale: "ja",
+  downloadLinkLabel: "ダウンロード",
+  openOriginalLinkLabel: "元のドキュメントを開く",
+  newBadgeLabel: "新着",
+  googlePreviewErrorMessage: "プレビューを表示できませんでした",
+  googlePreviewHint: "プレビューが表示されない場合は、元のドキュメントを開いてください",
+};
+
 describe("DocumentListItem", () => {
   it("クリック操作なしでタイトル・説明・PDFプレビュー・ダウンロードリンクを表示する", () => {
-    render(
-      <DocumentListItem
-        document={DOCUMENT}
-        locale="ja"
-        downloadLinkLabel="ダウンロード"
-        openOriginalLinkLabel="元のドキュメントを開く"
-      />
-    );
+    render(<DocumentListItem document={DOCUMENT} {...DEFAULT_PROPS} />);
 
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
     expect(screen.getByText("テスト用の説明文")).toBeTruthy();
@@ -53,26 +55,31 @@ describe("DocumentListItem", () => {
   it("説明文が未設定の場合は説明文を表示しない", () => {
     const documentWithoutDescription = { ...DOCUMENT, description: undefined };
     render(
-      <DocumentListItem
-        document={documentWithoutDescription}
-        locale="ja"
-        downloadLinkLabel="ダウンロード"
-        openOriginalLinkLabel="元のドキュメントを開く"
-      />
+      <DocumentListItem document={documentWithoutDescription} {...DEFAULT_PROPS} />
     );
 
     expect(screen.queryByText("テスト用の説明文")).toBeNull();
   });
 
-  it("sourceTypeがgoogleのとき、埋め込みURLをプレビューし元のドキュメントを開くリンクを表示する", () => {
-    render(
+  it("説明文に改行および連続空白を保持するスタイル（whitespace-pre-wrap）を適用する", () => {
+    const documentWithMultilineDescription = {
+      ...DOCUMENT,
+      description: "1行目\n2行目",
+    };
+    const { container } = render(
       <DocumentListItem
-        document={GOOGLE_DOCUMENT}
-        locale="ja"
-        downloadLinkLabel="ダウンロード"
-        openOriginalLinkLabel="元のドキュメントを開く"
+        document={documentWithMultilineDescription}
+        {...DEFAULT_PROPS}
       />
     );
+
+    const description = container.querySelector("p.whitespace-pre-wrap");
+    expect(description).not.toBeNull();
+    expect(description?.textContent).toBe("1行目\n2行目");
+  });
+
+  it("sourceTypeがgoogleのとき、埋め込みURLをプレビューし元のドキュメントを開くリンクを表示する", () => {
+    render(<DocumentListItem document={GOOGLE_DOCUMENT} {...DEFAULT_PROPS} />);
 
     const iframe = screen.getByTitle("Googleドキュメント");
     expect(iframe.getAttribute("src")).toBe(GOOGLE_DOCUMENT.googleEmbedUrl);
@@ -84,15 +91,28 @@ describe("DocumentListItem", () => {
   });
 
   it("sourceTypeがgoogleのときファイルサイズを表示しない", () => {
-    render(
-      <DocumentListItem
-        document={GOOGLE_DOCUMENT}
-        locale="ja"
-        downloadLinkLabel="ダウンロード"
-        openOriginalLinkLabel="元のドキュメントを開く"
-      />
-    );
+    render(<DocumentListItem document={GOOGLE_DOCUMENT} {...DEFAULT_PROPS} />);
 
     expect(screen.queryByText(/KB|MB|バイト/)).toBeNull();
+  });
+
+  it("アップロード日が基準期間（7日）以内のとき新着バッジを表示する", () => {
+    const recentDocument: Document = {
+      ...DOCUMENT,
+      uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    render(<DocumentListItem document={recentDocument} {...DEFAULT_PROPS} />);
+
+    expect(screen.getByText("新着")).toBeTruthy();
+  });
+
+  it("アップロード日が基準期間（7日）より前のとき新着バッジを表示しない", () => {
+    const oldDocument: Document = {
+      ...DOCUMENT,
+      uploadedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    render(<DocumentListItem document={oldDocument} {...DEFAULT_PROPS} />);
+
+    expect(screen.queryByText("新着")).toBeNull();
   });
 });

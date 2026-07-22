@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DOCUMENT_NEW_BADGE_DAYS,
   filterDocuments,
+  isRecentlyUploaded,
   targetingLabel,
   validateDocumentFile,
 } from "@/lib/document-utils";
@@ -124,5 +126,44 @@ describe("filterDocuments", () => {
 
   it("一致するドキュメントが無いとき、空配列を返す", () => {
     expect(filterDocuments(documents, "存在しないキーワード")).toEqual([]);
+  });
+});
+
+describe("isRecentlyUploaded", () => {
+  const NOW = new Date("2026-07-22T00:00:00.000Z");
+
+  it("基準日数（既定7日）以内のとき true を返す", () => {
+    const uploadedAt = new Date(
+      NOW.getTime() - 2 * 24 * 60 * 60 * 1000
+    ).toISOString();
+    expect(isRecentlyUploaded(uploadedAt, NOW)).toBe(true);
+  });
+
+  it("基準日数ちょうど（境界値）のとき true を返す", () => {
+    const uploadedAt = new Date(
+      NOW.getTime() - DOCUMENT_NEW_BADGE_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
+    expect(isRecentlyUploaded(uploadedAt, NOW)).toBe(true);
+  });
+
+  it("基準日数を1ミリ秒でも超えると false を返す", () => {
+    const uploadedAt = new Date(
+      NOW.getTime() - DOCUMENT_NEW_BADGE_DAYS * 24 * 60 * 60 * 1000 - 1
+    ).toISOString();
+    expect(isRecentlyUploaded(uploadedAt, NOW)).toBe(false);
+  });
+
+  it("基準日数より前のとき false を返す", () => {
+    const uploadedAt = new Date(
+      NOW.getTime() - 30 * 24 * 60 * 60 * 1000
+    ).toISOString();
+    expect(isRecentlyUploaded(uploadedAt, NOW)).toBe(false);
+  });
+
+  it("未来日時（不整合データ）のとき false を返す", () => {
+    const uploadedAt = new Date(
+      NOW.getTime() + 24 * 60 * 60 * 1000
+    ).toISOString();
+    expect(isRecentlyUploaded(uploadedAt, NOW)).toBe(false);
   });
 });

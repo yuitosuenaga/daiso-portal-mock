@@ -305,35 +305,35 @@
 
 ## 追加ラウンド（2026-07-22）: ドキュメント管理一覧の検索・絞り込み・ページネーション
 
-- [ ] 8. ドキュメント管理一覧に検索・絞り込み・ページネーションを追加する
+- [x] 8. ドキュメント管理一覧に検索・絞り込み・ページネーションを追加する
 
-- [ ] 8.1 ページサイズ・絞り込み選択肢の定数を定義する
+- [x] 8.1 ページサイズ・絞り込み選択肢の定数を定義する
   - 1ページあたりの件数（例: `DOCUMENT_MANAGEMENT_PAGE_SIZE = 10`）と、登録方式（`all`/`upload`/`google`）・公開範囲種別（`all`/`all-scope`/`countries`/`companies`）の絞り込み選択肢を、`helpdesk-documents`配下または`src/lib/constants/document.ts`等に定数として定義する
   - 定数が1箇所で管理され、表示コンポーネントにマジックナンバー・選択肢の直書きが無いことで完了とする
   - _Requirements: 14.3, 14.4, 14.9_
   - _Boundary: constants_
 
-- [ ] 8.2 (P) 検索・絞り込み・ページネーションの翻訳キーを追加する
+- [x] 8.2 (P) 検索・絞り込み・ページネーションの翻訳キーを追加する
   - `messages/ja.json`・`messages/en.json`の`helpdeskDocuments`（`list`または新設`filter`名前空間）に、検索欄プレースホルダー・登録方式/公開範囲種別の絞り込みラベルと各選択肢ラベル・クリアボタン・絞り込み後0件メッセージ・ページネーション操作ラベル（前へ／次へ・現在/総ページ表示等）を追加する
   - `ja.json`で定義した新規キーが全て`en.json`にも存在することで完了とする
   - _Requirements: 14.13_
   - _Boundary: i18n messages_
 
-- [ ] 8.3 管理一覧用の検索・絞り込みバーを実装する
+- [x] 8.3 管理一覧用の検索・絞り込みバーを実装する
   - `DocumentManagementFilterBar`（新規）を実装する。キーワード入力欄・登録方式セレクト・公開範囲種別セレクト・条件クリアボタンを持ち、状態は保持せず変更を都度呼び出し元へ通知する（`DocumentSearchBar`/`AnnouncementFilterBar`のパターンに倣う）
   - タブレット幅（768px以上）で横スクロールを起こさないレイアウトであることで完了とする
   - _Requirements: 14.1, 14.3, 14.4, 14.7, 14.14_
   - _Boundary: DocumentManagementFilterBar_
   - _Depends: 8.1, 8.2_
 
-- [ ] 8.4 ページネーションUIを実装する
+- [x] 8.4 ページネーションUIを実装する
   - ページネーションコンポーネント（新規、例: `DocumentManagementPagination`）を実装する。前へ／次へ操作と現在ページ/総ページ表示を持ち、ラベルは翻訳キーから受け取る
   - タブレット幅（768px以上）で横スクロールを起こさないことで完了とする
   - _Requirements: 14.9, 14.10, 14.13, 14.14_
   - _Boundary: DocumentManagementPagination_
   - _Depends: 8.1, 8.2_
 
-- [ ] 8.5 DocumentManagementListClientを実装し行描画を移設する
+- [x] 8.5 DocumentManagementListClientを実装し行描画を移設する
   - `DocumentManagementListClient`（新規・クライアントコンポーネント）を実装する。props（全件`documents`・`locale`・ラベル辞書・翻訳文字列）を受け取り、`keyword`・`sourceTypeFilter`・`scopeFilter`・`page`の状態を保持する
   - 絞り込みは`filterDocuments`（`documents`spec の`src/lib/document-utils.ts`を再利用）＋`sourceType`一致＋`targeting.scope`一致の述語合成で行い、アップロード日降順の並び順を維持する（`useMemo`で算出）
   - 絞り込み後配列を`DOCUMENT_MANAGEMENT_PAGE_SIZE`件ごとに分割し現在ページ分のみを`ManagementListRow`で描画する。行の中身（タイトル・登録方式バッジ・ファイルサイズ・アップロード日・公開範囲・編集/削除リンク）は既存`DocumentManagementList`の描画を移設する
@@ -343,14 +343,14 @@
   - _Boundary: DocumentManagementListClient_
   - _Depends: 8.3, 8.4_
 
-- [ ] 8.6 DocumentManagementList（サーバー側）を委譲構成に変更する
+- [x] 8.6 DocumentManagementList（サーバー側）を委譲構成に変更する
   - `DocumentManagementList`は`getAllDocuments()`による全件取得・エラー/全体0件ハンドリング・見出し・ラベル辞書生成をサーバー側に残し、行描画とインタラクティブUIを`DocumentManagementListClient`へprops渡しで委譲する
   - 既存の取得構造・`revalidatePath`対象・`getAllDocuments`のインターフェースを変更しないことで完了とする
   - _Requirements: 14.12_
   - _Boundary: DocumentManagementList_
   - _Depends: 8.5_
 
-- [ ] 8.7 (P) 単体テストを追加・更新する
+- [x] 8.7 (P) 単体テストを追加・更新する
   - `DocumentManagementListClient`が、キーワード・登録方式・公開範囲種別の各絞り込みおよびそれらの組み合わせで期待通りに件数を絞り込むこと、条件変更でページが先頭に戻ること、絞り込み後0件でメッセージを表示すること、ページ切り替えで該当ページのみ表示することを検証するテストを追加する
   - 絞り込み・ページ切り替え後もアップロード日降順の並び順が維持されること、既存の登録方式バッジ・編集/削除導線が表示されることを検証するテストを追加する
   - 既存の`DocumentManagementList.test.tsx`を委譲構成に合わせて更新し、全テストがパスすることで完了とする
