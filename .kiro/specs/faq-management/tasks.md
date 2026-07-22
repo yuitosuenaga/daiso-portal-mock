@@ -103,3 +103,51 @@
   - タブレット幅（768px）で新規画面が横スクロールを起こさないことを確認する
   - _Requirements: 8.1, 8.2, 8.3, 9.1_
   - _Depends: 12_
+
+---
+
+## 追加タスク: FAQ管理一覧の検索・絞り込み・ページネーション（2026-07-22 追記, 要件10）
+
+- [ ] 14. 管理一覧用の定数を定義する（要件10.4）
+  - `src/lib/constants/faq.ts`（新規）に `FAQ_MANAGEMENT_PAGE_SIZE = 10` と、必要に応じて `FaqManagementCategoryFilter = "all" | FaqCategory` 型を定義する（`document.ts` の `DOCUMENT_MANAGEMENT_PAGE_SIZE` を踏襲）
+  - _Requirements: 10.4_
+  - _Boundary: 定数_
+
+- [ ] 15. `FaqManagementFilterBar` を実装する（要件10.1, 10.2, 10.7, 10.8）
+  - `src/components/features/helpdesk-faq/FaqManagementFilterBar.tsx`（新規, Client）に、キーワード入力（`Input`+`Label`）・カテゴリ `Select`（`all` + `FaqCategory` 4値、ラベルは `faq.categories.*` を再利用）・クリアボタンを実装する（`DocumentManagementFilterBar` を踏襲）
+  - 状態は持たず `onChange`/`onClear` で親へ通知する
+  - _Requirements: 10.1, 10.2, 10.7, 10.8_
+  - _Boundary: FaqManagementFilterBar_
+  - _Depends: 14_
+
+- [ ] 16. `FaqManagementPagination` を実装する（要件10.4）
+  - `src/components/features/helpdesk-faq/FaqManagementPagination.tsx`（新規, Client）に、前へ／次へ（境界で `disabled`）と現在ページ／総ページ数表示を実装する（`DocumentManagementPagination` を踏襲、`helpdeskFaq.list.pagination` の翻訳キーを使用）
+  - _Requirements: 10.4_
+  - _Boundary: FaqManagementPagination_
+  - _Depends: 14_
+
+- [ ] 17. `FaqManagementListClient` を実装し、`FaqManagementList` を委譲構成へ変更する（要件10.1〜10.7, 10.9）
+  - `src/components/features/helpdesk-faq/FaqManagementListClient.tsx`（新規, Client）に、`filters`（keyword/category）と `page` を `useState` で保持し、`filterFaqs`（`faq` spec の `src/lib/faq-utils.ts`）でキーワード絞り込み → カテゴリ一致 → `FAQ_MANAGEMENT_PAGE_SIZE` でページ分割 → 現在ページ分をスライスして描画する
+  - 条件変更時に `page` を1へリセット（要件10.5）、クリアで初期状態へ（要件10.7）、0件時は `helpdeskFaq.list.filter.noResults` を表示（要件10.6）、取得時の `createdAt` 降順を維持（要件10.9）
+  - `src/components/features/helpdesk-faq/FaqManagementList.tsx`（Server）を、全件取得・エラー/空状態・見出しは維持しつつ、行の直接描画をやめて取得配列と翻訳済みラベル群を `FaqManagementListClient` へ渡す構成に変更する
+  - ブラウザでキーワード/カテゴリ絞り込み・ページ送り・クリアが動作することで完了とする
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.9_
+  - _Boundary: FaqManagementListClient, FaqManagementList_
+  - _Depends: 15, 16_
+  - _Note: `filterFaqs` は `faq` spec のタスク10で新設。両specを同一エージェントが担当する場合は `faq` spec 側を先行させる_
+
+- [ ] 18. 検索・ページネーションの翻訳キーを追加する（要件10.8）
+  - `messages/ja.json`・`messages/en.json` の `helpdeskFaq.list` に `filter`（`keywordLabel`/`keywordPlaceholder`/`categoryLabel`/`categoryAll`/`clearButton`/`noResults`）と `pagination`（`previousLabel`/`nextLabel`/`pageStatus`）を追加する
+  - カテゴリ選択肢ラベルは `faq.categories.*` を再利用し二重定義しない
+  - `ja.json` の追加キーが全て `en.json` にも存在しキー構造が一致することで完了とする
+  - _Requirements: 10.8_
+  - _Boundary: i18n messages_
+
+- [ ] 19. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることを確認する
+  - _Requirements: 10.1〜10.9_
+  - _Depends: 17, 18_
+
+- [ ]* 20. 多言語・レスポンシブのE2E確認を行う
+  - 日英で検索欄・カテゴリ・ページネーション文言が切り替わること、タブレット幅で横スクロールが発生しないことを確認する
+  - _Requirements: 10.8_
+  - _Depends: 19_
