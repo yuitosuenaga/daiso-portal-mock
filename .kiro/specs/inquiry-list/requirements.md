@@ -343,3 +343,26 @@
 4. The ヘルプデスクポータル shall 対応履歴の日時表示に等幅数字（tabular figures）を用いる。
 5. The ヘルプデスクポータル shall 本要件の配色に、既存の`globals.css`デザイントークン（`--primary`・`--success`・`--muted`・`--secondary`等）のみを使用し、新規のカラー値を追加しない。
 7. The ヘルプデスクポータル shall 新着インジケーターの文言・ラベルを`next-intl`の翻訳キー経由で提供し、日本語・英語の両方で表示する。
+
+---
+
+### 追加要望（2026-07-22）: 申請者一覧取得時の添付ファイル過剰読み込みの是正
+
+プロダクト全体レビュー（2026-07-21実施）により、本spec所有の申請者側問い合わせ一覧（`/inquiry`）が参照するデータ取得層（`src/lib/server/inquiry-service.ts`の`listInquiriesForCompany`）が、一覧表示のたびに全問い合わせの添付ファイル（`attachments`、`dataUrl`はBase64・1件最大5MB×最大5件）をeager-loadしていることが判明した。申請者一覧（要件1・要件12）は添付ファイルを描画しないため、この読み込みは不要であり、件数増加に伴い一覧取得が肥大化する。
+
+このデータ取得層（`inquiry-service.ts`）は本spec（申請者一覧・詳細）と`helpdesk-inquiry-management`spec（ヘルプデスク一覧・詳細）が共有しており、取得includeの分離（一覧＝添付除外／詳細＝添付含む）自体は`helpdesk-inquiry-management`spec 要件17が一次的に所有・実装する（同一ファイルの二重編集を避けるため）。本要件は、その共有変更が申請者側の一覧・詳細に対しても正しく機能することを保証する（申請者一覧`listInquiriesForCompany`は添付を読み込まない、申請者詳細`findInquiryForCompany`は従来どおり添付を読み込み、要件10の添付ファイル表示を維持する）。
+
+スコープ外:
+- 取得include分離の実装自体（`helpdesk-inquiry-management`spec 要件17所有）
+- 添付ファイルの型・上限・検証・表示コンポーネントの変更（`inquiry-form`/`helpdesk-inquiry-management`spec所有、変更なし）
+- 対応中フラグ解除の所有者チェック（`helpdesk-inquiry-management`spec 要件18所有。申請者側はclaim解除を行わないため本specの対象外）
+
+### 要件 16: 申請者一覧取得時の添付ファイル読み込みの最適化（追加・2026-07-22）
+
+**目的:** 開発者として、申請者の問い合わせ一覧取得で不要な添付ファイル本体を読み込まないようにしたい。そうすることで、件数が増えても一覧の取得を軽量に保てる。
+
+#### 受け入れ基準
+1. The ヘルプデスクポータル shall 申請者一覧取得（`listInquiriesForCompany`）において、各問い合わせの添付ファイル（`attachments`）を読み込まない。
+2. The ヘルプデスクポータル shall 申請者詳細取得（`findInquiryForCompany`）において、従来どおり添付ファイル（`attachments`）を読み込み、要件10（添付ファイルの表示）を維持する。
+3. The ヘルプデスクポータル shall 本最適化の前後で、`getInquiries`・`getInquiryById`等の公開関数のシグネチャ・戻り値の型、および申請者一覧・詳細の表示挙動（一覧は添付を描画しない・詳細は添付を描画する）を変更しない。
+4. The ヘルプデスクポータル shall 取得include分離の実装を`helpdesk-inquiry-management`spec 要件17に委ね、本spec側では申請者一覧・詳細が期待どおり動作することの確認にとどめる。

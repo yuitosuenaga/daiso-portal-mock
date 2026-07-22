@@ -627,3 +627,64 @@
 - [x] 34.4 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 1.2, 1.7, 2.1, 2.3, 2.6, 3.5, 6.4, 6.5, 7.7_
   - _Depends: 34.1, 34.2, 34.3_
+
+## 追加（2026-07-22）: 一覧取得の添付除外（性能）と対応中フラグ解除の所有者チェック（整合性）
+
+- [ ] 35. コア: 一覧取得時の添付ファイル除外（性能）
+- [ ] 35.1 `inquiry-service.ts`の取得includeを一覧用/詳細用に分離する
+  - `INQUIRY_INCLUDE`を削除し、`INQUIRY_LIST_INCLUDE = { claimedByStaff: true }`・`INQUIRY_DETAIL_INCLUDE = { claimedByStaff: true, attachments: true }`を定義する
+  - `listAllInquiries`・`listInquiriesForCompany`を`INQUIRY_LIST_INCLUDE`に、`findInquiryById`・`findInquiryForCompany`・`createInquiryRecord`・`setClaim`・`updateStatus`を`INQUIRY_DETAIL_INCLUDE`に差し替える
+  - _Requirements: 17.1, 17.2, 17.3_
+  - _Boundary: InquiriesMockApi (inquiry-service)_
+- [ ] 35.2 `inquiry-mapper.ts`の`attachments`を任意化する
+  - `PrismaInquiryWithRelations`を`Prisma.InquiryGetPayload<{ include: { claimedByStaff: true } }> & { attachments?: PrismaInquiryAttachment[] }`に変更する（`mapInquiry`本体は変更不要）
+  - _Requirements: 17.1, 17.4_
+  - _Boundary: inquiry-mapper_
+  - _Depends: 35.1_
+- [ ] 35.3 (P) `inquiry-service.test.ts`にinclude分離のテストを追加・更新する
+  - 一覧関数（`listAllInquiries`・`listInquiriesForCompany`）が添付なしinclude、詳細・作成関数（`findInquiryById`・`findInquiryForCompany`・`createInquiryRecord`）が添付ありincludeで`prisma`を呼ぶことを検証する
+  - `mapInquiry`が`attachments`未設定レコードで`attachments: undefined`を返すことを検証する
+  - _Requirements: 17.1, 17.2, 17.5_
+  - _Depends: 35.1, 35.2_
+
+- [ ] 36. コア: 対応中フラグ解除の所有者チェック（整合性）
+- [ ] 36.1 `setClaim`に所有者チェックと`ClaimOwnershipError`を追加する
+  - `ClaimOwnershipError`（`inquiry-service.ts`）を新設する
+  - `setClaim(id, staff, actingStaffId)`に第3引数を追加し、解除パスで`current.claimedByStaffId`が設定済みかつ`actingStaffId`と不一致のとき`ClaimOwnershipError`を送出する。未claim時は冪等な無操作、claim ON時の`DoubleClaimError`は不変
+  - _Requirements: 18.1, 18.2, 18.4, 18.6_
+  - _Boundary: InquiriesMockApi (inquiry-service)_
+  - _Depends: 35.1_
+- [ ] 36.2 呼び出し経路に`actingStaffId`を配線し、403変換を追加する
+  - `src/lib/api/inquiries.ts`の`setInquiryClaim`が`claims.staffId`を`actingStaffId`として渡す
+  - `src/app/api/inquiries/[id]/claim/route.ts`が`session.claims.staffId`を`setClaim`の第3引数に渡す
+  - `src/lib/server/api-errors.ts`に`ClaimOwnershipError`→403の分岐を追加する
+  - _Requirements: 18.1, 18.3_
+  - _Boundary: InquiriesMockApi, api-errors_
+  - _Depends: 36.1_
+- [ ] 36.3 `releaseInquiryClaimAction`を結果オブジェクト返却に変更する
+  - `ClaimOwnershipError`を捕捉して`{ ok: false, reason: "notOwner" }`を返し、`released`履歴を記録しない。成功時のみ履歴記録＋`revalidateInquiryRoutes()`し`{ ok: true }`を返す。想定外例外は再throw
+  - `claimInquiryAction`は既存の例外throw方式のまま変更しない
+  - _Requirements: 18.5_
+  - _Boundary: HelpdeskActions_
+  - _Depends: 36.1_
+- [ ] 36.4 `ClaimToggleButton`に所有者不一致の専用メッセージを表示する
+  - 解除結果が`notOwner`のとき`notOwnerErrorMessage`（新規prop）を表示する。既存`hasError`を`errorKind`（`null`/`"generic"`/`"notOwner"`）に置き換え、汎用/所有者不一致を出し分ける
+  - `HelpdeskInquiryDetail`から`notOwnerErrorMessage`を配線する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskInquiries.claim.notOwnerErrorMessage`を追加する
+  - 他人のclaimでもボタンは非活性化しない（design.mdのUI方針に従う）
+  - _Requirements: 18.5, 18.7_
+  - _Boundary: ClaimToggleButton, HelpdeskInquiryDetail_
+  - _Depends: 36.3_
+
+- [ ] 37. 検証（性能・整合性）
+- [ ] 37.1 (P) claim所有者チェックのテストを追加・更新する
+  - `inquiry-service.test.ts`: 所有者一致で解除、不一致で`ClaimOwnershipError`、未claim冪等を検証。既存`setClaim`呼び出しを3引数に更新
+  - `inquiries.test.ts`: `setInquiryClaim`が`actingStaffId`込みで`setClaim`を呼ぶことを検証
+  - `helpdesk.test.ts`: `releaseInquiryClaimAction`の戻り値・所有者不一致時に`released`履歴を記録しないことを検証
+  - `claim/route.test.ts`: 3引数呼び出しへの更新、`ClaimOwnershipError`→403を検証
+  - `ClaimToggleButton.test.tsx`: 所有者不一致時に専用メッセージ表示を検証
+  - _Requirements: 18.1, 18.2, 18.3, 18.5_
+  - _Depends: 36.2, 36.3, 36.4_
+- [ ] 37.2 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 17.1〜17.5, 18.1〜18.7_
+  - _Depends: 35.3, 36.4, 37.1_
