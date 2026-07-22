@@ -803,6 +803,207 @@ export async function sendInquiryReplyAction(
 - `sendInquiryReplyAction`の単体テストに、`updateStatusIfCurrent`相当が`true`を返したとき`status_changed`エントリが追記されるケース、`false`を返したとき追記されないケースを追加する
 - `HelpdeskInquiryListItem`/`HelpdeskInquiryDetail`の表示テストに、見出しが`title`になっていること、`title`が空文字のとき代替ラベルが表示されアクセシブルネームのないリンクが生じないことを検証するケースを追加する（既存の会社名・カテゴリ表示のテストは補足行としての表示に更新する）
 
+## 追加（2026-07-22・2）: 一覧取得の添付ファイル除外（性能）と対応中フラグ解除の所有者チェック（整合性）
+
+### Overview（追加分）
+Requirement 18・19への対応。`Inquiry`型・`InquiryHistoryEntry`型・公開API関数のシグネチャは変更せず、変更はデータ取得層（`src/lib/server/inquiry-service.ts`・`src/lib/server/inquiry-mapper.ts`）、エラー変換層（`src/lib/server/api-errors.ts`）、対応中フラグの呼び出し経路（`src/lib/api/inquiries.ts`・claim route・`src/lib/actions/helpdesk.ts`）、および対応中フラグUI（`ClaimToggleButton`・`HelpdeskInquiryDetail`）に閉じる。この2件はいずれも共有データ取得層`inquiry-service.ts`に対する変更のため、同一ファイルの二重編集を避ける目的で本spec側で一括所有する（申請者側の期待は`inquiry-list`spec 要件16が参照・検証する）。
+
+### 課題1: 一覧取得時の添付ファイル除外（Requirement 18）
+
+**`src/lib/server/inquiry-service.ts`（変更）**
+現状、詳細・一覧の全取得関数と作成関数が単一の`INQUIRY_INCLUDE = { claimedByStaff: true, attachments: true }`を共有している。これを次の2定義に分離する。
+
+```typescript
+// 一覧用: 添付ファイル（dataUrl=Base64、最大5MB×5件）を読み込まない
+const INQUIRY_LIST_INCLUDE = { claimedByStaff: true } as const;
+// 詳細・作成・更新用: 添付ファイルを含む
+const INQUIRY_DETAIL_INCLUDE = { claimedByStaff: true, attachments: true } as const;
+```
+
+- 一覧取得関数 `listAllInquiries`・`listInquiriesForCompany` → `INQUIRY_LIST_INCLUDE`（`attachments`を読み込まない）
+- 詳細取得関数 `findInquiryById`・`findInquiryForCompany` → `INQUIRY_DETAIL_INCLUDE`（従来どおり`attachments`を含む）
+- 作成 `createInquiryRecord`、更新 `setClaim`・`updateStatus` → `INQUIRY_DETAIL_INCLUDE`（返却する更新後Inquiryに添付を含める既存挙動を維持）
+
+**`src/lib/server/inquiry-mapper.ts`（変更）**
+`mapInquiry`が受け取るPrismaレコード型（`PrismaInquiryWithRelations`）は現在`attachments: true`を含むペイロードに固定されている。一覧クエリでは`attachments`が付かないため、`attachments`を任意（optional）にする。
+
+```typescript
+type PrismaInquiryWithRelations = Prisma.InquiryGetPayload<{
+  include: { claimedByStaff: true };
+}> & { attachments?: PrismaInquiryAttachment[] };
+```
+
+`mapInquiry`本体は既に`record.attachments?.length ? record.attachments.map(mapAttachment) : undefined`と任意アクセスで実装済みのため、ロジック変更は不要。一覧由来の`Inquiry`は`attachments: undefined`となる（一覧・プレビューは添付を描画しないため影響なし。Requirement 18.5）。
+
+**影響範囲の確認（設計時に確認済み）**: `attachments`/`AttachmentPreviewList`を参照するのは詳細系コンポーネント（`HelpdeskInquiryDetail`・`HistoryTimeline`・申請者側`InquiryDetail`・`InquiryHistoryList`・各返信/メッセージフォーム）のみで、一覧項目（`HelpdeskInquiryListItem`・`InquiryListItem`）・ダッシュボードプレビュー（`PriorityInquiriesPreviewPanel`）は`attachments`を参照しない。詳細画面は`getInquiryById`→`findInquiry*`（詳細include）を経由するため添付は従来どおり取得される。
+
+**共有データ取得層としての所有権**: この変更は`inquiry-list`spec所有の申請者一覧（`listInquiriesForCompany`）・申請者詳細（`findInquiryForCompany`）にも同時に作用する。データ取得層（`inquiry-service.ts`）の変更は本specが一次的に所有し（1ファイルへの単一変更として実装）、`inquiry-list`spec 要件16はこの変更を参照して申請者側の期待（一覧は添付なし・詳細は添付あり、要件10の添付表示維持）を保証する。
+
+### 課題2: 対応中フラグ解除の所有者チェック（Requirement 19）
+
+**`src/lib/server/inquiry-service.ts`（変更）**
+所有者不一致を表す専用エラーを追加する。
+
+```typescript
+export class ClaimOwnershipError extends Error {
+  constructor(inquiryId: string) {
+    super(`Claim not owned by acting staff: ${inquiryId}`);
+    this.name = "ClaimOwnershipError";
+  }
+}
+```
+
+`setClaim`に、操作を行う担当者の`staffId`（`actingStaffId`）を必須の第3引数として追加し、解除パスで所有者を検証する。解除パスは`staff`が`null`で操作者の識別情報を持たないため、この追加引数が必要となる（claim ON時は`actingStaffId === staff.staffId`で自明に一致する）。
+
+```typescript
+export async function setClaim(
+  id: string,
+  staff: { staffId: string; displayName: string } | null,
+  actingStaffId: string
+): Promise<Inquiry> {
+  const current = await prisma.inquiry.findUnique({ where: { id } });
+  if (!current) {
+    throw new InquiryNotFoundError(id);
+  }
+
+  if (staff && current.claimedByStaffId) {
+    throw new DoubleClaimError(id); // 既存の二重claim防止（変更なし）
+  }
+
+  // 解除パス: claimが設定済みで、かつ操作者が所有者でない場合は拒否
+  if (!staff && current.claimedByStaffId && current.claimedByStaffId !== actingStaffId) {
+    throw new ClaimOwnershipError(id);
+  }
+
+  const record = await prisma.inquiry.update({
+    where: { id },
+    data: staff
+      ? { claimedByStaffId: staff.staffId, claimedAt: new Date() }
+      : { claimedByStaffId: null, claimedAt: null },
+    include: INQUIRY_DETAIL_INCLUDE,
+  });
+  return mapInquiry(record);
+}
+```
+
+- 対象が未claim（`claimedByStaffId`がnull）で解除要求された場合は条件に該当せず、冪等な無操作としてnull/null更新が実行される（Requirement 19.4）。
+- claim ON時の`DoubleClaimError`挙動は不変（Requirement 19.6）。
+
+**`src/lib/api/inquiries.ts`（変更）** `setInquiryClaim` — セッションから解決した`claims.staffId`を`actingStaffId`として渡す。
+
+```typescript
+export async function setInquiryClaim(id: string, staffName: string | null): Promise<Inquiry> {
+  const { claims } = await requireHelpdeskStaffSession();
+  return setClaim(
+    id,
+    staffName ? { staffId: claims.staffId, displayName: claims.displayName } : null,
+    claims.staffId
+  );
+}
+```
+
+**`src/app/api/inquiries/[id]/claim/route.ts`（変更）** — `setClaim`の第3引数に`session.claims.staffId`を渡す。
+
+**`src/lib/server/api-errors.ts`（変更）** — `ClaimOwnershipError`をimportし、403に対応付ける分岐を追加する（Requirement 19.3）。
+
+```typescript
+if (error instanceof ClaimOwnershipError) {
+  return NextResponse.json({ error: error.message }, { status: 403 });
+}
+```
+
+**`src/lib/actions/helpdesk.ts`（変更）** `releaseInquiryClaimAction` — 所有者不一致を呼び出し元（クライアント）が判別して専用メッセージを出せるよう、戻り値を判別可能な結果オブジェクトに変更する。`ClaimOwnershipError`のときは`released`履歴を記録せず（Requirement 19.5）、`{ ok: false, reason: "notOwner" }`を返す。成功時のみ`released`履歴記録＋`revalidateInquiryRoutes()`を行い`{ ok: true }`を返す。想定外の例外は再throwし、クライアントの汎用エラー表示にフォールバックさせる。
+
+```typescript
+export type ReleaseClaimResult = { ok: true } | { ok: false; reason: "notOwner" };
+
+export async function releaseInquiryClaimAction(
+  inquiryId: string
+): Promise<ReleaseClaimResult> {
+  const id = inquiryIdSchema.parse(inquiryId);
+  const { claims } = await requireHelpdeskStaffSession();
+
+  try {
+    await setInquiryClaim(id, null);
+  } catch (error) {
+    if (error instanceof ClaimOwnershipError) {
+      return { ok: false, reason: "notOwner" };
+    }
+    throw error;
+  }
+
+  await appendInquiryHistoryEntry({
+    inquiryId: id,
+    type: "released",
+    actorName: claims.displayName,
+    occurredAt: new Date().toISOString(),
+  });
+  revalidateInquiryRoutes();
+  return { ok: true };
+}
+```
+
+（`ClaimOwnershipError`は`@/lib/server/inquiry-service`からimportする。`claimInquiryAction`は既存どおり例外throw方式のまま変更しない。）
+
+**`src/components/features/helpdesk-inquiries/ClaimToggleButton.tsx`（変更）** — 解除時に結果オブジェクトを判定し、`notOwner`のとき専用メッセージ（`notOwnerErrorMessage`prop、新規）を表示する。それ以外の失敗・claim ON失敗は既存の汎用`errorMessage`にフォールバックする。既存の`hasError: boolean`状態を`errorKind: null | "generic" | "notOwner"`に置き換え、表示メッセージを出し分ける。
+
+```tsx
+if (claim) {
+  const result = await releaseInquiryClaimAction(inquiryId);
+  if (!result.ok) {
+    setErrorKind("notOwner");
+    return;
+  }
+} else {
+  await claimInquiryAction(inquiryId); // 失敗は既存のcatchで汎用エラー
+}
+setErrorKind(null);
+```
+
+**UI方針（他人のclaimでもボタンを非活性化しない理由）**: ヘルプデスク担当者は全員が全社問い合わせを閲覧・対応する運用（要件前提）であり、他人が対応中の問い合わせでも解除ボタンは表示・操作可能なままとする。他人のclaimかどうかをUIで確実に判定するには、claim所有者の`staffId`を申請者にも共有される公開`Inquiry`型（`claim`は現状`staffName`のみ）に載せる（申請者向けAPIに内部staffIdが露出する情報開示リスク）か、ヘルプデスク専用の追加クエリが必要で、費用対効果が低い。所有者チェックはサーバー側（`setClaim`）を唯一の正とし、UIは拒否結果を受けて専用メッセージを出すことで十分な体験を提供する。したがってボタンの非活性化は行わない（検討のうえ不採用）。
+
+**`messages/ja.json` / `messages/en.json`（変更）** — `helpdeskInquiries.claim`名前空間に`notOwnerErrorMessage`（例: 「他の担当者が対応中のため解除できません」/"This inquiry is claimed by another staff member and cannot be released."）を追加する。
+
+### Modified Files（追加分）
+- `src/lib/server/inquiry-service.ts` — `INQUIRY_INCLUDE`を`INQUIRY_LIST_INCLUDE`/`INQUIRY_DETAIL_INCLUDE`に分離、各関数のinclude差し替え、`ClaimOwnershipError`追加、`setClaim`に`actingStaffId`引数と所有者チェックを追加
+- `src/lib/server/inquiry-service.test.ts` — include分離（一覧=添付なし／詳細=添付あり）の検証、`setClaim`所有者チェック（一致/不一致/未claim冪等）のテスト追加、既存の`setClaim`呼び出しを3引数に更新
+- `src/lib/server/inquiry-mapper.ts` — `PrismaInquiryWithRelations`の`attachments`を任意化
+- `src/lib/server/api-errors.ts` — `ClaimOwnershipError`→403の分岐追加
+- `src/lib/api/inquiries.ts` — `setInquiryClaim`が`claims.staffId`を`actingStaffId`として渡す
+- `src/lib/api/inquiries.test.ts` — `setInquiryClaim`が`setClaim`を3引数（`actingStaffId`込み）で呼ぶことの検証に更新
+- `src/app/api/inquiries/[id]/claim/route.ts` — `setClaim`の第3引数に`session.claims.staffId`を配線
+- `src/app/api/inquiries/[id]/claim/route.test.ts` — 3引数呼び出しへの更新、`ClaimOwnershipError`→403のテスト追加
+- `src/lib/actions/helpdesk.ts` — `releaseInquiryClaimAction`を結果オブジェクト返却＋所有者不一致ハンドリングに変更
+- `src/lib/actions/helpdesk.test.ts` — `releaseInquiryClaimAction`の戻り値・所有者不一致時に`released`履歴を記録しないことの検証、`setClaim`モック呼び出しの3引数更新
+- `src/components/features/helpdesk-inquiries/ClaimToggleButton.tsx` — 解除結果の判定と`notOwnerErrorMessage`表示
+- `src/components/features/helpdesk-inquiries/ClaimToggleButton.test.tsx` — 所有者不一致時に専用メッセージが表示されることの検証
+- `src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx` — `ClaimToggleButton`へ`notOwnerErrorMessage`を配線
+- `messages/ja.json` / `messages/en.json` — `helpdeskInquiries.claim.notOwnerErrorMessage`追加
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 18.1〜18.5 | 一覧取得時の添付ファイル除外 | inquiry-service（INQUIRY_LIST_INCLUDE/INQUIRY_DETAIL_INCLUDE）, inquiry-mapper |
+| 19.1, 19.2, 19.4, 19.6 | claim解除の所有者チェック（サーバー） | inquiry-service（setClaim, ClaimOwnershipError） |
+| 19.3 | ClaimOwnershipError→403 | api-errors |
+| 19.5, 19.7 | 拒否時の履歴非記録・専用メッセージ表示・i18n | releaseInquiryClaimAction, ClaimToggleButton, messages |
+
+### Error Handling（追加分）
+- `ClaimOwnershipError`: `setClaim`の解除パスで所有者不一致時に送出。API route経由では`api-errors`が403へ変換。Server Action（`releaseInquiryClaimAction`）経由では捕捉して`{ ok: false, reason: "notOwner" }`に変換し、`released`履歴を記録しない。
+- 一覧のinclude分離は例外挙動を変えない（`attachments`が`undefined`になるのみ）。
+
+### Security Considerations（追加分）
+- claim解除の所有者チェックはサーバー側（`setClaim`）を唯一の正とする。UIの表示可否に依存しない。
+- claim所有者の`staffId`は公開`Inquiry`型・申請者向けAPIに露出させない（現状どおり`claim`は`staffName`のみを公開）。所有者判定はサーバー内（`claimedByStaffId`）で完結させる。
+- 一覧取得から添付ファイル本体（Base64）を除外することで、一覧応答に含まれる情報量を削減する（副次的なデータ最小化）。
+
+### Testing Strategy（追加分）
+- **Unit Tests（inquiry-service）**: `listAllInquiries`・`listInquiriesForCompany`が`prisma.inquiry.findMany`を添付を含まないinclude（`{ claimedByStaff: true }`）で呼ぶこと、`findInquiryById`・`findInquiryForCompany`・`createInquiryRecord`が添付を含むinclude（`{ claimedByStaff: true, attachments: true }`）で呼ぶこと。`mapInquiry`が`attachments`未設定のレコードで`attachments: undefined`を返すこと。`setClaim`が解除時に所有者一致で解除し、不一致で`ClaimOwnershipError`を送出し、未claim時は冪等に無操作となること。
+- **Unit Tests（api/actions/route）**: `setInquiryClaim`が`setClaim`を`actingStaffId`込みで呼ぶこと。`releaseInquiryClaimAction`が所有者不一致時に`{ ok: false, reason: "notOwner" }`を返し`released`履歴を記録しないこと、成功時に`{ ok: true }`＋履歴記録＋revalidateを行うこと。claim routeが`ClaimOwnershipError`時に403を返すこと。
+- **Integration Tests（UI）**: `ClaimToggleButton`が解除の`notOwner`結果で専用メッセージを表示すること。
+- **回帰確認**: `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ること。
+
 ## 追加設計（2026-07-22）: 新規投稿の未翻訳状態の明示表示（Requirement 17 / 13.4改訂）
 
 ### 背景と方針
