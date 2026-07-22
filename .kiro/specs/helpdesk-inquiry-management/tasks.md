@@ -632,14 +632,14 @@
 
 ## 追加タスク（2026-07-22）: 新規投稿の未翻訳状態の明示表示（Requirement 17 / 13.4改訂）
 
-- [ ] 35. 翻訳未対応注記のi18nキーを追加する
+- [x] 35. 翻訳未対応注記のi18nキーを追加する
   - `messages/ja.json`の`helpdeskInquiries.detail`に`translationUnavailable`を追加する: 「自動翻訳は未対応です。以下の原文をご確認ください。」
   - `messages/en.json`の`helpdeskInquiries.detail`に`translationUnavailable`を追加する: "Automatic translation is not available yet. Please refer to the original text below."
   - 既存キー（`translatedTextLabel`/`originalTextLabel`/`attachmentsLabel`/`untitled`等）は変更しない
   - _Requirements: 17.5_
   - _Boundary: messages/ja.json, messages/en.json_
 
-- [ ] 36. `HelpdeskInquiryDetail`の問い合わせ本文表示分岐を3分岐へ拡張する
+- [x] 36. `HelpdeskInquiryDetail`の問い合わせ本文表示分岐を3分岐へ拡張する
   - 対象: `src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.tsx` の問い合わせ本文セクション（現行の`inquiry.originalLanguage !== "ja" && inquiry.translatedText`三項分岐、L114〜138付近）
   - 分岐1（`originalLanguage !== "ja" && translatedText`が真）: 従来どおり日本語訳（`translatedTextLabel`）をメイン、原文（`originalTextLabel`）を参照として表示（変更しない）
   - 分岐2（`originalLanguage !== "ja" && !translatedText`、新規）: `t("detail.translationUnavailable")`の注記を原文の上に**補足情報として控えめに**表示（`text-sm text-muted-foreground` もしくは `bg-muted` の控えめなボックス。`--destructive`等のエラー配色は使わない）し、その下に`originalText`を表示する。注記に`translatedTextLabel`ラベルは付けない
@@ -650,14 +650,14 @@
   - _Boundary: HelpdeskInquiryDetail_
   - _Depends: 35_
 
-- [ ] 37. `HelpdeskInquiryDetail`の表示テストを更新・追加する
+- [x] 37. `HelpdeskInquiryDetail`の表示テストを更新・追加する
   - 対象: `src/components/features/helpdesk-inquiries/HelpdeskInquiryDetail.test.tsx`
   - 既存ケース「外国語原文だが日本語訳が未設定の場合…」（L300〜329付近）を、**注記（`messages.helpdeskInquiries.detail.translationUnavailable`）が表示され、`translatedTextLabel`は表示されず、原文も表示される**ことを検証する内容に更新する
   - 既存ケース「外国語原文かつ日本語訳が設定されている場合」「原文が日本語の場合」で、注記が表示されない（`queryByText(...translationUnavailable)`が`null`）ことを併せて検証する
   - _Requirements: 17.1, 17.2, 17.3, 17.4_
   - _Depends: 36_
 
-- [ ] 38. 検証（未翻訳注記の追加）
+- [x] 38. 検証（未翻訳注記の追加）
   - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 13.4（改訂）, 17.1〜17.6_
   - _Depends: 35, 36, 37_

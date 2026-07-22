@@ -89,6 +89,29 @@ describe("createInquiryRecord", () => {
     });
     expect(result.claim).toBeNull();
   });
+
+  it("translatedTextを書き込まない（DB既定のnullのまま維持する）", async () => {
+    vi.mocked(prisma.inquiry.create).mockResolvedValue(baseInquiryRecord as never);
+
+    const result = await createInquiryRecord({
+      data: {
+        title: "追加発注のお願い",
+        category: "order",
+        urgency: "medium",
+        storeRegion: "West Coast",
+        originalText: "We would like to place an additional order.",
+        originalLanguage: "en",
+        status: "new",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Daiso USA Inc.", country: "US" },
+      },
+      companyId: "company-1",
+    });
+
+    const createArgs = vi.mocked(prisma.inquiry.create).mock.calls[0]?.[0];
+    expect(createArgs?.data).not.toHaveProperty("translatedText");
+    expect(result.translatedText).toBeUndefined();
+  });
 });
 
 describe("listInquiriesForCompany", () => {

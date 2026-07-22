@@ -58,6 +58,11 @@ function attachmentCreateInput(attachments: InquiryAttachment[] | undefined) {
 /**
  * セッションから解決した会社IDを永続化し、フォーム入力値（会社名・国）は
  * 表示用フィールドとしてそのまま保存する。
+ *
+ * 注意: `translatedText`は意図的に書き込まない（DB既定の`null`のまま維持する）。
+ * 実際の翻訳API連携（フェーズ3以降）まで、虚偽の訳文・原文コピー・固定プレース
+ * ホルダーで埋めることはしない。表示側の「翻訳未対応」注記は
+ * `helpdesk-inquiry-management`spec（Requirement 17）が担当する。
  */
 export async function createInquiryRecord(
   input: CreateInquiryServiceInput

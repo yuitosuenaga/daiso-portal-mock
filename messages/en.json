@@ -242,6 +242,7 @@
       "attachmentsLabel": "Attachments",
       "translatedTextLabel": "Japanese Translation",
       "originalTextLabel": "Original Text",
+      "translationUnavailable": "Automatic translation is not available yet. Please refer to the original text below.",
       "untitled": "(No title)"
     },
     "filter": {

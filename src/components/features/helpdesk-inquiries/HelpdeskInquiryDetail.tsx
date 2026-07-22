@@ -131,6 +131,15 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
                 </p>
               </div>
             </div>
+          ) : inquiry.originalLanguage !== "ja" && !inquiry.translatedText ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {t("detail.translationUnavailable")}
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {inquiry.originalText}
+              </p>
+            </div>
           ) : (
             <p className="whitespace-pre-wrap text-sm leading-relaxed">
               {inquiry.originalText}
