@@ -33,6 +33,7 @@ function toDocumentData(
     return {
       title: input.title,
       description: input.description,
+      status: input.status,
       sourceType: "google",
       fileName: null,
       fileType: null,
@@ -47,6 +48,7 @@ function toDocumentData(
   return {
     title: input.title,
     description: input.description,
+    status: input.status,
     sourceType: "upload",
     fileName: input.fileName,
     fileType: input.fileType,
@@ -60,6 +62,7 @@ function toDocumentData(
 
 function visibleToWhere(country: string, companyCode: string): Prisma.DocumentWhereInput {
   return {
+    status: "published",
     OR: [
       { targetingScope: "all" },
       { targetingScope: "countries", targetingCountries: { has: country } },

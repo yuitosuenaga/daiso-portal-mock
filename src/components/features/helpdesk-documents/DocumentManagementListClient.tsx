@@ -28,6 +28,8 @@ export interface DocumentManagementListClientProps {
   editLinkLabel: string;
   sourceTypeUploadBadgeLabel: string;
   sourceTypeGoogleBadgeLabel: string;
+  statusDraftBadgeLabel: string;
+  statusPublishedBadgeLabel: string;
   targetingLabels: TargetingLabelDictionary;
 }
 
@@ -49,6 +51,8 @@ export function DocumentManagementListClient({
   editLinkLabel,
   sourceTypeUploadBadgeLabel,
   sourceTypeGoogleBadgeLabel,
+  statusDraftBadgeLabel,
+  statusPublishedBadgeLabel,
   targetingLabels,
 }: DocumentManagementListClientProps) {
   const t = useTranslations("helpdeskDocuments.list.filter");
@@ -114,6 +118,11 @@ export function DocumentManagementListClient({
                         {document.sourceType === "google"
                           ? sourceTypeGoogleBadgeLabel
                           : sourceTypeUploadBadgeLabel}
+                      </span>
+                      <span className="rounded border border-input px-1.5 py-0.5">
+                        {document.status === "draft"
+                          ? statusDraftBadgeLabel
+                          : statusPublishedBadgeLabel}
                       </span>
                       {document.sourceType === "upload" && (
                         <span>{formatFileSize(document.fileSize)}</span>

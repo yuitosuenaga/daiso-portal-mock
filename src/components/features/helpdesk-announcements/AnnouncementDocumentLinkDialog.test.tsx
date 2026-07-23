@@ -9,6 +9,7 @@ function makeDocument(overrides: Partial<Document> = {}): Document {
     id: "doc-1",
     title: "業務マニュアル",
     sourceType: "upload",
+    status: "published",
     fileName: "manual.pdf",
     fileType: "application/pdf",
     fileSize: 1024,

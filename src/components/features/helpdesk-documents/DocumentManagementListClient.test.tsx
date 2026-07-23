@@ -77,6 +77,7 @@ function buildDocument(overrides: Partial<Document> & { id: string }): Document 
   return {
     title: "ドキュメント",
     sourceType: "upload",
+    status: "published",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -93,6 +94,8 @@ const DEFAULT_PROPS = {
   editLinkLabel: "編集",
   sourceTypeUploadBadgeLabel: "アップロード",
   sourceTypeGoogleBadgeLabel: "Googleリンク",
+  statusDraftBadgeLabel: "下書き",
+  statusPublishedBadgeLabel: "公開",
   targetingLabels: {
     allLabel: "全体公開",
     countriesLabel: "対象国・地域",
@@ -258,5 +261,16 @@ describe("DocumentManagementListClient", () => {
     expect(screen.getByRole("link", { name: "編集" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "削除" })).toBeTruthy();
     expect(screen.getAllByText("アップロード").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("下書き・公開が混在する一覧で、行ごとに正しい状態バッジを表示する", () => {
+    const documents = [
+      buildDocument({ id: "1", title: "下書き文書", status: "draft" }),
+      buildDocument({ id: "2", title: "公開文書", status: "published" }),
+    ];
+    render(<DocumentManagementListClient documents={documents} {...DEFAULT_PROPS} />);
+
+    expect(screen.getAllByText("下書き").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("公開").length).toBeGreaterThanOrEqual(1);
   });
 });

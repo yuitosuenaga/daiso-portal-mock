@@ -65,6 +65,8 @@
       "uploadedAtLabel": "Uploaded",
       "sourceTypeUploadBadge": "Upload",
       "sourceTypeGoogleBadge": "Google link",
+      "statusDraftBadge": "Draft",
+      "statusPublishedBadge": "Published",
       "filter": {
         "keywordLabel": "Search keyword",
         "keywordPlaceholder": "Words in the title or description",
@@ -95,6 +97,9 @@
       "titlePlaceholder": "Enter the document title",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Enter a supplementary description (optional)",
+      "statusLabel": "Publish status",
+      "statusDraftOption": "Draft",
+      "statusPublishedOption": "Published",
       "targetingLabel": "Visibility",
       "targetingAllOption": "Public to all",
       "targetingCountriesOption": "Specify countries/regions",

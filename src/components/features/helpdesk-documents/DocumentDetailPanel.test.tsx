@@ -26,6 +26,7 @@ const DOCUMENT: Document = {
   title: "テストドキュメント",
   description: "テスト用の説明文",
   sourceType: "upload",
+  status: "published",
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
@@ -39,6 +40,7 @@ const GOOGLE_DOCUMENT: Document = {
   title: "Googleドキュメント",
   description: "Google経由の説明文",
   sourceType: "google",
+  status: "draft",
   googleUrl: "https://docs.google.com/document/d/abc123/edit",
   googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
   targeting: { scope: "all" },
@@ -60,6 +62,9 @@ const BASE_PROPS = {
   sourceTypeLabel: "登録方法",
   sourceTypeUploadBadge: "アップロード",
   sourceTypeGoogleBadge: "Googleリンク",
+  statusLabel: "公開状態",
+  statusDraftBadge: "下書き",
+  statusPublishedBadge: "公開",
   targetingAllLabel: "全体公開",
   targetingCountriesLabel: "対象国・地域",
   targetingCompaniesLabel: "対象販社",
@@ -79,6 +84,9 @@ const BASE_PROPS = {
     titlePlaceholder: "",
     descriptionLabel: "説明",
     descriptionPlaceholder: "",
+    statusLabel: "公開状態",
+    statusDraftOption: "下書き",
+    statusPublishedOption: "公開",
     targetingLabel: "公開範囲",
     targetingAllOption: "全体公開",
     targetingCountriesOption: "特定の国・地域を指定",
@@ -136,6 +144,7 @@ describe("DocumentDetailPanel", () => {
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
     expect(screen.getByText("テスト用の説明文")).toBeTruthy();
     expect(screen.getByText("全体公開")).toBeTruthy();
+    expect(screen.getByText("公開状態: 公開")).toBeTruthy();
     expect(screen.queryByLabelText(/タイトル/)).toBeNull();
 
     const iframe = screen.getByTitle("テストドキュメント");
@@ -160,5 +169,6 @@ describe("DocumentDetailPanel", () => {
     expect(iframe.getAttribute("src")).toBe(GOOGLE_DOCUMENT.googleEmbedUrl);
     expect(screen.getByText("元のドキュメントを開く")).toBeTruthy();
     expect(screen.getByText("登録方法: Googleリンク")).toBeTruthy();
+    expect(screen.getByText("公開状態: 下書き")).toBeTruthy();
   });
 });

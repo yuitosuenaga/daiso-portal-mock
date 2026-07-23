@@ -65,6 +65,8 @@
       "uploadedAtLabel": "アップロード日",
       "sourceTypeUploadBadge": "アップロード",
       "sourceTypeGoogleBadge": "Googleリンク",
+      "statusDraftBadge": "下書き",
+      "statusPublishedBadge": "公開",
       "filter": {
         "keywordLabel": "キーワード検索",
         "keywordPlaceholder": "タイトルや説明に含まれる語句",
@@ -95,6 +97,9 @@
       "titlePlaceholder": "ドキュメントのタイトルを入力してください",
       "descriptionLabel": "説明",
       "descriptionPlaceholder": "補足説明を入力してください（任意）",
+      "statusLabel": "公開状態",
+      "statusDraftOption": "下書き",
+      "statusPublishedOption": "公開",
       "targetingLabel": "公開範囲",
       "targetingAllOption": "全体公開",
       "targetingCountriesOption": "特定の国・地域を指定",

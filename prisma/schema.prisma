@@ -263,10 +263,16 @@ enum DocumentSourceType {
   google
 }
 
+enum DocumentStatus {
+  draft
+  published
+}
+
 model Document {
   id                    String                     @id @default(cuid())
   title                 String
   description           String?
+  status                DocumentStatus             @default(published)
   sourceType            DocumentSourceType         @default(upload)
   fileName              String?
   fileType              String?

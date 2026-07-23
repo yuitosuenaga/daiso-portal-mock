@@ -59,6 +59,7 @@ function document(overrides: Partial<Document> = {}): Document {
     id: "document-1",
     title: "タイトル",
     sourceType: "upload",
+    status: "published",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -159,6 +160,7 @@ describe("createDocument / updateDocument / deleteDocument", () => {
   const input: CreateDocumentInput = {
     sourceType: "upload",
     title: "新規作成テスト",
+    status: "draft",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
