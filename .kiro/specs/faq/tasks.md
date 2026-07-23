@@ -154,13 +154,13 @@
 
 ## 一貫性整備タスク（要件11・2026-07-23 追記）
 
-- [ ] 16. `faq.search` の翻訳キーを documents/links と一致させる（要件11.3）
+- [x] 16. `faq.search` の翻訳キーを documents/links と一致させる（要件11.3）
   - `messages/ja.json`・`messages/en.json` の `faq.search.label`→`keywordLabel`、`faq.search.placeholder`→`keywordPlaceholder` へ改称する（テキスト値は変更しない）。`noResults`/`clearButton` は据え置き
   - ja/en 双方でキー構造が一致し、`documents.search`/`links.search` と同一のキー名（`keywordLabel`/`keywordPlaceholder`/`clearButton`/`noResults`）になることで完了とする
   - _Requirements: 11.3_
   - _Boundary: i18n messages_
 
-- [ ] 17. `FaqSearchBar`（専用検索バー）を新規作成する（要件11.1, 11.2）
+- [x] 17. `FaqSearchBar`（専用検索バー）を新規作成する（要件11.1, 11.2）
   - `src/components/features/faq/FaqSearchBar.tsx`（新規, Client）を、`DocumentSearchBar`/`LinkSearchBar` と同一の props（`keyword`/`onChange`/`onClear`）・同一マークアップ（`flex flex-wrap items-end gap-4` / `flex-1 space-y-1 min-w-[240px]` / `variant="outline"` クリアボタン、`id="faq-search-keyword"`）で実装する
   - 検索文言は内部で `useTranslations("faq.search")` により自己解決する（props受け取りにしない）
   - `tsc --noEmit` が通ることで完了とする
@@ -168,7 +168,7 @@
   - _Boundary: FaqSearchBar_
   - _Depends: 16_
 
-- [ ] 18. `FaqListClient` / `FaqList` を検索文言propsから切り離す（要件11.2, 11.5）
+- [x] 18. `FaqListClient` / `FaqList` を検索文言propsから切り離す（要件11.2, 11.5）
   - `FaqListClient` の直書き検索欄を `<FaqSearchBar ... />` に置き換え、`searchLabel`/`searchPlaceholder`/`searchNoResults`/`searchClearButton` props を削除する。0件表示は `FaqListClient` 内の `useTranslations("faq.search")` で `noResults` を解決する（`LinkListClient` と同型）
   - `FaqList`（Server）から上記4propsの受け渡しと `t("search.*")` の解決を削除する（`categoryLabels`/`updatedLabel`/`newBadgeLabel` は維持）
   - 既存の `FaqListClient.test.tsx` を props注入からnext-intlプロバイダ配下レンダリングへ更新し、検索の即時絞り込み・カテゴリ別表示維持・0件メッセージ・クリアが要件10から不変であることを回帰確認する
@@ -176,17 +176,17 @@
   - _Boundary: FaqListClient, FaqList_
   - _Depends: 17_
 
-- [ ] 19. 申請者側FAQページのコンテナ幅を揃える（要件11.4）
+- [x] 19. 申請者側FAQページのコンテナ幅を揃える（要件11.4）
   - `src/app/[locale]/(applicant)/faq/page.tsx` のルート `div` を `max-w-5xl` → `w-full` に変更し、documents/links ページと本文幅を一致させる
   - _Requirements: 11.4_
   - _Boundary: applicant faq page_
 
-- [ ] 20. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることを確認する（要件11）
+- [x] 20. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることを確認する（要件11）
   - 旧 `faq.search.label`/`faq.search.placeholder` への参照が残っていないことも合わせて確認する
   - _Requirements: 11.1〜11.5_
   - _Depends: 16, 17, 18, 19_
 
-- [ ]* 21. 3機能横断の視覚一貫性をブラウザで確認する（要件11）
+- [x]* 21. 3機能横断の視覚一貫性をブラウザで確認する（要件11）
   - documents/links/faq の申請者ページで、検索欄の配置・幅・クリアボタン・0件文言が一致することを日英で確認する
   - _Requirements: 11.1, 11.4_
   - _Depends: 14_

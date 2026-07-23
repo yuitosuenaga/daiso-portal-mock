@@ -1,9 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { FaqListClient } from "@/components/features/faq/FaqListClient";
 import type { Faq } from "@/types/faq";
+
+const SEARCH_MESSAGES: Record<string, string> = {
+  keywordLabel: "キーワード検索",
+  keywordPlaceholder: "質問や回答に含まれる語句",
+  noResults: "該当するFAQがありません",
+  clearButton: "条件をクリア",
+};
+
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => {
+    const dict = namespace === "faq.search" ? SEARCH_MESSAGES : {};
+    return (key: string) => dict[key] ?? `${namespace}.${key}`;
+  },
+}));
 
 const DEFAULT_PROPS = {
   locale: "ja",
@@ -15,10 +29,6 @@ const DEFAULT_PROPS = {
   },
   updatedLabel: "更新日",
   newBadgeLabel: "新着",
-  searchLabel: "キーワード検索",
-  searchPlaceholder: "質問や回答に含まれる語句",
-  searchNoResults: "該当するFAQがありません",
-  searchClearButton: "条件をクリア",
 };
 
 function buildFaq(overrides: Partial<Faq> & { id: string }): Faq {

@@ -29,6 +29,11 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => (key: string) =>
+    resolveMessage(namespace, key),
+}));
+
 const INQUIRY_METHOD_FAQ: Faq = {
   id: "1",
   category: "inquiry_method",
