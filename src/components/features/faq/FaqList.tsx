@@ -62,10 +62,6 @@ export async function FaqList() {
         categoryLabels={categoryLabels}
         updatedLabel={t("list.updatedLabel")}
         newBadgeLabel={t("list.newBadge")}
-        searchLabel={t("search.label")}
-        searchPlaceholder={t("search.placeholder")}
-        searchNoResults={t("search.noResults")}
-        searchClearButton={t("search.clearButton")}
       />
     </div>
   );

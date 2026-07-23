@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { filterFaqs } from "@/lib/faq-utils";
 import { FAQ_CATEGORY_CODES } from "@/lib/constants/faq-options";
+import { FaqSearchBar } from "@/components/features/faq/FaqSearchBar";
 import { FaqCategoryGroup } from "@/components/features/faq/FaqCategoryGroup";
 import type { Faq, FaqCategory } from "@/types/faq";
 
@@ -16,10 +15,6 @@ export interface FaqListClientProps {
   categoryLabels: Record<FaqCategory, string>;
   updatedLabel: string;
   newBadgeLabel: string;
-  searchLabel: string;
-  searchPlaceholder: string;
-  searchNoResults: string;
-  searchClearButton: string;
 }
 
 /**
@@ -27,6 +22,8 @@ export interface FaqListClientProps {
  * カテゴリ別グループ（`FaqCategoryGroup`）へ振り分けて表示するコンポーネント。
  * カテゴリ別グループ化は元々`FaqList`（Server）が持っていたが、絞り込み後の配列に
  * 対して行う必要があるため本コンポーネント（Client）へ移設した（要件10）。
+ * 検索欄は`FaqSearchBar`（`DocumentSearchBar`/`LinkSearchBar`と同型）に切り出し、
+ * 検索文言は`useTranslations("faq.search")`で自己解決する（`LinkListClient`と同型、要件11）。
  */
 export function FaqListClient({
   faqs,
@@ -34,33 +31,17 @@ export function FaqListClient({
   categoryLabels,
   updatedLabel,
   newBadgeLabel,
-  searchLabel,
-  searchPlaceholder,
-  searchNoResults,
-  searchClearButton,
 }: FaqListClientProps) {
+  const tSearch = useTranslations("faq.search");
   const [keyword, setKeyword] = useState("");
 
   const filteredFaqs = useMemo(() => filterFaqs(faqs, keyword), [faqs, keyword]);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-[240px] flex-1 space-y-1">
-          <Label htmlFor="faq-search-keyword">{searchLabel}</Label>
-          <Input
-            id="faq-search-keyword"
-            value={keyword}
-            placeholder={searchPlaceholder}
-            onChange={(event) => setKeyword(event.target.value)}
-          />
-        </div>
-        <Button type="button" variant="outline" onClick={() => setKeyword("")}>
-          {searchClearButton}
-        </Button>
-      </div>
+      <FaqSearchBar keyword={keyword} onChange={setKeyword} onClear={() => setKeyword("")} />
       {filteredFaqs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{searchNoResults}</p>
+        <p className="text-sm text-muted-foreground">{tSearch("noResults")}</p>
       ) : (
         <div className="space-y-6">
           {FAQ_CATEGORY_CODES.map((category) => {

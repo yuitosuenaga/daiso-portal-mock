@@ -952,8 +952,8 @@
       "other": "Other"
     },
     "search": {
-      "label": "Search",
-      "placeholder": "Keyword in question or answer",
+      "keywordLabel": "Search",
+      "keywordPlaceholder": "Keyword in question or answer",
       "noResults": "No matching FAQs",
       "clearButton": "Clear"
     }
