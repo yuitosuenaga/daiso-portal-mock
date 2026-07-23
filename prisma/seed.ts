@@ -391,7 +391,12 @@ async function seedDocuments(): Promise<void> {
         id: seed.id,
         title: seed.title,
         description: seed.description,
+        sourceType: "upload",
         fileName: seed.fileName,
+        // アップロード方式のドキュメントは`document-mapper.ts`の`mapDocument`が
+        // `fileType`必須（データ整合性チェック）としているため必ず設定する。
+        // 許容MIMEタイプは`DOCUMENT_ALLOWED_MIME_TYPES`（PDFのみ）と同一にする。
+        fileType: "application/pdf",
         fileSize: seed.fileSize,
         dataUrl: SAMPLE_PDF_DATA_URL,
         uploadedAt: new Date(seed.uploadedAt),
