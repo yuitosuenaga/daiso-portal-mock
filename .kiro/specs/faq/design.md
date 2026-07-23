@@ -388,4 +388,65 @@ messages/ja.json, messages/en.json           # faq.list.updatedLabel / faq.list.
 - 検索は純粋にクライアント側フィルタで完結し、取得エラー・空状態は既存の `FaqList`（Server）のハンドリングを維持する
 - **Unit**: `faq-utils` の `isRecentlyUpdated`（境界値: 7日ちょうど=true、7日超=false、未来日=false）、`filterFaqs`（空キーワード=全件、question一致、answer一致、大文字小文字非依存、0件）
 - **Integration**: `FaqAccordion` の回答に改行を含むデータで `whitespace-pre-wrap` が適用されること、更新日が新しいFAQに新着バッジが出ること、`FaqListClient` のキーワード入力で該当FAQのみ表示・0件時メッセージ表示
+
+---
+
+## 一貫性整備（要件11・2026-07-23 追記）
+
+### 方針
+FAQを`documents`/`links`の検索実装パターンへ寄せる純粋なリファクタ＋レイアウト調整。挙動（要件10）は不変。3機能の単一UIコンポーネントへの統合は行わない（要件11「設計判断」参照）。
+
+### `FaqSearchBar`（新規, Client Component, 要件11.1・11.2）
+- `src/components/features/faq/FaqSearchBar.tsx` を新規作成し、`DocumentSearchBar`/`LinkSearchBar` と同一の設計・マークアップにする:
+  ```tsx
+  export interface FaqSearchBarProps {
+    keyword: string;
+    onChange: (keyword: string) => void;
+    onClear: () => void;
+  }
+  // 内部で const t = useTranslations("faq.search");
+  // <div className="flex flex-wrap items-end gap-4">
+  //   <div className="flex-1 space-y-1 min-w-[240px]"> <Label htmlFor="faq-search-keyword">{t("keywordLabel")}</Label>
+  //     <Input id="faq-search-keyword" value={keyword} placeholder={t("keywordPlaceholder")} onChange=... /> </div>
+  //   <Button type="button" variant="outline" onClick={onClear}>{t("clearButton")}</Button>
+  // </div>
+  ```
+- 状態は保持せず、`onChange`/`onClear` で呼び出し元（`FaqListClient`）へ通知する（`DocumentSearchBar` と同じ設計方針）。`id` は `faq-search-keyword` を維持（既存と同一）。
+
+### `FaqListClient` の変更（要件11.2・11.5）
+- 直書きの検索欄マークアップ（`<div className="flex flex-wrap items-end gap-4">…`）を `<FaqSearchBar keyword={keyword} onChange={setKeyword} onClear={() => setKeyword("")} />` に置き換える。
+- props から `searchLabel`/`searchPlaceholder`/`searchNoResults`/`searchClearButton` を削除する。
+- 0件表示は `useTranslations("faq.search")` を `FaqListClient` 側で取得して `t("noResults")` を表示するか、`FaqSearchBar` と同様に自己解決する（推奨: `FaqListClient` で `const tSearch = useTranslations("faq.search")` を用意し `tSearch("noResults")`。`LinkListClient` が `tSearch = useTranslations("links.search")` を持つのと同型）。
+- `useState`・`filterFaqs`・`FAQ_CATEGORY_CODES` によるカテゴリ別グループ化・空カテゴリ非表示（要件10.6）は現状維持。
+
+### `FaqList`（Server）の変更（要件11.2）
+- `FaqListClient` へ渡していた `searchLabel`/`searchPlaceholder`/`searchNoResults`/`searchClearButton` の4propsと、それらを解決する `t("search.*")` 呼び出しを削除する。`categoryLabels`/`updatedLabel`/`newBadgeLabel` は現状のまま維持（本要件のスコープ外）。
+
+### 翻訳キーの改称（要件11.3）
+- `messages/ja.json`・`messages/en.json` の `faq.search` を以下へ改称し、`documents.search`/`links.search` とキー構造を一致させる:
+  - `label` → `keywordLabel`
+  - `placeholder` → `keywordPlaceholder`
+  - `noResults` / `clearButton` は据え置き（既に一致）
+- 文言（テキスト値）自体は変更しない。ja/en とも同一キー構造になることを確認する。
+
+### 申請者ページの幅調整（要件11.4）
+- `src/app/[locale]/(applicant)/faq/page.tsx` のルート `div` の `className` を `max-w-5xl` → `w-full` に変更し、`documents`/`links` ページ（いずれも `w-full`）と揃える。`AppShell` の `<main>` には max-width 制約がないため、この変更で3ページの本文幅が一致する。
+
+### File Structure Plan（要件11 追記分）
+**新規**
+```
+src/components/features/faq/FaqSearchBar.tsx   # 要件11.1（DocumentSearchBar/LinkSearchBar と同型）
+```
+**変更**
+```
+src/components/features/faq/FaqListClient.tsx  # 直書き検索欄→FaqSearchBar、検索文言propsの受け取り廃止
+src/components/features/faq/FaqList.tsx        # 検索文言4propsの受け渡し・t("search.*")呼び出し削除
+src/app/[locale]/(applicant)/faq/page.tsx      # max-w-5xl → w-full
+messages/ja.json, messages/en.json             # faq.search.label→keywordLabel, placeholder→keywordPlaceholder
+```
+
+### Testing（要件11 追記分）
+- 既存のFAQ検索テスト（`FaqListClient.test.tsx`）は、検索文言propsの受け渡し方法変更に追従して更新する（propsからの文言注入をやめ、`next-intl` プロバイダ配下でのレンダリングに切り替える／または `FaqSearchBar` 単体テストを追加）。
+- 検索挙動（キーワード即時絞り込み・カテゴリ別表示維持・0件メッセージ・クリア）が要件10 から不変であることを回帰確認する（要件11.5）。
+- `keywordLabel`/`keywordPlaceholder` の翻訳キーが ja/en 双方に存在し、旧 `label`/`placeholder` 参照が残っていないことを確認する。
 - **E2E**: 日英で検索欄ラベル・更新日・新着バッジ・0件メッセージが切り替わること、タブレット幅で検索欄・アコーディオンが横スクロールを起こさないこと
