@@ -34,6 +34,8 @@
   },
   "helpdeskNav": {
     "sidebarLabel": "Helpdesk Navigation",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
     "home": "Dashboard",
     "inquiryForm": "Application",
     "inquiries": "Application Management",
@@ -497,6 +499,8 @@
   },
   "nav": {
     "sidebarLabel": "Main Navigation",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
     "dashboard": "Dashboard",
     "inquiryForm": "New Inquiry",
     "inquiryList": "My Applications",

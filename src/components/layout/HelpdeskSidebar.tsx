@@ -2,46 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
-import {
-  LayoutDashboard,
-  FilePlus,
-  List,
-  FileText,
-  Bell,
-  Link2,
-  HelpCircle,
-  FolderOpen,
-  Building2,
-  type LucideIcon,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface HelpdeskNavItem {
-  translationKey:
-    | "home"
-    | "inquiryForm"
-    | "inquiries"
-    | "templates"
-    | "announcements"
-    | "links"
-    | "faq"
-    | "documents"
-    | "companies";
-  href: string;
-  icon: LucideIcon;
-}
-
-const HELPDESK_NAV_ITEMS: HelpdeskNavItem[] = [
-  { translationKey: "home", href: "/helpdesk", icon: LayoutDashboard },
-  { translationKey: "inquiryForm", href: "/helpdesk/inquiry/new", icon: FilePlus },
-  { translationKey: "inquiries", href: "/helpdesk/inquiries", icon: List },
-  { translationKey: "templates", href: "/helpdesk/templates", icon: FileText },
-  { translationKey: "announcements", href: "/helpdesk/announcements", icon: Bell },
-  { translationKey: "documents", href: "/helpdesk/documents", icon: FolderOpen },
-  { translationKey: "links", href: "/helpdesk/links", icon: Link2 },
-  { translationKey: "faq", href: "/helpdesk/faq", icon: HelpCircle },
-  { translationKey: "companies", href: "/helpdesk/companies", icon: Building2 },
-];
+import { HELPDESK_NAV_ITEMS, resolveActiveHref } from "./nav-items";
 
 interface HelpdeskSidebarProps {
   isCollapsed: boolean;
@@ -50,6 +12,7 @@ interface HelpdeskSidebarProps {
 export function HelpdeskSidebar({ isCollapsed }: HelpdeskSidebarProps) {
   const t = useTranslations("helpdeskNav");
   const pathname = usePathname();
+  const activeHref = resolveActiveHref(pathname, HELPDESK_NAV_ITEMS, "/helpdesk");
 
   return (
     <aside
@@ -64,10 +27,7 @@ export function HelpdeskSidebar({ isCollapsed }: HelpdeskSidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
           {HELPDESK_NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/helpdesk" &&
-                pathname.startsWith(`${item.href}/`));
+            const isActive = item.href === activeHref;
             const Icon = item.icon;
 
             return (

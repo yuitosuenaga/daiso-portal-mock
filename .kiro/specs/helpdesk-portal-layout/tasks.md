@@ -181,8 +181,8 @@
 
 ## 追加ラウンド（2026-07-22）: モバイル幅のドロワー型ナビゲーション・ヘッダー副題の省略回避
 
-- [ ] 7. モバイルドロワーナビゲーションとヘッダー副題の省略回避
-- [ ] 7.1 ナビゲーション項目定義・アクティブ判定を共有モジュールへ集約する
+- [x] 7. モバイルドロワーナビゲーションとヘッダー副題の省略回避
+- [x] 7.1 ナビゲーション項目定義・アクティブ判定を共有モジュールへ集約する
   - `src/components/layout/nav-items.ts`を新設し、`Sidebar.tsx`の`NAV_ITEMS`を`APPLICANT_NAV_ITEMS`として、`HelpdeskSidebar.tsx`の`HELPDESK_NAV_ITEMS`をそのまま移設する（項目・アイコン・並び順・翻訳キー・遷移先を1件も変えない）
   - `Sidebar.tsx`の`resolveActiveHref`を`resolveActiveHref(pathname, items, rootHref)`の形に一般化して移設する（ルート直下は完全一致のみ、それ以外はパス区切りを伴う前方一致、最長一致優先）
   - `Sidebar.tsx`を`APPLICANT_NAV_ITEMS`＋`resolveActiveHref(..., "/")`を参照するよう変更し、表示・アクティブ判定結果が変更前と同一であることを確認する
@@ -191,14 +191,14 @@
   - _Requirements: 15.4, 15.5_
   - _Boundary: nav-items（新規）, Sidebar, HelpdeskSidebar_
 
-- [ ] 7.2 モバイルドロワー用の翻訳キーを追加する
+- [x] 7.2 モバイルドロワー用の翻訳キーを追加する
   - `messages/ja.json`・`messages/en.json`の`nav`・`helpdeskNav`名前空間に、`openMenu`（メニューを開く / Open menu）・`closeMenu`（メニューを閉じる / Close menu）を追加する
   - 既存キー（`sidebarLabel`等）は変更しない。ドロワーのタイトルには既存の`sidebarLabel`を再利用する
   - 観測可能な完了条件: `ja.json`で追加したキーが全て`en.json`にも存在し、キー構造が一致していること
   - _Requirements: 15.9_
   - _Boundary: i18n messages_
 
-- [ ] 7.3 共有MobileNav（ハンバーガー＋ドロワー）コンポーネントを実装する
+- [x] 7.3 共有MobileNav（ハンバーガー＋ドロワー）コンポーネントを実装する
   - `src/components/layout/MobileNav.tsx`を新設する。`@radix-ui/react-dialog`を土台に、`md:hidden`のハンバーガートグル（`Menu`アイコン）と左スライドインのドロワー（オーバーレイ＋パネル）を実装する
   - props（`items: NavItem[]`, `namespace: "nav" | "helpdeskNav"`, `rootHref: string`）を受け取り、`items`から`@/i18n/navigation`の`Link`でナビゲーション項目を描画する。ラベルは`useTranslations(namespace)`経由で解決する
   - アクティブ判定は`resolveActiveHref(pathname, items, rootHref)`を用い、既存サイドバーと同一のアクティブ表現（`bg-primary text-primary-foreground font-semibold`等）を適用する
@@ -210,7 +210,7 @@
   - _Boundary: MobileNav（新規）_
   - _Depends: 7.1, 7.2_
 
-- [ ] 7.4 両ヘッダーにMobileNavを組み込む
+- [x] 7.4 両ヘッダーにMobileNavを組み込む
   - `Header.tsx`のヘッダー左端（ロゴ・タイトルリンクの直前）に`<MobileNav items={APPLICANT_NAV_ITEMS} namespace="nav" rootHref="/" />`を追加する
   - `HelpdeskHeader.tsx`の同位置に`<MobileNav items={HELPDESK_NAV_ITEMS} namespace="helpdeskNav" rootHref="/helpdesk" />`を追加する
   - `AppShell.tsx`・`HelpdeskAppShell.tsx`は変更しない（状態は`MobileNav`内に閉じる）。`md`以上の既存レイアウト（サイドバー`hidden md:block`・折りたたみトグル`md:flex lg:hidden`）が不変であることを確認する
@@ -219,7 +219,7 @@
   - _Boundary: Header, HelpdeskHeader_
   - _Depends: 7.3_
 
-- [ ] 7.5 両ヘッダーのタイトル領域を副題省略回避構造に変更する
+- [x] 7.5 両ヘッダーのタイトル領域を副題省略回避構造に変更する
   - `Header.tsx`・`HelpdeskHeader.tsx`のタイトル`<span>`を、`portalName`要素と`screenName`（区切り「 / 」を含む）要素に分離する
   - タイトルリンクを残余幅占有・縮小許容（`min-w-0`＋`flex-1`相当）にし、ヘッダー全体で横スクロールを起こさない
   - `portalName`は`hidden sm:inline`とし`truncate`を付けない。`screenName`は副題を省略なく表示できる幅でのみ`inline`にし、それ未満では非表示（`display:none`）にする（`truncate`による「…」を出さない）
@@ -229,7 +229,7 @@
   - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7_
   - _Boundary: Header, HelpdeskHeader_
 
-- [ ] 7.6 (P) モバイルドロワー・ヘッダー副題の多言語/レスポンシブ実機確認
+- [x] 7.6 (P) モバイルドロワー・ヘッダー副題の多言語/レスポンシブ実機確認
   - playwrightで日本語・英語両ロケールを対象に、幅375px（モバイル）でハンバーガー→ドロワー開閉・項目遷移・Escape/オーバーレイ/閉じるボタンでのクローズ・クローズ後のトグルへのフォーカス復帰を、申請者側・ヘルプデスク側の双方で確認する
   - 幅768px以上でハンバーガーが非表示、既存サイドバー・折りたたみトグルの挙動不変、横スクロールなしを確認する
   - 幅768/834/1024/1280で両ヘッダーのタイトルに「…」省略が発生しないこと・横スクロールが発生しないことを確認し、7.5の副題表示境界を確定する
@@ -264,14 +264,14 @@
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.8_
   - _Depends: 8.1, 8.2_
 
-- [ ] 9. 共通アプリ内確認モーダル `ConfirmDialog` を新設する（2026-07-22 追記 / 要件18）
+- [x] 9. 共通アプリ内確認モーダル `ConfirmDialog` を新設する（2026-07-22 追記 / 要件18）
   - `src/components/ui/confirm-dialog.tsx`（`"use client"`）を新規作成し、既存の`Dialog`系プリミティブ（`src/components/ui/dialog.tsx`）と`Button`を用いて、トリガーボタン・見出し・本文（対象名を含められるReactNode）・確認/キャンセルボタンを表示する再利用可能コンポーネントを実装する
   - propsで全表示文言・`onConfirm`・`isPending`・各`variant`を受け取り、確認押下時のみ`onConfirm`を実行、`isPending`中は確認ボタンを`disabled`にする。キャンセル/Overlay/Escでは`onConfirm`を呼ばずに閉じる
   - コンポーネント内に固定の表示文言・翻訳キーを持たせない（i18nは利用側の責務）
   - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7, 18.9_
   - _Depends: なし（既存 dialog.tsx / button.tsx を利用）_
 
-- [ ]* 9.1 `ConfirmDialog` の単体テストを追加する
+- [x]* 9.1 `ConfirmDialog` の単体テストを追加する
   - トリガー押下でモーダルが開き`title`・`description`が表示されること、確認押下で`onConfirm`が1回呼ばれること、キャンセル/Esc/Overlayで`onConfirm`が呼ばれず閉じること、`isPending`中は確認ボタンが`disabled`になることを`src/components/ui/confirm-dialog.test.tsx`で検証する
   - _Requirements: 18.3, 18.4, 18.5, 18.6_
   - _Depends: 9_
