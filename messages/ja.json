@@ -34,6 +34,8 @@
   },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる",
     "home": "ダッシュボード",
     "inquiryForm": "申請",
     "inquiries": "申請管理",
@@ -497,6 +499,8 @@
   },
   "nav": {
     "sidebarLabel": "メインナビゲーション",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる",
     "dashboard": "ダッシュボード",
     "inquiryForm": "申請",
     "inquiryList": "申請一覧",
