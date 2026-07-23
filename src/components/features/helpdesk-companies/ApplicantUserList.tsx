@@ -4,9 +4,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ToggleApplicantUserActiveButton } from "@/components/features/helpdesk-companies/ToggleApplicantUserActiveButton";
 import type { ApplicantUserSummary } from "@/types/applicant-user";
 
+/**
+ * 一覧描画に必要な申請者アカウント情報に加え、無効化・再有効化の確認モーダル本文
+ * （対象の氏名を埋め込み済み、呼び出し側で解決済み）を行ごとに保持する型（要件17.2）。
+ */
+export interface ApplicantUserRowSummary extends ApplicantUserSummary {
+  deactivateConfirmMessage: string;
+  activateConfirmMessage: string;
+}
+
 export interface ApplicantUserListProps {
   companyId: string;
-  applicantUsers: ApplicantUserSummary[];
+  applicantUsers: ApplicantUserRowSummary[];
   emptyMessage: string;
   emailHeader: string;
   displayNameHeader: string;
@@ -16,8 +25,16 @@ export interface ApplicantUserListProps {
   editLinkLabel: string;
   deactivateButtonLabel: string;
   activateButtonLabel: string;
-  deactivateConfirmMessage: string;
-  activateConfirmMessage: string;
+  /** 無効化確認モーダルの見出し */
+  deactivateConfirmTitle: string;
+  /** 再有効化確認モーダルの見出し */
+  activateConfirmTitle: string;
+  /** 無効化確認モーダルの確認ボタン文言 */
+  deactivateConfirmButtonLabel: string;
+  /** 再有効化確認モーダルの確認ボタン文言 */
+  activateConfirmButtonLabel: string;
+  /** 確認モーダルのキャンセルボタン文言（無効化・再有効化で共通） */
+  cancelButtonLabel: string;
   toggleErrorMessage: string;
 }
 
@@ -38,8 +55,11 @@ export function ApplicantUserList({
   editLinkLabel,
   deactivateButtonLabel,
   activateButtonLabel,
-  deactivateConfirmMessage,
-  activateConfirmMessage,
+  deactivateConfirmTitle,
+  activateConfirmTitle,
+  deactivateConfirmButtonLabel,
+  activateConfirmButtonLabel,
+  cancelButtonLabel,
   toggleErrorMessage,
 }: ApplicantUserListProps) {
   if (applicantUsers.length === 0) {
@@ -90,11 +110,17 @@ export function ApplicantUserList({
                     </Link>
                     <ToggleApplicantUserActiveButton
                       applicantUserId={applicantUser.id}
+                      applicantUserName={applicantUser.displayName}
                       isActive={applicantUser.isActive}
                       deactivateButtonLabel={deactivateButtonLabel}
                       activateButtonLabel={activateButtonLabel}
-                      deactivateConfirmMessage={deactivateConfirmMessage}
-                      activateConfirmMessage={activateConfirmMessage}
+                      deactivateConfirmTitle={deactivateConfirmTitle}
+                      activateConfirmTitle={activateConfirmTitle}
+                      deactivateConfirmMessage={applicantUser.deactivateConfirmMessage}
+                      activateConfirmMessage={applicantUser.activateConfirmMessage}
+                      deactivateConfirmButtonLabel={deactivateConfirmButtonLabel}
+                      activateConfirmButtonLabel={activateConfirmButtonLabel}
+                      cancelButtonLabel={cancelButtonLabel}
                       errorMessage={toggleErrorMessage}
                     />
                   </div>

@@ -66,11 +66,21 @@ export default async function HelpdeskApplicantUserEditPage({
         </div>
         <ToggleApplicantUserActiveButton
           applicantUserId={applicantUser.id}
+          applicantUserName={applicantUser.displayName}
           isActive={applicantUser.isActive}
           deactivateButtonLabel={tToggle("deactivateButton")}
           activateButtonLabel={tToggle("activateButton")}
-          deactivateConfirmMessage={tToggle("deactivateConfirm")}
-          activateConfirmMessage={tToggle("activateConfirm")}
+          deactivateConfirmTitle={tToggle("deactivateConfirmTitle")}
+          activateConfirmTitle={tToggle("activateConfirmTitle")}
+          deactivateConfirmMessage={tToggle("deactivateConfirm", {
+            name: applicantUser.displayName,
+          })}
+          activateConfirmMessage={tToggle("activateConfirm", {
+            name: applicantUser.displayName,
+          })}
+          deactivateConfirmButtonLabel={tToggle("deactivateConfirmButton")}
+          activateConfirmButtonLabel={tToggle("activateConfirmButton")}
+          cancelButtonLabel={tToggle("cancelButton")}
           errorMessage={tToggle("toggleError")}
         />
       </div>

@@ -52,9 +52,6 @@ export async function LinkManagementList() {
         locale={locale}
         listTitle={t("title")}
         editLinkLabel={t("editLink")}
-        deleteButtonLabel={t("deleteButton")}
-        deleteConfirmMessage={t("deleteConfirm")}
-        deleteErrorMessage={t("deleteError")}
       />
     </div>
   );

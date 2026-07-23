@@ -26,9 +26,6 @@ export interface DocumentManagementListClientProps {
   locale: string;
   listTitle: string;
   editLinkLabel: string;
-  deleteButtonLabel: string;
-  deleteConfirmMessage: string;
-  deleteErrorMessage: string;
   sourceTypeUploadBadgeLabel: string;
   sourceTypeGoogleBadgeLabel: string;
   targetingLabels: TargetingLabelDictionary;
@@ -50,14 +47,12 @@ export function DocumentManagementListClient({
   locale,
   listTitle,
   editLinkLabel,
-  deleteButtonLabel,
-  deleteConfirmMessage,
-  deleteErrorMessage,
   sourceTypeUploadBadgeLabel,
   sourceTypeGoogleBadgeLabel,
   targetingLabels,
 }: DocumentManagementListClientProps) {
   const t = useTranslations("helpdeskDocuments.list.filter");
+  const tList = useTranslations("helpdeskDocuments.list");
   const [filters, setFilters] = useState<DocumentManagementFilters>(INITIAL_FILTERS);
   const [page, setPage] = useState(1);
 
@@ -141,9 +136,13 @@ export function DocumentManagementListClient({
                     </Link>
                     <DeleteDocumentButton
                       documentId={document.id}
-                      deleteButtonLabel={deleteButtonLabel}
-                      confirmMessage={deleteConfirmMessage}
-                      errorMessage={deleteErrorMessage}
+                      title={document.title}
+                      deleteButtonLabel={tList("deleteButton")}
+                      confirmTitle={tList("deleteConfirmTitle")}
+                      confirmMessage={tList("deleteConfirm", { title: document.title })}
+                      confirmButtonLabel={tList("deleteConfirmButton")}
+                      cancelButtonLabel={tList("deleteCancelButton")}
+                      errorMessage={tList("deleteError")}
                     />
                   </div>
                 </ManagementListRow>

@@ -91,7 +91,10 @@ export default async function HelpdeskDocumentEditPage({
         countryLabels={countryLabels}
         companyLabels={companyLabels}
         deleteButtonLabel={tListLabels("deleteButton")}
-        deleteConfirmMessage={tListLabels("deleteConfirm")}
+        deleteConfirmTitle={tListLabels("deleteConfirmTitle")}
+        deleteConfirmMessage={tListLabels("deleteConfirm", { title: document.title })}
+        deleteConfirmButtonLabel={tListLabels("deleteConfirmButton")}
+        deleteCancelButtonLabel={tListLabels("deleteCancelButton")}
         deleteErrorMessage={tListLabels("deleteError")}
         formProps={{
           countryOptions,

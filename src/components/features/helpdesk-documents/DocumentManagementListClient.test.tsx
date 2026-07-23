@@ -42,6 +42,15 @@ const PAGINATION_MESSAGES: Record<string, string> = {
   pageStatus: "{current} / {total} ページ",
 };
 
+const LIST_MESSAGES: Record<string, string> = {
+  deleteButton: "削除",
+  deleteConfirmTitle: "ドキュメントの削除",
+  deleteConfirm: "『{title}』を削除します。この操作は取り消せません。よろしいですか？",
+  deleteConfirmButton: "削除する",
+  deleteCancelButton: "キャンセル",
+  deleteError: "削除に失敗しました。時間を置いて再度お試しください。",
+};
+
 vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => {
     const dict =
@@ -49,7 +58,9 @@ vi.mock("next-intl", () => ({
         ? FILTER_MESSAGES
         : namespace === "helpdeskDocuments.list.pagination"
           ? PAGINATION_MESSAGES
-          : {};
+          : namespace === "helpdeskDocuments.list"
+            ? LIST_MESSAGES
+            : {};
     return (key: string, values?: Record<string, unknown>) => {
       const template = dict[key] ?? `${namespace}.${key}`;
       if (!values) {
@@ -80,9 +91,6 @@ const DEFAULT_PROPS = {
   locale: "ja",
   listTitle: "ドキュメント管理",
   editLinkLabel: "編集",
-  deleteButtonLabel: "削除",
-  deleteConfirmMessage: "このドキュメントを削除しますか？",
-  deleteErrorMessage: "削除に失敗しました。時間を置いて再度お試しください。",
   sourceTypeUploadBadgeLabel: "アップロード",
   sourceTypeGoogleBadgeLabel: "Googleリンク",
   targetingLabels: {

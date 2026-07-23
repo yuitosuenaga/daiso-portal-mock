@@ -281,14 +281,14 @@
   - _Requirements: 16.1〜16.10_
   - _Depends: 33.1, 33.2, 33.3, 33.4_
 
-- [ ] 34. アカウント無効化・再有効化確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象名を明示する（2026-07-22 追記 / 要件17）
+- [x] 34. アカウント無効化・再有効化確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象名を明示する（2026-07-22 追記 / 要件17）
   - `ToggleApplicantUserActiveButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（helpdesk-portal-layout要件18）でラップ。`isActive`に応じて見出し・本文・確認ボタン文言・`confirmVariant`を切り替え、確認押下時のみ`setApplicantUserActiveAction`を実行、`isPending`を伝播する
   - `applicantUserName`（必要なら`applicantUserEmail`）prop と無効化/再有効化それぞれの確認モーダル文言propsを追加し、呼び出し側から渡す
   - `helpdeskCompanies.toggleActive.deactivateConfirm`/`activateConfirm`を`{name}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
   - _Depends: helpdesk-portal-layout タスク9（ConfirmDialog新設）_
 
-- [ ]* 34.1 `ToggleApplicantUserActiveButton.test.tsx` をConfirmDialogベースへ更新する
+- [x]* 34.1 `ToggleApplicantUserActiveButton.test.tsx` をConfirmDialogベースへ更新する
   - 無効化/再有効化それぞれトリガー→確認でaction実行、キャンセルで未実行、本文に対象名表示を検証する
   - _Requirements: 17.7_
   - _Depends: 34_

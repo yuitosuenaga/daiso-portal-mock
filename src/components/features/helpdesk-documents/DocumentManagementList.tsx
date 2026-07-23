@@ -71,9 +71,6 @@ export async function DocumentManagementList() {
         locale={locale}
         listTitle={t("title")}
         editLinkLabel={t("editLink")}
-        deleteButtonLabel={t("deleteButton")}
-        deleteConfirmMessage={t("deleteConfirm")}
-        deleteErrorMessage={t("deleteError")}
         sourceTypeUploadBadgeLabel={t("sourceTypeUploadBadge")}
         sourceTypeGoogleBadgeLabel={t("sourceTypeGoogleBadge")}
         targetingLabels={{
