@@ -7,7 +7,7 @@ describe("companyFormSchema", () => {
     const result = companyFormSchema.safeParse({
       name: "Daiso Thailand",
       country: "TH",
-      companyCode: "TH-001",
+      companyCode: "th-daiso-thailand",
     });
 
     expect(result.success).toBe(true);
@@ -17,7 +17,7 @@ describe("companyFormSchema", () => {
     const result = companyFormSchema.safeParse({
       name: "",
       country: "TH",
-      companyCode: "TH-001",
+      companyCode: "th-daiso-thailand",
     });
 
     expect(result.success).toBe(false);
@@ -27,7 +27,7 @@ describe("companyFormSchema", () => {
     const result = companyFormSchema.safeParse({
       name: "   ",
       country: "TH",
-      companyCode: "TH-001",
+      companyCode: "th-daiso-thailand",
     });
 
     expect(result.success).toBe(false);
@@ -37,7 +37,7 @@ describe("companyFormSchema", () => {
     const result = companyFormSchema.safeParse({
       name: "Daiso Thailand",
       country: "",
-      companyCode: "TH-001",
+      companyCode: "th-daiso-thailand",
     });
 
     expect(result.success).toBe(false);
@@ -61,5 +61,45 @@ describe("companyFormSchema", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  describe("販社コードのフォーマット検証（要件18）", () => {
+    it.each([
+      "vn-daiso-vietnam",
+      "jp-daiso-japan-trading",
+      "a-1",
+      "abc123",
+    ])("正しい形式（%s）は検証を通過する", (companyCode) => {
+      const result = companyFormSchema.safeParse({
+        name: "Daiso Thailand",
+        country: "TH",
+        companyCode,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it.each([
+      ["大文字を含む", "VN-daiso-vietnam"],
+      ["先頭がハイフン", "-vn-daiso-vietnam"],
+      ["末尾がハイフン", "vn-daiso-vietnam-"],
+      ["連続したハイフン", "vn--daiso-vietnam"],
+      ["許可されない記号を含む", "vn_daiso_vietnam"],
+      ["全角文字を含む", "ベトナム"],
+    ])("不正な形式（%s: %s）はエラーになる", (_label, companyCode) => {
+      const result = companyFormSchema.safeParse({
+        name: "Daiso Thailand",
+        country: "TH",
+        companyCode,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) =>
+          i.path.includes("companyCode")
+        );
+        expect(issue?.code).toBe("invalid_format");
+      }
+    });
   });
 });

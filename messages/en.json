@@ -470,11 +470,13 @@
       "countryLabel": "Country",
       "countryPlaceholder": "Select a country",
       "companyCodeLabel": "Company Code",
-      "companyCodePlaceholder": "Enter the company code",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "Use the format \"2-letter lowercase ISO country code-daiso-country name in lowercase, hyphen-separated\" (e.g. vn-daiso-vietnam). Only lowercase letters, numbers, and hyphens are allowed, and the code must be unique across all companies.",
       "submitButton": "Save",
       "submitError": "Failed to save. Please try again later.",
       "validation": {
         "required": "This field is required",
+        "companyCodeFormat": "Use only lowercase letters, numbers, and hyphens, with no leading, trailing, or consecutive hyphens (e.g. vn-daiso-vietnam)",
         "companyCodeDuplicate": "This company code is already in use"
       }
     },
@@ -593,6 +595,17 @@
     "sections": {
       "support": "Support Tasks",
       "reference": "Reference"
+    },
+    "kpi": {
+      "title": "Unresolved Count",
+      "unresolvedLabel": "Total unresolved (all companies)",
+      "todayLabel": "Unresolved received today",
+      "none": "No unresolved items",
+      "viewAll": "View all applications",
+      "error": "Failed to load the unresolved count"
+    },
+    "companies": {
+      "description": "View registered overseas distributors and manage their applicant accounts."
     },
     "inquiries": {
       "title": "Application List",

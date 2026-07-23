@@ -59,3 +59,22 @@ export async function updateCompanyAction(
 
   return updated;
 }
+
+/**
+ * 販社コード（companyCode）入力欄のblur時に呼び出す、軽量な重複照会用Server Action。
+ * 既存の`isCompanyCodeTaken`をそのまま利用し、読み取りのみ行う（保存は行わない）。
+ * `excludeCompanyId`を指定した場合（編集時）は、そのIDを自分自身として重複対象から除外する。
+ * 最終的な一意性の担保は、既存の`createCompanyAction`/`updateCompanyAction`が行う
+ * 送信時のユニーク制約チェックに依存する（本関数は事前案内のためのベストエフォート照会）。
+ */
+export async function checkCompanyCodeAvailabilityAction(
+  code: string,
+  excludeCompanyId?: string
+): Promise<boolean> {
+  const trimmed = code.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  return isCompanyCodeTaken(trimmed, excludeCompanyId);
+}
