@@ -391,7 +391,20 @@
       "editLink": "Edit",
       "deleteButton": "Delete",
       "deleteConfirm": "Delete this link?",
-      "deleteError": "Failed to delete. Please try again later."
+      "deleteError": "Failed to delete. Please try again later.",
+      "filter": {
+        "keywordLabel": "Search keyword",
+        "keywordPlaceholder": "Words in the title, URL, or description",
+        "categoryLabel": "Category",
+        "categoryAll": "All categories",
+        "clearButton": "Clear filters",
+        "noResults": "No matching links found"
+      },
+      "pagination": {
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "pageStatus": "Page {current} of {total}"
+      }
     },
     "form": {
       "createTitle": "Create Link",
@@ -856,7 +869,14 @@
       "other": "Other"
     },
     "item": {
-      "opensInNewTab": "(opens in a new tab)"
+      "opensInNewTab": "(opens in a new tab)",
+      "newBadge": "New"
+    },
+    "search": {
+      "keywordLabel": "Search keyword",
+      "keywordPlaceholder": "Words in the title, description, or URL",
+      "clearButton": "Clear filters",
+      "noResults": "No matching links found"
     }
   },
   "faq": {

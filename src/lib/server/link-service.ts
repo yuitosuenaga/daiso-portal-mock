@@ -2,7 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import type { CreateLinkInput, Link } from "@/types/link";
+import type { CreateLinkInput, Link, LinkWithTimestamp } from "@/types/link";
 
 export class LinkNotFoundError extends Error {
   constructor(linkId: string) {
@@ -11,18 +11,23 @@ export class LinkNotFoundError extends Error {
   }
 }
 
-/** ヘルプデスク管理一覧向けに、登録日（`createdAt`）を含むリンク情報。 */
-export interface LinkWithTimestamp extends Link {
-  createdAt: string;
-}
+/**
+ * `LinkWithTimestamp`は`@/types/link`が所有する表示用型。
+ * 既存の`import { type LinkWithTimestamp } from "@/lib/server/link-service"`が
+ * 壊れないよう、後方互換のためここから再エクスポートする。
+ */
+export type { LinkWithTimestamp } from "@/types/link";
 
-function mapLink(record: {
+interface LinkRecord {
   id: string;
   title: string;
   url: string;
   category: Link["category"];
   description: string | null;
-}): Link {
+  createdAt: Date;
+}
+
+function mapLink(record: LinkRecord): Link {
   return {
     id: record.id,
     title: record.title,
@@ -32,14 +37,23 @@ function mapLink(record: {
   };
 }
 
-/**
- * リンク全件を取得する。並び順の保証はなく、絞り込みも行わない
- * （申請者側・ヘルプデスク側で同一の結果を返す既存モックの振る舞いを維持する）。
- */
-export async function listLinks(): Promise<Link[]> {
-  const records = await prisma.link.findMany();
+function mapLinkWithTimestamp(record: LinkRecord): LinkWithTimestamp {
+  return {
+    ...mapLink(record),
+    createdAt: record.createdAt.toISOString(),
+  };
+}
 
-  return records.map(mapLink);
+/**
+ * リンク全件を、登録日（`createdAt`）降順・登録日を含めて取得する。
+ * 申請者側一覧（`links-page`spec、新着バッジ・登録日表示）とヘルプデスク側の両方が利用する。
+ */
+export async function listLinks(): Promise<LinkWithTimestamp[]> {
+  const records = await prisma.link.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  return records.map(mapLinkWithTimestamp);
 }
 
 /** ヘルプデスク管理一覧向けに、登録日（`createdAt`）降順で全件を返す。 */
@@ -48,10 +62,7 @@ export async function listLinksForHelpdesk(): Promise<LinkWithTimestamp[]> {
     orderBy: { createdAt: "desc" },
   });
 
-  return records.map((record) => ({
-    ...mapLink(record),
-    createdAt: record.createdAt.toISOString(),
-  }));
+  return records.map(mapLinkWithTimestamp);
 }
 
 /** 指定されたIDのリンクを1件取得する。存在しない場合はnullを返す。 */

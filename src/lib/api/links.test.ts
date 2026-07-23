@@ -29,7 +29,7 @@ import {
   updateLink,
 } from "@/lib/api/links";
 import { LINK_CATEGORY_CODES } from "@/lib/constants/link-options";
-import type { Link } from "@/types/link";
+import type { Link, LinkWithTimestamp } from "@/types/link";
 
 const helpdeskSession = {
   claims: {
@@ -66,19 +66,19 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-const MOCK_LINKS: Link[] = [
-  { id: "1", title: "t1", url: "https://example.com/1", category: "internal" },
-  { id: "2", title: "t2", url: "https://example.com/2", category: "internal" },
-  { id: "3", title: "t3", url: "https://example.com/3", category: "external" },
-  { id: "4", title: "t4", url: "https://example.com/4", category: "external" },
-  { id: "5", title: "t5", url: "https://example.com/5", category: "document" },
-  { id: "6", title: "t6", url: "https://example.com/6", category: "document" },
-  { id: "7", title: "t7", url: "https://example.com/7", category: "other" },
-  { id: "8", title: "t8", url: "https://example.com/8", category: "other" },
+const MOCK_LINKS: LinkWithTimestamp[] = [
+  { id: "1", title: "t1", url: "https://example.com/1", category: "internal", createdAt: "2026-07-01T00:00:00.000Z" },
+  { id: "2", title: "t2", url: "https://example.com/2", category: "internal", createdAt: "2026-07-02T00:00:00.000Z" },
+  { id: "3", title: "t3", url: "https://example.com/3", category: "external", createdAt: "2026-07-03T00:00:00.000Z" },
+  { id: "4", title: "t4", url: "https://example.com/4", category: "external", createdAt: "2026-07-04T00:00:00.000Z" },
+  { id: "5", title: "t5", url: "https://example.com/5", category: "document", createdAt: "2026-07-05T00:00:00.000Z" },
+  { id: "6", title: "t6", url: "https://example.com/6", category: "document", createdAt: "2026-07-06T00:00:00.000Z" },
+  { id: "7", title: "t7", url: "https://example.com/7", category: "other", createdAt: "2026-07-07T00:00:00.000Z" },
+  { id: "8", title: "t8", url: "https://example.com/8", category: "other", createdAt: "2026-07-08T00:00:00.000Z" },
 ];
 
 describe("getLinks", () => {
-  it("listLinksに委譲し、Link配列を返す", async () => {
+  it("listLinksに委譲し、createdAtを含むLink配列を返す", async () => {
     vi.mocked(listLinks).mockResolvedValue(MOCK_LINKS);
 
     const result = await getLinks();
@@ -94,6 +94,7 @@ describe("getLinks", () => {
       expect(link.title.length).toBeGreaterThan(0);
       expect(typeof link.url).toBe("string");
       expect(link.url.length).toBeGreaterThan(0);
+      expect(typeof link.createdAt).toBe("string");
       expect(LINK_CATEGORY_CODES).toContain(link.category);
     }
   });

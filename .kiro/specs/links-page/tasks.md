@@ -84,43 +84,43 @@
 
 > 対応要件: 要件8（改行保持）・要件9（更新日/新着）・要件10（キーワード検索）。設計は`design.md`「追加設計（追記日: 2026-07-22）」を参照。既存の実装済みタスク1〜5は保持し、以下を積み増す。
 
-- [ ] 6. 説明文の改行を保持して表示する（要件8）
+- [x] 6. 説明文の改行を保持して表示する（要件8）
   - `src/components/features/links/LinkItem.tsx` の説明文 `<p>` に `whitespace-pre-wrap` を追加する（`DocumentListItem.tsx`と同方針）。未登録時に非表示とする既存の条件分岐は維持する
   - 改行を含む説明文が改行のまま表示され、長い行がカード幅内で折り返され横スクロールが発生しないことで完了とする
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 7. 申請者側の読み取り経路に登録日（`createdAt`）を供給する（要件9）
+- [x] 7. 申請者側の読み取り経路に登録日（`createdAt`）を供給する（要件9）
   - `src/types/link.ts` に表示用型 `LinkWithTimestamp`（`{ ...Link; createdAt: string }`）を移設・定義する。`Link` 基底型・`CreateLinkInput` は変更しない
   - `src/lib/server/link-service.ts` の `listLinks` を `createdAt` 付き（`LinkWithTimestamp[]`、`createdAt` 降順）で返すよう変更し、`LinkWithTimestamp` は `@/types/link` から参照する（`links-management`側の参照が壊れないよう再エクスポート等で後方互換を保つ）
   - `src/lib/api/links.ts` の `getLinks()` の戻り値を `Promise<LinkWithTimestamp[]>` に変更する
   - `npx tsc --noEmit` が通り、`getLinks` が `createdAt` を含む配列を返すユニットテストが通ることで完了とする
   - _Requirements: 9.1, 9.5_
 
-- [ ] 8. 新着判定・キーワード絞り込みユーティリティを実装する（要件9・10）
+- [x] 8. 新着判定・キーワード絞り込みユーティリティを実装する（要件9・10）
   - `src/lib/link-utils.ts`（新規）に `LINK_NEW_BADGE_DAYS = 7`、`isRecentlyCreated(createdAt, now?)`、`filterLinks(links, keyword)` を実装する（`document-utils.ts` の `isRecentlyUploaded`/`filterDocuments` と同一方針。`filterLinks` は title・description・URL の部分一致・大文字小文字非依存）
   - ユニットテストで、`isRecentlyCreated` の境界（7日以内=true・未来日時=false）、`filterLinks` の空キーワードで全件・title/description/URL 部分一致・大文字小文字非依存を検証し通ることで完了とする
   - _Requirements: 9.2, 9.3, 10.2_
   - _Depends: 7_
 
-- [ ] 9. `LinkItem` に登録日・新着バッジを表示する（要件9）
+- [x] 9. `LinkItem` に登録日・新着バッジを表示する（要件9）
   - `LinkItem` に `createdAt`・`locale`・`newBadgeLabel` props を追加し、`<time dateTime>` で登録日をロケール書式表示、`isRecentlyCreated` が true のとき `<Badge>` で新着表示する
   - `LinkCategoryGroup` を、`LinkItem` へ `locale`・`newBadgeLabel` を透過的に渡せるよう props 追加して更新する
   - _Requirements: 9.1, 9.2, 9.4_
   - _Depends: 8_
 
-- [ ] 10. キーワード検索欄と絞り込み表示を実装する（要件10）
+- [x] 10. キーワード検索欄と絞り込み表示を実装する（要件10）
   - `src/components/features/links/LinkSearchBar.tsx`（新規、Client）を `DocumentSearchBar` と同型で実装する（`Input`＋`Label`＋クリア`Button`、`useTranslations("links.search")`）
   - `src/components/features/links/LinkListClient.tsx`（新規、Client）を `DocumentListClient` と同型で実装する。キーワード状態を保持し、`filterLinks` で絞り込んだ結果を `LINK_CATEGORY_CODES` 順に走査し、該当リンクを持つカテゴリのみ `LinkCategoryGroup` で描画する。0件時は `links.search.noResults` を表示する
   - `src/components/features/links/LinkList.tsx`（Server）を、取得結果を `LinkListClient` へ渡す形へ変更する（空/エラー/スケルトンの既存分岐は維持）
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.7_
   - _Depends: 9_
 
-- [ ] 11. 翻訳キーを追加する（要件8・9・10）
+- [x] 11. 翻訳キーを追加する（要件8・9・10）
   - `messages/ja.json`・`messages/en.json` の `links` 名前空間に `item.newBadge`・`search.keywordLabel`・`search.keywordPlaceholder`・`search.clearButton`・`search.noResults` を追加する
   - `ja.json` で定義した新規キーが全て `en.json` にも存在し、キー構造が一致していることで完了とする
   - _Requirements: 9.4, 10.6_
 
-- [ ] 12. 統合テスト・検証
+- [x] 12. 統合テスト・検証
   - `LinkListClient` のキーワード入力で該当カテゴリのみ表示・0件メッセージ表示、`LinkItem` が改行を保持し新着バッジを条件表示することの統合テストを追加し通す
   - `npx tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることで完了とする
   - _Requirements: 8.1, 9.1, 9.2, 10.2, 10.3, 10.4_

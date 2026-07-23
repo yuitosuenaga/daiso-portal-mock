@@ -18,3 +18,13 @@ export interface Link {
  * `Link`から`id`（API側で生成）を除いたサブセット。
  */
 export type CreateLinkInput = Omit<Link, "id">;
+
+/**
+ * 登録日（`createdAt`）を含む表示用のリンク型。
+ * 申請者側一覧（新着バッジ・登録日表示）・ヘルプデスク側管理一覧の両方で使用する。
+ * `Link`基底型は変更せず、表示専用にこの型を追加する。
+ */
+export interface LinkWithTimestamp extends Link {
+  /** 登録日時（ISO文字列） */
+  createdAt: string;
+}
