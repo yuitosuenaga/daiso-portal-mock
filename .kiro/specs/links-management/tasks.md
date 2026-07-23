@@ -148,14 +148,14 @@
   - _Requirements: 10.9, 10.10_
   - _Depends: 19_
 
-- [ ] 21. リンク削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象タイトルを明示する（2026-07-22 追記 / 要件11）
+- [x] 21. リンク削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象タイトルを明示する（2026-07-22 追記 / 要件11）
   - `DeleteLinkButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（helpdesk-portal-layout要件18）でラップ。確認押下時のみ既存削除処理を実行、`isPending`を伝播する
   - `title` prop と確認モーダル用文言propsを追加し、呼び出し側から対象タイトルを渡す
   - `helpdeskLinks.list.deleteConfirm`を`{title}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   - _Depends: helpdesk-portal-layout タスク9（ConfirmDialog新設）_
 
-- [ ]* 21.1 `DeleteLinkButton.test.tsx` をConfirmDialogベースへ更新する
+- [x]* 21.1 `DeleteLinkButton.test.tsx` をConfirmDialogベースへ更新する
   - トリガー押下→確認押下で削除実行、キャンセルで未実行、本文に対象タイトル表示を検証する
   - _Requirements: 11.6_
   - _Depends: 21_

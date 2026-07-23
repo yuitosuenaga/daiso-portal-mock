@@ -24,9 +24,6 @@ export interface LinkManagementListClientProps {
   locale: string;
   listTitle: string;
   editLinkLabel: string;
-  deleteButtonLabel: string;
-  deleteConfirmMessage: string;
-  deleteErrorMessage: string;
 }
 
 const INITIAL_FILTERS: LinkManagementFilters = { keyword: "", category: "all" };
@@ -41,11 +38,9 @@ export function LinkManagementListClient({
   locale,
   listTitle,
   editLinkLabel,
-  deleteButtonLabel,
-  deleteConfirmMessage,
-  deleteErrorMessage,
 }: LinkManagementListClientProps) {
   const t = useTranslations("helpdeskLinks.list.filter");
+  const tList = useTranslations("helpdeskLinks.list");
   const tCategories = useTranslations("links.categories");
   const [filters, setFilters] = useState<LinkManagementFilters>(INITIAL_FILTERS);
   const [page, setPage] = useState(1);
@@ -115,9 +110,13 @@ export function LinkManagementListClient({
                     </Link>
                     <DeleteLinkButton
                       linkId={link.id}
-                      deleteButtonLabel={deleteButtonLabel}
-                      confirmMessage={deleteConfirmMessage}
-                      errorMessage={deleteErrorMessage}
+                      title={link.title}
+                      deleteButtonLabel={tList("deleteButton")}
+                      confirmTitle={tList("deleteConfirmTitle")}
+                      confirmMessage={tList("deleteConfirm", { title: link.title })}
+                      confirmButtonLabel={tList("deleteConfirmButton")}
+                      cancelButtonLabel={tList("deleteCancelButton")}
+                      errorMessage={tList("deleteError")}
                     />
                   </div>
                 </ManagementListRow>

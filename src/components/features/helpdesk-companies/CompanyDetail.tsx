@@ -41,6 +41,15 @@ export async function CompanyDetail({ companyId }: CompanyDetailProps) {
   }
 
   const applicantUsers = await listApplicantUsersByCompany(companyId);
+  const applicantUserRows = applicantUsers.map((applicantUser) => ({
+    ...applicantUser,
+    deactivateConfirmMessage: tToggle("deactivateConfirm", {
+      name: applicantUser.displayName,
+    }),
+    activateConfirmMessage: tToggle("activateConfirm", {
+      name: applicantUser.displayName,
+    }),
+  }));
 
   return (
     <div className="space-y-6">
@@ -79,7 +88,7 @@ export async function CompanyDetail({ companyId }: CompanyDetailProps) {
         </div>
         <ApplicantUserList
           companyId={companyId}
-          applicantUsers={applicantUsers}
+          applicantUsers={applicantUserRows}
           emptyMessage={t("applicantUsersEmpty")}
           emailHeader={t("emailHeader")}
           displayNameHeader={t("displayNameHeader")}
@@ -89,8 +98,11 @@ export async function CompanyDetail({ companyId }: CompanyDetailProps) {
           editLinkLabel={t("editLink")}
           deactivateButtonLabel={tToggle("deactivateButton")}
           activateButtonLabel={tToggle("activateButton")}
-          deactivateConfirmMessage={tToggle("deactivateConfirm")}
-          activateConfirmMessage={tToggle("activateConfirm")}
+          deactivateConfirmTitle={tToggle("deactivateConfirmTitle")}
+          activateConfirmTitle={tToggle("activateConfirmTitle")}
+          deactivateConfirmButtonLabel={tToggle("deactivateConfirmButton")}
+          activateConfirmButtonLabel={tToggle("activateConfirmButton")}
+          cancelButtonLabel={tToggle("cancelButton")}
           toggleErrorMessage={tToggle("toggleError")}
         />
       </div>

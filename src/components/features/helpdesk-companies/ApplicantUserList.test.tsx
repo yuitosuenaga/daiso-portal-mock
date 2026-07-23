@@ -16,8 +16,10 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-import { ApplicantUserList } from "@/components/features/helpdesk-companies/ApplicantUserList";
-import type { ApplicantUserSummary } from "@/types/applicant-user";
+import {
+  ApplicantUserList,
+  type ApplicantUserRowSummary,
+} from "@/components/features/helpdesk-companies/ApplicantUserList";
 
 const labels = {
   emptyMessage: "申請者アカウントが登録されていません",
@@ -29,14 +31,17 @@ const labels = {
   editLinkLabel: "編集",
   deactivateButtonLabel: "無効化する",
   activateButtonLabel: "再有効化する",
-  deactivateConfirmMessage: "このアカウントを無効化しますか？",
-  activateConfirmMessage: "このアカウントを再有効化しますか？",
+  deactivateConfirmTitle: "アカウントの無効化",
+  activateConfirmTitle: "アカウントの再有効化",
+  deactivateConfirmButtonLabel: "無効化を実行",
+  activateConfirmButtonLabel: "再有効化を実行",
+  cancelButtonLabel: "キャンセル",
   toggleErrorMessage: "更新に失敗しました。時間を置いて再度お試しください。",
 };
 
 function applicantUser(
-  overrides: Partial<ApplicantUserSummary> = {}
-): ApplicantUserSummary {
+  overrides: Partial<ApplicantUserRowSummary> = {}
+): ApplicantUserRowSummary {
   return {
     id: "applicant-1",
     email: "tanaka@example.com",
@@ -45,6 +50,8 @@ function applicantUser(
     companyId: "company-1",
     createdAt: "2026-07-01T00:00:00.000Z",
     preferredLocale: "en",
+    deactivateConfirmMessage: "『田中太郎』を無効化しますか？",
+    activateConfirmMessage: "『田中太郎』を再有効化しますか？",
     ...overrides,
   };
 }

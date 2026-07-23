@@ -50,8 +50,12 @@ export default async function HelpdeskLinkEditPage({
         </h1>
         <DeleteLinkButton
           linkId={link.id}
+          title={link.title}
           deleteButtonLabel={tListLabels("deleteButton")}
-          confirmMessage={tListLabels("deleteConfirm")}
+          confirmTitle={tListLabels("deleteConfirmTitle")}
+          confirmMessage={tListLabels("deleteConfirm", { title: link.title })}
+          confirmButtonLabel={tListLabels("deleteConfirmButton")}
+          cancelButtonLabel={tListLabels("deleteCancelButton")}
           errorMessage={tListLabels("deleteError")}
         />
       </div>

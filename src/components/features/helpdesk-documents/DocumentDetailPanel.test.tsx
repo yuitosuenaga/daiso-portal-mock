@@ -66,7 +66,11 @@ const BASE_PROPS = {
   countryLabels: {},
   companyLabels: {},
   deleteButtonLabel: "削除",
-  deleteConfirmMessage: "このドキュメントを削除しますか？",
+  deleteConfirmTitle: "ドキュメントの削除",
+  deleteConfirmMessage:
+    "『テストドキュメント』を削除します。この操作は取り消せません。よろしいですか？",
+  deleteConfirmButtonLabel: "削除する",
+  deleteCancelButtonLabel: "キャンセル",
   deleteErrorMessage: "削除に失敗しました。時間を置いて再度お試しください。",
   formProps: {
     countryOptions: [],

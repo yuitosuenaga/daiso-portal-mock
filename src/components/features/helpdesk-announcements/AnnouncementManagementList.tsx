@@ -105,9 +105,6 @@ export async function AnnouncementManagementList() {
           publishPeriodToSeparator={t("publishPeriodToSeparator")}
           dueDateLabel={t("dueDateLabel")}
           editLinkLabel={t("editLink")}
-          deleteButtonLabel={t("deleteButton")}
-          deleteConfirmMessage={t("deleteConfirm")}
-          deleteErrorMessage={t("deleteError")}
           recipientStatusesByAnnouncementId={recipientStatusesByAnnouncementId}
         />
       </ManagementListCard>

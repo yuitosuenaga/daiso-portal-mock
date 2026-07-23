@@ -75,8 +75,14 @@ export default async function HelpdeskAnnouncementEditPage({
         </h1>
         <DeleteAnnouncementButton
           announcementId={announcement.id}
+          announcementTitle={announcement.title}
           deleteButtonLabel={tListLabels("deleteButton")}
-          confirmMessage={tListLabels("deleteConfirm")}
+          confirmTitle={tListLabels("deleteConfirmTitle")}
+          confirmDescription={tListLabels("deleteConfirm", {
+            title: announcement.title,
+          })}
+          confirmLabel={tListLabels("deleteConfirmButton")}
+          cancelLabel={tListLabels("deleteCancelButton")}
           errorMessage={tListLabels("deleteError")}
         />
       </div>

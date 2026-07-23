@@ -35,9 +35,6 @@ export interface AnnouncementManagementListClientProps {
   publishPeriodToSeparator: string;
   dueDateLabel: string;
   editLinkLabel: string;
-  deleteButtonLabel: string;
-  deleteConfirmMessage: string;
-  deleteErrorMessage: string;
   /** お知らせIDごとの担当者別確認済み・実施済み・リマインド送信状態 */
   recipientStatusesByAnnouncementId: Record<string, AnnouncementRecipientStatusView[]>;
 }
@@ -61,12 +58,10 @@ export function AnnouncementManagementListClient({
   publishPeriodToSeparator,
   dueDateLabel,
   editLinkLabel,
-  deleteButtonLabel,
-  deleteConfirmMessage,
-  deleteErrorMessage,
   recipientStatusesByAnnouncementId,
 }: AnnouncementManagementListClientProps) {
   const t = useTranslations("helpdeskAnnouncements.list.filter");
+  const tList = useTranslations("helpdeskAnnouncements.list");
   const [filters, setFilters] = useState(EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS);
 
   const filteredAnnouncements = useMemo(
@@ -164,9 +159,15 @@ export function AnnouncementManagementListClient({
                 </Link>
                 <DeleteAnnouncementButton
                   announcementId={announcement.id}
-                  deleteButtonLabel={deleteButtonLabel}
-                  confirmMessage={deleteConfirmMessage}
-                  errorMessage={deleteErrorMessage}
+                  announcementTitle={announcement.title}
+                  deleteButtonLabel={tList("deleteButton")}
+                  confirmTitle={tList("deleteConfirmTitle")}
+                  confirmDescription={tList("deleteConfirm", {
+                    title: announcement.title,
+                  })}
+                  confirmLabel={tList("deleteConfirmButton")}
+                  cancelLabel={tList("deleteCancelButton")}
+                  errorMessage={tList("deleteError")}
                 />
               </div>
             </ManagementListRow>

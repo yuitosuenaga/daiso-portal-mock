@@ -36,7 +36,10 @@ export interface DocumentDetailPanelProps {
   countryLabels: Record<string, string>;
   companyLabels: Record<string, string>;
   deleteButtonLabel: string;
+  deleteConfirmTitle: string;
   deleteConfirmMessage: string;
+  deleteConfirmButtonLabel: string;
+  deleteCancelButtonLabel: string;
   deleteErrorMessage: string;
   formProps: Omit<DocumentFormProps, "mode" | "documentId" | "defaultValues">;
 }
@@ -94,7 +97,10 @@ export function DocumentDetailPanel({
   countryLabels,
   companyLabels,
   deleteButtonLabel,
+  deleteConfirmTitle,
   deleteConfirmMessage,
+  deleteConfirmButtonLabel,
+  deleteCancelButtonLabel,
   deleteErrorMessage,
   formProps,
 }: DocumentDetailPanelProps) {
@@ -128,8 +134,12 @@ export function DocumentDetailPanel({
         </h1>
         <DeleteDocumentButton
           documentId={document.id}
+          title={document.title}
           deleteButtonLabel={deleteButtonLabel}
+          confirmTitle={deleteConfirmTitle}
           confirmMessage={deleteConfirmMessage}
+          confirmButtonLabel={deleteConfirmButtonLabel}
+          cancelButtonLabel={deleteCancelButtonLabel}
           errorMessage={deleteErrorMessage}
         />
       </div>
