@@ -44,12 +44,10 @@ describe("HelpdeskHeader", () => {
     ).toBeTruthy();
   });
 
-  it("申請者側画面への切り替えリンクが表示される", () => {
+  it("申請者側画面への切り替えリンクは表示されない（デッドリンクのため撤去済み）", () => {
     renderHelpdeskHeader();
-    const link = screen.getByRole("link", {
-      name: messages.helpdeskHeader.switchToApplicant,
-    });
-    expect(link.getAttribute("href")).toBe("/");
+    const links = screen.getAllByRole("link");
+    expect(links.every((link) => link.getAttribute("href") !== "/")).toBe(true);
   });
 
   it("ログアウトボタンをクリックするとsignOutが呼ばれる", () => {

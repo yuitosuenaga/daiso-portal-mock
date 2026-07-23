@@ -19,13 +19,11 @@
   "header": {
     "portalName": "Overseas Operations Portal",
     "screenName": "Overseas Sales Agent View",
-    "switchToHelpdesk": "Switch to Japan Daiso View",
     "logout": "Log out"
   },
   "helpdeskHeader": {
     "portalName": "Overseas Operations Portal",
     "screenName": "Japan Daiso View",
-    "switchToApplicant": "Switch to Overseas Sales Agent View",
     "logout": "Log out"
   },
   "helpdeskAppShell": {
@@ -493,6 +491,18 @@
       "passwordEditPlaceholder": "Enter only if changing (8+ characters)",
       "passwordCreateHint": "The helpdesk staff sets the initial password directly.",
       "passwordEditHint": "Leave blank to keep the existing password unchanged.",
+      "preferredLocaleLabel": "Notification language",
+      "preferredLocaleOptions": {
+        "en": "English",
+        "ja": "Japanese",
+        "zh": "Chinese",
+        "ko": "Korean",
+        "th": "Thai",
+        "vi": "Vietnamese",
+        "id": "Indonesian",
+        "ms": "Malay",
+        "tl": "Tagalog"
+      },
       "submitButton": "Save",
       "submitError": "Failed to save. Please try again later.",
       "validation": {

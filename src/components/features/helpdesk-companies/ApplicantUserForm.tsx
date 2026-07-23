@@ -1,31 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, type SelectOption } from "@/components/ui/select";
 import {
   applicantUserCreateFormSchema,
   applicantUserUpdateFormSchema,
+  type ApplicantUserCreateFormInput,
   type ApplicantUserCreateFormValues,
+  type ApplicantUserUpdateFormInput,
   type ApplicantUserUpdateFormValues,
 } from "@/lib/validation/applicant-user";
+import { APPLICANT_USER_DEFAULT_LOCALE } from "@/lib/constants/applicant-user";
 import {
   createApplicantUserAction,
   updateApplicantUserAction,
 } from "@/lib/actions/applicant-users";
 
+// バリデーション後（zodスキーマの出力）の型。`preferredLocale`は既定値補完済みで必須。
+// `onSubmit`のコールバック引数・Server Actionsへの引き渡しに用いる。
 type ApplicantUserFormValues = ApplicantUserCreateFormValues | ApplicantUserUpdateFormValues;
+
+// バリデーション前（フォーム入力）の型。`preferredLocale`は`.default()`により
+// 省略可能として推論される。`useForm`の`TFieldValues`（register・defaultValues）に用いる。
+type ApplicantUserFormInputValues =
+  | ApplicantUserCreateFormInput
+  | ApplicantUserUpdateFormInput;
 
 export interface ApplicantUserFormProps {
   mode: "create" | "edit";
   companyId: string;
   applicantUserId?: string;
-  defaultValues?: { email: string; displayName: string };
+  defaultValues?: {
+    email: string;
+    displayName: string;
+    preferredLocale?: string;
+  };
   emailLabel: string;
   emailPlaceholder: string;
   displayNameLabel: string;
@@ -33,6 +49,8 @@ export interface ApplicantUserFormProps {
   passwordLabel: string;
   passwordPlaceholder: string;
   passwordHint: string;
+  preferredLocaleLabel: string;
+  preferredLocaleOptions: SelectOption[];
   submitButtonLabel: string;
   requiredErrorMessage: string;
   emailInvalidMessage: string;
@@ -60,6 +78,8 @@ export function ApplicantUserForm({
   passwordLabel,
   passwordPlaceholder,
   passwordHint,
+  preferredLocaleLabel,
+  preferredLocaleOptions,
   submitButtonLabel,
   requiredErrorMessage,
   emailInvalidMessage,
@@ -78,12 +98,18 @@ export function ApplicantUserForm({
     reset,
     resetField,
     formState: { errors, isSubmitting },
-  } = useForm<ApplicantUserFormValues>({
-    resolver: zodResolver(schema),
+  } = useForm<ApplicantUserFormInputValues, unknown, ApplicantUserFormValues>({
+    resolver: zodResolver(schema) as Resolver<
+      ApplicantUserFormInputValues,
+      unknown,
+      ApplicantUserFormValues
+    >,
     defaultValues: {
       email: defaultValues?.email ?? "",
       displayName: defaultValues?.displayName ?? "",
       password: "",
+      preferredLocale: (defaultValues?.preferredLocale ??
+        APPLICANT_USER_DEFAULT_LOCALE) as ApplicantUserFormInputValues["preferredLocale"],
     },
   });
 
@@ -97,10 +123,16 @@ export function ApplicantUserForm({
           email: values.email,
           displayName: values.displayName,
           password: values.password ?? "",
+          preferredLocale: values.preferredLocale,
         });
       }
       // 保存操作の完了後、パスワード入力欄をフォーム・画面上に残さない（要件5.9）。
-      reset({ email: values.email, displayName: values.displayName, password: "" });
+      reset({
+        email: values.email,
+        displayName: values.displayName,
+        password: "",
+        preferredLocale: values.preferredLocale,
+      });
       router.push(`/helpdesk/companies/${companyId}`);
     } catch (error) {
       // 保存に失敗した場合も、パスワード入力欄の平文をフォーム上に残さない
@@ -170,6 +202,17 @@ export function ApplicantUserForm({
         <p id="applicant-user-password-hint" className="text-sm text-muted-foreground">
           {passwordHint}
         </p>
+      </FormField>
+
+      <FormField
+        label={preferredLocaleLabel}
+        htmlFor="applicant-user-preferred-locale"
+      >
+        <Select
+          id="applicant-user-preferred-locale"
+          options={preferredLocaleOptions}
+          {...register("preferredLocale")}
+        />
       </FormField>
 
       <div className="flex items-center gap-3">

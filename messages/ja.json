@@ -19,13 +19,11 @@
   "header": {
     "portalName": "海外運用ポータル",
     "screenName": "海外販社代理店画面",
-    "switchToHelpdesk": "日本大創側画面へ",
     "logout": "ログアウト"
   },
   "helpdeskHeader": {
     "portalName": "海外運用ポータル",
     "screenName": "日本大創側画面",
-    "switchToApplicant": "海外販社代理店画面へ",
     "logout": "ログアウト"
   },
   "helpdeskAppShell": {
@@ -493,6 +491,18 @@
       "passwordEditPlaceholder": "変更する場合のみ入力してください（8文字以上）",
       "passwordCreateHint": "ヘルプデスク担当者が初期パスワードを直接設定します。",
       "passwordEditHint": "空欄のまま保存すると、既存のパスワードは変更されません。",
+      "preferredLocaleLabel": "通知言語",
+      "preferredLocaleOptions": {
+        "en": "英語",
+        "ja": "日本語",
+        "zh": "中国語",
+        "ko": "韓国語",
+        "th": "タイ語",
+        "vi": "ベトナム語",
+        "id": "インドネシア語",
+        "ms": "マレー語",
+        "tl": "タガログ語"
+      },
       "submitButton": "保存する",
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {

@@ -67,6 +67,7 @@ export async function updateApplicantUserAction(
     email: parsed.email,
     displayName: parsed.displayName,
     password: parsed.password ? parsed.password : undefined,
+    preferredLocale: parsed.preferredLocale,
   });
   revalidateApplicantUserRoutes();
 

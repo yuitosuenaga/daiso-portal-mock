@@ -43,12 +43,12 @@ describe("Header", () => {
     expect(screen.getByText(`/ ${messages.header.screenName}`)).toBeTruthy();
   });
 
-  it("ヘルプデスク側画面への切り替えリンクが表示される", () => {
+  it("ヘルプデスク側画面への切り替えリンクは表示されない（デッドリンクのため撤去済み）", () => {
     renderHeader();
-    const link = screen.getByRole("link", {
-      name: messages.header.switchToHelpdesk,
-    });
-    expect(link.getAttribute("href")).toBe("/helpdesk");
+    const links = screen.getAllByRole("link");
+    expect(links.every((link) => link.getAttribute("href") !== "/helpdesk")).toBe(
+      true
+    );
   });
 
   it("ログアウトボタンをクリックするとsignOutが呼ばれる", () => {

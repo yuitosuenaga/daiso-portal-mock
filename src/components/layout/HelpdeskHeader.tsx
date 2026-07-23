@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { signOut } from "next-auth/react";
 import { Link } from "@/i18n/navigation";
@@ -33,15 +33,6 @@ export function HelpdeskHeader() {
         </Link>
       </div>
       <div className="flex items-center gap-4 shrink-0">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-base text-primary underline-offset-4 hover:underline"
-        >
-          <ArrowLeftRight className="h-5 w-5 xl:hidden" aria-hidden="true" />
-          <span className="sr-only xl:not-sr-only whitespace-nowrap">
-            {t("switchToApplicant")}
-          </span>
-        </Link>
         <LanguageSwitcher />
         <button
           type="button"
