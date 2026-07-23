@@ -470,11 +470,13 @@
       "countryLabel": "国",
       "countryPlaceholder": "国を選択してください",
       "companyCodeLabel": "販社コード",
-      "companyCodePlaceholder": "販社コードを入力してください",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "「ISO国コード小文字2桁-daiso-国名（小文字・ハイフン区切り）」の形式で入力してください（例: vn-daiso-vietnam）。使用できるのは半角英小文字・数字・ハイフンのみで、コードは全販社で一意である必要があります。",
       "submitButton": "保存する",
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {
         "required": "この項目は必須です",
+        "companyCodeFormat": "半角英小文字・数字・ハイフンのみを使用し、先頭・末尾や連続したハイフンは使用できません（例: vn-daiso-vietnam）",
         "companyCodeDuplicate": "この販社コードは既に使用されています"
       }
     },
@@ -593,6 +595,17 @@
     "sections": {
       "support": "対応業務",
       "reference": "参考情報"
+    },
+    "kpi": {
+      "title": "未対応件数",
+      "unresolvedLabel": "全社の未対応件数",
+      "todayLabel": "本日受付の未対応件数",
+      "none": "未対応なし",
+      "viewAll": "申請一覧を見る",
+      "error": "未対応件数の取得に失敗しました"
+    },
+    "companies": {
+      "description": "登録済みの海外販社の一覧・申請者アカウントを管理できます。"
     },
     "inquiries": {
       "title": "申請一覧",

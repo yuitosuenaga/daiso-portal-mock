@@ -29,8 +29,10 @@ export default async function HelpdeskCompanyNewPage() {
         countryPlaceholder={t("countryPlaceholder")}
         companyCodeLabel={t("companyCodeLabel")}
         companyCodePlaceholder={t("companyCodePlaceholder")}
+        companyCodeHelpText={t("companyCodeHelpText")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
+        companyCodeFormatErrorMessage={t("validation.companyCodeFormat")}
         companyCodeDuplicateMessage={t("validation.companyCodeDuplicate")}
         submitErrorMessage={t("submitError")}
       />

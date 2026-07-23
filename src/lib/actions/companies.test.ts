@@ -27,14 +27,18 @@ import {
   isCompanyCodeTaken,
   updateCompany,
 } from "@/lib/server/company-service";
-import { createCompanyAction, updateCompanyAction } from "@/lib/actions/companies";
+import {
+  checkCompanyCodeAvailabilityAction,
+  createCompanyAction,
+  updateCompanyAction,
+} from "@/lib/actions/companies";
 import type { Company, CreateCompanyInput } from "@/types/company";
 
 function buildInput(overrides: Partial<CreateCompanyInput> = {}): CreateCompanyInput {
   return {
     name: "Daiso Thailand",
     country: "TH",
-    companyCode: "TH-001",
+    companyCode: "th-daiso-thailand",
     ...overrides,
   };
 }
@@ -44,7 +48,7 @@ function company(overrides: Partial<Company> = {}): Company {
     id: "company-1",
     name: "Daiso Thailand",
     country: "TH",
-    companyCode: "TH-001",
+    companyCode: "th-daiso-thailand",
     createdAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
   };
@@ -61,7 +65,7 @@ describe("createCompanyAction", () => {
 
     const result = await createCompanyAction(buildInput());
 
-    expect(isCompanyCodeTaken).toHaveBeenCalledWith("TH-001");
+    expect(isCompanyCodeTaken).toHaveBeenCalledWith("th-daiso-thailand");
     expect(createCompany).toHaveBeenCalled();
     expect(result.id).toBe("company-1");
     expect(revalidatePath).toHaveBeenCalled();
@@ -93,7 +97,7 @@ describe("updateCompanyAction", () => {
       buildInput({ name: "更新後" })
     );
 
-    expect(isCompanyCodeTaken).toHaveBeenCalledWith("TH-001", "company-1");
+    expect(isCompanyCodeTaken).toHaveBeenCalledWith("th-daiso-thailand", "company-1");
     expect(updateCompany).toHaveBeenCalledWith(
       "company-1",
       expect.objectContaining({ name: "更新後" })
@@ -117,5 +121,54 @@ describe("updateCompanyAction", () => {
       updateCompanyAction("company-1", buildInput())
     ).rejects.toThrow(CompanyCodeTakenError);
     expect(updateCompany).not.toHaveBeenCalled();
+  });
+});
+
+describe("checkCompanyCodeAvailabilityAction", () => {
+  it("既存の販社コードに対してisCompanyCodeTakenをそのまま呼び出す", async () => {
+    vi.mocked(isCompanyCodeTaken).mockResolvedValue(true);
+
+    const result = await checkCompanyCodeAvailabilityAction(
+      "th-daiso-thailand"
+    );
+
+    expect(isCompanyCodeTaken).toHaveBeenCalledWith(
+      "th-daiso-thailand",
+      undefined
+    );
+    expect(result).toBe(true);
+  });
+
+  it("excludeCompanyIdを指定した場合、そのIDを除外して重複確認する（編集時の自コード除外）", async () => {
+    vi.mocked(isCompanyCodeTaken).mockResolvedValue(false);
+
+    const result = await checkCompanyCodeAvailabilityAction(
+      "th-daiso-thailand",
+      "company-1"
+    );
+
+    expect(isCompanyCodeTaken).toHaveBeenCalledWith(
+      "th-daiso-thailand",
+      "company-1"
+    );
+    expect(result).toBe(false);
+  });
+
+  it("前後の空白を除去して照会する", async () => {
+    vi.mocked(isCompanyCodeTaken).mockResolvedValue(false);
+
+    await checkCompanyCodeAvailabilityAction("  th-daiso-thailand  ");
+
+    expect(isCompanyCodeTaken).toHaveBeenCalledWith(
+      "th-daiso-thailand",
+      undefined
+    );
+  });
+
+  it("空文字列の場合はisCompanyCodeTakenを呼び出さずfalseを返す", async () => {
+    const result = await checkCompanyCodeAvailabilityAction("   ");
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+    expect(result).toBe(false);
   });
 });

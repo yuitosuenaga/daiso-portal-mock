@@ -209,7 +209,7 @@
   - _Requirements: 12.5_
   - _Depends: 17.1, 17.2_
 
-- [ ] 19. ヘルプデスクダッシュボードに未対応件数KPIを追加する（2026-07-22 追記 / 要件13）
+- [x] 19. ヘルプデスクダッシュボードに未対応件数KPIを追加する（2026-07-22 追記 / 要件13）
   - `UnresolvedInquiriesKpiPanel`（Server Component, `src/components/features/dashboard/`）を新設し、`getAllInquiries()`から未対応（`new`/`in_progress`）件数と本日受付（`createdAt`が当日）の未対応件数を算出して大きく強調表示する
   - `/helpdesk/inquiries`への導線、0件時の「未対応なし」表現、取得失敗時のパネル内エラー表示（例外非伝播）を実装する
   - `helpdesk/(dashboard)/page.tsx`の最上部（プレビューパネルの上位）に`Suspense`付きで配置し、スケルトンをフォールバックにする
@@ -217,12 +217,12 @@
   - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7_
   - _Depends: なし_
 
-- [ ]* 19.1 未対応件数KPIの単体テストを追加する
+- [x]* 19.1 未対応件数KPIの単体テストを追加する
   - 未対応件数・本日受付件数の算出（前日/当日境界、new/in_progress以外の除外）、0件時表現、取得失敗時エラー表示を検証する
   - _Requirements: 13.1, 13.2, 13.4, 13.6_
   - _Depends: 19_
 
-- [ ] 20. ヘルプデスクダッシュボードに「販社管理」カードを追加する（2026-07-22 追記 / 要件14）
+- [x] 20. ヘルプデスクダッシュボードに「販社管理」カードを追加する（2026-07-22 追記 / 要件14）
   - `helpdesk/(dashboard)/page.tsx`の「対応業務（support）」セクションに`NavigationCard`（`title={nav("companies")}`, `icon={Building2}`, `href="/helpdesk/companies"`, `description={t("companies.description")}`）を追加する
   - `helpdeskDashboard.companies.description`を`messages/ja.json`・`messages/en.json`両方に追加する
   - 既存カード・順序・KPI・プレビューパネルに影響を与えないことを確認する

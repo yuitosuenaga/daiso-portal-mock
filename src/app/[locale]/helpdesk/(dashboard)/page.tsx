@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import {
   Bell,
+  Building2,
   FilePlus,
   FileText,
   FolderOpen,
@@ -16,6 +17,10 @@ import {
   PriorityInquiriesPreviewPanel,
   PriorityInquiriesPreviewPanelSkeleton,
 } from "@/components/features/dashboard/PriorityInquiriesPreviewPanel";
+import {
+  UnresolvedInquiriesKpiPanel,
+  UnresolvedInquiriesKpiPanelSkeleton,
+} from "@/components/features/dashboard/UnresolvedInquiriesKpiPanel";
 
 export default async function HelpdeskHomePage() {
   const t = await getTranslations("helpdeskDashboard");
@@ -23,6 +28,10 @@ export default async function HelpdeskHomePage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={<UnresolvedInquiriesKpiPanelSkeleton />}>
+        <UnresolvedInquiriesKpiPanel viewAllHref="/helpdesk/inquiries" />
+      </Suspense>
+
       <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>
         <PriorityInquiriesPreviewPanel viewAllHref="/helpdesk/inquiries" />
       </Suspense>
@@ -66,6 +75,12 @@ export default async function HelpdeskHomePage() {
             description={t("inquiryForm.description")}
             href="/helpdesk/inquiry/new"
             icon={FilePlus}
+          />
+          <NavigationCard
+            title={nav("companies")}
+            description={t("companies.description")}
+            href="/helpdesk/companies"
+            icon={Building2}
           />
         </div>
       </section>

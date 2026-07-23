@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { companyFormSchema, type CompanyFormValues } from "@/lib/validation/company";
-import { createCompanyAction, updateCompanyAction } from "@/lib/actions/companies";
+import {
+  checkCompanyCodeAvailabilityAction,
+  createCompanyAction,
+  updateCompanyAction,
+} from "@/lib/actions/companies";
 
 export interface CompanyFormProps {
   mode: "create" | "edit";
@@ -23,16 +27,26 @@ export interface CompanyFormProps {
   countryPlaceholder: string;
   companyCodeLabel: string;
   companyCodePlaceholder: string;
+  /** 販社コード入力欄付近に表示する、命名規則・一意性の案内ヘルプテキスト */
+  companyCodeHelpText: string;
   submitButtonLabel: string;
   requiredErrorMessage: string;
+  /** 販社コードのフォーマット（命名規則）違反時に表示するエラーメッセージ */
+  companyCodeFormatErrorMessage: string;
   companyCodeDuplicateMessage: string;
   submitErrorMessage: string;
 }
+
+const COMPANY_CODE_HELP_ID = "company-code-help";
 
 /**
  * 販社（Company）の新規作成・編集で共用するフォーム。`FaqForm`と同じ構造パターンを踏襲する。
  * 販社コードの重複エラーはServer Action側から送出されるメッセージを識別して
  * `companyCode`フィールドにエラー表示する（要件2.3・3.3）。
+ * 販社コードはフォーマット（命名規則）検証を`companyFormSchema`側で行い、必須・
+ * フォーマット・重複の3種のエラー/警告を出し分ける。またblur時に軽量な
+ * Server Action（`checkCompanyCodeAvailabilityAction`）で重複を事前照会し、
+ * 送信前に警告を表示する（要件18）。
  */
 export function CompanyForm({
   mode,
@@ -45,8 +59,10 @@ export function CompanyForm({
   countryPlaceholder,
   companyCodeLabel,
   companyCodePlaceholder,
+  companyCodeHelpText,
   submitButtonLabel,
   requiredErrorMessage,
+  companyCodeFormatErrorMessage,
   companyCodeDuplicateMessage,
   submitErrorMessage,
 }: CompanyFormProps) {
@@ -56,6 +72,7 @@ export function CompanyForm({
     register,
     handleSubmit,
     setError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<CompanyFormValues>({
     resolver: zodResolver(companyFormSchema),
@@ -65,6 +82,50 @@ export function CompanyForm({
       companyCode: "",
     },
   });
+
+  const companyCodeField = register("companyCode");
+  // blur時の重複照会は非同期のため、後から短時間で連続してblurした場合に
+  // 先に発行したリクエストの応答が後から届いて最新の入力値の判定結果を
+  // 上書きしてしまう競合状態が起こり得る。世代カウンタを持たせ、応答が
+  // 届いた時点で最新のリクエストでなければ結果を破棄する。
+  const companyCodeCheckRequestId = useRef(0);
+
+  async function handleCompanyCodeBlur(
+    event: React.FocusEvent<HTMLInputElement>
+  ) {
+    await companyCodeField.onBlur(event);
+
+    const value = event.target.value.trim();
+    if (!value || !companyFormSchema.shape.companyCode.safeParse(value).success) {
+      // 未入力・フォーマット違反は同期バリデーション（zodResolver）に委ねる
+      return;
+    }
+
+    const requestId = ++companyCodeCheckRequestId.current;
+
+    try {
+      const isTaken = await checkCompanyCodeAvailabilityAction(
+        value,
+        mode === "edit" ? companyId : undefined
+      );
+
+      if (requestId !== companyCodeCheckRequestId.current) {
+        // 応答が届くまでの間に、より新しいblurによる照会が発行済みのため破棄する
+        return;
+      }
+
+      if (isTaken) {
+        setError("companyCode", {
+          type: "duplicate",
+          message: companyCodeDuplicateMessage,
+        });
+      } else {
+        clearErrors("companyCode");
+      }
+    } catch {
+      // 重複照会自体の失敗は送信前の事前案内に過ぎないため、無視して送信時チェックに委ねる
+    }
+  }
 
   async function onSubmit(values: CompanyFormValues) {
     setHasSubmitError(false);
@@ -121,19 +182,31 @@ export function CompanyForm({
       <FormField
         label={companyCodeLabel}
         htmlFor="company-code"
+        errorId="company-code-error"
         error={
           errors.companyCode
             ? errors.companyCode.type === "duplicate"
-              ? errors.companyCode.message
-              : requiredErrorMessage
+              ? companyCodeDuplicateMessage
+              : errors.companyCode.type === "invalid_format"
+                ? companyCodeFormatErrorMessage
+                : requiredErrorMessage
             : undefined
         }
       >
+        <p id={COMPANY_CODE_HELP_ID} className="text-sm text-muted-foreground">
+          {companyCodeHelpText}
+        </p>
         <Input
           id="company-code"
           placeholder={companyCodePlaceholder}
           aria-invalid={errors.companyCode ? true : undefined}
-          {...register("companyCode")}
+          aria-describedby={
+            errors.companyCode
+              ? `${COMPANY_CODE_HELP_ID} company-code-error`
+              : COMPANY_CODE_HELP_ID
+          }
+          {...companyCodeField}
+          onBlur={handleCompanyCodeBlur}
         />
       </FormField>
 

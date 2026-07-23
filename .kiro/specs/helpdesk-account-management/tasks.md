@@ -293,7 +293,7 @@
   - _Requirements: 17.7_
   - _Depends: 34_
 
-- [ ] 35. 販社コード入力ガイドと重複チェックを実装する（2026-07-22 追記 / 要件18）
+- [x] 35. 販社コード入力ガイドと重複チェックを実装する（2026-07-22 追記 / 要件18）
   - `src/lib/validation/company.ts`の`companyFormSchema.companyCode`に正規表現検証（半角英小文字・数字・ハイフンのみ、先頭末尾・連続ハイフン禁止）を追加し、必須エラーとフォーマットエラーを区別する
   - `CompanyForm.tsx`の`companyCode`欄にプレースホルダー（`vn-daiso-vietnam`）とヘルプテキスト（命名規則・一意性の案内）を追加し、必須／フォーマット／重複の3種のエラー/警告を出し分ける
   - blur時の重複照会用に`checkCompanyCodeAvailabilityAction(code, excludeCompanyId?)`を`src/lib/actions/companies.ts`へ追加し、`onBlur`で呼び出して重複時に警告表示する。編集モードでは自コードを重複対象から除外する
@@ -301,7 +301,7 @@
   - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7_
   - _Depends: なし_
 
-- [ ]* 35.1 販社コード検証・入力ガイドの単体テストを追加する
+- [x]* 35.1 販社コード検証・入力ガイドの単体テストを追加する
   - `companyFormSchema`のフォーマット検証（正常系/異常系）、`CompanyForm`のヘルプテキスト表示・フォーマットエラー表示・blur重複警告表示・編集モードでの自コード除外を検証する
   - _Requirements: 18.3, 18.4, 18.5_
   - _Depends: 35_
