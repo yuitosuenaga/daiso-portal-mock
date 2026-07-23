@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
 import { ApplicantUserForm } from "@/components/features/helpdesk-companies/ApplicantUserForm";
 import { getCompanyById } from "@/lib/server/company-service";
+import { APPLICANT_USER_PREFERRED_LOCALE_CODES } from "@/lib/constants/applicant-user";
 
 type HelpdeskApplicantUserNewPageProps = {
   params: {
@@ -17,6 +18,13 @@ export default async function HelpdeskApplicantUserNewPage({
     getTranslations("helpdeskCompanies.applicantUserForm"),
     getTranslations("helpdeskCompanies.form"),
   ]);
+
+  const preferredLocaleOptions = APPLICANT_USER_PREFERRED_LOCALE_CODES.map(
+    (code) => ({
+      value: code,
+      label: t(`preferredLocaleOptions.${code}`),
+    })
+  );
 
   const company = await getCompanyById(params.id);
 
@@ -57,6 +65,8 @@ export default async function HelpdeskApplicantUserNewPage({
         passwordLabel={t("passwordLabel")}
         passwordPlaceholder={t("passwordCreatePlaceholder")}
         passwordHint={t("passwordCreateHint")}
+        preferredLocaleLabel={t("preferredLocaleLabel")}
+        preferredLocaleOptions={preferredLocaleOptions}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         emailInvalidMessage={t("validation.emailInvalid")}

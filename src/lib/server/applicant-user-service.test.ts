@@ -72,6 +72,7 @@ function baseApplicantUserRecord(
     companyId: string;
     isActive: boolean;
     createdAt: Date;
+    preferredLocale: string;
   }> = {}
 ) {
   return {
@@ -82,6 +83,7 @@ function baseApplicantUserRecord(
     companyId: "company-1",
     isActive: true,
     createdAt: new Date("2026-07-01T00:00:00.000Z"),
+    preferredLocale: "en",
     ...overrides,
   };
 }
@@ -147,6 +149,7 @@ describe("createApplicantUser", () => {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: "password123",
+      preferredLocale: "en",
     });
 
     expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
@@ -157,10 +160,29 @@ describe("createApplicantUser", () => {
         passwordHash: "hashed:password123",
         companyId: "company-1",
         isActive: true,
+        preferredLocale: "en",
       },
     });
     expect(result.id).toBe("1");
     expect(result).not.toHaveProperty("passwordHash");
+  });
+
+  it("preferredLocaleを指定した場合はそのまま保存され、mapApplicantUserで返却される", async () => {
+    vi.mocked(prisma.applicantUser.create).mockResolvedValue(
+      baseApplicantUserRecord({ id: "1", preferredLocale: "th" }) as never
+    );
+
+    const result = await createApplicantUser("company-1", {
+      email: "tanaka@example.com",
+      displayName: "田中太郎",
+      password: "password123",
+      preferredLocale: "th",
+    });
+
+    expect(prisma.applicantUser.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ preferredLocale: "th" }),
+    });
+    expect(result.preferredLocale).toBe("th");
   });
 });
 
@@ -174,6 +196,7 @@ describe("updateApplicantUser", () => {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: "newpassword123",
+      preferredLocale: "en",
     });
 
     expect(bcrypt.hash).toHaveBeenCalledWith("newpassword123", 10);
@@ -182,6 +205,7 @@ describe("updateApplicantUser", () => {
       data: {
         email: "tanaka@example.com",
         displayName: "田中太郎",
+        preferredLocale: "en",
         passwordHash: "hashed:newpassword123",
       },
     });
@@ -195,6 +219,7 @@ describe("updateApplicantUser", () => {
     await updateApplicantUser("1", {
       email: "tanaka@example.com",
       displayName: "田中太郎",
+      preferredLocale: "en",
     });
 
     expect(bcrypt.hash).not.toHaveBeenCalled();
@@ -203,15 +228,38 @@ describe("updateApplicantUser", () => {
       data: {
         email: "tanaka@example.com",
         displayName: "田中太郎",
+        preferredLocale: "en",
       },
     });
+  });
+
+  it("passwordが未指定でもpreferredLocaleの変更は反映される", async () => {
+    vi.mocked(prisma.applicantUser.update).mockResolvedValue(
+      baseApplicantUserRecord({ id: "1", preferredLocale: "th" }) as never
+    );
+
+    const result = await updateApplicantUser("1", {
+      email: "tanaka@example.com",
+      displayName: "田中太郎",
+      preferredLocale: "th",
+    });
+
+    expect(prisma.applicantUser.update).toHaveBeenCalledWith({
+      where: { id: "1" },
+      data: expect.objectContaining({ preferredLocale: "th" }),
+    });
+    expect(result.preferredLocale).toBe("th");
   });
 
   it("存在しないIDの更新はApplicantUserNotFoundErrorを送出する", async () => {
     vi.mocked(prisma.applicantUser.update).mockRejectedValue(notFoundPrismaError());
 
     await expect(
-      updateApplicantUser("missing", { email: "a@example.com", displayName: "a" })
+      updateApplicantUser("missing", {
+        email: "a@example.com",
+        displayName: "a",
+        preferredLocale: "en",
+      })
     ).rejects.toThrow(ApplicantUserNotFoundError);
   });
 
@@ -219,7 +267,11 @@ describe("updateApplicantUser", () => {
     vi.mocked(prisma.applicantUser.update).mockRejectedValue(new Error("connection lost"));
 
     await expect(
-      updateApplicantUser("1", { email: "a@example.com", displayName: "a" })
+      updateApplicantUser("1", {
+        email: "a@example.com",
+        displayName: "a",
+        preferredLocale: "en",
+      })
     ).rejects.toThrow("connection lost");
   });
 });

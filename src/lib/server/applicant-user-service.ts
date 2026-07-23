@@ -40,6 +40,7 @@ function mapApplicantUser(record: {
   isActive: boolean;
   companyId: string;
   createdAt: Date;
+  preferredLocale: string;
 }): ApplicantUserSummary {
   return {
     id: record.id,
@@ -48,6 +49,7 @@ function mapApplicantUser(record: {
     isActive: record.isActive,
     companyId: record.companyId,
     createdAt: record.createdAt.toISOString(),
+    preferredLocale: record.preferredLocale,
   };
 }
 
@@ -98,6 +100,7 @@ export async function createApplicantUser(
       passwordHash,
       companyId,
       isActive: true,
+      preferredLocale: input.preferredLocale,
     },
   });
 
@@ -125,6 +128,7 @@ export async function updateApplicantUser(
       data: {
         email: input.email,
         displayName: input.displayName,
+        preferredLocale: input.preferredLocale,
         ...(passwordHash ? { passwordHash } : {}),
       },
     });

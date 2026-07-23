@@ -79,7 +79,7 @@
   - _Requirements: 2.5, 4.1, 4.2, 4.3, 5.3, 5.4_
   - _Depends: 4.1, 4.2, 4.3_
 
-- [ ] 6. 残存するスレート系デザイントークンを中立グレー化する（2026-07-22 追記）
+- [x] 6. 残存するスレート系デザイントークンを中立グレー化する（2026-07-22 追記）
   - `src/app/globals.css` の `:root` の `--secondary` / `--muted` / `--muted-foreground` / `--border` / `--input` / `--destructive-foreground` / `--success-foreground` の各値を、色相 `0`・彩度 `0%` の無彩色に置き換える（明度は変更前の値を据え置く）
   - 具体値: `--secondary: 0 0% 96%` / `--muted: 0 0% 96%` / `--muted-foreground: 0 0% 47%` / `--border: 0 0% 91%` / `--input: 0 0% 91%` / `--destructive-foreground: 0 0% 98%` / `--success-foreground: 0 0% 98%`
   - `--primary`（hue 327）/`--accent`（hue 327）/`--destructive`（hue 0 の赤）/`--success`（hue 142 の緑）/`--sidebar`/`--foreground`/`--background`/`--card`/`--ring`/`--radius` は変更しない

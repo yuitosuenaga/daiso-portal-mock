@@ -76,6 +76,36 @@ describe("applicantUserCreateFormSchema", () => {
 
     expect(result.success).toBe(true);
   });
+
+  it("preferredLocaleが定数一覧内の値の場合は検証を通過する", () => {
+    const result = applicantUserCreateFormSchema.safeParse(
+      buildInput({ preferredLocale: "th" })
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.preferredLocale).toBe("th");
+    }
+  });
+
+  it("preferredLocaleが未指定の場合は既定値'en'となる", () => {
+    const input = buildInput();
+    delete (input as Record<string, unknown>).preferredLocale;
+    const result = applicantUserCreateFormSchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.preferredLocale).toBe("en");
+    }
+  });
+
+  it("preferredLocaleが定数一覧外の値の場合はエラーになる", () => {
+    const result = applicantUserCreateFormSchema.safeParse(
+      buildInput({ preferredLocale: "fr" })
+    );
+
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("applicantUserUpdateFormSchema", () => {
@@ -132,6 +162,37 @@ describe("applicantUserUpdateFormSchema", () => {
   it("表示名が未入力の場合はエラーになる", () => {
     const result = applicantUserUpdateFormSchema.safeParse(
       buildInput({ displayName: "" })
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it("preferredLocaleが定数一覧内の値の場合は検証を通過する", () => {
+    const result = applicantUserUpdateFormSchema.safeParse(
+      buildInput({ preferredLocale: "vi" })
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.preferredLocale).toBe("vi");
+    }
+  });
+
+  it("preferredLocaleが未指定の場合は既定値'en'となる", () => {
+    const result = applicantUserUpdateFormSchema.safeParse({
+      email: "tanaka@example.com",
+      displayName: "田中太郎",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.preferredLocale).toBe("en");
+    }
+  });
+
+  it("preferredLocaleが定数一覧外の値の場合はエラーになる", () => {
+    const result = applicantUserUpdateFormSchema.safeParse(
+      buildInput({ preferredLocale: "de" })
     );
 
     expect(result.success).toBe(false);

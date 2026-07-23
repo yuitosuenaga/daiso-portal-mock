@@ -5,6 +5,7 @@ import { ApplicantUserForm } from "@/components/features/helpdesk-companies/Appl
 import { ToggleApplicantUserActiveButton } from "@/components/features/helpdesk-companies/ToggleApplicantUserActiveButton";
 import { getCompanyById } from "@/lib/server/company-service";
 import { getApplicantUserById } from "@/lib/server/applicant-user-service";
+import { APPLICANT_USER_PREFERRED_LOCALE_CODES } from "@/lib/constants/applicant-user";
 
 type HelpdeskApplicantUserEditPageProps = {
   params: {
@@ -21,6 +22,13 @@ export default async function HelpdeskApplicantUserEditPage({
     getTranslations("helpdeskCompanies.form"),
     getTranslations("helpdeskCompanies.toggleActive"),
   ]);
+
+  const preferredLocaleOptions = APPLICANT_USER_PREFERRED_LOCALE_CODES.map(
+    (code) => ({
+      value: code,
+      label: t(`preferredLocaleOptions.${code}`),
+    })
+  );
 
   const company = await getCompanyById(params.id);
   const applicantUser = company ? await getApplicantUserById(params.userId) : null;
@@ -73,6 +81,7 @@ export default async function HelpdeskApplicantUserEditPage({
         defaultValues={{
           email: applicantUser.email,
           displayName: applicantUser.displayName,
+          preferredLocale: applicantUser.preferredLocale,
         }}
         emailLabel={t("emailLabel")}
         emailPlaceholder={t("emailPlaceholder")}
@@ -81,6 +90,8 @@ export default async function HelpdeskApplicantUserEditPage({
         passwordLabel={t("passwordLabel")}
         passwordPlaceholder={t("passwordEditPlaceholder")}
         passwordHint={t("passwordEditHint")}
+        preferredLocaleLabel={t("preferredLocaleLabel")}
+        preferredLocaleOptions={preferredLocaleOptions}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         emailInvalidMessage={t("validation.emailInvalid")}

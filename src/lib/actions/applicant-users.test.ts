@@ -46,6 +46,7 @@ function applicantUser(
     isActive: true,
     companyId: "company-1",
     createdAt: "2026-07-01T00:00:00.000Z",
+    preferredLocale: "en",
     ...overrides,
   };
 }
@@ -60,6 +61,7 @@ describe("createApplicantUserAction", () => {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: "password123",
+      preferredLocale: "en",
       ...overrides,
     };
   }
@@ -77,6 +79,42 @@ describe("createApplicantUserAction", () => {
     );
     expect(result.id).toBe("applicant-1");
     expect(revalidatePath).toHaveBeenCalled();
+  });
+
+  it("preferredLocaleを未指定で送信した場合は既定値'en'として作成する", async () => {
+    vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
+    vi.mocked(createApplicantUser).mockResolvedValue(applicantUser());
+
+    const inputWithoutPreferredLocale = {
+      email: "tanaka@example.com",
+      displayName: "田中太郎",
+      password: "password123",
+    };
+
+    await createApplicantUserAction(
+      "company-1",
+      inputWithoutPreferredLocale as never
+    );
+
+    expect(createApplicantUser).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({ preferredLocale: "en" })
+    );
+  });
+
+  it("preferredLocaleを指定した場合はその値で作成する", async () => {
+    vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
+    vi.mocked(createApplicantUser).mockResolvedValue(applicantUser());
+
+    await createApplicantUserAction(
+      "company-1",
+      buildInput({ preferredLocale: "th" })
+    );
+
+    expect(createApplicantUser).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({ preferredLocale: "th" })
+    );
   });
 
   it("メールアドレスが不正な入力は例外になり、保存されない", async () => {
@@ -114,6 +152,7 @@ describe("updateApplicantUserAction", () => {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: "newpassword123",
+      preferredLocale: "en",
     });
 
     expect(isApplicantUserEmailTaken).toHaveBeenCalledWith(
@@ -124,6 +163,7 @@ describe("updateApplicantUserAction", () => {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: "newpassword123",
+      preferredLocale: "en",
     });
     expect(revalidatePath).toHaveBeenCalled();
   });
@@ -136,12 +176,33 @@ describe("updateApplicantUserAction", () => {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: "",
+      preferredLocale: "en",
     });
 
     expect(updateApplicantUser).toHaveBeenCalledWith("applicant-1", {
       email: "tanaka@example.com",
       displayName: "田中太郎",
       password: undefined,
+      preferredLocale: "en",
+    });
+  });
+
+  it("パスワード欄が空欄でもpreferredLocaleの変更は反映される", async () => {
+    vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
+    vi.mocked(updateApplicantUser).mockResolvedValue(applicantUser());
+
+    await updateApplicantUserAction("applicant-1", {
+      email: "tanaka@example.com",
+      displayName: "田中太郎",
+      password: "",
+      preferredLocale: "th",
+    });
+
+    expect(updateApplicantUser).toHaveBeenCalledWith("applicant-1", {
+      email: "tanaka@example.com",
+      displayName: "田中太郎",
+      password: undefined,
+      preferredLocale: "th",
     });
   });
 
@@ -150,6 +211,7 @@ describe("updateApplicantUserAction", () => {
       updateApplicantUserAction("applicant-1", {
         email: "",
         displayName: "田中太郎",
+        preferredLocale: "en",
       })
     ).rejects.toThrow();
 
@@ -163,6 +225,7 @@ describe("updateApplicantUserAction", () => {
       updateApplicantUserAction("applicant-1", {
         email: "tanaka@example.com",
         displayName: "田中太郎",
+        preferredLocale: "en",
       })
     ).rejects.toThrow(ApplicantUserEmailTakenError);
     expect(updateApplicantUser).not.toHaveBeenCalled();

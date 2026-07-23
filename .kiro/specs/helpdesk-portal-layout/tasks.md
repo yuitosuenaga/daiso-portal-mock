@@ -237,8 +237,8 @@
   - _Requirements: 15.1〜15.11, 16.1〜16.7_
   - _Depends: 7.4, 7.5_
 
-- [ ] 8. 認証済みヘッダーからの反対ロール切り替えリンク（デッドリンク）を撤去する（2026-07-22 追記）
-- [ ] 8.1 両ヘッダーから切り替えリンクを削除し未使用インポートを除去する
+- [x] 8. 認証済みヘッダーからの反対ロール切り替えリンク（デッドリンク）を撤去する（2026-07-22 追記）
+- [x] 8.1 両ヘッダーから切り替えリンクを削除し未使用インポートを除去する
   - `src/components/layout/Header.tsx`から`header.switchToHelpdesk`の`<Link href="/helpdesk">`（`ArrowLeftRight`アイコン＋テキスト）を削除する
   - `src/components/layout/HelpdeskHeader.tsx`から`helpdeskHeader.switchToApplicant`の`<Link href="/">`を削除する
   - 両ファイルで未使用になる`ArrowLeftRight`インポートを削除する（`useLocale`はログアウトの`callbackUrl`で使うHeader側では残す）
@@ -246,18 +246,18 @@
   - `tsc --noEmit` / `npm run lint` がエラーなく通ることを確認する
   - _Requirements: 17.1, 17.2, 17.3, 17.6_
   - _Boundary: Header, HelpdeskHeader_
-- [ ] 8.2 (P) 不要な翻訳キーを削除する
+- [x] 8.2 (P) 不要な翻訳キーを削除する
   - `messages/ja.json`・`messages/en.json`から`header.switchToHelpdesk`・`helpdeskHeader.switchToApplicant`を削除する
   - ログイン画面用の`login.switchToHelpdeskLogin`・`login.switchToApplicantLogin`は変更しない
   - 他の翻訳キーに影響がないこと（`next-intl`の欠落キーエラーが出ないこと）を確認する
   - _Requirements: 17.4, 17.5_
-- [ ] 8.3 ヘッダーテストを切り替えリンク不在の検証へ更新する
+- [x] 8.3 ヘッダーテストを切り替えリンク不在の検証へ更新する
   - `Header.test.tsx`・`HelpdeskHeader.test.tsx`の「切り替えリンクが表示される」既存アサーションを、`queryByRole`等で「切り替えリンクが存在しない」ことを検証する内容へ更新する
   - ロゴ・言語切替・ログアウトに関する既存アサーションは維持する
   - `npm test`が通ることを確認する
   - _Requirements: 17.7_
   - _Depends: 8.1_
-- [ ] 8.4 (P) 撤去後の実機・レスポンシブ確認
+- [x] 8.4 (P) 撤去後の実機・レスポンシブ確認
   - playwrightで日本語・英語両ロケールを対象に、申請者側・ヘルプデスク側の各ヘッダーに切り替えリンクが表示されないこと、ロゴ・言語切替・ログアウトが従来どおり機能することを確認する
   - 幅375/768/834/1024/1280で両ヘッダーに横スクロールが発生しないこと、Requirement 16（副題省略回避）と矛盾しないことを確認する
   - 反対ポータルへの正規導線（ログアウト→ログイン画面のクロスログインリンク）が引き続き機能することを確認する

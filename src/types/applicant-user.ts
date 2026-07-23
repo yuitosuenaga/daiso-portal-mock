@@ -12,6 +12,7 @@ export interface ApplicantUserSummary {
   isActive: boolean;
   companyId: string;
   createdAt: string;
+  preferredLocale: string;
 }
 
 /**
@@ -22,6 +23,7 @@ export interface CreateApplicantUserInput {
   email: string;
   displayName: string;
   password: string;
+  preferredLocale: string;
 }
 
 /**
@@ -32,4 +34,5 @@ export interface UpdateApplicantUserInput {
   email: string;
   displayName: string;
   password?: string;
+  preferredLocale: string;
 }

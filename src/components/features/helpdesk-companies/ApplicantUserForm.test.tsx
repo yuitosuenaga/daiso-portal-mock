@@ -24,6 +24,18 @@ beforeEach(() => {
   pushMock.mockClear();
 });
 
+const preferredLocaleOptions = [
+  { value: "en", label: "英語" },
+  { value: "ja", label: "日本語" },
+  { value: "zh", label: "中国語" },
+  { value: "ko", label: "韓国語" },
+  { value: "th", label: "タイ語" },
+  { value: "vi", label: "ベトナム語" },
+  { value: "id", label: "インドネシア語" },
+  { value: "ms", label: "マレー語" },
+  { value: "tl", label: "タガログ語" },
+];
+
 const labels = {
   companyId: "company-1",
   emailLabel: "メールアドレス",
@@ -33,6 +45,8 @@ const labels = {
   passwordLabel: "パスワード",
   passwordPlaceholder: "パスワードを入力してください",
   passwordHint: "空欄のまま保存すると、既存のパスワードは変更されません。",
+  preferredLocaleLabel: "通知言語",
+  preferredLocaleOptions,
   submitButtonLabel: "保存する",
   requiredErrorMessage: "この項目は必須です",
   emailInvalidMessage: "有効なメールアドレスを入力してください",
@@ -97,9 +111,58 @@ describe("ApplicantUserForm（新規作成モード）", () => {
         email: "tanaka@example.com",
         displayName: "田中太郎",
         password: "password123",
+        preferredLocale: "en",
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/companies/company-1");
+  });
+
+  it("通知言語プルダウンが定数から生成した選択肢とともに表示される", () => {
+    render(<ApplicantUserForm mode="create" {...labels} />);
+
+    const select = screen.getByLabelText("通知言語") as HTMLSelectElement;
+    const optionValues = Array.from(select.options).map((option) => option.value);
+
+    expect(optionValues).toEqual([
+      "en",
+      "ja",
+      "zh",
+      "ko",
+      "th",
+      "vi",
+      "id",
+      "ms",
+      "tl",
+    ]);
+    expect(select.value).toBe("en");
+  });
+
+  it("通知言語を選択して送信するとcreateApplicantUserActionに選択値が渡される", async () => {
+    createApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    render(<ApplicantUserForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "tanaka@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("表示名"), {
+      target: { value: "田中太郎" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByLabelText("通知言語"), {
+      target: { value: "th" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createApplicantUserActionMock).toHaveBeenCalledWith("company-1", {
+        email: "tanaka@example.com",
+        displayName: "田中太郎",
+        password: "password123",
+        preferredLocale: "th",
+      });
+    });
   });
 
   it("メールアドレス重複エラーはemailフィールドに表示される", async () => {
@@ -167,6 +230,7 @@ describe("ApplicantUserForm（編集モード）", () => {
           email: "tanaka@example.com",
           displayName: "田中太郎",
           password: "",
+          preferredLocale: "en",
         }
       );
     });
@@ -195,6 +259,59 @@ describe("ApplicantUserForm（編集モード）", () => {
           email: "tanaka@example.com",
           displayName: "田中太郎",
           password: "newpassword123",
+          preferredLocale: "en",
+        }
+      );
+    });
+  });
+
+  it("編集モードでは対象アカウントの現在のpreferredLocaleが初期選択される", () => {
+    render(
+      <ApplicantUserForm
+        mode="edit"
+        applicantUserId="applicant-1"
+        defaultValues={{
+          email: "tanaka@example.com",
+          displayName: "田中太郎",
+          preferredLocale: "th",
+        }}
+        {...labels}
+      />
+    );
+
+    expect(
+      (screen.getByLabelText("通知言語") as HTMLSelectElement).value
+    ).toBe("th");
+  });
+
+  it("編集モードで通知言語を変更して保存すると更新データに新しい値が含まれる", async () => {
+    updateApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    render(
+      <ApplicantUserForm
+        mode="edit"
+        applicantUserId="applicant-1"
+        defaultValues={{
+          email: "tanaka@example.com",
+          displayName: "田中太郎",
+          preferredLocale: "en",
+        }}
+        {...labels}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("通知言語"), {
+      target: { value: "vi" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(updateApplicantUserActionMock).toHaveBeenCalledWith(
+        "applicant-1",
+        {
+          email: "tanaka@example.com",
+          displayName: "田中太郎",
+          password: "",
+          preferredLocale: "vi",
         }
       );
     });
