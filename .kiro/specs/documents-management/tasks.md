@@ -368,3 +368,94 @@
   - トリガー押下→確認押下で削除実行、キャンセルで未実行、本文に対象タイトル表示を検証する
   - _Requirements: 15.6_
   - _Depends: 9_
+
+---
+
+## 追加ラウンド（2026-07-23）: ドキュメントの下書き（非公開）状態
+
+- [ ] 10. ドキュメントに下書き/公開状態（`status`）を追加する
+
+- [ ] 10.1 Prismaスキーマに`DocumentStatus` enumと`Document.status`列を追加しマイグレーションを生成する
+  - `prisma/schema.prisma`に`enum DocumentStatus { draft published }`を追加し、`Document`モデルに`status DocumentStatus @default(published)`を追加する
+  - `prisma migrate dev`で新規マイグレーション（例: `add_document_draft_status`）を生成する。生成SQLがenum作成＋`ADD COLUMN "status" ... NOT NULL DEFAULT 'published'`となり、既存レコードが全て`published`になることを確認する
+  - `prisma generate`後に型チェックが通ることで完了とする（`@default(published)`により既存seed・既存データが従来どおり公開扱いとなる後方互換を担保）
+  - _Requirements: 16.1, 16.13_
+  - _Boundary: schema.prisma_
+
+- [ ] 10.2 `Document`型・`CreateDocumentInput`に`status`を追加する
+  - `src/types/document.ts`の`DocumentBase`に`status: "draft" | "published"`を追加する（`sourceType`両ブランチ共通のため`DocumentBase`に置く）
+  - `CreateDocumentInput`は`Document`から`id`・`uploadedAt`を除いたサブセットのため`status`が自動的に含まれることを型チェックで確認する
+  - 型チェックが通ることで完了とする
+  - _Requirements: 16.1_
+  - _Boundary: Document型_
+  - _Depends: 10.1_
+
+- [ ] 10.3 マッパーで`status`を読み書きする
+  - `src/lib/server/document-mapper.ts`の`mapDocument`の`base`に`status: record.status`を追加する
+  - `src/lib/server/document-service.ts`内の`toDocumentData`の両分岐（upload/google）の返却オブジェクトに`status: input.status`を追加する
+  - `mapDocument`が`record.status`を`Document.status`に反映し、`toDocumentData`が書き込みデータに`status`を含めることで完了とする
+  - _Requirements: 16.1, 16.5_
+  - _Boundary: DocumentsMockApi_
+  - _Depends: 10.2_
+
+- [ ] 10.4 申請者側読み取りに`status: "published"`フィルタを追加する
+  - `src/lib/server/document-service.ts`の`visibleToWhere`に`status: "published"`を追加する（`announcement-service.ts`の`visibleToCountryWhere`と同型）
+  - `listAllDocuments`・`findDocumentById`（ヘルプデスク側）は`status`条件を追加せず、下書き・公開の両方を返すことを確認する
+  - `getDocuments`/`getDocumentById`が`draft`を返さず、`getAllDocuments`/`getDocumentByIdForHelpdesk`が全状態を返すことで完了とする
+  - _Requirements: 16.8, 16.9, 16.10_
+  - _Boundary: DocumentsMockApi_
+  - _Depends: 10.3_
+
+- [ ] 10.5 `documentFormSchema`に`status`検証を追加する
+  - `src/lib/validation/document.ts`の`documentUploadSchema`・`documentGoogleSchema`の両ブランチに`status: z.enum(["draft", "published"])`を追加する（`validation/announcement.ts`と同型）
+  - `status`未指定/不正値が拒否され、`"draft"`/`"published"`が受理されることで完了とする（Server Actionsの`documentFormSchema.parse`経由でサーバー側検証も担保される。Server Actions自体のロジック変更は不要）
+  - _Requirements: 16.12_
+  - _Boundary: DocumentActions_
+  - _Depends: 10.2_
+
+- [ ] 10.6 (P) 状態選択・状態バッジの翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`の`helpdeskDocuments.form`に`statusLabel`・`statusDraftOption`（「下書き」/"Draft"）・`statusPublishedOption`（「公開」/"Published"）を追加する
+  - `helpdeskDocuments.list`に`statusDraftBadge`（「下書き」/"Draft"）・`statusPublishedBadge`（「公開」/"Published"）を追加する
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 16.11_
+  - _Boundary: i18n messages_
+
+- [ ] 10.7 DocumentFormに状態選択Selectを追加する
+  - `AnnouncementForm`の状態選択と同じ`Select`ベースのUIで、下書き/公開を選ぶフィールドを`DocumentForm`に追加する
+  - `DocumentFormFieldValues`・`toFieldValues`・送信値整形に`status`を含める。新規作成時の`defaultValues`は`status: "draft"`、編集時は既存レコードの`status`を初期値とする
+  - `statusLabel`・`statusDraftOption`・`statusPublishedOption`をpropsで受け取り、`app/[locale]/helpdesk/documents/new/page.tsx`・`[id]/edit/page.tsx`から翻訳文字列を渡す
+  - 状態選択が`sourceType`・`targeting`と独立して常時表示され、新規作成時は「下書き」が初期選択、編集時は登録済み状態が初期選択となり、保存すると選択した`status`が保存されることで完了とする
+  - _Requirements: 16.2, 16.3, 16.4, 16.5, 16.6_
+  - _Boundary: DocumentForm_
+  - _Depends: 10.5, 10.6_
+
+- [ ] 10.8 (P) 管理一覧に状態バッジを表示する
+  - `DocumentManagementListClient`の各行に、`status`に応じた状態バッジ（「下書き」/「公開」）を既存の登録方式バッジ（要件13.9）に併記する形で追加する
+  - 必要な翻訳文字列（`statusDraftBadge`/`statusPublishedBadge`）をサーバー側`DocumentManagementList`から`DocumentManagementListClient`へprops渡しする
+  - 下書き・公開が混在する一覧で各行に正しい状態バッジが表示されることで完了とする（状態による絞り込みUIは本ラウンドのスコープ外）
+  - _Requirements: 16.7_
+  - _Boundary: DocumentManagementListClient, DocumentManagementList_
+  - _Depends: 10.6, 10.3_
+
+- [ ] 10.9 (P) DocumentDetailPanelの表示モードに状態を表示する
+  - `DocumentDetailPanel`の表示モードの読み取り専用情報に、現在の`status`（下書き/公開）を表示する
+  - 編集モードは10.7で対応済みの`DocumentForm`をそのまま使うため追加変更しない
+  - 編集画面（表示モード）で現在の状態が確認できることで完了とする
+  - _Requirements: 16.4_
+  - _Boundary: DocumentDetailPanel_
+  - _Depends: 10.7, 10.6_
+
+- [ ]* 10.10 (P) 状態フィルタ・マッパー・バリデーションの単体テストを追加・更新する
+  - `mapDocument`が`status`を反映し`toDocumentData`が両分岐で`status`を含めることを検証するテストを追加する
+  - `listDocumentsVisibleTo`/`findDocumentVisibleTo`が`draft`を返さず、`listAllDocuments`/`findDocumentById`が全状態を返すことを検証するテストを追加する
+  - `documentFormSchema`が`status`未指定/不正値を拒否し`"draft"`/`"published"`を受理すること（upload/google両ブランチ）を検証するテストを追加する
+  - 既存の`document-service.test.ts`・`document-mapper.test.ts`・`validation/document.test.ts`・`DocumentForm.test.tsx`・`DocumentManagementListClient.test.tsx`を`status`追加に追従させ、全テストがパスすることで完了とする
+  - _Requirements: 16.8, 16.10, 16.12_
+  - _Depends: 10.4, 10.5, 10.7, 10.8_
+
+- [ ]* 10.11 (P) 下書き非公開の統合確認を行う
+  - ヘルプデスク側で`status: "draft"`のドキュメントを作成した後、申請者側の一覧・詳細に表示されないこと、`published`に変更・保存すると表示されるようになることを確認する
+  - 日本語・英語両ロケールで、新規作成フォームの状態選択が初期値「下書き」で表示され、管理一覧に状態バッジが表示されることを確認する
+  - 上記確認が問題ないことで完了とする
+  - _Requirements: 16.8, 16.9, 16.14_
+  - _Depends: 10.7, 10.8

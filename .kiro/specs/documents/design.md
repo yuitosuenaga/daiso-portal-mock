@@ -367,3 +367,24 @@ interface DocumentsReadOnlyApi {
 | 15.1〜15.2 | 説明文の改行保持（`whitespace-pre-wrap`） | DocumentListItem |
 | 16.1〜16.5 | 新着バッジ表示・基準日数の一元管理・i18n | DocumentListItem, DocumentList, document-utils, i18n messages |
 | 17.1〜17.5 | Google埋め込み失敗時のフォールバックUI・常時案内文・i18n（13.6の上書き） | PdfViewer, DocumentListItem, DocumentList, i18n messages |
+
+## 追加ラウンド（2026-07-23）: 下書き（非公開）ドキュメントの非表示
+
+### Overview（追加分）
+`documents-management`spec（要件16）が`Document`に公開状態フィールド`status`（`"draft" | "published"`）を追加し、`getDocuments` / `getDocumentById`（`document-service.ts`の`listDocumentsVisibleTo` / `findDocumentVisibleTo`）が公開範囲フィルタに加えて`status: "published"`で絞り込むようになる。本spec（申請者側`/documents`）は読み取り専用でこの関数に依存するため、下書きの非表示はデータ取得側で自動的に満たされ、本specの一覧UI（`DocumentList` / `DocumentListClient` / `DocumentListItem` / `PdfViewer`）に新規の状態分岐は不要である。
+
+### Component Design（追加分）
+- 変更なし。`DocumentList`（サーバー）が呼ぶ`getDocuments()`が`status: "published"`のドキュメントのみを返すため、既存の描画・検索（要件12）・グリッド（要件11）・新着バッジ（要件16）・Google埋め込みフォールバック（要件17）はそのまま公開済みドキュメントに適用される。`Document.status`フィールドが型に追加されること自体による本spec側のコンパイルエラーは想定されない（`status`は`DocumentBase`共通フィールドとして追加され、既存の`sourceType`分岐・個別props受け渡しには影響しない）。
+
+### Modified Files（追加分）
+- なし（`documents-management`spec の`document-service.ts`の`visibleToWhere`への`status: "published"`追加により満たされる）。
+- 型追加（`src/types/document.ts`の`DocumentBase.status`）は`documents-management`spec所有。本specはこの型変更を参照するのみで変更しない。
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 18.1〜18.4 | 下書き（非公開）ドキュメントの非表示（`getDocuments`側の`status`フィルタに依拠、本spec側UI変更なし） | DocumentList（依存: documents-management所有のgetDocuments） |
+
+### Testing Strategy（追加分）
+- **Integration Tests**:
+  - `documents-management`spec側で`status: "draft"`のドキュメントを作成した状態で、申請者側`/documents`の一覧に当該ドキュメントが表示されないこと、`published`のドキュメントは従来どおり表示されることを確認する（フィルタの主たる単体テストは`documents-management`spec の`document-service.test.ts`が担う）。
