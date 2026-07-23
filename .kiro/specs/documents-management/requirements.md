@@ -250,3 +250,39 @@
 4. When 利用者が確認モーダルで確定したときのみ, the ヘルプデスクポータル shall 既存の削除処理を実行し、成功後の挙動・失敗時のエラー表示を維持する。キャンセル時は何も実行しない。
 5. The ヘルプデスクポータル shall `DeleteDocumentButton`へ対象タイトルを渡せるよう、必要に応じて呼び出し側から`title`をpropsで受け取る。
 6. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`DeleteDocumentButton.test.tsx`）を、`ConfirmDialog`ベースの操作へ更新する。
+
+---
+
+### 追加要望（2026-07-23）: ドキュメントの下書き（非公開）状態
+
+2026-07-21実施のプロダクト全体レビューで、ドキュメントは「登録＝即座に全対象者へ公開」される仕様であり、公開前の下書き（非公開）状態を持てないことが報告された。ヘルプデスク担当者は準備中の資料を段階的に公開できず、作成途中の情報が保存と同時に申請者側の一覧（`documents`spec）へ露出してしまうリスクがある。
+
+お知らせ機能は既に`AnnouncementStatus`（`draft` / `published`のenum）で下書き/公開を管理しており（`prisma/schema.prisma`の`enum AnnouncementStatus`・`Announcement.status`、`AnnouncementForm`の状態選択、申請者側`announcement-service.ts`の`status: "published"`フィルタ）、ドキュメントにも同一パターンを適用して一貫性を持たせる。本ラウンドでは`Document`に公開状態フィールド`status`を追加し、ヘルプデスク側の作成・編集フォームで状態を選択でき、管理一覧に状態バッジを表示し、申請者側（`documents`spec）には`published`のドキュメントのみを表示するようにする。
+
+本specは`Document`型・データモデル・読み取り/書き込みAPI（`src/lib/api/documents.ts`・`src/lib/server/document-service.ts`・`src/lib/server/document-mapper.ts`）・バリデーション（`src/lib/validation/document.ts`）・ヘルプデスク側フォーム/一覧を所有するため、状態フィールドの追加とヘルプデスク側UI・申請者側フィルタ（読み取り関数側）を本specで担う。申請者側の一覧画面（`/documents`）のUI自体は`documents`spec所有だが、下書きが表示されないのは本specが所有する読み取り関数のフィルタによるものである（`documents`spec側は要件として期待値のみを記述する）。
+
+スコープ外:
+- ドキュメント管理一覧の検索・絞り込み（要件14）への「状態（下書き/公開）」による絞り込み条件の追加（本ラウンドでは一覧への状態バッジ表示までとし、状態での絞り込みフィルタUIは対象外。将来必要となった場合に要件14へ追記する）
+- 公開予約（`publishStartDate`/`publishEndDate`に相当する日時指定公開）や公開日時（`publishedAt`）の追跡（お知らせが持つ公開期間・公開日時の概念はドキュメントには導入せず、本ラウンドは`draft`/`published`の2状態のみとする）
+- 下書きドキュメントのお知らせへの添付（`AnnouncementDocumentLink`）に関する挙動変更（本ラウンドのスコープ外。現行挙動を維持する）
+
+### 要件 16: ドキュメントの下書き/公開状態管理
+
+**目的:** ヘルプデスク担当者として、ドキュメントを「下書き（非公開）」として保存しておき、準備が整ってから公開したい。そうすることで、作成途中の資料が申請者側へ即座に露出することを防ぎ、段階的に公開できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall `Document`（および`CreateDocumentInput`・Prismaの`Document`モデル）に公開状態を表すフィールド`status`（`"draft" | "published"`）を持たせる。
+2. The ヘルプデスクポータル shall ドキュメントの新規作成・編集フォーム（`DocumentForm`）に、下書き（`draft`）と公開（`published`）を選択する操作を提供する（`AnnouncementForm`の状態選択と同じ`Select`ベースのUIパターンを踏襲する）。
+3. The ヘルプデスクポータル shall 新規作成時の`status`の初期選択を`draft`（下書き）とする（`AnnouncementForm`の新規作成時の初期値と一貫させ、保存操作による意図しない即時公開を防ぐ）。
+4. The ヘルプデスクポータル shall 既存ドキュメントの編集時に、登録済みの`status`を初期選択として表示し、`draft`と`published`を相互に切り替えられるようにする。
+5. When ユーザーがフォームで`status`を選択して保存したとき、the ヘルプデスクポータル shall 選択された`status`をドキュメントのデータとして保存する（作成・編集の両方）。
+6. The ヘルプデスクポータル shall `status`の選択・保存を、登録方法（要件13の`sourceType`：アップロード／Googleリンク）および公開範囲（要件5の`targeting`）と独立して機能させる（いずれの`sourceType`・`targeting`のドキュメントにも`status`を設定できる）。
+7. The ヘルプデスクポータル shall ドキュメント管理一覧（要件1・要件14の各行）に、当該ドキュメントが下書きか公開かが分かる状態バッジ（例: 「下書き」／「公開」）を、既存の登録方式バッジ（要件13.9）に併記する形で表示する。
+8. The ヘルプデスクポータル shall 申請者側の読み取り関数（`getDocuments` / `getDocumentById`、および`document-service.ts`の`listDocumentsVisibleTo` / `findDocumentVisibleTo`）が、公開範囲（要件2/要件5）に加えて`status === "published"`のドキュメントのみを返すようにフィルタする（`announcement-service.ts`の`visibleToCountryWhere`が`status: "published"`を含むパターンと同型とする）。
+9. If 申請者が`status`が`draft`のドキュメントIDへ直接アクセスしたとき（`getDocumentById`）, the ヘルプデスクポータル shall 公開範囲外のドキュメントと同様に「見つからない」（`null`）として扱う。
+10. The ヘルプデスクポータル shall ヘルプデスク側の読み取り関数（`getAllDocuments` / `getDocumentByIdForHelpdesk`、および`listAllDocuments` / `findDocumentById`）については`status`による絞り込みを行わず、下書き・公開の両方を返す（要件1.1の「登録済みの全てのドキュメントを表示」を維持する）。
+11. The ヘルプデスクポータル shall `status`の選択肢ラベル（下書き／公開）および一覧の状態バッジのラベルを`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する。
+12. The ヘルプデスクポータル shall `status`のバリデーションを、クライアント側（`documentFormSchema`）とServer Actions（`createDocumentAction` / `updateDocumentAction`）によるサーバー側保存時の両方で行い、`"draft"`・`"published"`以外の値を拒否する。
+13. The ヘルプデスクポータル shall 既存の登録済みドキュメント（seed投入済みの5件を含む）について、`status`列のデフォルト値を`published`とし、マイグレーション適用時に既存レコードが全て`published`（従来どおり申請者側に表示される状態）となるようにして後方互換を壊さない。
+14. When ドキュメントの`status`を変更して保存したとき、the ヘルプデスクポータル shall 既存の`revalidatePath`対象（ヘルプデスク側一覧・編集、申請者側一覧・詳細、要件8.1）を再検証し、状態変更が申請者側の表示（公開↔非表示の切り替え）へ反映されるようにする。

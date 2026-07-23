@@ -496,3 +496,111 @@ interface DocumentActions {
 
 ### テスト
 - `DeleteDocumentButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（トリガー→確認で削除、キャンセルで未実行、本文にタイトル表示）。
+
+## 追加ラウンド（2026-07-23）: ドキュメントの下書き（非公開）状態
+
+### Overview（追加分）
+`Document`に公開状態フィールド`status`（`"draft" | "published"`）を追加し、ヘルプデスク担当者が下書き（非公開）として保存してから公開できるようにする。お知らせ機能の既存パターン（`enum AnnouncementStatus`・`Announcement.status @default(published)`・`AnnouncementForm`の`Select`による状態選択・申請者側`announcement-service.ts`の`status: "published"`フィルタ）をドキュメントにそのまま踏襲し、新しい抽象化は導入しない。データモデル（Prismaスキーマ・マイグレーション）・型・マッパー・バリデーション・読み取り/書き込みサービス・ヘルプデスク側フォーム/一覧は本specが所有するため、これらの変更と、申請者側フィルタ（読み取り関数側の`status`絞り込み）を本specで担う。申請者側の一覧画面（`/documents`）のUI自体は`documents`spec所有だが、下書きが表示されないのは本specが所有する読み取り関数のフィルタによるものである。
+
+### Data Model（追加分）
+
+#### Prisma スキーマ（`prisma/schema.prisma`）
+`AnnouncementStatus`と同型のenumと、`Document`への列追加を行う。
+
+```prisma
+enum DocumentStatus {
+  draft
+  published
+}
+
+model Document {
+  // ...既存フィールド...
+  status                DocumentStatus             @default(published)
+  // ...
+}
+```
+
+- `@default(published)`とすることで、マイグレーション適用時に既存レコード（seedの5件を含む）が全て`published`となり、従来どおり申請者側に表示される（要件16.13、後方互換）。これは`Announcement.status @default(published)`（`20260710062646_add_announcement_draft_status`）と同一の後方互換方針である。
+
+#### マイグレーション
+新規マイグレーション（例: `add_document_draft_status`）を`prisma migrate dev`で生成する。想定されるSQLは`AnnouncementStatus`追加時（`20260710062646_add_announcement_draft_status/migration.sql`）と同型:
+
+```sql
+-- CreateEnum
+CREATE TYPE "DocumentStatus" AS ENUM ('draft', 'published');
+
+-- AlterTable
+ALTER TABLE "Document" ADD COLUMN "status" "DocumentStatus" NOT NULL DEFAULT 'published';
+```
+
+- 本番反映は`prisma migrate deploy`が別途必要（Cloud SQLへの反映は手動・都度。MEMORY「本番マイグレーション反映漏れ」参照）。design上はマイグレーションファイルの追加までを本specの範囲とし、本番反映運用はデプロイ手順に委ねる。
+
+#### 型（`src/types/document.ts`）
+`DocumentBase`に`status: "draft" | "published"`を追加する。`Document`は`sourceType`による判別可能ユニオンだが、`status`は両ブランチ共通フィールドのため`DocumentBase`に置く。`CreateDocumentInput`は`Document`から`id`・`uploadedAt`を除いたサブセットのため、`status`は自動的に入力に含まれる。
+
+```typescript
+interface DocumentBase {
+  id: string;
+  title: string;
+  description?: string;
+  /** 公開状態。draft=下書き（申請者側に非表示）、published=公開 */
+  status: "draft" | "published";
+  targeting: DocumentTargeting;
+  uploadedAt: string;
+}
+```
+
+#### マッパー（`src/lib/server/document-mapper.ts`）
+- `mapDocument`: `base`オブジェクトに`status: record.status`を追加する（`sourceType`分岐の前、共通フィールドとして）。
+- `toDocumentData`（`document-service.ts`内）: 両分岐（upload/google）の返却オブジェクトに`status: input.status`を追加する。
+
+### Component / Service Design（追加分）
+
+- **document-service.ts（変更・要件16.8/16.9/16.10）**: `visibleToWhere(country, companyCode)`に`status: "published"`を追加する（`announcement-service.ts`の`visibleToCountryWhere`と同型）。これにより`listDocumentsVisibleTo`（`getDocuments`）・`findDocumentVisibleTo`（`getDocumentById`）が自動的に公開済みのみを返す。ヘルプデスク側の`listAllDocuments`・`findDocumentById`は`status`条件を追加せず、下書き・公開の両方を返す（要件16.10）。`createDocumentRecord`・`updateDocumentRecord`は`toDocumentData`経由で`status`を保存する。
+- **documentFormSchema（変更・要件16.12）**: `documentUploadSchema`・`documentGoogleSchema`の両方（＝`discriminatedUnion`の各ブランチ）に`status: z.enum(["draft", "published"])`を追加する（`validation/announcement.ts`の`status: z.enum(["draft", "published"])`と同型）。これによりクライアント側・サーバー側（`createDocumentAction`/`updateDocumentAction`の`documentFormSchema.parse`）の双方で検証される。Server Actions自体のロジック（`withServerRecomputedEmbedUrl`・`revalidateDocumentRoutes`）は変更不要で、`status`はスキーマを通過して保存される。
+- **DocumentForm（変更・要件16.2〜16.6）**: `AnnouncementForm`の状態選択と同じく、`Select`で下書き/公開を選ぶフィールドを追加する。`DocumentFormFieldValues`に`status`を追加し、`react-hook-form`の`defaultValues`は新規作成時`status: "draft"`（要件16.3）、編集時は`defaultValues`（既存レコードの`status`）を初期値とする（要件16.4）。`toFieldValues`/フォーム送信時の値整形に`status`を含める。状態選択は`sourceType`（登録方法）・`targeting`（公開範囲）と独立して常時表示する（要件16.6）。ラベルは`statusLabel`・`statusDraftOption`・`statusPublishedOption`をpropsで受け取り、翻訳解決は呼び出し元ページが行う既存規約を踏襲する（`AnnouncementForm`と同じprops命名に揃える）。
+- **DocumentManagementList / DocumentManagementListClient（変更・要件16.7）**: 各行に`status`に応じた状態バッジ（「下書き」／「公開」）を、既存の登録方式バッジ（要件13.9）に併記する。バッジのラベルは翻訳キーから解決する。行描画は`DocumentManagementListClient`（要件14で移設済み）に含まれるため、そこへ状態バッジ描画を追加し、必要な翻訳文字列をサーバー側`DocumentManagementList`からprops渡しする。状態による絞り込みUI（`DocumentManagementFilterBar`への状態セレクト追加）は本ラウンドのスコープ外（要件16のスコープ外に明記）。
+- **DocumentDetailPanel（変更・要件16.4）**: 表示モードの読み取り専用情報に現在の`status`（下書き/公開）を表示する。編集モードは`DocumentForm`（上記変更済み）をそのまま使うため追加変更は不要。
+
+### i18n（追加分）
+- `messages/ja.json` / `messages/en.json` の `helpdeskDocuments.form` に `statusLabel`・`statusDraftOption`（「下書き」/"Draft"）・`statusPublishedOption`（「公開」/"Published"）を追加する。
+- `helpdeskDocuments.list` に状態バッジ用の `statusDraftBadge`（「下書き」/"Draft"）・`statusPublishedBadge`（「公開」/"Published"）を追加する。
+- `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していること。
+
+### Modified / New Files（追加分）
+- `prisma/schema.prisma`（変更） — `enum DocumentStatus`追加、`Document.status DocumentStatus @default(published)`追加
+- `prisma/migrations/<timestamp>_add_document_draft_status/migration.sql`（新規） — enum作成＋列追加（既存行はデフォルト`published`）
+- `src/types/document.ts`（変更） — `DocumentBase`に`status: "draft" | "published"`追加
+- `src/lib/server/document-mapper.ts`（変更） — `mapDocument`の`base`に`status`、`toDocumentData`の両分岐に`status`
+- `src/lib/server/document-service.ts`（変更） — `visibleToWhere`に`status: "published"`追加（`toDocumentData`は`document-service.ts`内にあるため上記マッパー項目と一体で対応）
+- `src/lib/validation/document.ts`（変更） — 両ブランチに`status: z.enum(["draft", "published"])`追加
+- `src/components/features/helpdesk-documents/DocumentForm.tsx`（変更） — 状態選択Select、`defaultValues`（新規=draft）、送信値整形に`status`追加、`statusLabel`等のprops追加
+- `src/components/features/helpdesk-documents/DocumentManagementListClient.tsx`（変更） — 各行に状態バッジ追加
+- `src/components/features/helpdesk-documents/DocumentManagementList.tsx`（変更） — 状態バッジ用翻訳文字列のprops渡し
+- `src/components/features/helpdesk-documents/DocumentDetailPanel.tsx`（変更） — 表示モードに状態表示追加
+- `src/app/[locale]/helpdesk/documents/new/page.tsx` / `[id]/edit/page.tsx`（変更） — `DocumentForm`へ`statusLabel`等の翻訳文字列を渡す
+- `prisma/seed.ts`（変更なし、任意） — 既存seedはデフォルト`published`のまま。デモ目的で1件を`status: "draft"`にすることは任意だが、既存の申請者側可視性テストへの影響を避けるため本ラウンドでは全件`published`を維持する
+- `messages/ja.json` / `messages/en.json`（変更） — 上記i18nキー追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 16.1 | `status`フィールドの追加（Prisma/型/入力） | schema.prisma, types/document.ts, CreateDocumentInput |
+| 16.2〜16.6 | フォームでの状態選択・初期値draft・sourceType/targetingと独立 | DocumentForm |
+| 16.7 | 管理一覧の状態バッジ | DocumentManagementListClient, DocumentManagementList |
+| 16.8〜16.9 | 申請者側読み取りの`status: "published"`フィルタ | document-service.ts（visibleToWhere） |
+| 16.10 | ヘルプデスク側読み取りは全状態を返す | document-service.ts（listAllDocuments/findDocumentById） |
+| 16.11 | 状態ラベル・バッジのi18n | i18n messages |
+| 16.12 | クライアント/サーバー両方の`status`バリデーション | documentFormSchema, DocumentActions |
+| 16.13 | 既存データの後方互換（`@default(published)`） | schema.prisma, migration |
+| 16.14 | 状態変更の`revalidatePath`反映 | DocumentActions（既存のrevalidateDocumentRoutesで担保） |
+
+### Testing Strategy（追加分）
+- **Unit Tests**:
+  - `document-mapper.mapDocument`が`record.status`を`Document.status`にマッピングすること。`toDocumentData`が両`sourceType`分岐で`status`を書き込みデータに含めること
+  - `listDocumentsVisibleTo`/`findDocumentVisibleTo`が`status: "draft"`のドキュメントを返さないこと（`published`のみ返す）。`listAllDocuments`/`findDocumentById`が`draft`・`published`の両方を返すこと
+  - `documentFormSchema`が`status`未指定/不正値を拒否し、`"draft"`/`"published"`を受理すること（upload/google両ブランチ）
+- **Integration Tests**:
+  - ヘルプデスク側で`status: "draft"`のドキュメントを作成した後、申請者側の一覧・詳細に表示されないこと。`published`に変更・保存すると表示されるようになること（`revalidatePath`反映）
+- **E2E/UI Tests**:
+  - 日本語・英語両ロケールで、新規作成フォームの状態選択が初期値「下書き」で表示され、一覧に状態バッジが表示されること

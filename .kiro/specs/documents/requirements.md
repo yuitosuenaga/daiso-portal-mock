@@ -271,3 +271,26 @@
 3. The ヘルプデスクポータル shall フォールバックメッセージ・補助案内文のすべての文字列を`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する。
 4. The ヘルプデスクポータル shall `sourceType`が`"upload"`（Base64データURLはローカルで確実に描画できる）のプレビューについては、本要件のフォールバックUIを適用しない（既存の描画・ダウンロードリンクを維持する）。
 5. The ヘルプデスクポータル shall 本要件のフォールバックUI導入によって、要件13.1〜13.5（Google埋め込みのsrc設定・アクセシブルな名前・元リンク導線・検索/グリッド/並び順の維持）を変更しない。
+
+---
+
+### 追加要望（2026-07-23）: 下書き（非公開）ドキュメントの非表示
+
+2026-07-21実施のプロダクト全体レビューで、ドキュメントは「登録＝即座に全対象者へ公開」される仕様であり、公開前の下書き（非公開）状態を持てないことが報告された。`documents-management`spec（要件16）で`Document`に公開状態フィールド`status`（`"draft" | "published"`）を追加し、ヘルプデスク側で下書きとして保存できるようにする。本spec（申請者側の一覧画面`/documents`）は、この`status`が`"published"`のドキュメントのみを表示する（下書きは一切表示しない）ことを要件として明記する。
+
+本specは読み取り専用であり、`status`の定義・保存・フィルタ実装は`documents-management`spec所有の読み取り関数（`getDocuments` / `getDocumentById`、および`document-service.ts`の`listDocumentsVisibleTo` / `findDocumentVisibleTo`）が担う。したがって本specの画面（`DocumentList` / `DocumentListClient` / `PdfViewer`）に新規のUI変更・分岐は不要であり、`getDocuments`が`status: "published"`のドキュメントのみを返すようになることで自動的に満たされる（既存の公開範囲フィルタ＝要件2と同じ仕組みで、フィルタ条件が1つ増えるのみ）。
+
+スコープ外:
+- `status`フィールド・enum・マイグレーションの定義、読み取り関数への`status`フィルタ実装、ヘルプデスク側の状態選択UI・状態バッジ（いずれも`documents-management`spec所有・要件16）
+- 申請者側での下書きの閲覧・プレビュー（下書きは申請者側からは存在しないものとして扱う）
+
+### 要件 18: 下書き（非公開）ドキュメントの非表示
+
+**目的:** 販社担当者として、公開されたドキュメントのみを一覧で確認したい。そうすることで、ヘルプデスク側で準備中（下書き）の未完成な資料を目にすることなく、正式に公開された資料だけを扱える。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall ドキュメント一覧ページ（`/documents`）に、`documents-management`spec（要件16）が定義する`status`が`"published"`のドキュメントのみを表示し、`status`が`"draft"`のドキュメントを一切表示しない。
+2. The ヘルプデスクポータル shall 下書き（`status: "draft"`）のドキュメントの非表示を、`documents-management`spec所有の読み取り関数（`getDocuments`）が公開範囲フィルタ（要件2）に加えて`status === "published"`で絞り込むことにより実現し、本spec側の一覧UI（`DocumentList` / `DocumentListClient` / `DocumentListItem` / `PdfViewer`）には新規の状態分岐UIを追加しない。
+3. If 販社担当者が下書きのドキュメントIDへ直接アクセス（`getDocumentById`相当）したとき, the ヘルプデスクポータル shall 公開範囲外のドキュメントと同様に「見つからない」として扱う（`documents-management`spec要件16.9に準拠）。
+4. The ヘルプデスクポータル shall 下書きフィルタ適用後も、既存の検索（要件12）・2列グリッド（要件11）・見出し（要件9）・アップロード日降順の並び順（要件3.1）・遅延描画（要件14）・新着バッジ（要件16）・Google埋め込みフォールバック（要件17）を、公開済みドキュメントに対して従来どおり適用する。
