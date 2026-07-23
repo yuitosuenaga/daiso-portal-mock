@@ -57,7 +57,7 @@ beforeEach(() => {
 });
 
 describe("listLinks", () => {
-  it("Prisma経由で全件を取得し、Link型に整形する", async () => {
+  it("Prisma経由で全件をcreatedAt降順で取得し、createdAtを含む形で返す", async () => {
     vi.mocked(prisma.link.findMany).mockResolvedValue([
       {
         id: "1",
@@ -65,7 +65,7 @@ describe("listLinks", () => {
         url: "https://example.com/1",
         category: "internal",
         description: "説明1",
-        createdAt: new Date("2026-07-01T00:00:00.000Z"),
+        createdAt: new Date("2026-07-02T00:00:00.000Z"),
       },
       {
         id: "2",
@@ -73,13 +73,15 @@ describe("listLinks", () => {
         url: "https://example.com/2",
         category: "other",
         description: null,
-        createdAt: new Date("2026-07-02T00:00:00.000Z"),
+        createdAt: new Date("2026-07-01T00:00:00.000Z"),
       },
     ] as never);
 
     const result = await listLinks();
 
-    expect(prisma.link.findMany).toHaveBeenCalled();
+    expect(prisma.link.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: "desc" },
+    });
     expect(result).toEqual([
       {
         id: "1",
@@ -87,6 +89,7 @@ describe("listLinks", () => {
         url: "https://example.com/1",
         category: "internal",
         description: "説明1",
+        createdAt: "2026-07-02T00:00:00.000Z",
       },
       {
         id: "2",
@@ -94,6 +97,7 @@ describe("listLinks", () => {
         url: "https://example.com/2",
         category: "other",
         description: undefined,
+        createdAt: "2026-07-01T00:00:00.000Z",
       },
     ]);
   });

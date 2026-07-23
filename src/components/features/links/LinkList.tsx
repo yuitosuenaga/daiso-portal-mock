@@ -1,13 +1,16 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { getLinks } from "@/lib/api/links";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LINK_CATEGORY_CODES } from "@/lib/constants/link-options";
-import { LinkCategoryGroup } from "@/components/features/links/LinkCategoryGroup";
-import type { Link } from "@/types/link";
+import { LinkListClient } from "@/components/features/links/LinkListClient";
+import type { LinkWithTimestamp } from "@/types/link";
 
 export async function LinkList() {
-  const t = await getTranslations("links");
+  const [t, locale] = await Promise.all([
+    getTranslations("links"),
+    getLocale(),
+  ]);
 
   const heading = (
     <div className="mb-6">
@@ -16,7 +19,7 @@ export async function LinkList() {
     </div>
   );
 
-  let links: Link[];
+  let links: LinkWithTimestamp[];
   try {
     links = await getLinks();
   } catch {
@@ -48,23 +51,12 @@ export async function LinkList() {
   return (
     <div>
       {heading}
-      <div className="space-y-6">
-        {LINK_CATEGORY_CODES.map((category) => {
-          const categoryLinks = links.filter((link) => link.category === category);
-          if (categoryLinks.length === 0) {
-            return null;
-          }
-          return (
-            <LinkCategoryGroup
-              key={category}
-              category={category}
-              categoryLabel={t(`categories.${category}`)}
-              links={categoryLinks}
-              opensInNewTabLabel={t("item.opensInNewTab")}
-            />
-          );
-        })}
-      </div>
+      <LinkListClient
+        links={links}
+        locale={locale}
+        opensInNewTabLabel={t("item.opensInNewTab")}
+        newBadgeLabel={t("item.newBadge")}
+      />
     </div>
   );
 }

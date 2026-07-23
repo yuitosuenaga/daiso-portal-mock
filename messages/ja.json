@@ -393,7 +393,20 @@
       "editLink": "編集",
       "deleteButton": "削除",
       "deleteConfirm": "このリンクを削除しますか？",
-      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。"
+      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。",
+      "filter": {
+        "keywordLabel": "キーワード検索",
+        "keywordPlaceholder": "タイトル・URL・説明に含まれる語句",
+        "categoryLabel": "カテゴリ",
+        "categoryAll": "すべてのカテゴリ",
+        "clearButton": "条件をクリア",
+        "noResults": "該当するリンクがありません"
+      },
+      "pagination": {
+        "previousLabel": "前へ",
+        "nextLabel": "次へ",
+        "pageStatus": "{current} / {total} ページ"
+      }
     },
     "form": {
       "createTitle": "リンクの新規作成",
@@ -860,7 +873,14 @@
       "other": "その他"
     },
     "item": {
-      "opensInNewTab": "（新しいタブで開きます）"
+      "opensInNewTab": "（新しいタブで開きます）",
+      "newBadge": "新着"
+    },
+    "search": {
+      "keywordLabel": "キーワード検索",
+      "keywordPlaceholder": "タイトル・説明・URLに含まれる語句",
+      "clearButton": "条件をクリア",
+      "noResults": "該当するリンクがありません"
     }
   },
   "faq": {
