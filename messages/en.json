@@ -360,8 +360,24 @@
       "addButton": "Add new FAQ",
       "editLink": "Edit",
       "deleteButton": "Delete",
-      "deleteConfirm": "Delete this FAQ?",
-      "deleteError": "Failed to delete. Please try again later."
+      "deleteConfirmTitle": "Delete FAQ",
+      "deleteConfirm": "This will delete \"{question}\". This action cannot be undone. Are you sure?",
+      "deleteConfirmButton": "Delete",
+      "deleteCancelButton": "Cancel",
+      "deleteError": "Failed to delete. Please try again later.",
+      "filter": {
+        "keywordLabel": "Search",
+        "keywordPlaceholder": "Keyword in question or answer",
+        "categoryLabel": "Category",
+        "categoryAll": "All",
+        "clearButton": "Clear",
+        "noResults": "No matching FAQs"
+      },
+      "pagination": {
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "pageStatus": "{current} / {total}"
+      }
     },
     "form": {
       "createTitle": "Create FAQ",
@@ -898,13 +914,21 @@
       "title": "FAQ",
       "description": "View frequently asked questions and answers, organized by category.",
       "empty": "No FAQs",
-      "error": "Failed to load FAQs"
+      "error": "Failed to load FAQs",
+      "updatedLabel": "Updated",
+      "newBadge": "New"
     },
     "categories": {
       "inquiry_method": "Inquiry Method",
       "form_input": "Form Input",
       "status": "Status",
       "other": "Other"
+    },
+    "search": {
+      "label": "Search",
+      "placeholder": "Keyword in question or answer",
+      "noResults": "No matching FAQs",
+      "clearButton": "Clear"
     }
   }
 }

@@ -38,6 +38,7 @@ function baseFaqRecord(
     question: string;
     answer: string;
     createdAt: Date;
+    updatedAt: Date;
   }> = {}
 ) {
   return {
@@ -46,6 +47,7 @@ function baseFaqRecord(
     question: "質問",
     answer: "回答",
     createdAt: new Date("2026-07-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-07-01T00:00:00.000Z"),
     ...overrides,
   };
 }
@@ -63,6 +65,7 @@ describe("listFaqs", () => {
         question: "質問1",
         answer: "回答1",
         createdAt: new Date("2026-07-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-01T00:00:00.000Z"),
       },
       {
         id: "2",
@@ -70,6 +73,7 @@ describe("listFaqs", () => {
         question: "質問2",
         answer: "回答2",
         createdAt: new Date("2026-07-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-03T00:00:00.000Z"),
       },
     ] as never);
 
@@ -77,8 +81,22 @@ describe("listFaqs", () => {
 
     expect(prisma.faq.findMany).toHaveBeenCalled();
     expect(result).toEqual([
-      { id: "1", category: "inquiry_method", question: "質問1", answer: "回答1" },
-      { id: "2", category: "other", question: "質問2", answer: "回答2" },
+      {
+        id: "1",
+        category: "inquiry_method",
+        question: "質問1",
+        answer: "回答1",
+        createdAt: "2026-07-01T00:00:00.000Z",
+        updatedAt: "2026-07-01T00:00:00.000Z",
+      },
+      {
+        id: "2",
+        category: "other",
+        question: "質問2",
+        answer: "回答2",
+        createdAt: "2026-07-02T00:00:00.000Z",
+        updatedAt: "2026-07-03T00:00:00.000Z",
+      },
     ]);
   });
 
@@ -110,6 +128,7 @@ describe("listFaqsForHelpdesk", () => {
         question: "質問",
         answer: "回答",
         createdAt: "2026-07-02T00:00:00.000Z",
+        updatedAt: "2026-07-01T00:00:00.000Z",
       },
       {
         id: "2",
@@ -117,6 +136,7 @@ describe("listFaqsForHelpdesk", () => {
         question: "質問",
         answer: "回答",
         createdAt: "2026-07-01T00:00:00.000Z",
+        updatedAt: "2026-07-01T00:00:00.000Z",
       },
     ]);
   });

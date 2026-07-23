@@ -26,7 +26,11 @@ vi.mock("@/lib/actions/faqs", () => ({
   deleteFaqAction: vi.fn(),
 }));
 
-function resolveMessage(namespace: string, key: string): string {
+function resolveMessage(
+  namespace: string,
+  key: string,
+  values?: Record<string, unknown>
+): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;
   for (const segment of segments) {
@@ -35,13 +39,28 @@ function resolveMessage(namespace: string, key: string): string {
     }
     value = (value as Record<string, unknown>)[segment];
   }
-  return typeof value === "string" ? value : `${namespace}.${key}`;
+  if (typeof value !== "string") {
+    return `${namespace}.${key}`;
+  }
+  if (!values) {
+    return value;
+  }
+  return value.replace(/\{(\w+)\}/g, (_, token: string) =>
+    String(values[token] ?? `{${token}}`)
+  );
 }
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace: string) =>
-    (key: string) => resolveMessage(namespace, key),
+    (key: string, values?: Record<string, unknown>) =>
+      resolveMessage(namespace, key, values),
   getLocale: async () => "ja",
+}));
+
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) =>
+    (key: string, values?: Record<string, unknown>) =>
+      resolveMessage(namespace, key, values),
 }));
 
 const FAQ: FaqWithTimestamp = {
@@ -50,6 +69,7 @@ const FAQ: FaqWithTimestamp = {
   question: "テスト質問",
   answer: "テスト回答",
   createdAt: "2026-07-01T09:00:00Z",
+  updatedAt: "2026-07-01T09:00:00Z",
 };
 
 describe("FaqManagementList", () => {
@@ -78,7 +98,7 @@ describe("FaqManagementList", () => {
     render(jsx);
 
     expect(screen.getByText("テスト質問")).toBeTruthy();
-    expect(screen.getByText("その他")).toBeTruthy();
+    expect(screen.getAllByText("その他").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: "新規FAQを追加" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "編集" })).toBeTruthy();
   });

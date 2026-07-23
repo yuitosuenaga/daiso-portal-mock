@@ -58,6 +58,8 @@ function faq(overrides: Partial<Faq> = {}): Faq {
     category: "other",
     question: "テスト質問",
     answer: "テスト回答",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
   };
 }
@@ -66,19 +68,24 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const TIMESTAMP = {
+  createdAt: "2026-07-01T00:00:00.000Z",
+  updatedAt: "2026-07-01T00:00:00.000Z",
+};
+
 const MOCK_FAQS: Faq[] = [
-  { id: "1", category: "inquiry_method", question: "q1", answer: "a1" },
-  { id: "2", category: "inquiry_method", question: "q2", answer: "a2" },
-  { id: "3", category: "inquiry_method", question: "q3", answer: "a3" },
-  { id: "4", category: "form_input", question: "q4", answer: "a4" },
-  { id: "5", category: "form_input", question: "q5", answer: "a5" },
-  { id: "6", category: "form_input", question: "q6", answer: "a6" },
-  { id: "7", category: "status", question: "q7", answer: "a7" },
-  { id: "8", category: "status", question: "q8", answer: "a8" },
-  { id: "9", category: "status", question: "q9", answer: "a9" },
-  { id: "10", category: "other", question: "q10", answer: "a10" },
-  { id: "11", category: "other", question: "q11", answer: "a11" },
-  { id: "12", category: "other", question: "q12", answer: "a12" },
+  { id: "1", category: "inquiry_method", question: "q1", answer: "a1", ...TIMESTAMP },
+  { id: "2", category: "inquiry_method", question: "q2", answer: "a2", ...TIMESTAMP },
+  { id: "3", category: "inquiry_method", question: "q3", answer: "a3", ...TIMESTAMP },
+  { id: "4", category: "form_input", question: "q4", answer: "a4", ...TIMESTAMP },
+  { id: "5", category: "form_input", question: "q5", answer: "a5", ...TIMESTAMP },
+  { id: "6", category: "form_input", question: "q6", answer: "a6", ...TIMESTAMP },
+  { id: "7", category: "status", question: "q7", answer: "a7", ...TIMESTAMP },
+  { id: "8", category: "status", question: "q8", answer: "a8", ...TIMESTAMP },
+  { id: "9", category: "status", question: "q9", answer: "a9", ...TIMESTAMP },
+  { id: "10", category: "other", question: "q10", answer: "a10", ...TIMESTAMP },
+  { id: "11", category: "other", question: "q11", answer: "a11", ...TIMESTAMP },
+  { id: "12", category: "other", question: "q12", answer: "a12", ...TIMESTAMP },
 ];
 
 describe("getFaqs", () => {

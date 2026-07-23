@@ -34,6 +34,8 @@ const INQUIRY_METHOD_FAQ: Faq = {
   category: "inquiry_method",
   question: "本社への問い合わせはどの方法で行えば良いですか。",
   answer: "ポータル上の「問い合わせ申請」ページから送信してください。",
+  createdAt: "2020-01-01T00:00:00.000Z",
+  updatedAt: "2020-01-01T00:00:00.000Z",
 };
 
 describe("FaqList", () => {

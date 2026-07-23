@@ -19,20 +19,33 @@ beforeEach(() => {
   pushMock.mockClear();
 });
 
-describe("DeleteFaqButton", () => {
-  it("確認して削除するとdeleteFaqActionが呼ばれる", async () => {
-    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+const DEFAULT_PROPS = {
+  faqId: "1",
+  deleteButtonLabel: "削除",
+  confirmTitle: "FAQの削除",
+  confirmMessage: "『テスト質問』を削除します。この操作は取り消せません。よろしいですか？",
+  confirmButtonLabel: "削除する",
+  cancelButtonLabel: "キャンセル",
+  errorMessage: "削除に失敗しました。時間を置いて再度お試しください。",
+};
 
-    render(
-      <DeleteFaqButton
-        faqId="1"
-        deleteButtonLabel="削除"
-        confirmMessage="このFAQを削除しますか？"
-        errorMessage="削除に失敗しました。時間を置いて再度お試しください。"
-      />
-    );
+describe("DeleteFaqButton", () => {
+  it("トリガー押下で確認モーダルが開き、対象質問文を含む本文が表示される", () => {
+    render(<DeleteFaqButton {...DEFAULT_PROPS} />);
+
+    expect(screen.queryByText(DEFAULT_PROPS.confirmMessage)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
+
+    expect(screen.getByText("FAQの削除")).toBeTruthy();
+    expect(screen.getByText(DEFAULT_PROPS.confirmMessage)).toBeTruthy();
+  });
+
+  it("確認モーダルで確定するとdeleteFaqActionが呼ばれ、一覧へ遷移する", async () => {
+    render(<DeleteFaqButton {...DEFAULT_PROPS} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "削除" }));
+    fireEvent.click(screen.getByRole("button", { name: "削除する" }));
 
     await waitFor(() => {
       expect(deleteFaqActionMock).toHaveBeenCalledWith("1");
@@ -41,19 +54,11 @@ describe("DeleteFaqButton", () => {
   });
 
   it("削除に失敗した場合はエラーメッセージを表示し、遷移しない", async () => {
-    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     deleteFaqActionMock.mockRejectedValueOnce(new Error("failed"));
-
-    render(
-      <DeleteFaqButton
-        faqId="1"
-        deleteButtonLabel="削除"
-        confirmMessage="このFAQを削除しますか？"
-        errorMessage="削除に失敗しました。時間を置いて再度お試しください。"
-      />
-    );
+    render(<DeleteFaqButton {...DEFAULT_PROPS} />);
 
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
+    fireEvent.click(screen.getByRole("button", { name: "削除する" }));
 
     await waitFor(() => {
       expect(
@@ -63,20 +68,13 @@ describe("DeleteFaqButton", () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it("確認をキャンセルするとdeleteFaqActionが呼ばれない", () => {
-    vi.spyOn(window, "confirm").mockReturnValueOnce(false);
-
-    render(
-      <DeleteFaqButton
-        faqId="1"
-        deleteButtonLabel="削除"
-        confirmMessage="このFAQを削除しますか？"
-        errorMessage="削除に失敗しました。時間を置いて再度お試しください。"
-      />
-    );
+  it("確認モーダルをキャンセルするとdeleteFaqActionが呼ばれない", () => {
+    render(<DeleteFaqButton {...DEFAULT_PROPS} />);
 
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
+    fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
 
     expect(deleteFaqActionMock).not.toHaveBeenCalled();
+    expect(screen.queryByText(DEFAULT_PROPS.confirmMessage)).toBeNull();
   });
 });

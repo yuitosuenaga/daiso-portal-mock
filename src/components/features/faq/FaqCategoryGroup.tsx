@@ -9,6 +9,12 @@ export interface FaqCategoryGroupProps {
   categoryLabel: string;
   /** このカテゴリに属する質問の一覧（1件以上） */
   faqs: Faq[];
+  /** 更新日整形に用いるロケール */
+  locale: string;
+  /** 更新日ラベル（例: 「更新日」） */
+  updatedLabel: string;
+  /** 新着バッジの文言（例: 「新着」） */
+  newBadgeLabel: string;
 }
 
 /**
@@ -20,6 +26,9 @@ export function FaqCategoryGroup({
   category,
   categoryLabel,
   faqs,
+  locale,
+  updatedLabel,
+  newBadgeLabel,
 }: FaqCategoryGroupProps) {
   return (
     <Card data-category={category}>
@@ -27,7 +36,12 @@ export function FaqCategoryGroup({
         <CardTitle className="text-base">{categoryLabel}</CardTitle>
       </CardHeader>
       <CardContent>
-        <FaqAccordion faqs={faqs} />
+        <FaqAccordion
+          faqs={faqs}
+          locale={locale}
+          updatedLabel={updatedLabel}
+          newBadgeLabel={newBadgeLabel}
+        />
       </CardContent>
     </Card>
   );
