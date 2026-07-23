@@ -10,6 +10,7 @@ function baseRecord(overrides: Record<string, unknown> = {}) {
     id: "document-1",
     title: "タイトル",
     description: null,
+    status: "published" as const,
     sourceType: "upload" as const,
     fileName: "test.pdf",
     fileType: "application/pdf",
@@ -33,6 +34,16 @@ describe("mapDocument", () => {
     if (result.sourceType === "upload") {
       expect(result.dataUrl).toBe("data:application/pdf;base64,AAAA");
     }
+  });
+
+  it("record.statusをDocument.statusへマッピングする（draft/published双方）", () => {
+    const draftResult = mapDocument(baseRecord({ status: "draft" }) as never);
+    expect(draftResult.status).toBe("draft");
+
+    const publishedResult = mapDocument(
+      baseRecord({ status: "published" }) as never
+    );
+    expect(publishedResult.status).toBe("published");
   });
 
   it("sourceType: googleのレコードをGoogle型のDocumentへマッピングする", () => {

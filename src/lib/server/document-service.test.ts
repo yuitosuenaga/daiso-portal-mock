@@ -30,6 +30,7 @@ function baseDocumentRecord(
     id: string;
     title: string;
     description: string | null;
+    status: "draft" | "published";
     sourceType: "upload" | "google";
     fileName: string | null;
     fileType: string | null;
@@ -47,6 +48,7 @@ function baseDocumentRecord(
     id: "document-1",
     title: "タイトル",
     description: null,
+    status: "published" as const,
     sourceType: "upload" as const,
     fileName: "test.pdf",
     fileType: "application/pdf",
@@ -79,6 +81,7 @@ describe("listDocumentsVisibleTo", () => {
     expect(prisma.document.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          status: "published",
           OR: [
             { targetingScope: "all" },
             { targetingScope: "countries", targetingCountries: { has: "VN" } },
@@ -88,6 +91,20 @@ describe("listDocumentsVisibleTo", () => {
             },
           ],
         },
+      })
+    );
+  });
+
+  it("status: publishedをクエリ条件に含み、下書きを除外する（Prisma側でフィルタされる前提）", async () => {
+    // `listDocumentsVisibleTo`はPrismaへ`status: "published"`をwhere条件として渡すのみで、
+    // 実際の絞り込みはDB側が行う。ここではクエリに条件が含まれることを検証する。
+    vi.mocked(prisma.document.findMany).mockResolvedValue([] as never);
+
+    await listDocumentsVisibleTo("VN", "vn-daiso-vietnam");
+
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: "published" }),
       })
     );
   });
@@ -132,6 +149,18 @@ describe("findDocumentVisibleTo", () => {
 
     expect(result).toBeNull();
   });
+
+  it("status: publishedをクエリ条件に含む（下書きは公開範囲外と同様nullとして扱われる）", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(null);
+
+    await findDocumentVisibleTo("draft-doc", "VN", "vn-daiso-vietnam");
+
+    expect(prisma.document.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: "draft-doc", status: "published" }),
+      })
+    );
+  });
 });
 
 describe("listAllDocuments / findDocumentById", () => {
@@ -144,6 +173,30 @@ describe("listAllDocuments / findDocumentById", () => {
     const result = await listAllDocuments();
 
     expect(result.map((item) => item.id)).toEqual(["1", "2"]);
+  });
+
+  it("status（下書き/公開）で絞り込まず、両方を返す", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([
+      baseDocumentRecord({ id: "1", status: "draft" }),
+      baseDocumentRecord({ id: "2", status: "published" }),
+    ] as never);
+
+    const result = await listAllDocuments();
+
+    expect(result.map((item) => item.status)).toEqual(["draft", "published"]);
+    // whereにstatus条件を含まないことを確認する
+    const callArgs = vi.mocked(prisma.document.findMany).mock.calls[0]?.[0];
+    expect(callArgs?.where).toBeUndefined();
+  });
+
+  it("findDocumentByIdはstatus: draftのドキュメントも返す（絞り込みを行わない）", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      baseDocumentRecord({ id: "draft-1", status: "draft" }) as never
+    );
+
+    const result = await findDocumentById("draft-1");
+
+    expect(result?.status).toBe("draft");
   });
 
   it("存在しないIDはnullを返す", async () => {
@@ -196,6 +249,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     const result = await createDocumentRecord({
       sourceType: "upload",
       title: "タイトル",
+      status: "published",
       fileName: "test.pdf",
       fileType: "application/pdf",
       fileSize: 1024,
@@ -234,6 +288,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     const result = await createDocumentRecord({
       sourceType: "google",
       title: "Googleドキュメント",
+      status: "published",
       googleUrl: "https://docs.google.com/document/d/abc123/edit",
       googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
       targeting: { scope: "all" },
@@ -268,6 +323,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     await createDocumentRecord({
       sourceType: "upload",
       title: "タイトル",
+      status: "published",
       fileName: "test.pdf",
       fileType: "application/pdf",
       fileSize: 1024,
@@ -292,6 +348,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       updateDocumentRecord("missing", {
         sourceType: "upload",
         title: "t",
+        status: "published",
         fileName: "t.pdf",
         fileType: "application/pdf",
         fileSize: 1,

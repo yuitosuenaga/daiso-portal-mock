@@ -85,6 +85,9 @@ export default async function HelpdeskDocumentEditPage({
         sourceTypeLabel={t("sourceTypeLabel")}
         sourceTypeUploadBadge={tListLabels("sourceTypeUploadBadge")}
         sourceTypeGoogleBadge={tListLabels("sourceTypeGoogleBadge")}
+        statusLabel={t("statusLabel")}
+        statusDraftBadge={tListLabels("statusDraftBadge")}
+        statusPublishedBadge={tListLabels("statusPublishedBadge")}
         targetingAllLabel={tListLabels("targetingAllLabel")}
         targetingCountriesLabel={tListLabels("targetingCountriesLabel")}
         targetingCompaniesLabel={tListLabels("targetingCompaniesLabel")}
@@ -103,6 +106,9 @@ export default async function HelpdeskDocumentEditPage({
           titlePlaceholder: t("titlePlaceholder"),
           descriptionLabel: t("descriptionLabel"),
           descriptionPlaceholder: t("descriptionPlaceholder"),
+          statusLabel: t("statusLabel"),
+          statusDraftOption: t("statusDraftOption"),
+          statusPublishedOption: t("statusPublishedOption"),
           targetingLabel: t("targetingLabel"),
           targetingAllOption: t("targetingAllOption"),
           targetingCountriesOption: t("targetingCountriesOption"),

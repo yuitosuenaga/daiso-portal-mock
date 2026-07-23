@@ -17,6 +17,8 @@ interface DocumentBase {
   title: string;
   /** 補足説明（任意項目） */
   description?: string;
+  /** 公開状態。draft=下書き（申請者側に非表示）、published=公開 */
+  status: "draft" | "published";
   targeting: DocumentTargeting;
   /** ISO 8601 形式のアップロード時刻。編集しても更新しない */
   uploadedAt: string;

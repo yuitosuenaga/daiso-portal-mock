@@ -30,6 +30,9 @@ export interface DocumentDetailPanelProps {
   sourceTypeLabel: string;
   sourceTypeUploadBadge: string;
   sourceTypeGoogleBadge: string;
+  statusLabel: string;
+  statusDraftBadge: string;
+  statusPublishedBadge: string;
   targetingAllLabel: string;
   targetingCountriesLabel: string;
   targetingCompaniesLabel: string;
@@ -50,6 +53,7 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
       sourceType: "google",
       title: document.title,
       description: document.description ?? "",
+      status: document.status,
       googleUrl: document.googleUrl,
       googleEmbedUrl: document.googleEmbedUrl,
       // `Document.targeting`はドメイン型として`string[]`だが、保存済みデータは常に
@@ -62,6 +66,7 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
     sourceType: "upload",
     title: document.title,
     description: document.description ?? "",
+    status: document.status,
     fileName: document.fileName,
     fileType: document.fileType,
     fileSize: document.fileSize,
@@ -91,6 +96,9 @@ export function DocumentDetailPanel({
   sourceTypeLabel,
   sourceTypeUploadBadge,
   sourceTypeGoogleBadge,
+  statusLabel,
+  statusDraftBadge,
+  statusPublishedBadge,
   targetingAllLabel,
   targetingCountriesLabel,
   targetingCompaniesLabel,
@@ -175,6 +183,12 @@ export function DocumentDetailPanel({
                   {document.sourceType === "google"
                     ? sourceTypeGoogleBadge
                     : sourceTypeUploadBadge}
+                </span>
+                <span>
+                  {statusLabel}:{" "}
+                  {document.status === "draft"
+                    ? statusDraftBadge
+                    : statusPublishedBadge}
                 </span>
                 <span>
                   {targetingLabel(document.targeting, {

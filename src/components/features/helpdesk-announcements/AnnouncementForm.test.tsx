@@ -549,6 +549,7 @@ describe("AnnouncementForm", () => {
             id: "document-1",
             title: "紐づけドキュメント",
             sourceType: "upload",
+            status: "published",
             fileName: "linked.pdf",
             fileType: "application/pdf",
             fileSize: 4096,

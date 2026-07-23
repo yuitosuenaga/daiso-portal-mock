@@ -9,6 +9,7 @@ function buildValidInput(overrides: Record<string, unknown> = {}) {
   return {
     sourceType: "upload",
     title: "テストタイトル",
+    status: "published",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -22,6 +23,7 @@ function buildValidGoogleInput(overrides: Record<string, unknown> = {}) {
   return {
     sourceType: "google",
     title: "テストタイトル",
+    status: "published",
     googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
     googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
     targeting: { scope: "all" },
@@ -104,6 +106,58 @@ describe("documentFormSchema", () => {
     const result = documentFormSchema.safeParse(buildValidInput({ fileName: "" }));
 
     expect(result.success).toBe(false);
+  });
+
+  describe("status", () => {
+    it("statusがdraftの場合は検証を通過する（アップロード方式）", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({ status: "draft" })
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("statusがpublishedの場合は検証を通過する（アップロード方式）", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({ status: "published" })
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("statusが未指定の場合はエラーになる（アップロード方式）", () => {
+      const input = buildValidInput();
+      delete (input as Record<string, unknown>).status;
+
+      const result = documentFormSchema.safeParse(input);
+
+      expect(result.success).toBe(false);
+    });
+
+    it("statusが不正な値の場合はエラーになる（アップロード方式）", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({ status: "archived" })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("statusが未指定の場合はエラーになる（Google方式）", () => {
+      const input = buildValidGoogleInput();
+      delete (input as Record<string, unknown>).status;
+
+      const result = documentFormSchema.safeParse(input);
+
+      expect(result.success).toBe(false);
+    });
+
+    it("statusが不正な値の場合はエラーになる（Google方式）", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidGoogleInput({ status: "archived" })
+      );
+
+      expect(result.success).toBe(false);
+    });
   });
 
   describe("sourceType: google", () => {

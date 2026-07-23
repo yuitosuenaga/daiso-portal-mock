@@ -56,6 +56,7 @@ export function mapDocument(record: PrismaDocument): Document {
     id: record.id,
     title: record.title,
     description: record.description ?? undefined,
+    status: record.status,
     targeting: mapTargeting(record),
     uploadedAt: record.uploadedAt.toISOString(),
   };

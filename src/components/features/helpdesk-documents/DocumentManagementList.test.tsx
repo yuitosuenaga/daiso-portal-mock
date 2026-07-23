@@ -66,6 +66,7 @@ const DOCUMENT: Document = {
   id: "1",
   title: "テストドキュメント",
   sourceType: "upload",
+  status: "published",
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
@@ -78,6 +79,7 @@ const GOOGLE_DOCUMENT: Document = {
   id: "2",
   title: "Googleドキュメント",
   sourceType: "google",
+  status: "draft",
   googleUrl: "https://docs.google.com/document/d/abc123/edit",
   googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
   targeting: { scope: "all" },
@@ -123,6 +125,16 @@ describe("DocumentManagementList", () => {
 
     expect(screen.getAllByText("アップロード").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Googleリンク").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("statusに応じた状態バッジ（下書き/公開）をそれぞれ表示する", async () => {
+    getAllDocumentsMock.mockResolvedValueOnce([DOCUMENT, GOOGLE_DOCUMENT]);
+
+    const jsx = await DocumentManagementList();
+    render(jsx);
+
+    expect(screen.getAllByText("公開").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("下書き").length).toBeGreaterThanOrEqual(1);
   });
 
   it("キーワードで絞り込むと一覧が即時に絞り込まれ、0件時はメッセージを表示する", async () => {

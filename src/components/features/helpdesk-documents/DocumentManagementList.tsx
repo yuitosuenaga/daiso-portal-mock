@@ -73,6 +73,8 @@ export async function DocumentManagementList() {
         editLinkLabel={t("editLink")}
         sourceTypeUploadBadgeLabel={t("sourceTypeUploadBadge")}
         sourceTypeGoogleBadgeLabel={t("sourceTypeGoogleBadge")}
+        statusDraftBadgeLabel={t("statusDraftBadge")}
+        statusPublishedBadgeLabel={t("statusPublishedBadge")}
         targetingLabels={{
           allLabel: t("targetingAllLabel"),
           countriesLabel: t("targetingCountriesLabel"),

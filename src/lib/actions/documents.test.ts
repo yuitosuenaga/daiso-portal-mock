@@ -28,6 +28,7 @@ function buildInput(overrides: Partial<CreateDocumentInput> = {}): CreateDocumen
   return {
     sourceType: "upload",
     title: "アクション経由の新規作成",
+    status: "draft",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -43,6 +44,7 @@ function buildGoogleInput(
   return {
     sourceType: "google",
     title: "Google経由の新規作成",
+    status: "draft",
     googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
     googleEmbedUrl: "https://docs.google.com/document/d/should-be-ignored/preview",
     targeting: { scope: "all" },
@@ -55,6 +57,7 @@ function document(overrides: Partial<Document> = {}): Document {
     id: "document-1",
     title: "タイトル",
     sourceType: "upload",
+    status: "published",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -92,6 +95,17 @@ describe("createDocumentAction", () => {
         buildInput({ targeting: { scope: "countries", countries: [] } })
       )
     ).rejects.toThrow();
+
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("statusが不正な値の不正な入力は例外になる", async () => {
+    const invalidInput = {
+      ...buildInput(),
+      status: "archived",
+    } as unknown as CreateDocumentInput;
+
+    await expect(createDocumentAction(invalidInput)).rejects.toThrow();
 
     expect(createDocument).not.toHaveBeenCalled();
   });

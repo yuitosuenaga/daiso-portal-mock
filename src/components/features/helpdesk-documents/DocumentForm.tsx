@@ -36,6 +36,9 @@ export interface DocumentFormProps {
   titlePlaceholder: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
+  statusLabel: string;
+  statusDraftOption: string;
+  statusPublishedOption: string;
   targetingLabel: string;
   targetingAllOption: string;
   targetingCountriesOption: string;
@@ -78,6 +81,7 @@ interface DocumentFormFieldValues {
   sourceType: "upload" | "google";
   title: string;
   description?: string;
+  status: "draft" | "published";
   fileName: string;
   fileType: UploadFormValues["fileType"] | "";
   fileSize: number;
@@ -105,6 +109,7 @@ function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
       sourceType: "google",
       title: values.title,
       description: values.description,
+      status: values.status,
       targeting: values.targeting,
       ...EMPTY_UPLOAD_VALUES,
       googleUrl: values.googleUrl,
@@ -116,6 +121,7 @@ function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
     sourceType: "upload",
     title: values.title,
     description: values.description,
+    status: values.status,
     targeting: values.targeting,
     fileName: values.fileName,
     fileType: values.fileType,
@@ -140,6 +146,9 @@ export function DocumentForm({
   titlePlaceholder,
   descriptionLabel,
   descriptionPlaceholder,
+  statusLabel,
+  statusDraftOption,
+  statusPublishedOption,
   targetingLabel,
   targetingAllOption,
   targetingCountriesOption,
@@ -190,12 +199,17 @@ export function DocumentForm({
             sourceType: "upload",
             title: "",
             description: "",
+            status: "draft",
             targeting: { scope: "all" },
             ...EMPTY_UPLOAD_VALUES,
             ...EMPTY_GOOGLE_VALUES,
           },
   });
 
+  const statusOptions: SelectOption[] = [
+    { value: "draft", label: statusDraftOption },
+    { value: "published", label: statusPublishedOption },
+  ];
   const scopeOptions: SelectOption[] = [
     { value: "all", label: targetingAllOption },
     { value: "countries", label: targetingCountriesOption },
@@ -297,6 +311,25 @@ export function DocumentForm({
           placeholder={descriptionPlaceholder}
           rows={3}
           {...register("description")}
+        />
+      </FormField>
+
+      <FormField label={statusLabel} htmlFor="document-status">
+        <Controller
+          control={control}
+          name="status"
+          render={({ field }) => (
+            <Select
+              id="document-status"
+              options={statusOptions}
+              value={field.value}
+              onChange={(event) =>
+                field.onChange(
+                  event.target.value as DocumentFormFieldValues["status"]
+                )
+              }
+            />
+          )}
         />
       </FormField>
 

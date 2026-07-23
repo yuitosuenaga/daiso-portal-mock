@@ -88,6 +88,7 @@ function buildDocument(overrides: Partial<Document> = {}): Document {
     title: "利用規約",
     description: "各国共通の利用規約です。",
     sourceType: "upload",
+    status: "published",
     fileName: "terms.pdf",
     fileType: "application/pdf",
     fileSize: 1000,

@@ -293,7 +293,7 @@
 
 > 前提: `documents-management`spec のタスク10（`Document`に`status`追加・`visibleToWhere`への`status: "published"`フィルタ追加）が実装済みであること（実装順序は`documents-management`を先行させる）。
 
-- [ ]* 12. 下書きドキュメントが申請者側一覧に表示されないことを確認する
+- [x]* 12. 下書きドキュメントが申請者側一覧に表示されないことを確認する
   - `documents-management`spec側で`status: "draft"`のドキュメントを作成した状態で、申請者側`/documents`の一覧に当該ドキュメントが表示されないこと、`published`のドキュメントは従来どおり表示・プレビューされることを確認する
   - 本spec側の一覧UI（`DocumentList` / `DocumentListClient` / `DocumentListItem` / `PdfViewer`）に状態分岐の追加変更が不要であること（`getDocuments`側のフィルタのみで満たされること）をコードレビューで確認する
   - 下書きフィルタ適用後も検索（要件12）・2列グリッド（要件11）・新着バッジ（要件16）・Google埋め込みフォールバック（要件17）が公開済みドキュメントに従来どおり機能することを確認する

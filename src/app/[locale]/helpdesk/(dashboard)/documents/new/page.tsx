@@ -35,6 +35,9 @@ export default async function HelpdeskDocumentNewPage() {
         titlePlaceholder={t("titlePlaceholder")}
         descriptionLabel={t("descriptionLabel")}
         descriptionPlaceholder={t("descriptionPlaceholder")}
+        statusLabel={t("statusLabel")}
+        statusDraftOption={t("statusDraftOption")}
+        statusPublishedOption={t("statusPublishedOption")}
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
