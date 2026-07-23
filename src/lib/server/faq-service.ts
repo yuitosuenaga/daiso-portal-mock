@@ -11,22 +11,28 @@ export class FaqNotFoundError extends Error {
   }
 }
 
-/** ヘルプデスク管理一覧向けに、登録日（`createdAt`）を含むFAQ情報。 */
-export interface FaqWithTimestamp extends Faq {
-  createdAt: string;
-}
+/**
+ * ヘルプデスク管理一覧向けの型エイリアス。`Faq`が`createdAt`/`updatedAt`の
+ * 両タイムスタンプを持つようになったため冗長だが、既存の呼び出し側との
+ * 互換性維持のため別名として残す。
+ */
+export type FaqWithTimestamp = Faq;
 
 function mapFaq(record: {
   id: string;
   category: Faq["category"];
   question: string;
   answer: string;
+  createdAt: Date;
+  updatedAt: Date;
 }): Faq {
   return {
     id: record.id,
     category: record.category,
     question: record.question,
     answer: record.answer,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
   };
 }
 
@@ -46,10 +52,7 @@ export async function listFaqsForHelpdesk(): Promise<FaqWithTimestamp[]> {
     orderBy: { createdAt: "desc" },
   });
 
-  return records.map((record) => ({
-    ...mapFaq(record),
-    createdAt: record.createdAt.toISOString(),
-  }));
+  return records.map(mapFaq);
 }
 
 /** 指定されたIDのFAQを1件取得する。存在しない場合はnullを返す。 */

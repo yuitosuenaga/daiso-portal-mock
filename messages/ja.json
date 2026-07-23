@@ -362,8 +362,24 @@
       "addButton": "新規FAQを追加",
       "editLink": "編集",
       "deleteButton": "削除",
-      "deleteConfirm": "このFAQを削除しますか？",
-      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。"
+      "deleteConfirmTitle": "FAQの削除",
+      "deleteConfirm": "『{question}』を削除します。この操作は取り消せません。よろしいですか？",
+      "deleteConfirmButton": "削除する",
+      "deleteCancelButton": "キャンセル",
+      "deleteError": "削除に失敗しました。時間を置いて再度お試しください。",
+      "filter": {
+        "keywordLabel": "キーワード検索",
+        "keywordPlaceholder": "質問や回答に含まれる語句",
+        "categoryLabel": "カテゴリ",
+        "categoryAll": "すべて",
+        "clearButton": "条件をクリア",
+        "noResults": "該当するFAQがありません"
+      },
+      "pagination": {
+        "previousLabel": "前へ",
+        "nextLabel": "次へ",
+        "pageStatus": "{current} / {total} ページ"
+      }
     },
     "form": {
       "createTitle": "FAQの新規作成",
@@ -888,13 +904,21 @@
       "title": "FAQ",
       "description": "よくある質問と回答をカテゴリ別に確認できます。",
       "empty": "FAQはありません",
-      "error": "FAQの取得に失敗しました"
+      "error": "FAQの取得に失敗しました",
+      "updatedLabel": "更新日",
+      "newBadge": "新着"
     },
     "categories": {
       "inquiry_method": "問い合わせ方法",
       "form_input": "フォーム入力",
       "status": "対応状況",
       "other": "その他"
+    },
+    "search": {
+      "label": "キーワード検索",
+      "placeholder": "質問や回答に含まれる語句",
+      "noResults": "該当するFAQがありません",
+      "clearButton": "条件をクリア"
     }
   }
 }

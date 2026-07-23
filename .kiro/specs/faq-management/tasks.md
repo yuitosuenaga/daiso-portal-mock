@@ -108,25 +108,25 @@
 
 ## 追加タスク: FAQ管理一覧の検索・絞り込み・ページネーション（2026-07-22 追記, 要件10）
 
-- [ ] 14. 管理一覧用の定数を定義する（要件10.4）
+- [x] 14. 管理一覧用の定数を定義する（要件10.4）
   - `src/lib/constants/faq.ts`（新規）に `FAQ_MANAGEMENT_PAGE_SIZE = 10` と、必要に応じて `FaqManagementCategoryFilter = "all" | FaqCategory` 型を定義する（`document.ts` の `DOCUMENT_MANAGEMENT_PAGE_SIZE` を踏襲）
   - _Requirements: 10.4_
   - _Boundary: 定数_
 
-- [ ] 15. `FaqManagementFilterBar` を実装する（要件10.1, 10.2, 10.7, 10.8）
+- [x] 15. `FaqManagementFilterBar` を実装する（要件10.1, 10.2, 10.7, 10.8）
   - `src/components/features/helpdesk-faq/FaqManagementFilterBar.tsx`（新規, Client）に、キーワード入力（`Input`+`Label`）・カテゴリ `Select`（`all` + `FaqCategory` 4値、ラベルは `faq.categories.*` を再利用）・クリアボタンを実装する（`DocumentManagementFilterBar` を踏襲）
   - 状態は持たず `onChange`/`onClear` で親へ通知する
   - _Requirements: 10.1, 10.2, 10.7, 10.8_
   - _Boundary: FaqManagementFilterBar_
   - _Depends: 14_
 
-- [ ] 16. `FaqManagementPagination` を実装する（要件10.4）
+- [x] 16. `FaqManagementPagination` を実装する（要件10.4）
   - `src/components/features/helpdesk-faq/FaqManagementPagination.tsx`（新規, Client）に、前へ／次へ（境界で `disabled`）と現在ページ／総ページ数表示を実装する（`DocumentManagementPagination` を踏襲、`helpdeskFaq.list.pagination` の翻訳キーを使用）
   - _Requirements: 10.4_
   - _Boundary: FaqManagementPagination_
   - _Depends: 14_
 
-- [ ] 17. `FaqManagementListClient` を実装し、`FaqManagementList` を委譲構成へ変更する（要件10.1〜10.7, 10.9）
+- [x] 17. `FaqManagementListClient` を実装し、`FaqManagementList` を委譲構成へ変更する（要件10.1〜10.7, 10.9）
   - `src/components/features/helpdesk-faq/FaqManagementListClient.tsx`（新規, Client）に、`filters`（keyword/category）と `page` を `useState` で保持し、`filterFaqs`（`faq` spec の `src/lib/faq-utils.ts`）でキーワード絞り込み → カテゴリ一致 → `FAQ_MANAGEMENT_PAGE_SIZE` でページ分割 → 現在ページ分をスライスして描画する
   - 条件変更時に `page` を1へリセット（要件10.5）、クリアで初期状態へ（要件10.7）、0件時は `helpdeskFaq.list.filter.noResults` を表示（要件10.6）、取得時の `createdAt` 降順を維持（要件10.9）
   - `src/components/features/helpdesk-faq/FaqManagementList.tsx`（Server）を、全件取得・エラー/空状態・見出しは維持しつつ、行の直接描画をやめて取得配列と翻訳済みラベル群を `FaqManagementListClient` へ渡す構成に変更する
@@ -136,30 +136,30 @@
   - _Depends: 15, 16_
   - _Note: `filterFaqs` は `faq` spec のタスク10で新設。両specを同一エージェントが担当する場合は `faq` spec 側を先行させる_
 
-- [ ] 18. 検索・ページネーションの翻訳キーを追加する（要件10.8）
+- [x] 18. 検索・ページネーションの翻訳キーを追加する（要件10.8）
   - `messages/ja.json`・`messages/en.json` の `helpdeskFaq.list` に `filter`（`keywordLabel`/`keywordPlaceholder`/`categoryLabel`/`categoryAll`/`clearButton`/`noResults`）と `pagination`（`previousLabel`/`nextLabel`/`pageStatus`）を追加する
   - カテゴリ選択肢ラベルは `faq.categories.*` を再利用し二重定義しない
   - `ja.json` の追加キーが全て `en.json` にも存在しキー構造が一致することで完了とする
   - _Requirements: 10.8_
   - _Boundary: i18n messages_
 
-- [ ] 19. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることを確認する
+- [x] 19. `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build` が全て通ることを確認する
   - _Requirements: 10.1〜10.9_
   - _Depends: 17, 18_
 
-- [ ]* 20. 多言語・レスポンシブのE2E確認を行う
+- [x]* 20. 多言語・レスポンシブのE2E確認を行う
   - 日英で検索欄・カテゴリ・ページネーション文言が切り替わること、タブレット幅で横スクロールが発生しないことを確認する
   - _Requirements: 10.8_
   - _Depends: 19_
 
-- [ ] 21. FAQ削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象質問文を明示する（2026-07-22 追記 / 要件11）
+- [x] 21. FAQ削除確認をアプリ内モーダル（ConfirmDialog）へ置き換え、対象質問文を明示する（2026-07-22 追記 / 要件11）
   - `DeleteFaqButton.tsx`の`window.confirm()`を廃止し、共通`ConfirmDialog`（helpdesk-portal-layout要件18）でラップ。確認押下時のみ既存削除処理を実行、`isPending`を伝播する
   - `question` prop と確認モーダル用文言propsを追加し、呼び出し側から対象質問文を渡す
   - `helpdeskFaq.list.deleteConfirm`を`{question}`プレースホルダー付きに変更し、確認見出し・確認/キャンセルボタン文言を`messages/ja.json`・`messages/en.json`へ追加する
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   - _Depends: helpdesk-portal-layout タスク9（ConfirmDialog新設）_
 
-- [ ]* 21.1 `DeleteFaqButton.test.tsx` をConfirmDialogベースへ更新する
+- [x]* 21.1 `DeleteFaqButton.test.tsx` をConfirmDialogベースへ更新する
   - トリガー押下→確認押下で削除実行、キャンセルで未実行、本文に対象質問文表示を検証する
   - _Requirements: 11.6_
   - _Depends: 21_

@@ -1,13 +1,13 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { getFaqs } from "@/lib/api/faqs";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FAQ_CATEGORY_CODES } from "@/lib/constants/faq-options";
-import { FaqCategoryGroup } from "@/components/features/faq/FaqCategoryGroup";
-import type { Faq } from "@/types/faq";
+import { FaqListClient } from "@/components/features/faq/FaqListClient";
+import type { Faq, FaqCategory } from "@/types/faq";
 
 export async function FaqList() {
-  const t = await getTranslations("faq");
+  const [t, locale] = await Promise.all([getTranslations("faq"), getLocale()]);
 
   const heading = (
     <div className="mb-6">
@@ -45,25 +45,28 @@ export async function FaqList() {
     );
   }
 
+  const categoryLabels = FAQ_CATEGORY_CODES.reduce(
+    (labels, category) => {
+      labels[category] = t(`categories.${category}`);
+      return labels;
+    },
+    {} as Record<FaqCategory, string>
+  );
+
   return (
     <div>
       {heading}
-      <div className="space-y-6">
-        {FAQ_CATEGORY_CODES.map((category) => {
-          const categoryFaqs = faqs.filter((faq) => faq.category === category);
-          if (categoryFaqs.length === 0) {
-            return null;
-          }
-          return (
-            <FaqCategoryGroup
-              key={category}
-              category={category}
-              categoryLabel={t(`categories.${category}`)}
-              faqs={categoryFaqs}
-            />
-          );
-        })}
-      </div>
+      <FaqListClient
+        faqs={faqs}
+        locale={locale}
+        categoryLabels={categoryLabels}
+        updatedLabel={t("list.updatedLabel")}
+        newBadgeLabel={t("list.newBadge")}
+        searchLabel={t("search.label")}
+        searchPlaceholder={t("search.placeholder")}
+        searchNoResults={t("search.noResults")}
+        searchClearButton={t("search.clearButton")}
+      />
     </div>
   );
 }

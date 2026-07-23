@@ -5,18 +5,28 @@ import { describe, expect, it } from "vitest";
 import { FaqCategoryGroup } from "@/components/features/faq/FaqCategoryGroup";
 import type { Faq } from "@/types/faq";
 
+const DEFAULT_PROPS = {
+  locale: "ja",
+  updatedLabel: "更新日",
+  newBadgeLabel: "新着",
+};
+
 const FAQS: Faq[] = [
   {
     id: "1",
     category: "inquiry_method",
     question: "問い合わせはどの方法で行えば良いですか。",
     answer: "ポータル上の問い合わせ申請ページから送信してください。",
+    createdAt: "2020-01-01T00:00:00.000Z",
+    updatedAt: "2020-01-01T00:00:00.000Z",
   },
   {
     id: "2",
     category: "inquiry_method",
     question: "返信までどれくらいかかりますか。",
     answer: "通常2営業日以内に返信します。",
+    createdAt: "2020-01-01T00:00:00.000Z",
+    updatedAt: "2020-01-01T00:00:00.000Z",
   },
 ];
 
@@ -27,6 +37,7 @@ describe("FaqCategoryGroup", () => {
         category="inquiry_method"
         categoryLabel="問い合わせ方法"
         faqs={FAQS}
+        {...DEFAULT_PROPS}
       />
     );
 
@@ -39,6 +50,7 @@ describe("FaqCategoryGroup", () => {
         category="inquiry_method"
         categoryLabel="問い合わせ方法"
         faqs={FAQS}
+        {...DEFAULT_PROPS}
       />
     );
 
@@ -53,6 +65,7 @@ describe("FaqCategoryGroup", () => {
         category="inquiry_method"
         categoryLabel="問い合わせ方法"
         faqs={FAQS}
+        {...DEFAULT_PROPS}
       />
     );
 

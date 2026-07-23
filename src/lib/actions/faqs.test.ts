@@ -33,6 +33,8 @@ function faq(overrides: Partial<Faq> = {}): Faq {
     category: "inquiry_method",
     question: "質問",
     answer: "回答",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
     ...overrides,
   };
 }

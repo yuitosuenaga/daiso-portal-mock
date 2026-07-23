@@ -51,7 +51,10 @@ export default async function HelpdeskFaqEditPage({
         <DeleteFaqButton
           faqId={faq.id}
           deleteButtonLabel={tListLabels("deleteButton")}
-          confirmMessage={tListLabels("deleteConfirm")}
+          confirmTitle={tListLabels("deleteConfirmTitle")}
+          confirmMessage={tListLabels("deleteConfirm", { question: faq.question })}
+          confirmButtonLabel={tListLabels("deleteConfirmButton")}
+          cancelButtonLabel={tListLabels("deleteCancelButton")}
           errorMessage={tListLabels("deleteError")}
         />
       </div>

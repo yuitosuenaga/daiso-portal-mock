@@ -9,10 +9,14 @@ export interface Faq {
   category: FaqCategory;
   question: string;
   answer: string;
+  /** 登録日時（ISO文字列）。 */
+  createdAt: string;
+  /** 更新日時（ISO文字列）。Prismaの`@updatedAt`によりレコード更新時に自動更新される。 */
+  updatedAt: string;
 }
 
 /**
  * FAQ新規作成・編集時のAPI入力契約。
- * `Faq`から`id`（API側で生成）を除いたサブセット。
+ * `Faq`から`id`・`createdAt`・`updatedAt`（いずれもAPI/DB側で採番・自動更新）を除いたサブセット。
  */
-export type CreateFaqInput = Omit<Faq, "id">;
+export type CreateFaqInput = Omit<Faq, "id" | "createdAt" | "updatedAt">;
