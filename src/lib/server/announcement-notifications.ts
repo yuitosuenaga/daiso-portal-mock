@@ -76,7 +76,7 @@ interface NotificationRecipient {
  */
 async function sendAndLog(
   announcement: Announcement,
-  kind: "publish" | "reminder" | "target_added",
+  kind: "publish" | "reminder" | "target_added" | "escalation",
   recipient: NotificationRecipient
 ): Promise<void> {
   const { title, body } = resolveAnnouncementContent(announcement, recipient.preferredLocale);
@@ -84,7 +84,7 @@ async function sendAndLog(
   const detailUrl = `${resolveAppBaseUrl()}/${uiLocale}${ANNOUNCEMENT_DETAIL_PATH_PREFIX}/${announcement.id}`;
   const subject = title;
   const bodyLines = [body, "", detailUrl];
-  if (kind === "reminder" && announcement.dueDate) {
+  if ((kind === "reminder" || kind === "escalation") && announcement.dueDate) {
     bodyLines.splice(1, 0, `Due: ${announcement.dueDate}`);
   }
 
@@ -203,4 +203,41 @@ export async function notifyAnnouncementReminder(
   await Promise.all(
     recipients.map((recipient) => sendAndLog(announcement, "reminder", recipient))
   );
+}
+
+/**
+ * 対応期限超過の自動エスカレーション（要件38）により、指定した会社コードに属する
+ * `ApplicantUser`のうち、当日まだ督促（`escalation`/手動`reminder`）を受け取っていない
+ * 宛先へのみ督促メールを送信する。宛先解決自体は`notifyAnnouncementReminder`と同型だが、
+ * 呼び出し元（`announcement-escalation.ts`）が算出した当日重複除外集合
+ * （`alreadyNotifiedEmails`）で絞り込む点が異なる。宛先ごとの送信はベストエフォートで
+ * 行い、この関数自体は例外をthrowしない。
+ */
+export async function notifyAnnouncementEscalation(
+  announcementId: string,
+  companyCodes: string[],
+  alreadyNotifiedEmails: ReadonlySet<string>
+): Promise<void> {
+  if (companyCodes.length === 0) {
+    return;
+  }
+
+  const announcement = await findAnnouncementForNotification(announcementId);
+  if (!announcement) {
+    return;
+  }
+
+  const recipients = await prisma.applicantUser.findMany({
+    where: {
+      AND: [
+        targetApplicantUsersWhere(announcement),
+        { company: { companyCode: { in: companyCodes } } },
+      ],
+    },
+    select: { email: true, preferredLocale: true },
+  });
+
+  const targets = recipients.filter((recipient) => !alreadyNotifiedEmails.has(recipient.email));
+
+  await Promise.all(targets.map((recipient) => sendAndLog(announcement, "escalation", recipient)));
 }

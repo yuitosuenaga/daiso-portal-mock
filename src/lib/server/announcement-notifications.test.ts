@@ -22,6 +22,7 @@ vi.mock("@/lib/server/mailer", () => ({
 import { prisma } from "@/lib/db/prisma";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
 import {
+  notifyAnnouncementEscalation,
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
   notifyAnnouncementTargetExpanded,
@@ -444,5 +445,106 @@ describe("notifyAnnouncementTargetExpanded", () => {
 
     expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
     expect(sendMail).not.toHaveBeenCalled();
+  });
+});
+
+describe("notifyAnnouncementEscalation", () => {
+  it("対象会社の有効ApplicantUserにkind: \"escalation\"でログ作成する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord({ dueDate: new Date("2026-07-20T00:00:00.000Z") }) as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set());
+
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [{ isActive: true }, { company: { companyCode: { in: ["vn-daiso-vietnam"] } } }],
+        },
+      })
+    );
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        announcementId: "announcement-1",
+        kind: "escalation",
+        recipientEmail: "a@example.com",
+        status: "sent",
+      }),
+    });
+  });
+
+  it("alreadyNotifiedEmailsに含まれる宛先を送信対象から除外する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+      { email: "b@example.com", preferredLocale: "en" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementEscalation(
+      "announcement-1",
+      ["vn-daiso-vietnam"],
+      new Set(["a@example.com"])
+    );
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ to: "b@example.com" }));
+  });
+
+  it("dueDate設定時、escalation本文にDue:行を含める", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord({ dueDate: new Date("2026-07-20T00:00:00.000Z") }) as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set());
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ text: expect.stringContaining("Due: 2026-07-20") })
+    );
+  });
+
+  it("空の会社コード配列を渡した場合は何もしない", async () => {
+    await notifyAnnouncementEscalation("announcement-1", [], new Set());
+
+    expect(prisma.announcement.findUnique).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("存在しないお知らせIDに対しては何もしない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
+
+    await notifyAnnouncementEscalation("missing", ["vn-daiso-vietnam"], new Set());
+
+    expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("SMTP未設定（MailerNotConfiguredError）の場合はskippedとして記録し、例外を伝播させない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockRejectedValue(new MailerNotConfiguredError());
+
+    await expect(
+      notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set())
+    ).resolves.toBeUndefined();
+
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ kind: "escalation", status: "skipped", errorMessage: null }),
+    });
   });
 });

@@ -139,6 +139,7 @@ enum AnnouncementNotificationKind {
   publish
   reminder
   target_added
+  escalation
 }
 
 enum AnnouncementNotificationStatus {
