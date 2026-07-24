@@ -15,8 +15,8 @@ type PrismaInquiryAttachment = {
 };
 
 type PrismaInquiryWithRelations = Prisma.InquiryGetPayload<{
-  include: { claimedByStaff: true; attachments: true };
-}>;
+  include: { claimedByStaff: true };
+}> & { attachments?: PrismaInquiryAttachment[] };
 
 type PrismaHistoryEntryWithRelations = Prisma.InquiryHistoryEntryGetPayload<{
   include: { attachments: true };

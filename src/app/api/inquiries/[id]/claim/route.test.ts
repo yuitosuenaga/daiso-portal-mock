@@ -7,6 +7,7 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   setClaim: vi.fn(),
   DoubleClaimError: class DoubleClaimError extends Error {},
   InquiryNotFoundError: class InquiryNotFoundError extends Error {},
+  ClaimOwnershipError: class ClaimOwnershipError extends Error {},
 }));
 
 import { getSession } from "@/lib/server/get-session";
@@ -49,20 +50,21 @@ describe("POST /api/inquiries/[id]/claim", () => {
 
     const response = await POST(request({ claim: true }), { params: { id: "inquiry-1" } });
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-1", {
-      staffId: "staff-1",
-      displayName: "田中 太郎",
-    });
+    expect(setClaim).toHaveBeenCalledWith(
+      "inquiry-1",
+      { staffId: "staff-1", displayName: "田中 太郎" },
+      "staff-1"
+    );
     expect(response.status).toBe(200);
   });
 
-  it("claim:falseでclaimを解除する", async () => {
+  it("claim:falseでclaimを解除する（actingStaffIdにセッションのstaffIdを渡す）", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(setClaim).mockResolvedValue({ id: "inquiry-1" } as never);
 
     await POST(request({ claim: false }), { params: { id: "inquiry-1" } });
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null);
+    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null, "staff-1");
   });
 
   it("既にclaim済みのとき409を返す", async () => {
@@ -73,5 +75,15 @@ describe("POST /api/inquiries/[id]/claim", () => {
     const response = await POST(request({ claim: true }), { params: { id: "inquiry-1" } });
 
     expect(response.status).toBe(409);
+  });
+
+  it("所有者不一致（ClaimOwnershipError）のとき403を返す", async () => {
+    const { ClaimOwnershipError } = await import("@/lib/server/inquiry-service");
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(setClaim).mockRejectedValue(new ClaimOwnershipError("inquiry-1"));
+
+    const response = await POST(request({ claim: false }), { params: { id: "inquiry-1" } });
+
+    expect(response.status).toBe(403);
   });
 });

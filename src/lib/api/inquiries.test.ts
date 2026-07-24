@@ -271,20 +271,21 @@ describe("setInquiryClaim", () => {
 
     const result = await setInquiryClaim("inquiry-1", "Test Staff");
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-1", {
-      staffId: "staff-1",
-      displayName: "田中 太郎",
-    });
+    expect(setClaim).toHaveBeenCalledWith(
+      "inquiry-1",
+      { staffId: "staff-1", displayName: "田中 太郎" },
+      "staff-1"
+    );
     expect(result.claim?.staffName).toBe("田中 太郎");
   });
 
-  it("nullを渡すとclaimを解除する", async () => {
+  it("nullを渡すとclaimを解除する（actingStaffIdはセッションのstaffIdを渡す）", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(setClaim).mockResolvedValue(inquiry());
 
     await setInquiryClaim("inquiry-1", null);
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null);
+    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null, "staff-1");
   });
 
   it("申請者セッションでは例外を送出する", async () => {

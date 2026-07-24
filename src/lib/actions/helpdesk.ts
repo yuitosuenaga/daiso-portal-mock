@@ -16,6 +16,7 @@ import {
   updateReplyTemplate,
 } from "@/lib/api/reply-templates";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import { ClaimOwnershipError } from "@/lib/server/inquiry-service";
 import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
 import { replyTemplateFormSchema } from "@/lib/validation/reply-template";
 import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
@@ -56,16 +57,29 @@ export async function claimInquiryAction(inquiryId: string): Promise<void> {
   revalidateInquiryRoutes();
 }
 
+export type ReleaseClaimResult = { ok: true } | { ok: false; reason: "notOwner" };
+
 /**
  * 対応中フラグを解除し、対応履歴に記録したうえで一覧・詳細ルートを再検証する。
+ * 解除操作を行う担当者が対象の所有者でない場合（`ClaimOwnershipError`）は、
+ * 解除を実行せず・履歴も記録せず、`{ ok: false, reason: "notOwner" }`を返す。
+ * 想定外の例外は再throwし、呼び出し元の汎用エラー処理にフォールバックさせる。
  */
 export async function releaseInquiryClaimAction(
   inquiryId: string
-): Promise<void> {
+): Promise<ReleaseClaimResult> {
   const id = inquiryIdSchema.parse(inquiryId);
   const { claims } = await requireHelpdeskStaffSession();
 
-  await setInquiryClaim(id, null);
+  try {
+    await setInquiryClaim(id, null);
+  } catch (error) {
+    if (error instanceof ClaimOwnershipError) {
+      return { ok: false, reason: "notOwner" };
+    }
+    throw error;
+  }
+
   await appendInquiryHistoryEntry({
     inquiryId: id,
     type: "released",
@@ -73,6 +87,7 @@ export async function releaseInquiryClaimAction(
     occurredAt: new Date().toISOString(),
   });
   revalidateInquiryRoutes();
+  return { ok: true };
 }
 
 /**

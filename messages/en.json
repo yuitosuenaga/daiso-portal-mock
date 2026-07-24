@@ -294,7 +294,8 @@
       "claimButton": "Start handling",
       "releaseButton": "Stop handling",
       "claimedByLabel": "Handled by",
-      "error": "The action failed. Please try again later."
+      "error": "The action failed. Please try again later.",
+      "notOwnerErrorMessage": "This inquiry is claimed by another staff member and cannot be released."
     },
     "status": {
       "sectionTitle": "Change Status",

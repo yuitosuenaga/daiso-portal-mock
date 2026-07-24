@@ -20,6 +20,7 @@ vi.mock("@/lib/db/prisma", () => ({
 import { prisma } from "@/lib/db/prisma";
 import {
   appendHistoryEntry,
+  ClaimOwnershipError,
   createInquiryRecord,
   DoubleClaimError,
   findInquiryById,
@@ -112,6 +113,31 @@ describe("createInquiryRecord", () => {
     expect(createArgs?.data).not.toHaveProperty("translatedText");
     expect(result.translatedText).toBeUndefined();
   });
+
+  it("添付ファイルを含むinclude（詳細用）でレコードを取得する", async () => {
+    vi.mocked(prisma.inquiry.create).mockResolvedValue(baseInquiryRecord as never);
+
+    await createInquiryRecord({
+      data: {
+        title: "商品破損についての問い合わせ",
+        category: "defect",
+        urgency: "high",
+        storeRegion: "Kanto",
+        originalText: "破損しています",
+        originalLanguage: "ja",
+        status: "new",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
+      },
+      companyId: "company-1",
+    });
+
+    expect(prisma.inquiry.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { claimedByStaff: true, attachments: true },
+      })
+    );
+  });
 });
 
 describe("listInquiriesForCompany", () => {
@@ -125,6 +151,16 @@ describe("listInquiriesForCompany", () => {
     );
     expect(result).toHaveLength(1);
   });
+
+  it("添付ファイルを含まないincludeで取得する（一覧の性能最適化）", async () => {
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([baseInquiryRecord] as never);
+
+    await listInquiriesForCompany("company-1");
+
+    expect(prisma.inquiry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ include: { claimedByStaff: true } })
+    );
+  });
 });
 
 describe("listAllInquiries", () => {
@@ -136,6 +172,30 @@ describe("listAllInquiries", () => {
     const callArgs = vi.mocked(prisma.inquiry.findMany).mock.calls[0]?.[0];
     expect(callArgs?.where).toBeUndefined();
   });
+
+  it("添付ファイルを含まないincludeで取得する（一覧の性能最適化）", async () => {
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([baseInquiryRecord] as never);
+
+    await listAllInquiries();
+
+    expect(prisma.inquiry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ include: { claimedByStaff: true } })
+    );
+  });
+
+  it("attachmentsフィールドを持たないレコード（一覧includeの実際の形）でattachments: undefinedを返す", async () => {
+    const recordWithoutAttachments: Record<string, unknown> = {
+      ...baseInquiryRecord,
+    };
+    delete recordWithoutAttachments.attachments;
+    vi.mocked(prisma.inquiry.findMany).mockResolvedValue([
+      recordWithoutAttachments,
+    ] as never);
+
+    const result = await listAllInquiries();
+
+    expect(result[0]?.attachments).toBeUndefined();
+  });
 });
 
 describe("findInquiryById", () => {
@@ -145,6 +205,18 @@ describe("findInquiryById", () => {
     const result = await findInquiryById("missing");
 
     expect(result).toBeNull();
+  });
+
+  it("添付ファイルを含むincludeで取得する（詳細）", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(baseInquiryRecord as never);
+
+    await findInquiryById("inquiry-1");
+
+    expect(prisma.inquiry.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { claimedByStaff: true, attachments: true },
+      })
+    );
   });
 });
 
@@ -167,6 +239,18 @@ describe("findInquiryForCompany", () => {
 
     expect(result).toBeNull();
   });
+
+  it("添付ファイルを含むincludeで取得する（詳細）", async () => {
+    vi.mocked(prisma.inquiry.findFirst).mockResolvedValue(baseInquiryRecord as never);
+
+    await findInquiryForCompany("inquiry-1", "company-1");
+
+    expect(prisma.inquiry.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { claimedByStaff: true, attachments: true },
+      })
+    );
+  });
 });
 
 describe("setClaim", () => {
@@ -179,10 +263,11 @@ describe("setClaim", () => {
       claimedAt: new Date("2026-07-01T00:00:00.000Z"),
     } as never);
 
-    const result = await setClaim("inquiry-1", {
-      staffId: "staff-1",
-      displayName: "田中 太郎",
-    });
+    const result = await setClaim(
+      "inquiry-1",
+      { staffId: "staff-1", displayName: "田中 太郎" },
+      "staff-1"
+    );
 
     expect(result.claim).toEqual({
       staffName: "田中 太郎",
@@ -198,12 +283,16 @@ describe("setClaim", () => {
     } as never);
 
     await expect(
-      setClaim("inquiry-1", { staffId: "staff-2", displayName: "鈴木 花子" })
+      setClaim(
+        "inquiry-1",
+        { staffId: "staff-2", displayName: "鈴木 花子" },
+        "staff-2"
+      )
     ).rejects.toThrow(DoubleClaimError);
     expect(prisma.inquiry.update).not.toHaveBeenCalled();
   });
 
-  it("staffにnullを渡すとclaimを解除する", async () => {
+  it("所有者本人が解除するとclaimを解除する", async () => {
     vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
       ...baseInquiryRecord,
       claimedByStaffId: "staff-1",
@@ -211,7 +300,7 @@ describe("setClaim", () => {
     } as never);
     vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
 
-    const result = await setClaim("inquiry-1", null);
+    const result = await setClaim("inquiry-1", null, "staff-1");
 
     expect(prisma.inquiry.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -219,6 +308,50 @@ describe("setClaim", () => {
       })
     );
     expect(result.claim).toBeNull();
+  });
+
+  it("所有者以外が解除しようとするとClaimOwnershipErrorを送出し、更新しない", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
+      ...baseInquiryRecord,
+      claimedByStaffId: "staff-1",
+      claimedAt: new Date("2026-07-01T00:00:00.000Z"),
+    } as never);
+
+    await expect(setClaim("inquiry-1", null, "staff-2")).rejects.toThrow(
+      ClaimOwnershipError
+    );
+    expect(prisma.inquiry.update).not.toHaveBeenCalled();
+  });
+
+  it("未claimの問い合わせを解除しようとしても冪等な無操作としてエラーを送出しない", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(baseInquiryRecord as never);
+    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
+
+    const result = await setClaim("inquiry-1", null, "staff-2");
+
+    expect(prisma.inquiry.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { claimedByStaffId: null, claimedAt: null },
+      })
+    );
+    expect(result.claim).toBeNull();
+  });
+
+  it("詳細用include（添付あり）でupdateする", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(baseInquiryRecord as never);
+    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
+
+    await setClaim(
+      "inquiry-1",
+      { staffId: "staff-1", displayName: "田中 太郎" },
+      "staff-1"
+    );
+
+    expect(prisma.inquiry.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { claimedByStaff: true, attachments: true },
+      })
+    );
   });
 });
 
@@ -232,6 +365,18 @@ describe("updateStatus", () => {
     const result = await updateStatus("inquiry-1", "resolved");
 
     expect(result.status).toBe("resolved");
+  });
+
+  it("詳細用include（添付あり）でupdateする", async () => {
+    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
+
+    await updateStatus("inquiry-1", "resolved");
+
+    expect(prisma.inquiry.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { claimedByStaff: true, attachments: true },
+      })
+    );
   });
 });
 

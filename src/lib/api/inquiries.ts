@@ -113,7 +113,8 @@ export async function setInquiryClaim(
     id,
     staffName
       ? { staffId: claims.staffId, displayName: claims.displayName }
-      : null
+      : null,
+    claims.staffId
   );
 }
 

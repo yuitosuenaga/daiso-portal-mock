@@ -31,7 +31,8 @@ export async function POST(
             staffId: session.claims.staffId,
             displayName: session.claims.displayName,
           }
-        : null
+        : null,
+      session.claims.staffId
     );
 
     return NextResponse.json(inquiry, { status: 200 });
