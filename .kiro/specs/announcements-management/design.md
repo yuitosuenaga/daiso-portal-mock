@@ -2176,3 +2176,188 @@ function resolveUiLocale(preferredLocale: string): string {
 
 ### テスト
 - `DeleteAnnouncementButton.test.tsx`を`vi.spyOn(window, "confirm")`前提から`ConfirmDialog`操作前提へ更新: トリガー押下→確認ボタン押下で`deleteAnnouncementAction`が呼ばれ遷移すること、キャンセルで呼ばれないこと、本文に対象タイトルが表示されることを検証。
+
+---
+
+## 追加ラウンド（2026-07-24）: 対応期限超過時の自動エスカレーション（要件38）
+
+### Overview（追加分）
+
+対応要否が真・公開状態・対応期限超過（`isAnnouncementDueDateOverdue`）のお知らせについて、未対応（`AnnouncementRecipientStatus.completedAt === null`）の会社の`ApplicantUser`へ、担当者の手動操作を待たずにリマインドメールを自動送信する。中核ロジックはトリガー非依存の独立関数 `runAnnouncementAutoEscalation(now?)` として実装し、既存の通知基盤（`sendAndLog`）・多言語コンテンツ解決（`resolveAnnouncementContent`）・手動リマインドの記録パターン（`reminderSentAt` 更新）をそのまま再利用する。要件38に対応する。
+
+### トリガー機構の採用判断（追加分・重要）
+
+- **現状調査**: リポジトリ内に `vercel.json` の cron 設定、Cloud Scheduler 関連 IaC（`*.tf`）、`cloudbuild*.yaml`、`.github/workflows` の定期実行のいずれも**存在しない**（`find` で確認済み）。稼働環境は Cloud Run（`min-instances=0`、アイドル時ゼロスケール）で、常駐プロセス・in-processスケジューラ（`setInterval`等）は成立しない。
+- **採用案: (c)**（アクセス時トリガー＋将来のCloud Scheduler向けAPIエンドポイントの両立）。
+  - **(a) Cloud Scheduler新設のみ**: 最も「定期実行」らしいが、GCPインフラ変更・IAM設定を伴い、コード実装エージェントの範囲を超える。単独採用しない。
+  - **(b) アクセス時トリガーのみ**: インフラ変更不要で今すぐ導入できるが、誰もお知らせ管理画面を開かない日は発火しない（真の定期実行ではない）。
+  - **(c) 採用**: 中核ロジックを独立関数化し、当面は(b)のアクセス時トリガーで発火。同時に同じ関数を叩く保護付きAPIエンドポイントを用意して、将来 Cloud Scheduler を導入すれば(a)へコード変更なしで移行できる。冪等設計（当日重複判定）により、(b)と(a)が併存しても・何度呼ばれても二重送信しない。**本specの範囲はコード側（中核関数＋アクセス時結線＋APIエンドポイント）まで**とし、Cloud Scheduler / IAM の設定は「PR申し送り事項」に記載する。
+
+### Goals（追加分）
+- トリガー非依存・冪等な中核関数 `runAnnouncementAutoEscalation(now?)` を `src/lib/server/announcement-escalation.ts`（新規）に実装する
+- 期限超過検出は既存 `isAnnouncementDueDateOverdue` を再利用し、対象は「`actionRequired` 真・`published`・`dueDate` 超過」に限定する
+- 未対応（`completedAt === null`）会社の担当者のみへ送信し、当日重複（`escalation`/`reminder` ログ）を除外する
+- 既存 `sendAndLog` を `escalation` kind 対応に拡張し、`reminderSentAt` も既存パターンで更新する
+- アクセス時トリガー（管理一覧のサーバー取得時）と、将来向けの保護付きAPIエンドポイントの両方から中核関数を呼べるようにする
+
+### Non-Goals（追加分）
+- Cloud Scheduler / Cloud Run / IAM の IaC・デプロイ設定の追加（PR申し送り事項に留める）
+- 期限超過時の `Announcement.status` 自動書き換え・UI状態遷移（要件17スコープ外を維持）
+- 督促専用文面の新設（既存手動リマインドと同型: タイトル・`Due:`行・詳細リンク）
+- 当日1回以外の通算上限・宛先個人単位の配信停止（opt-out）
+- 常駐プロセス・in-processスケジューラ（`setInterval` 等、ゼロスケール環境で不成立）
+
+### Boundary Commitments（追加分）
+- `Announcement` 本体は書き換えない（読み取りのみ）。書き込みは `AnnouncementRecipientStatus.reminderSentAt`（既存手動リマインドと同じ更新）と `AnnouncementNotificationLog` への追記に限る
+- 既存関数のシグネチャ（`sendAnnouncementReminders`・`notifyAnnouncementReminder`・`getAnnouncementRecipientStatuses` 等）は変更しない（`sendAndLog` の `kind` union と `AnnouncementNotificationKind` enum への値追加を除く）
+- アクセス時トリガーはベストエフォート。中核関数が失敗しても管理一覧の描画を止めない（要件29の踏襲）
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 38.1 | 対象検出（actionRequired真・published・期限超過） | announcement-escalation, announcement-overdue（再利用） | Service | 自動エスカレーションフロー |
+| 38.2 | 未対応（completedAt null）会社のみに絞る | announcement-escalation, announcement-service（`getAnnouncementRecipientStatuses` 再利用） | Service | 自動エスカレーションフロー |
+| 38.3 | 有効な`ApplicantUser`へ`sendAndLog`で送信・履歴記録 | announcement-notifications（`notifyAnnouncementEscalation`） | Service | 自動エスカレーションフロー |
+| 38.4 | `escalation` kind で履歴を区別 | schema（enum値追加）, announcement-notifications | Data | — |
+| 38.5 | 当日1回上限（`escalation`/`reminder` 当日ログで除外） | announcement-escalation（当日ログ照会）, announcement-notifications | Service | 自動エスカレーションフロー |
+| 38.6 | `reminderSentAt` 更新（既存手動と同パターン） | announcement-escalation（`upsert`） | Service | 自動エスカレーションフロー |
+| 38.7 | 手動/自動併用・抑止方向の非対称 | announcement-escalation（当日ログ判定） | Service | — |
+| 38.8 | トリガー非依存・冪等・ベストエフォートの中核関数 | announcement-escalation（`runAnnouncementAutoEscalation`） | Service | 自動エスカレーションフロー |
+| 38.9 | アクセス時トリガー（管理一覧取得時にベストエフォート発火＋スロットリング） | AnnouncementManagementList, announcement-escalation | Component→Service | アクセス時トリガーフロー |
+| 38.10 | 保護付きAPIエンドポイント（`CRON_SECRET`） | app/api/cron/announcement-escalation/route | Route→Service | Cron APIフロー |
+
+### System Flows（追加分）
+
+**自動エスカレーションフロー（`runAnnouncementAutoEscalation(now = new Date())` 内）**
+1. 公開済みお知らせを取得（`prisma.announcement.findMany({ where: { status: "published", actionRequired: true, dueDate: { not: null } }, include: ANNOUNCEMENT_INCLUDE })` を `mapAnnouncement`。または既存 `listAllAnnouncements` を絞り込み）。
+2. 各お知らせについて `isAnnouncementDueDateOverdue(announcement.dueDate, now)` が真のものだけを残す（要件38.1）。`Announcement.dueDate`（マッパ後は `"YYYY-MM-DD"` 文字列）をそのまま渡す。
+3. 対象お知らせごとに `getAnnouncementRecipientStatuses(announcementId)` を呼び、`completedAt === null` の担当者（`AnnouncementRecipientStatusView`）だけを残す（要件38.2）。該当が無ければそのお知らせはスキップ。
+4. 未対応担当者の `companyCode` 集合を作る。当日重複判定のため、対象お知らせについて「当日（`now` のタイムゾーン暦日開始以降）に `kind IN ('escalation','reminder')` の `AnnouncementNotificationLog` を持つ `recipientEmail` 集合」を取得しておく（要件38.5・38.7）。
+5. 未対応会社の有効 `ApplicantUser` のうち、当日ログ集合に含まれないメールのみを送信対象として `notifyAnnouncementEscalation(announcementId, companyCodes, alreadyNotifiedEmails)` に委ね、`kind: "escalation"` で `sendAndLog`（要件38.3・38.4）。
+6. 送信対象が生じた未対応担当者について `AnnouncementRecipientStatus.reminderSentAt = now` を `upsert`（既存 `sendAnnouncementReminders` と同一パターン。要件38.6）。
+7. 全処理を `try/catch` で包み、例外は捕捉してログ出力に留める（`throw` しない。要件38.8）。件数要約（対象お知らせ数・送信/スキップ/失敗件数）を戻り値として返す。
+
+**アクセス時トリガーフロー（`AnnouncementManagementList` サーバー取得時）**
+1. `AnnouncementManagementList` の先頭で、スロットリング判定を含む薄いラッパ `triggerAutoEscalationBestEffort(now)` を `await` する（例外は握りつぶす）。
+2. スロットリング: プロセス内メモリの「最終実行日（暦日）」を保持し、当日既に実行済みなら中核スキャンをスキップして即return（ゼロスケールでコールドスタート時はメモリが揮発するが、その場合でも要件38.5の当日ログ重複判定が二重送信を防ぐ耐久ガードとして機能する）。安価な耐久ガードとして「当日に `kind='escalation'` の `AnnouncementNotificationLog` が1件でも存在するか」を `findFirst` で確認し、存在すればスキャン省略、としてもよい（実装者判断）。
+3. 中核関数の結果に関わらず、一覧の `getAllAnnouncements()` 取得・描画は通常どおり継続する（トリガーの成否は表示に影響させない）。
+
+**Cron APIフロー（`GET/POST /api/cron/announcement-escalation`）**
+1. `CRON_SECRET` 未設定なら `503`（または `404`）で即返す（無認証運用の防止。要件38.10）。
+2. リクエストヘッダー（`Authorization: Bearer <CRON_SECRET>` もしくは `x-cron-secret`）を検証し、不一致なら `401`。
+3. 一致時、`runAnnouncementAutoEscalation()` を呼び、件数要約をJSONで返す（`200`）。将来 Cloud Scheduler が定期的にこのエンドポイントを叩くことで案(a)へ移行できる。
+
+### Components and Interfaces（追加分）
+
+#### announcement-escalation（新規: 中核オーケストレーション）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 期限超過・未対応のお知らせを検出し、未対応会社の`ApplicantUser`へ督促を送る冪等・ベストエフォートな中核関数。トリガー非依存 |
+| Requirements | 38.1, 38.2, 38.5, 38.6, 38.7, 38.8 |
+
+**Responsibilities & Constraints**
+- 期限超過判定は `isAnnouncementDueDateOverdue`、対象絞り込みは `getAnnouncementRecipientStatuses` を再利用し、判定ロジックの重複実装を避ける
+- 当日重複判定は「同一お知らせ×同一 `recipientEmail`」粒度で、`kind IN ('escalation','reminder')` かつ `sentAt >= 当日開始` の `AnnouncementNotificationLog` の有無で行う（`status` は問わない＝`skipped` もカウントし、SMTP未設定環境で毎アクセス送信試行が積み上がるのを防ぐ）
+- 全体を `try/catch` で包み例外を伝播させない。個々の送信は既存 `sendAndLog` が内部でベストエフォート化済み
+- タイムゾーン: `now` の暦日境界は既存 `isAnnouncementDueDateOverdue` と同じくローカル時刻（サーバーTZ）に合わせる。Cloud Run では `TZ=Asia/Tokyo` 前提。`now` を引数注入可能にしてテスト容易性を確保する
+
+##### Service Interface
+```typescript
+// src/lib/server/announcement-escalation.ts
+export interface EscalationRunResult {
+  overdueAnnouncements: number; // 期限超過・対象だったお知らせ数
+  notifiedRecipients: number;   // 送信を試みた宛先数（sent+skipped+failed）
+  skippedByDedup: number;       // 当日重複で除外した宛先数
+}
+
+/** 中核関数。トリガー非依存・冪等・ベストエフォート（throwしない）。 */
+export async function runAnnouncementAutoEscalation(
+  now?: Date
+): Promise<EscalationRunResult>;
+
+/** アクセス時トリガー用の薄いラッパ。スロットリングし、例外を握りつぶす。 */
+export async function triggerAutoEscalationBestEffort(now?: Date): Promise<void>;
+```
+- Preconditions: なし（未公開・対応不要・期限内は内部でフィルタ）
+- Postconditions: 送信対象宛先ごとに `kind: "escalation"` の `AnnouncementNotificationLog` が作成され、対象担当者の `reminderSentAt` が更新される。何度呼んでも当日重複分は再送されない
+
+#### announcement-notifications（差分: 自動督促の送信）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 与えられたお知らせ・会社コード群の有効`ApplicantUser`のうち、当日未通知の宛先へ`kind: "escalation"`でメールを送り履歴記録する |
+| Requirements | 38.3, 38.4 |
+
+**Responsibilities & Constraints**
+- 既存 `sendAndLog` の `kind` 引数 union を `"publish" | "reminder" | "target_added" | "escalation"` へ拡張する。`escalation` は `reminder` と同型の本文（`Due:` 行付き・詳細リンク）とする（`sendAndLog` 内の `if (kind === "reminder" && dueDate)` 分岐を `if ((kind === "reminder" || kind === "escalation") && dueDate)` に拡張）
+- `notifyAnnouncementReminder` とほぼ同型の `notifyAnnouncementEscalation` を追加する。ただし宛先解決後に「当日既通知メール集合」を除外できるよう、除外集合を引数で受け取る
+
+##### Service Interface
+```typescript
+// src/lib/server/announcement-notifications.ts
+export async function notifyAnnouncementEscalation(
+  announcementId: string,
+  companyCodes: string[],
+  alreadyNotifiedEmails: ReadonlySet<string> // 当日既に escalation/reminder 済みのメール
+): Promise<void>;
+```
+- 内部: `findAnnouncementForNotification` で対象取得 → `targetApplicantUsersWhere(announcement)` ∧ `company.companyCode in companyCodes` で有効`ApplicantUser`を取得 → `alreadyNotifiedEmails` に含まれない宛先のみ `sendAndLog(announcement, "escalation", recipient)` を `Promise.all`
+- 実装ノート: `alreadyNotifiedEmails` の照合は `Set.prototype.has`（`downlevelIteration` 回避のため `for...of` は使わない。既知の `vitest`/TS設定の落とし穴に配慮）
+
+#### AnnouncementManagementList（差分: アクセス時トリガー結線）
+
+**Responsibilities & Constraints（追加）**
+- サーバーコンポーネント本体の先頭で `await triggerAutoEscalationBestEffort()` を差し込む。`triggerAutoEscalationBestEffort` は内部で例外を握りつぶすため呼び出し側の `try/catch` は不要。副作用完了を待ってから一覧を出す方が、直後の一覧に督促結果（`reminderSentAt`）が反映されて自然
+- 既存の `getAllAnnouncements()` 失敗時のエラーカード表示挙動は変更しない
+
+#### app/api/cron/announcement-escalation/route（新規: 保護付きエンドポイント）
+
+| Field | Detail |
+|-------|--------|
+| Intent | 将来のCloud Schedulerから叩く定期実行の受け口。シークレットヘッダーで保護 |
+| Requirements | 38.10 |
+
+**Responsibilities & Constraints**
+- `src/app/api/cron/announcement-escalation/route.ts` に `export async function GET`（および必要なら `POST`）を実装
+- `process.env.CRON_SECRET` 未設定 → `503`（本番で必ず設定する運用。未設定=無効）
+- ヘッダー（`Authorization: Bearer <CRON_SECRET>` か `x-cron-secret`）不一致 → `401`
+- 一致 → `runAnnouncementAutoEscalation()` を呼び、`EscalationRunResult` をJSONで `200` 返却
+- `export const dynamic = "force-dynamic"`（キャッシュ無効化）、`export const runtime = "nodejs"` を明示（Prisma/`server-only` 依存のため Edge 不可）
+
+### Data Models（追加分）
+- `AnnouncementNotificationKind`（既存enumへの値追加）: `publish` / `reminder` / `target_added` に加えて **`escalation`** を追加する。Postgres列挙型への値追加であり、`ALTER TYPE "AnnouncementNotificationKind" ADD VALUE 'escalation'` 相当のマイグレーションが生成される（既存データ・既存行に影響なく後方互換）。**本番反映時は `prisma migrate deploy` を手動で流す必要がある点に注意（Cloud SQL への反映漏れがあると enum 値不一致で書き込みが失敗し、督促ログ記録＝送信自体が失敗する）**。
+- `AnnouncementNotificationLog`: モデル定義自体は変更しない（`kind` が新値 `escalation` を取り得るようになるのみ）。当日重複判定は本テーブルの `announcementId` / `recipientEmail` / `kind` / `sentAt` で行う（`@@index([announcementId])` が既存。宛先メール・当日での絞り込みはアプリ側で行う）。
+- `AnnouncementRecipient` / `AnnouncementRecipientStatus`: モデル定義変更なし。`reminderSentAt` を既存手動リマインドと同一パターンで `upsert` 更新するのみ。
+
+### Configuration（追加分）
+- `CRON_SECRET`（新規環境変数）: Cron APIエンドポイントの認証シークレット。ローカル/検証では未設定でよい（エンドポイントは無効化されるが、アクセス時トリガー(b)は動作する）。本番で Cloud Scheduler を導入する際に設定する。`.env.example` があれば追記する。
+
+### Error Handling（追加分）
+- 中核関数・アクセス時トリガーはベストエフォート。DB照会・送信の失敗は捕捉してログ出力に留め、`throw` しない（管理一覧描画・API応答をブロックしない）。
+- 個々のメール送信失敗・SMTP未設定は既存 `sendAndLog` と同一（`failed`/`skipped` を `AnnouncementNotificationLog` に記録）。`skipped` も当日重複判定の対象に含めることで、SMTP未設定環境でアクセスのたびに送信試行が積み上がるのを防ぐ。
+- Cron APIは認証失敗を `401`、未設定を `503` で返し、中核関数の内部失敗は `200` + 要約（失敗件数を含む）で返す（ジョブ自体の成否と個別送信の成否を分離）。
+
+### Testing Strategy（追加分）
+- **Unit Tests**（`announcement-escalation.test.ts` 新規。`getAnnouncementRecipientStatuses`・`notifyAnnouncementEscalation`・`prisma` はモック、`now` を固定注入）:
+  - `actionRequired: false` / `status: "draft"` / `dueDate: null` / 期限内 のお知らせは対象外（送信されない）（要件38.1）
+  - 期限超過・`actionRequired` 真・公開のお知らせで、`completedAt === null` の会社にのみ送信され、`completedAt` 記録済みの会社には送らない（要件38.2）
+  - 当日に `escalation` ログを持つ宛先はスキップされ、当日ログの無い宛先のみ送信（要件38.5）。手動 `reminder` ログが当日にある宛先も同様にスキップ（要件38.7）
+  - 送信対象宛先について `reminderSentAt` の `upsert` が呼ばれる（要件38.6）
+  - 複数回連続呼び出しで2回目以降は当日重複により送信が増えない（冪等性・要件38.8）
+  - 内部で例外が発生しても `runAnnouncementAutoEscalation` が `throw` しない（ベストエフォート・要件38.8）
+- **Unit Tests**（`announcement-notifications` へ追記）:
+  - `notifyAnnouncementEscalation` が対象会社の有効`ApplicantUser`に `kind: "escalation"` でログ作成すること、`alreadyNotifiedEmails` に含まれる宛先を除外すること
+  - `sendAndLog` の `escalation` が `Due:` 行を含む本文を送ること（`dueDate` 設定時）
+- **Unit/Route Tests**（`route` のハンドラ。`runAnnouncementAutoEscalation` はモック）:
+  - `CRON_SECRET` 未設定で `503`、ヘッダー不一致で `401`、一致で `200` + 要約JSON
+- **実機検証（実装担当者の完了確認、SMTPはモック/未設定で `skipped` ログ確認可）**: 期限超過・`actionRequired` 真・未対応の会社があるお知らせを用意し、ヘルプデスクでお知らせ管理一覧を開く → `AnnouncementNotificationLog` に `kind: "escalation"` の行が未対応会社の受信者数だけ追加され、同日中に再度一覧を開いても行が増えないことを確認する。Cron APIは `curl -H "Authorization: Bearer <CRON_SECRET>" .../api/cron/announcement-escalation` で要約が返ることを確認する。
+
+### PR申し送り事項（Cloud Scheduler導入時・実装範囲外の運用手順）
+- 本番で真の定期実行にするには、Cloud Scheduler ジョブを作成し `POST/GET https://<service-url>/api/cron/announcement-escalation` を1日1回（例: JST 09:00）叩くよう設定する。ヘッダーに `Authorization: Bearer <CRON_SECRET>` を付与する。Cloud Run は `min-instances=0` のままでよい（Scheduler のリクエストがコールドスタートを起こす）。
+- `CRON_SECRET` を Cloud Run のサービス環境変数（または Secret Manager）に設定する。
+- Cloud Scheduler → Cloud Run の呼び出しに OIDC 認証を使う場合は、`route` 側のヘッダー検証を OIDC 検証へ差し替える追加対応が必要（本specはシンプルな共有シークレット方式まで）。
+- enum 追加マイグレーション（`escalation`）を本番 Cloud SQL に `prisma migrate deploy` で反映すること（反映漏れると督促ログ記録＝送信が失敗する）。
+
+---

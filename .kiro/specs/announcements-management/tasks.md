@@ -1022,3 +1022,72 @@
   - `window.confirm`モック前提のテストを、トリガー押下→確認押下で削除実行・遷移、キャンセルで未実行、本文に対象タイトル表示、を検証する形へ更新する
   - _Requirements: 37.6_
   - _Depends: 52_
+
+## 追加ラウンド（2026-07-24）: 対応期限超過時の自動エスカレーション（要件38）
+
+- [ ] 53. データモデル: `AnnouncementNotificationKind` に `escalation` を追加する
+  - `prisma/schema.prisma` の `enum AnnouncementNotificationKind` に `escalation` を追加する
+  - `prisma migrate dev` でマイグレーション（`ALTER TYPE "AnnouncementNotificationKind" ADD VALUE 'escalation'` 相当）を生成する。本番反映は `prisma migrate deploy` を手動で流す申し送り事項とする
+  - _Requirements: 38.4_
+  - _Depends: 48.1（既存 target_added 追加と同型の手順）_
+
+- [ ] 54. 通知層: 自動督促の送信関数を追加し `sendAndLog` を `escalation` 対応にする
+  - `src/lib/server/announcement-notifications.ts` の `sendAndLog` の `kind` union を `"publish" | "reminder" | "target_added" | "escalation"` へ拡張し、`Due:` 行の分岐を `(kind === "reminder" || kind === "escalation")` に広げる
+  - `notifyAnnouncementEscalation(announcementId, companyCodes, alreadyNotifiedEmails: ReadonlySet<string>)` を追加する。`targetApplicantUsersWhere(announcement)` ∧ `company.companyCode in companyCodes` で有効`ApplicantUser`を解決し、`alreadyNotifiedEmails.has(email)` で除外した宛先のみ `sendAndLog(announcement, "escalation", recipient)` を `Promise.all` で送る（`for...of` を使わず `Set.prototype.has`/`Array` で照合）
+  - _Requirements: 38.3, 38.4, 38.5_
+  - _Depends: 53_
+
+- [ ] 55. コア: トリガー非依存の中核関数 `runAnnouncementAutoEscalation` を新規実装する
+  - `src/lib/server/announcement-escalation.ts` を新規作成し、`runAnnouncementAutoEscalation(now: Date = new Date()): Promise<EscalationRunResult>` と `EscalationRunResult` を実装する
+  - `status: "published"` かつ `actionRequired: true` かつ `dueDate` 設定済みのお知らせを取得し、`isAnnouncementDueDateOverdue(dueDate, now)` が真のものへ絞る（要件38.1）
+  - 各対象で `getAnnouncementRecipientStatuses(announcementId)` を呼び `completedAt === null` の担当者・その `companyCode`/`recipientId` を抽出（要件38.2）
+  - 当日（`now` のローカル暦日開始以降）に `kind IN ('escalation','reminder')` の `AnnouncementNotificationLog` を持つ `recipientEmail` 集合を取得し、除外集合として `notifyAnnouncementEscalation` に渡す（要件38.5, 38.7）
+  - 送信対象が生じた未対応担当者の `AnnouncementRecipientStatus.reminderSentAt = now` を `upsert`（既存 `sendAnnouncementReminders` と同一パターン。要件38.6）
+  - 全体を `try/catch` で包み `throw` しない。件数要約を返す（要件38.8）
+  - _Requirements: 38.1, 38.2, 38.5, 38.6, 38.7, 38.8_
+  - _Depends: 54_
+
+- [ ] 56. コア: アクセス時トリガーのラッパ `triggerAutoEscalationBestEffort` を実装する
+  - 同ファイルに `triggerAutoEscalationBestEffort(now?): Promise<void>` を実装する。プロセス内メモリの「最終実行暦日」でスロットリングし、当日実行済みならスキャンを省略する（コールドスタート時の耐久ガードは要件38.5の当日ログ重複判定に委ねる）
+  - 例外を内部で握りつぶす（`throw` しない）
+  - _Requirements: 38.8, 38.9_
+  - _Depends: 55_
+
+- [ ] 57. 結線: お知らせ管理一覧のサーバー取得時にアクセス時トリガーを発火する
+  - `src/components/features/helpdesk-announcements/AnnouncementManagementList.tsx` の先頭で `await triggerAutoEscalationBestEffort()` を呼ぶ。既存の `getAllAnnouncements()` 失敗時エラーカード挙動は変更しない
+  - _Requirements: 38.9_
+  - _Depends: 56_
+
+- [ ] 58. API: 将来のCloud Scheduler向け保護付きエンドポイントを実装する
+  - `src/app/api/cron/announcement-escalation/route.ts` を新規作成。`export const dynamic = "force-dynamic"` / `export const runtime = "nodejs"` を宣言
+  - `GET`（必要なら `POST` も）で、`process.env.CRON_SECRET` 未設定 → `503`、ヘッダー（`Authorization: Bearer <CRON_SECRET>` か `x-cron-secret`）不一致 → `401`、一致 → `runAnnouncementAutoEscalation()` を呼び `EscalationRunResult` をJSONで `200` 返却
+  - `.env.example` があれば `CRON_SECRET` を追記する
+  - _Requirements: 38.10_
+  - _Depends: 55_
+
+- [ ]* 59. 検証: 単体・ルートテスト
+  - _Depends: 55, 56, 58_
+
+- [ ]* 59.1 (P) `announcement-escalation.test.ts` を実装する（`now` 固定注入、`getAnnouncementRecipientStatuses`/`notifyAnnouncementEscalation`/`prisma` をモック）
+  - 対象外（`actionRequired: false`／`draft`／`dueDate: null`／期限内）で送信されない（38.1）
+  - 期限超過・公開・`actionRequired`真で `completedAt === null` の会社のみ送信、完了済み会社は送らない（38.2）
+  - 当日 `escalation`／手動 `reminder` ログのある宛先はスキップ（38.5, 38.7）、`reminderSentAt` の `upsert` が呼ばれる（38.6）
+  - 連続2回呼び出しで2回目は送信が増えない（冪等・38.8）、内部例外でも `throw` しない（38.8）
+  - _Requirements: 38.1, 38.2, 38.5, 38.6, 38.7, 38.8_
+  - _Depends: 55_
+
+- [ ]* 59.2 (P) `announcement-notifications` テストへ `notifyAnnouncementEscalation` の観点を追記する
+  - 対象会社の有効`ApplicantUser`に `kind: "escalation"` でログ作成、`alreadyNotifiedEmails` の宛先を除外、`escalation` 本文に `Due:` 行が含まれる（`dueDate` 設定時）
+  - _Requirements: 38.3, 38.4, 38.5_
+  - _Depends: 54_
+
+- [ ]* 59.3 (P) Cron ルートハンドラのテストを実装する（`runAnnouncementAutoEscalation` はモック）
+  - `CRON_SECRET` 未設定で `503`、ヘッダー不一致で `401`、一致で `200` + 要約JSON
+  - _Requirements: 38.10_
+  - _Depends: 58_
+
+- [ ] 60. 検証: 実機確認（実装担当者の完了確認）
+  - 期限超過・`actionRequired`真・未対応会社ありのお知らせを用意し、ヘルプデスクでお知らせ管理一覧を開く → `AnnouncementNotificationLog` に `kind: "escalation"` の行が未対応会社の受信者数だけ追加され、同日中の再アクセスで行が増えないことを確認する
+  - Cron APIを `curl -H "Authorization: Bearer <CRON_SECRET>" .../api/cron/announcement-escalation` で叩き、要約JSONが返ることを確認する
+  - _Requirements: 38.9, 38.10_
+  - _Depends: 57, 58_
