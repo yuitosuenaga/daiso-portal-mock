@@ -1,6 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllAnnouncements } from "@/lib/api/announcements";
 import { getAnnouncementRecipientStatuses } from "@/lib/api/announcement-tracking";
+import { triggerAutoEscalationBestEffort } from "@/lib/server/announcement-escalation";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { AnnouncementManagementListClient } from "@/components/features/helpdesk-announcements/AnnouncementManagementListClient";
@@ -14,6 +15,10 @@ import type { Announcement, AnnouncementCategory } from "@/types/announcement";
 import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
 
 export async function AnnouncementManagementList() {
+  // 対応期限超過の自動エスカレーション（要件38）をアクセス時トリガーとしてベストエフォートで
+  // 発火する。内部で例外を握りつぶすため、失敗しても以降の一覧取得・描画は継続する。
+  await triggerAutoEscalationBestEffort();
+
   const [t, tCategories, tCountries, locale] = await Promise.all([
     getTranslations("helpdeskAnnouncements.list"),
     getTranslations("announcements.categories"),

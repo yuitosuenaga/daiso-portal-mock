@@ -29,6 +29,13 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
   getAnnouncementRecipientStatuses: async () => [],
 }));
 
+const triggerAutoEscalationBestEffortMock = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("@/lib/server/announcement-escalation", () => ({
+  triggerAutoEscalationBestEffort: (...args: unknown[]) =>
+    triggerAutoEscalationBestEffortMock(...args),
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const messages: Record<string, Record<string, string>> = {
     "helpdeskAnnouncements.list": {
@@ -114,6 +121,16 @@ describe("AnnouncementManagementList", () => {
 
     expect(screen.getByText("お知らせはありません")).toBeTruthy();
   });
+
+  it("データ取得前に対応期限超過の自動エスカレーション（アクセス時トリガー）をベストエフォートで発火する", async () => {
+    triggerAutoEscalationBestEffortMock.mockClear();
+    getAllAnnouncementsMock.mockResolvedValueOnce([]);
+
+    await AnnouncementManagementList();
+
+    expect(triggerAutoEscalationBestEffortMock).toHaveBeenCalledTimes(1);
+  });
+
 
   it("getAllAnnouncementsが例外をthrowしたときエラーメッセージを表示する", async () => {
     getAllAnnouncementsMock.mockRejectedValueOnce(new Error("network error"));
