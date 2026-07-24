@@ -1,10 +1,12 @@
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
+import { OverdueBadge } from "@/components/features/announcements/OverdueBadge";
 import {
   CompletedStatusBadge,
   ConfirmedStatusBadge,
 } from "@/components/features/announcements/SelfReportStatusBadges";
+import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
 import type { Announcement } from "@/types/announcement";
 
 export interface AnnouncementListItemProps {
@@ -65,6 +67,15 @@ export function AnnouncementListItem({
   showBodyExcerpt,
   locale,
 }: AnnouncementListItemProps) {
+  // 意図的な挙動（要件17.8）: ダッシュボードプレビュー等、対応完了状態(selfCompleted)を
+  // 保持しない表示文脈ではこのpropが未指定(undefined)になる。その場合`!selfCompleted`は
+  // 常にtrueとなり、完了抑止（要件4）は適用されず、対応期限が超過していれば期限超過表示が
+  // 行われる。当該文脈は完了状態を参照できないため、日付ベースの表示を優先する仕様。
+  const isOverdue =
+    announcement.actionRequired &&
+    isAnnouncementDueDateOverdue(announcement.dueDate) &&
+    !selfCompleted;
+
   return (
     <li className="flex items-start justify-between gap-4 py-3">
       <div className="flex-1 space-y-1">
@@ -90,7 +101,13 @@ export function AnnouncementListItem({
             <CompletedStatusBadge isCompleted={selfCompleted} />
           )}
           {announcement.actionRequired && announcement.dueDate && dueDateLabel && (
-            <span className="text-xs text-muted-foreground">
+            <span
+              className={
+                isOverdue
+                  ? "text-xs font-medium text-destructive"
+                  : "text-xs text-muted-foreground"
+              }
+            >
               {dueDateLabel}:{" "}
               {new Date(announcement.dueDate).toLocaleDateString(locale, {
                 year: "numeric",
@@ -99,6 +116,7 @@ export function AnnouncementListItem({
               })}
             </span>
           )}
+          <OverdueBadge isOverdue={isOverdue} />
           <time
             dateTime={announcement.publishedAt!}
             className="text-xs text-muted-foreground"

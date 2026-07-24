@@ -17,9 +17,12 @@ import type { Announcement } from "@/types/announcement";
  */
 export async function ReminderAnnouncementsPanel() {
   let reminderAnnouncements: Announcement[];
+  // getAnnouncements呼び出しにUIロケールを渡すため、try節より前で取得する必要がある
+  // （エラー時に多少のオーバーヘッドが乗るが、値自体は同期的に解決されるため無視できるコスト）。
+  const locale = await getLocale();
   try {
     const { claims } = await requireApplicantSession();
-    const announcements = await getAnnouncements();
+    const announcements = await getAnnouncements({ locale });
     const pendingFlags = await Promise.all(
       announcements.map((announcement) =>
         isReminderPendingForCompany(announcement.id, claims.companyCode)
@@ -34,11 +37,10 @@ export async function ReminderAnnouncementsPanel() {
     return null;
   }
 
-  const [t, tAnnouncements, tCategories, locale] = await Promise.all([
+  const [t, tAnnouncements, tCategories] = await Promise.all([
     getTranslations("dashboard.reminderAnnouncements"),
     getTranslations("announcements"),
     getTranslations("announcements.categories"),
-    getLocale(),
   ]);
 
   return (

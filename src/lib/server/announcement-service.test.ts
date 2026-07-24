@@ -1311,8 +1311,21 @@ describe("resolveAnnouncementContent", () => {
     });
   });
 
-  it("対応するAnnouncementTranslationが存在しない言語ではjaにフォールバックする", () => {
+  it("対応するAnnouncementTranslationが存在しない言語ではenにフォールバックする", () => {
     expect(resolveAnnouncementContent(announcement, "th")).toEqual({
+      title: "English Title",
+      body: "English Body",
+    });
+  });
+
+  it("en翻訳も存在しない場合のみjaにフォールバックする", () => {
+    const announcementWithoutEn = {
+      title: "日本語タイトル",
+      body: "日本語本文",
+      translations: [],
+    };
+
+    expect(resolveAnnouncementContent(announcementWithoutEn, "th")).toEqual({
       title: "日本語タイトル",
       body: "日本語本文",
     });

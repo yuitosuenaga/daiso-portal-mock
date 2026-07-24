@@ -205,4 +205,90 @@ describe("AnnouncementListItem", () => {
       screen.queryByText("announcements.selfReport.completed")
     ).toBeNull();
   });
+
+  it("actionRequiredが真かつ超過dueDate・selfCompleted未指定のとき期限超過バッジを表示し対応期限を警告色にする", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const overdueDueDate = yesterday.toISOString().slice(0, 10);
+
+    render(
+      <AnnouncementListItem
+        announcement={{
+          ...BASE_ANNOUNCEMENT,
+          actionRequired: true,
+          dueDate: overdueDueDate,
+        }}
+        categoryLabel="メンテナンス"
+        dueDateLabel="対応期限"
+        locale="ja"
+      />
+    );
+
+    expect(screen.getByText("announcements.overdueBadge")).toBeTruthy();
+    expect(screen.getByText(/対応期限/).className).toContain("text-destructive");
+  });
+
+  it("selfCompletedが真のとき超過dueDateであっても期限超過バッジを表示しない", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const overdueDueDate = yesterday.toISOString().slice(0, 10);
+
+    render(
+      <AnnouncementListItem
+        announcement={{
+          ...BASE_ANNOUNCEMENT,
+          actionRequired: true,
+          dueDate: overdueDueDate,
+        }}
+        categoryLabel="メンテナンス"
+        dueDateLabel="対応期限"
+        locale="ja"
+        selfCompleted
+      />
+    );
+
+    expect(screen.queryByText("announcements.overdueBadge")).toBeNull();
+  });
+
+  it("actionRequiredが偽のとき超過dueDateであっても期限超過バッジを表示しない", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const overdueDueDate = yesterday.toISOString().slice(0, 10);
+
+    render(
+      <AnnouncementListItem
+        announcement={{
+          ...BASE_ANNOUNCEMENT,
+          actionRequired: false,
+          dueDate: overdueDueDate,
+        }}
+        categoryLabel="メンテナンス"
+        dueDateLabel="対応期限"
+        locale="ja"
+      />
+    );
+
+    expect(screen.queryByText("announcements.overdueBadge")).toBeNull();
+  });
+
+  it("dueDateが未超過（明日）のとき期限超過バッジを表示しない", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const futureDueDate = tomorrow.toISOString().slice(0, 10);
+
+    render(
+      <AnnouncementListItem
+        announcement={{
+          ...BASE_ANNOUNCEMENT,
+          actionRequired: true,
+          dueDate: futureDueDate,
+        }}
+        categoryLabel="メンテナンス"
+        dueDateLabel="対応期限"
+        locale="ja"
+      />
+    );
+
+    expect(screen.queryByText("announcements.overdueBadge")).toBeNull();
+  });
 });

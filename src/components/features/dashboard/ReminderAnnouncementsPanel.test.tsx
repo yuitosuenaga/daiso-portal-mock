@@ -100,6 +100,17 @@ describe("ReminderAnnouncementsPanel", () => {
     expect(screen.queryByText("通常のお知らせ")).toBeNull();
   });
 
+  it("getLocale()の戻り値をgetAnnouncementsのlocaleオプションとして渡す", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([
+      makeAnnouncement("1", "リマインド対象のお知らせ"),
+    ]);
+    isReminderPendingForCompanyMock.mockResolvedValue(true);
+
+    await ReminderAnnouncementsPanel();
+
+    expect(getAnnouncementsMock).toHaveBeenCalledWith({ locale: "ja" });
+  });
+
   it("リマインド対象のお知らせの本文要約を表示する", async () => {
     getAnnouncementsMock.mockResolvedValueOnce([
       makeAnnouncement("1", "リマインド対象のお知らせ", {

@@ -381,21 +381,21 @@
 
 ## 追加ラウンド（2026-07-22）: 対応期限超過の視覚的区別
 
-- [ ] 25. 基盤: 超過判定ヘルパーと翻訳キーを追加する
-- [ ] 25.1 対応期限の超過判定ヘルパーを実装する
+- [x] 25. 基盤: 超過判定ヘルパーと翻訳キーを追加する
+- [x] 25.1 対応期限の超過判定ヘルパーを実装する
   - `src/lib/announcement-overdue.ts` に `isAnnouncementDueDateOverdue(dueDate: string | null | undefined, now?: Date): boolean` を実装する
   - `dueDate`を年月日に分解しローカル当日0時を構築、`now`（省略時`new Date()`）の今日0時と比較し `due < today` のとき`true`。`null`/`undefined`は`false`、期限日当日は`false`
   - `server-only`は付けない（プレゼンテーショナルな`AnnouncementListItem`からも参照するため）
   - 観測可能な完了条件: 単体テストで昨日→true、今日→false、明日→false、null→false が検証できる
   - _Requirements: 17.1_
   - _Boundary: announcement-overdue_
-- [ ] 25.2 期限超過バッジの翻訳キーを追加する
+- [x] 25.2 期限超過バッジの翻訳キーを追加する
   - `messages/ja.json`・`messages/en.json` に `announcements.overdueBadge`（例: 「期限超過」／「Overdue」）を追加する
   - _Requirements: 17.6_
   - _Boundary: messages/ja.json, messages/en.json_
 
-- [ ] 26. コア: OverdueBadgeコンポーネントを実装する
-- [ ] 26.1 `OverdueBadge` を実装する
+- [x] 26. コア: OverdueBadgeコンポーネントを実装する
+- [x] 26.1 `OverdueBadge` を実装する
   - `src/components/features/announcements/OverdueBadge.tsx` を、既存`ReminderBadge`と同じ様式（`"use client"` + `useTranslations("announcements")`）で実装する
   - `isOverdue`が偽なら`null`、真なら `<Badge variant="incident">{t("overdueBadge")}</Badge>`（`bg-destructive`系）を描画する
   - 観測可能な完了条件: 単体テストで、`isOverdue`真のときのみ描画され文言が翻訳されることが検証できる
@@ -403,27 +403,27 @@
   - _Boundary: OverdueBadge_
   - _Depends: 25.2_
 
-- [ ] 27. 統合: 一覧・詳細画面への期限超過表示の結線
-- [ ] 27.1 `AnnouncementListItem` に期限超過表示を追加する
+- [x] 27. 統合: 一覧・詳細画面への期限超過表示の結線
+- [x] 27.1 `AnnouncementListItem` に期限超過表示を追加する
   - `isOverdue = announcement.actionRequired && isAnnouncementDueDateOverdue(announcement.dueDate) && !selfCompleted` を算出する
   - 対応期限テキストを`isOverdue`のとき`text-destructive font-medium`に切り替え、直後に`<OverdueBadge isOverdue={isOverdue} />`を追加する
   - 既存の対応期限表示条件（要件12）・他バッジ・レイアウトは変更しない。`selfCompleted`未指定（ダッシュボードプレビュー）では日付ベースで表示される（要件17.8）
   - _Requirements: 17.2, 17.3, 17.4, 17.5, 17.7, 17.8_
   - _Boundary: AnnouncementListItem_
   - _Depends: 25.1, 26.1_
-- [ ] 27.2 `AnnouncementDetail` に期限超過表示を追加する
+- [x] 27.2 `AnnouncementDetail` に期限超過表示を追加する
   - `isOverdue = announcement.actionRequired && isAnnouncementDueDateOverdue(announcement.dueDate) && selfStatus.completedAt === null` を算出する
   - CardHeader内の対応期限`<span>`を`isOverdue`のとき警告色（`text-destructive font-medium`）にし、直後に`<OverdueBadge isOverdue={isOverdue} />`を追加する
   - _Requirements: 17.2, 17.3, 17.4, 17.5, 17.7_
   - _Boundary: AnnouncementDetail_
   - _Depends: 25.1, 26.1_
 
-- [ ] 28. 検証: 単体テスト・実機確認
-- [ ] 28.1 (P) 超過判定・バッジ・一覧/詳細表示の単体テストを実装する
+- [x] 28. 検証: 単体テスト・実機確認
+- [x] 28.1 (P) 超過判定・バッジ・一覧/詳細表示の単体テストを実装する
   - `isAnnouncementDueDateOverdue`（`now`固定注入）、`OverdueBadge`、`AnnouncementListItem`（超過＋未完了で表示、完了済みで非表示、未超過/対応不要で非表示）、`AnnouncementDetail`（`completedAt`の有無での表示切替）を検証する
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.8_
   - _Depends: 27.1, 27.2_
-- [ ] 28.2 日本語・英語・レスポンシブでの実機確認
+- [x] 28.2 日本語・英語・レスポンシブでの実機確認
   - 両ロケールで「期限超過」バッジ文言が翻訳されること、対応期限テキストが警告色になること、ダッシュボードプレビューにも波及すること、タブレット幅（768px）で横スクロールが発生しないことをブラウザで確認する
   - _Requirements: 17.6, 17.7, 17.8_
   - _Depends: 27.1, 27.2_

@@ -11,9 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { BackLink } from "@/components/ui/back-link";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
+import { OverdueBadge } from "@/components/features/announcements/OverdueBadge";
 import { AnnouncementSelfReportPanel } from "@/components/features/announcements/AnnouncementSelfReportPanel";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
+import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
 import type { Document } from "@/types/document";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
@@ -77,6 +79,10 @@ export async function AnnouncementDetail({ id }: { id: string }) {
   );
   const hasAttachments =
     announcement.attachments.length > 0 || visibleLinkedDocuments.length > 0;
+  const isOverdue =
+    announcement.actionRequired &&
+    isAnnouncementDueDateOverdue(announcement.dueDate) &&
+    selfStatus.completedAt === null;
 
   return (
     <div className="space-y-4">
@@ -107,7 +113,9 @@ export async function AnnouncementDetail({ id }: { id: string }) {
               </Badge>
             )}
             {announcement.actionRequired && announcement.dueDate && (
-              <span>
+              <span
+                className={isOverdue ? "text-destructive font-medium" : undefined}
+              >
                 {tAnnouncements("dueDateLabel")}:{" "}
                 <time dateTime={announcement.dueDate}>
                   {new Date(announcement.dueDate).toLocaleDateString(locale, {
@@ -118,6 +126,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
                 </time>
               </span>
             )}
+            <OverdueBadge isOverdue={isOverdue} />
             {isReminderPending && <ReminderBadge isPending={isReminderPending} />}
           </div>
           <AnnouncementSelfReportPanel

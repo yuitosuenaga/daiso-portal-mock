@@ -177,7 +177,27 @@ describe("notifyAnnouncementPublished", () => {
     );
   });
 
-  it("宛先の言語設定に対応する翻訳が存在しない場合は既定言語（ja）にフォールバックする", async () => {
+  it("宛先の言語設定に対応する翻訳が存在しない場合はenにフォールバックする", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord({
+        translations: [
+          { id: "t1", announcementId: "announcement-1", locale: "en", title: "Title EN", body: "Body EN" },
+        ],
+      }) as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "c@example.com", preferredLocale: "th" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementPublished("announcement-1");
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "c@example.com", subject: "Title EN" })
+    );
+  });
+
+  it("宛先の言語設定に対応する翻訳もen翻訳も存在しない場合のみ既定言語（ja）にフォールバックする", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
       announcementRecord() as never
     );
@@ -218,11 +238,41 @@ describe("notifyAnnouncementPublished", () => {
         text: expect.stringContaining("http://localhost:3000/en/announcements/announcement-1"),
       })
     );
-    // "th"はUIルーティング上のロケールではないため、既定ロケール（ja）のパスにフォールバックする
+    // "th"はUIルーティング上のロケールではないため、en（20か国以上の受信者にとっての共通語）のパスにフォールバックする
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "c@example.com",
-        text: expect.stringContaining("http://localhost:3000/ja/announcements/announcement-1"),
+        text: expect.stringContaining("http://localhost:3000/en/announcements/announcement-1"),
+      })
+    );
+  });
+
+  it("en翻訳のみ登録されたお知らせのpreferredLocale: th宛通知は、en本文・enの詳細リンクで送信される", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord({
+        translations: [
+          { id: "t1", announcementId: "announcement-1", locale: "en", title: "Title EN", body: "Body EN" },
+        ],
+      }) as never
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "c@example.com", preferredLocale: "th" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementPublished("announcement-1");
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "c@example.com",
+        subject: "Title EN",
+        text: expect.stringContaining("Body EN"),
+      })
+    );
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "c@example.com",
+        text: expect.stringContaining("http://localhost:3000/en/announcements/announcement-1"),
       })
     );
   });
