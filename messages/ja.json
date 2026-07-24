@@ -294,7 +294,8 @@
       "claimButton": "対応中にする",
       "releaseButton": "対応を外す",
       "claimedByLabel": "対応者",
-      "error": "操作に失敗しました。時間を置いて再度お試しください。"
+      "error": "操作に失敗しました。時間を置いて再度お試しください。",
+      "notOwnerErrorMessage": "他の担当者が対応中のため解除できません"
     },
     "status": {
       "sectionTitle": "対応状況の変更",

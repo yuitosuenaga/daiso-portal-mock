@@ -4,7 +4,11 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
-import { DoubleClaimError, InquiryNotFoundError } from "@/lib/server/inquiry-service";
+import {
+  ClaimOwnershipError,
+  DoubleClaimError,
+  InquiryNotFoundError,
+} from "@/lib/server/inquiry-service";
 
 /**
  * Route Handler内で送出された例外を、design.mdのAPI Contractで定義された
@@ -22,6 +26,9 @@ export function toErrorResponse(error: unknown): NextResponse {
   }
   if (error instanceof DoubleClaimError) {
     return NextResponse.json({ error: error.message }, { status: 409 });
+  }
+  if (error instanceof ClaimOwnershipError) {
+    return NextResponse.json({ error: error.message }, { status: 403 });
   }
 
   return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

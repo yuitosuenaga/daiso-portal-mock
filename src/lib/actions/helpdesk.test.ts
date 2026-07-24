@@ -11,6 +11,12 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   updateStatus: vi.fn(),
   updateStatusIfCurrent: vi.fn(),
   appendHistoryEntry: vi.fn(),
+  ClaimOwnershipError: class ClaimOwnershipError extends Error {
+    constructor(inquiryId: string) {
+      super(`Claim not owned by acting staff: ${inquiryId}`);
+      this.name = "ClaimOwnershipError";
+    }
+  },
 }));
 vi.mock("@/lib/api/reply-templates", () => ({
   createReplyTemplate: vi.fn(),
@@ -37,6 +43,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/server/get-session";
 import {
   appendHistoryEntry,
+  ClaimOwnershipError,
   findInquiryById as findInquiryByIdService,
   setClaim,
   updateStatus,
@@ -105,17 +112,18 @@ describe("claimInquiryAction / releaseInquiryClaimAction", () => {
 
     await claimInquiryAction("inquiry-004");
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-004", {
-      staffId: "staff-1",
-      displayName: "鈴木 花子",
-    });
+    expect(setClaim).toHaveBeenCalledWith(
+      "inquiry-004",
+      { staffId: "staff-1", displayName: "鈴木 花子" },
+      "staff-1"
+    );
     expect(appendHistoryEntry).toHaveBeenCalledWith(
       expect.objectContaining({ type: "claimed", actorName: "鈴木 花子" })
     );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
-  it("対応を外すと、claimが解除され履歴に記録される", async () => {
+  it("対応を外すと、claimが解除され履歴に記録され、{ ok: true }を返す", async () => {
     vi.mocked(setClaim).mockResolvedValue(inquiry());
     vi.mocked(appendHistoryEntry).mockResolvedValue({
       id: "history-2",
@@ -125,11 +133,32 @@ describe("claimInquiryAction / releaseInquiryClaimAction", () => {
       occurredAt: "2026-07-01T00:00:00.000Z",
     });
 
-    await releaseInquiryClaimAction("inquiry-004");
+    const result = await releaseInquiryClaimAction("inquiry-004");
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-004", null);
+    expect(setClaim).toHaveBeenCalledWith("inquiry-004", null, "staff-1");
     expect(appendHistoryEntry).toHaveBeenCalledWith(
       expect.objectContaining({ type: "released", actorName: "鈴木 花子" })
+    );
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("所有者不一致（ClaimOwnershipError）のとき、{ ok: false, reason: \"notOwner\" }を返し履歴を記録しない", async () => {
+    vi.mocked(setClaim).mockRejectedValue(
+      new ClaimOwnershipError("inquiry-004")
+    );
+
+    const result = await releaseInquiryClaimAction("inquiry-004");
+
+    expect(result).toEqual({ ok: false, reason: "notOwner" });
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("想定外の例外は再throwする", async () => {
+    vi.mocked(setClaim).mockRejectedValue(new Error("unexpected"));
+
+    await expect(releaseInquiryClaimAction("inquiry-004")).rejects.toThrow(
+      "unexpected"
     );
   });
 });

@@ -475,13 +475,13 @@
 
 ## 追加（2026-07-22）: 申請者一覧取得の添付ファイル除外（性能）
 
-- [ ] 34. 検証: 申請者一覧取得の添付ファイル除外
+- [x] 34. 検証: 申請者一覧取得の添付ファイル除外
   - 取得include分離の実装自体は`helpdesk-inquiry-management`spec 要件18（タスク39）が所有・実施する。本specは申請者側の期待の確認のみを行う
-- [ ] 34.1 (P) 申請者側の添付読み込み挙動を`inquiry-service.test.ts`で検証する
+- [x] 34.1 (P) 申請者側の添付読み込み挙動を`inquiry-service.test.ts`で検証する
   - `listInquiriesForCompany`が添付なしinclude（`{ claimedByStaff: true }`）で、`findInquiryForCompany`が添付ありinclude（`{ claimedByStaff: true, attachments: true }`）で`prisma`を呼ぶことを検証する（テスト自体は`helpdesk-inquiry-management`spec 要件18のタスクと共有ファイルのため、当該ケースが含まれることを確認する）
   - _Requirements: 16.1, 16.2_
   - _Depends: helpdesk-inquiry-management 39.1, 39.2_
-- [ ] 34.2 申請者詳細の添付表示が維持されることを確認する
+- [x] 34.2 申請者詳細の添付表示が維持されることを確認する
   - 既存の`InquiryDetail.test.tsx`が変更なしで全件成功し、詳細画面の添付表示（要件10）が保たれることを確認する
   - _Requirements: 16.2, 16.3_
   - _Depends: 34.1_

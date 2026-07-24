@@ -160,6 +160,7 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
             releaseButtonLabel={tClaim("releaseButton")}
             claimedByLabel={tClaim("claimedByLabel")}
             errorMessage={tClaim("error")}
+            notOwnerErrorMessage={tClaim("notOwnerErrorMessage")}
           />
         </CardContent>
       </Card>

@@ -9,7 +9,11 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
-import { DoubleClaimError, InquiryNotFoundError } from "@/lib/server/inquiry-service";
+import {
+  ClaimOwnershipError,
+  DoubleClaimError,
+  InquiryNotFoundError,
+} from "@/lib/server/inquiry-service";
 import { toErrorResponse } from "@/lib/server/api-errors";
 
 describe("toErrorResponse", () => {
@@ -32,6 +36,11 @@ describe("toErrorResponse", () => {
   it("DoubleClaimErrorを409に変換する", () => {
     const response = toErrorResponse(new DoubleClaimError("inquiry-1"));
     expect(response.status).toBe(409);
+  });
+
+  it("ClaimOwnershipErrorを403に変換する", () => {
+    const response = toErrorResponse(new ClaimOwnershipError("inquiry-1"));
+    expect(response.status).toBe(403);
   });
 
   it("未知のエラーを500に変換する", () => {

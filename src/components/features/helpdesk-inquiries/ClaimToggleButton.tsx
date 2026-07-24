@@ -16,10 +16,15 @@ export interface ClaimToggleButtonProps {
   releaseButtonLabel: string;
   claimedByLabel: string;
   errorMessage: string;
+  notOwnerErrorMessage: string;
 }
+
+type ErrorKind = null | "generic" | "notOwner";
 
 /**
  * 対応中フラグをON/OFFするボタン。対応中の場合は担当者名を表示する。
+ * 解除操作が所有者不一致で拒否された場合は専用メッセージを表示する
+ * （ボタン自体は非活性化しない。所有者チェックはサーバー側を唯一の正とする）。
  */
 export function ClaimToggleButton({
   inquiryId,
@@ -28,21 +33,26 @@ export function ClaimToggleButton({
   releaseButtonLabel,
   claimedByLabel,
   errorMessage,
+  notOwnerErrorMessage,
 }: ClaimToggleButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const [hasError, setHasError] = useState(false);
+  const [errorKind, setErrorKind] = useState<ErrorKind>(null);
 
   function handleClick() {
     startTransition(async () => {
       try {
         if (claim) {
-          await releaseInquiryClaimAction(inquiryId);
+          const result = await releaseInquiryClaimAction(inquiryId);
+          if (!result.ok) {
+            setErrorKind("notOwner");
+            return;
+          }
         } else {
           await claimInquiryAction(inquiryId);
         }
-        setHasError(false);
+        setErrorKind(null);
       } catch {
-        setHasError(true);
+        setErrorKind("generic");
       }
     });
   }
@@ -62,9 +72,9 @@ export function ClaimToggleButton({
       >
         {claim ? releaseButtonLabel : claimButtonLabel}
       </Button>
-      {hasError && !isPending && (
+      {errorKind && !isPending && (
         <span role="status" className="text-sm text-destructive">
-          {errorMessage}
+          {errorKind === "notOwner" ? notOwnerErrorMessage : errorMessage}
         </span>
       )}
     </div>

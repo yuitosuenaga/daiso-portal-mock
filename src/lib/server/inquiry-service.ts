@@ -6,10 +6,10 @@ import type { InquiryAttachment } from "@/types/attachment";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 import type { InquiryHistoryEntry } from "@/types/inquiry-history";
 
-const INQUIRY_INCLUDE = {
-  claimedByStaff: true,
-  attachments: true,
-} as const;
+// 一覧用: 添付ファイル（dataUrl=Base64、最大5MB×5件）を読み込まない
+const INQUIRY_LIST_INCLUDE = { claimedByStaff: true } as const;
+// 詳細・作成・更新用: 添付ファイルを含む
+const INQUIRY_DETAIL_INCLUDE = { claimedByStaff: true, attachments: true } as const;
 
 /**
  * 未読判定に含める「ヘルプデスク起点」の対応履歴種別。
@@ -26,6 +26,13 @@ export class DoubleClaimError extends Error {
   constructor(inquiryId: string) {
     super(`Inquiry is already claimed: ${inquiryId}`);
     this.name = "DoubleClaimError";
+  }
+}
+
+export class ClaimOwnershipError extends Error {
+  constructor(inquiryId: string) {
+    super(`Claim not owned by acting staff: ${inquiryId}`);
+    this.name = "ClaimOwnershipError";
   }
 }
 
@@ -82,7 +89,7 @@ export async function createInquiryRecord(
       submittedByCountry: input.data.submittedBy.country,
       attachments: attachmentCreateInput(input.data.attachments),
     },
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_DETAIL_INCLUDE,
   });
 
   return mapInquiry(record);
@@ -94,7 +101,7 @@ export async function listInquiriesForCompany(
 ): Promise<Inquiry[]> {
   const records = await prisma.inquiry.findMany({
     where: { companyId },
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_LIST_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 
@@ -104,7 +111,7 @@ export async function listInquiriesForCompany(
 /** 会社による絞り込みを行わず全件を送信日時降順で取得する。 */
 export async function listAllInquiries(): Promise<Inquiry[]> {
   const records = await prisma.inquiry.findMany({
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_LIST_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 
@@ -115,7 +122,7 @@ export async function listAllInquiries(): Promise<Inquiry[]> {
 export async function findInquiryById(id: string): Promise<Inquiry | null> {
   const record = await prisma.inquiry.findUnique({
     where: { id },
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_DETAIL_INCLUDE,
   });
 
   return record ? mapInquiry(record) : null;
@@ -132,7 +139,7 @@ export async function findInquiryForCompany(
 ): Promise<Inquiry | null> {
   const record = await prisma.inquiry.findFirst({
     where: { id, companyId },
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_DETAIL_INCLUDE,
   });
 
   return record ? mapInquiry(record) : null;
@@ -141,10 +148,15 @@ export async function findInquiryForCompany(
 /**
  * 対応中フラグを設定・解除する。既にclaim済みの問い合わせへ新たなclaimを
  * 設定しようとした場合は`DoubleClaimError`を送出する（二重対応防止）。
+ *
+ * `actingStaffId`は操作を行う担当者の`staffId`。解除パス（`staff`が`null`）で
+ * 対象が既にclaim済みかつ`actingStaffId`が所有者と一致しない場合は
+ * `ClaimOwnershipError`を送出し、解除を拒否する（他担当者による無断解除の防止）。
  */
 export async function setClaim(
   id: string,
-  staff: { staffId: string; displayName: string } | null
+  staff: { staffId: string; displayName: string } | null,
+  actingStaffId: string
 ): Promise<Inquiry> {
   const current = await prisma.inquiry.findUnique({ where: { id } });
   if (!current) {
@@ -155,12 +167,16 @@ export async function setClaim(
     throw new DoubleClaimError(id);
   }
 
+  if (!staff && current.claimedByStaffId && current.claimedByStaffId !== actingStaffId) {
+    throw new ClaimOwnershipError(id);
+  }
+
   const record = await prisma.inquiry.update({
     where: { id },
     data: staff
       ? { claimedByStaffId: staff.staffId, claimedAt: new Date() }
       : { claimedByStaffId: null, claimedAt: null },
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_DETAIL_INCLUDE,
   });
 
   return mapInquiry(record);
@@ -174,7 +190,7 @@ export async function updateStatus(
   const record = await prisma.inquiry.update({
     where: { id },
     data: { status },
-    include: INQUIRY_INCLUDE,
+    include: INQUIRY_DETAIL_INCLUDE,
   });
 
   return mapInquiry(record);
