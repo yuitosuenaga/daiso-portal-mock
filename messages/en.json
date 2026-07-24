@@ -683,6 +683,7 @@
     "actionRequiredBadge": "Action required",
     "reminderBadge": "A reminder has been sent",
     "dueDateLabel": "Due date",
+    "overdueBadge": "Overdue",
     "selfReport": {
       "confirmed": "Confirmed",
       "completeButton": "Mark as completed",

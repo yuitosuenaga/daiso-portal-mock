@@ -108,8 +108,10 @@ export const DEFAULT_ANNOUNCEMENT_LOCALE = "ja";
 /**
  * 指定した言語に対応するお知らせのタイトル・本文を解決する。`locale`が既定言語（`ja`）の
  * ときは`announcement.title`/`body`を返す。それ以外は`announcement.translations`から
- * `locale`が一致する行を探し、見つかればその内容を、見つからなければ既定言語（`ja`）の
- * 内容にフォールバックして返す（要件31.4・33.2）。
+ * `locale`が一致する行を探し、見つかればその内容を返す。一致する翻訳が無い場合、
+ * 20か国以上へ発信する本ポータルの共通語である`en`翻訳を優先してフォールバックし、
+ * `en`翻訳も無い場合にのみ既定言語（`ja`）の内容にフォールバックする
+ * （要件31.4・33.2を要件36で上書き。フォールバック順序: `locale`一致 → `en` → `ja`）。
  */
 export function resolveAnnouncementContent(
   announcement: Pick<Announcement, "title" | "body" | "translations">,
@@ -122,6 +124,11 @@ export function resolveAnnouncementContent(
   const translation = announcement.translations.find((item) => item.locale === locale);
   if (translation) {
     return { title: translation.title, body: translation.body };
+  }
+
+  const enTranslation = announcement.translations.find((item) => item.locale === "en");
+  if (enTranslation) {
+    return { title: enTranslation.title, body: enTranslation.body };
   }
 
   return { title: announcement.title, body: announcement.body };

@@ -206,6 +206,70 @@ describe("AnnouncementDetail", () => {
     expect(screen.queryByText(/対応期限/)).toBeNull();
   });
 
+  it("自社未完了かつdueDateが超過済みのとき期限超過バッジを表示し対応期限を警告色にする", async () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const overdueDueDate = yesterday.toISOString().slice(0, 10);
+
+    getAnnouncementSelfStatusMock.mockResolvedValueOnce({
+      confirmedAt: "2026-07-01T00:00:00Z",
+      completedAt: null,
+    });
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      actionRequired: true,
+      dueDate: overdueDueDate,
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.getByText("期限超過")).toBeTruthy();
+    expect(screen.getByText(/対応期限/).className).toContain("text-destructive");
+  });
+
+  it("自社が対応完了済み（completedAtが非null）のとき、dueDateが超過済みでも期限超過バッジを表示しない", async () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const overdueDueDate = yesterday.toISOString().slice(0, 10);
+
+    getAnnouncementSelfStatusMock.mockResolvedValueOnce({
+      confirmedAt: "2026-07-01T00:00:00Z",
+      completedAt: "2026-07-13T00:00:00Z",
+    });
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      actionRequired: true,
+      dueDate: overdueDueDate,
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.queryByText("期限超過")).toBeNull();
+  });
+
+  it("dueDateが未超過（明日）のとき期限超過バッジを表示しない", async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const futureDueDate = tomorrow.toISOString().slice(0, 10);
+
+    getAnnouncementSelfStatusMock.mockResolvedValueOnce({
+      confirmedAt: "2026-07-01T00:00:00Z",
+      completedAt: null,
+    });
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      actionRequired: true,
+      dueDate: futureDueDate,
+    });
+
+    const jsx = await AnnouncementDetail({ id: "1" });
+    render(jsx);
+
+    expect(screen.queryByText("期限超過")).toBeNull();
+  });
+
   it("getAnnouncementSelfStatusを呼び出し、確認済みバッジを表示する", async () => {
     getAnnouncementByIdMock.mockResolvedValueOnce(ANNOUNCEMENT);
 

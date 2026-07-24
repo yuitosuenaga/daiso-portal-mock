@@ -35,7 +35,7 @@ export async function AnnouncementsPreviewPanel({
 
   let announcements: Announcement[] | null = null;
   try {
-    announcements = await getRecentAnnouncements({ limit: PREVIEW_LIMIT });
+    announcements = await getRecentAnnouncements({ limit: PREVIEW_LIMIT, locale });
   } catch {
     announcements = null;
   }

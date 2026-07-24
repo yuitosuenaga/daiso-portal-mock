@@ -32,6 +32,10 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
+}));
+
 function makeAnnouncement(
   id: string,
   title: string,
@@ -73,7 +77,10 @@ describe("AnnouncementsPreviewPanel", () => {
     });
     render(jsx);
 
-    expect(getRecentAnnouncementsMock).toHaveBeenCalledWith({ limit: 5 });
+    expect(getRecentAnnouncementsMock).toHaveBeenCalledWith({
+      limit: 5,
+      locale: "ja",
+    });
     expect(screen.getByText("お知らせ1")).toBeTruthy();
     expect(screen.getByText("お知らせ2")).toBeTruthy();
     expect(screen.getByText("お知らせ3")).toBeTruthy();

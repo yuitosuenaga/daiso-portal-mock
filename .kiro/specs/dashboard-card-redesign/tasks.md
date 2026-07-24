@@ -186,25 +186,25 @@
 
 ## 追加ラウンド（2026-07-22）: お知らせ系プレビューパネルのUIロケール反映
 
-- [ ] 17. 統合: お知らせ系プレビューパネルへのUIロケール引き渡し
-- [ ] 17.1 `AnnouncementsPreviewPanel` の取得呼び出しに`locale`を渡す
+- [x] 17. 統合: お知らせ系プレビューパネルへのUIロケール引き渡し
+- [x] 17.1 `AnnouncementsPreviewPanel` の取得呼び出しに`locale`を渡す
   - `getRecentAnnouncements({ limit: PREVIEW_LIMIT })` を `getRecentAnnouncements({ limit: PREVIEW_LIMIT, locale })` に変更する（`locale`は既存の`getLocale()`結果を利用。新たな取得は不要）
   - レイアウト・件数・並び順・空状態・エラー処理・本文要約・バッジ表示は変更しない
   - _Requirements: 12.1, 12.3, 12.4_
   - _Boundary: AnnouncementsPreviewPanel_
-- [ ] 17.2 `ReminderAnnouncementsPanel` の取得呼び出しに`locale`を渡す
+- [x] 17.2 `ReminderAnnouncementsPanel` の取得呼び出しに`locale`を渡す
   - `getAnnouncements()` を `getAnnouncements({ locale })` に変更する（`locale`は既存の`getLocale()`結果を利用）
   - リマインド対象抽出ロジック・0件非表示・失敗時非表示の挙動は変更しない
   - _Requirements: 12.2, 12.3, 12.4_
   - _Boundary: ReminderAnnouncementsPanel_
 
-- [ ] 18. 検証: 単体テスト更新・実機確認
-- [ ] 18.1 (P) プレビューパネルのロケール引き渡しの単体テストを更新する
+- [x] 18. 検証: 単体テスト更新・実機確認
+- [x] 18.1 (P) プレビューパネルのロケール引き渡しの単体テストを更新する
   - `AnnouncementsPreviewPanel`のテストで`getRecentAnnouncements`が`{ limit, locale }`付きで呼ばれること、`ReminderAnnouncementsPanel`のテストで`getAnnouncements`が`{ locale }`付きで呼ばれることを検証する
   - 既存の正常表示・空状態・エラー時フォールバック・0件非表示のテストが引き続き通ることを確認する
   - _Requirements: 12.1, 12.2, 12.4_
   - _Depends: 17.1, 17.2_
-- [ ] 18.2 英語ロケールでのダッシュボード／一覧の表示一致を実機確認する
+- [x] 18.2 英語ロケールでのダッシュボード／一覧の表示一致を実機確認する
   - UIロケールを`en`に切り替え、ダッシュボードのお知らせ系プレビューと一覧ページで同一お知らせのタイトル・本文が一致することをブラウザで確認する
   - _Requirements: 12.5_
   - _Depends: 17.1, 17.2_

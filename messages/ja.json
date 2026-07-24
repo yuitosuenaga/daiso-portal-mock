@@ -683,6 +683,7 @@
     "actionRequiredBadge": "要対応",
     "reminderBadge": "リマインドが届いています",
     "dueDateLabel": "対応期限",
+    "overdueBadge": "期限超過",
     "selfReport": {
       "confirmed": "確認済み",
       "completeButton": "対応完了にする",
