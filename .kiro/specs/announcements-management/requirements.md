@@ -200,7 +200,7 @@
 公開期間による表示可否の判定は、既存の配信対象（`targeting`）フィルタ（要件6）と同様の考え方で、申請者側の読み取り関数（`getAnnouncements`・`getRecentAnnouncements`・`getAnnouncementById`）に適用する。
 
 スコープ外:
-- 対応期限を過ぎたお知らせに対する自動的な状態変更やエスカレーション通知
+- 対応期限を過ぎたお知らせに対する自動的な状態変更（`status`の書き換え等）。~~期限超過時の自動エスカレーション通知~~ → **要件38（2026-07-24 追記）で対象化**。ただし本要件17自体は「期限の設定・保持」に限定し、超過検知後の自動督促は要件38に委譲する
 - 公開期間・対応期限の変更履歴の記録
 
 ### Requirement 15: 公開期間の設定
@@ -589,3 +589,30 @@
 4. When 利用者が確認モーダルで確定したときのみ, the Portal shall 既存の削除Server Action（`deleteAnnouncementAction`）を実行し、成功後の遷移（`/helpdesk/announcements`）・失敗時のエラー表示の既存挙動を維持する。キャンセル時は何も実行しない。
 5. The Portal shall `DeleteAnnouncementButton`へ削除対象タイトルを渡せるよう、必要に応じて呼び出し側（一覧・編集画面）からタイトルをpropsで受け取る。
 6. The Portal shall 既存の`window.confirm`をモックする単体テスト（`DeleteAnnouncementButton.test.tsx`）を、`ConfirmDialog`ベースの操作（トリガー押下→確認ボタン押下で削除実行、キャンセルで未実行）に更新する。
+
+### Requirement 38: 対応期限超過時の自動エスカレーション（督促）（2026-07-24 追記）
+
+**背景:** 2026-07-24 のプロダクト全体レビューで、お知らせの対応期限超過に対する督促（リマインド）が現状ヘルプデスク担当者による手動送信（要件14・28）のみで自動化されていないことが判明した。対応要否（`actionRequired`）が真かつ対応期限（`dueDate`）を過ぎたお知らせについて、未対応（未実施）の会社に対し、担当者の手動操作を待たずにリマインドメールを自動的に送る仕組みを追加する。期限超過の判定ロジックは既に実装済み（`src/lib/announcement-overdue.ts` の `isAnnouncementDueDateOverdue`、PR#97）であり、既存の通知基盤（`src/lib/server/announcement-notifications.ts` の `sendAndLog`・`AnnouncementNotificationLog`・SMTP未設定時はno-opでログ記録のみのベストエフォート設計）と既存の手動リマインド送信（`sendAnnouncementReminders`、要件14・28）を最大限再利用する。
+
+**トリガー機構の方針（重要）:** 本プロジェクトは Next.js on Cloud Run（`min-instances=0`、アイドル時ゼロスケール）で稼働しており、リポジトリ内に Cloud Scheduler 等の定期実行基盤・IaC・`vercel.json` cron・`.github/workflows` 定期実行のいずれも**存在しない**ことを確認済みである。真の定期実行基盤の新設（GCPインフラ変更・IAM設定）は本spec（コード実装エージェント）の範囲を超える。そこで**案(c)を採用する**: エスカレーションの中核ロジックをトリガー非依存の独立関数として実装し、当面はヘルプデスク担当者がお知らせ管理画面（管理一覧）へアクセスした際にサーバー側で発火する「アクセス時トリガー」で自動化する。同時に、将来 Cloud Scheduler を導入した際にそのまま叩ける定期実行用の内部APIエンドポイント（シークレットヘッダーで保護）も同じ中核関数の薄いラッパとして用意し、案(a)への移行をコード変更なしで可能にする。中核関数は何度呼ばれても二重送信しない冪等設計とし、トリガーが「アクセス時」であれ「Cloud Scheduler」であれ結果が変わらないようにする。
+
+**Objective:** As a ヘルプデスク担当者, I want 対応期限を過ぎたお知らせについて、手動操作なしで未対応の会社へ自動的に督促メールが送られてほしい, so that 対応漏れの督促を人手に依存せず徹底でき、対応期限の実効性を担保できる
+
+#### Acceptance Criteria
+
+1. The Portal shall 対応要否（`actionRequired`）が真・公開状態が `published`・対応期限（`dueDate`）が設定済みかつ `isAnnouncementDueDateOverdue` が真であるお知らせを、自動エスカレーションの対象として検出する。下書き・対応不要・期限未設定・期限未超過のお知らせは対象外とする。
+2. The Portal shall 対象お知らせについて、配信対象（`targeting`）に含まれる会社のうち**未対応（対応完了が未記録＝`AnnouncementRecipientStatus.completedAt` が `null`）の会社にのみ**督促メールを送る。既に対応完了済みの会社・配信対象外の会社には送らない（全対象者への一律送信は行わない）。
+3. When 未対応の会社が検出されたとき, the Portal shall 当該会社に属する有効な（`isActive: true`）`ApplicantUser` へ、既存の通知基盤（`sendAndLog`）を用いてリマインドメールを送信し、宛先ごとに `AnnouncementNotificationLog` へ送信結果（`sent`/`failed`/`skipped`）を記録する。
+4. The Portal shall 自動エスカレーションによる送信履歴を、手動リマインド（`kind: "reminder"`）・公開通知（`kind: "publish"`）・配信対象拡大通知（`kind: "target_added"`）と履歴上区別できるよう、`AnnouncementNotificationKind` に新たな値 **`escalation`** を追加してその `kind` で記録する。
+5. The Portal shall 同一のお知らせ×同一宛先に対する自動督促を **1日1回を上限**とする。同一お知らせ・同一宛先メールについて、当日（判定基準時刻のタイムゾーンにおける暦日内）に既に `escalation` または手動 `reminder` の `AnnouncementNotificationLog`（`status` が `sent`/`skipped`/`failed` のいずれか）が存在する宛先には、その日は自動督促を送らない（二重送信・過剰通知の防止）。
+6. The Portal shall 自動督促の送信時、対象となった未対応会社の担当者（`AnnouncementRecipient`）について、既存の手動リマインドと同様に `AnnouncementRecipientStatus.reminderSentAt` を更新する。これにより海外販社側の「リマインド受信」表示（`announcements`spec の `isReminderPendingForCompany` 参照）が自動督促でも一貫して機能する。
+7. The Portal shall 手動リマインド（要件14・28）と自動エスカレーションの併用を許容する。両者は同一の `AnnouncementRecipientStatus.reminderSentAt` を更新し得るが、要件38.5の当日重複判定により、手動リマインドを送った当日は同一宛先への自動督促を抑止する。一方、自動督促を送った当日でも手動リマインド（ヘルプデスク担当者の明示操作）は抑止せず、常に実行できる。すなわち当日重複による抑止は「自動→自動」「手動→自動」方向にのみ働き、「自動→手動」方向には働かない。
+8. The Portal shall 自動エスカレーションの中核処理を、トリガー元（アクセス時／将来のCloud Scheduler）に依存しない独立したサーバー関数として実装し、**何度呼び出されても要件38.5の重複判定により追加のメールを送らない冪等な**振る舞いとする。処理全体はベストエフォートとし、内部で例外を捕捉してトリガー元（ページ描画・API応答）を失敗させない（要件29のベストエフォート方針を踏襲）。
+9. The Portal shall アクセス時トリガーとして、ヘルプデスク側お知らせ管理一覧（`src/app/[locale]/helpdesk/(dashboard)/announcements/page.tsx` が描画する `AnnouncementManagementList`）のデータ取得時に、中核関数をベストエフォートで（`await` するが例外は握りつぶし、失敗しても一覧表示は継続する形で）発火する。ページ表示のブロッキング・遅延を避けるため、当日既にエスカレーションを実行済みかを安価に判定して重複スキャンを避けるスロットリングを設ける。
+10. The Portal shall 将来のCloud Scheduler導入に備え、定期実行用の内部APIエンドポイント（`src/app/api/cron/announcement-escalation/route.ts`）を用意する。当該エンドポイントは環境変数 `CRON_SECRET` と一致するシークレットヘッダー（例: `Authorization: Bearer <CRON_SECRET>` または `x-cron-secret`）による認証で保護し、一致しない場合は `401` を返す。認証成功時は中核関数を呼び、処理件数の要約（対象お知らせ数・送信/スキップ件数）をJSONで返す。`CRON_SECRET` 未設定の環境ではエンドポイントを無効化（`404`/`503` 等）し、誤って無認証で叩けないようにする。
+
+スコープ外:
+- Cloud Scheduler・IAM・Cloud Run のIaC/デプロイ設定そのものの追加（本specはコード側の受け口＝APIエンドポイントの実装までとし、GCP側の設定はPRの申し送り事項として記載するに留める）。
+- 対応期限超過時のお知らせ `status` の自動書き換えやUI上の状態遷移（本要件はメール督促の自動化のみを対象とし、要件17のスコープ外「自動的な状態変更」は引き続き対象外）。
+- 督促メールの専用文面の新設（既存の手動リマインドと同型の本文＝タイトル・`Due:`行・詳細リンクを用いる）。
+- 送信回数の上限（当日1回以外の、通算N回で打ち切る等の抑制）や、宛先個人単位での配信停止（opt-out）。
