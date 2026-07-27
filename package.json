@@ -10,6 +10,7 @@
     "test": "vitest run",
     "db:seed": "tsx prisma/seed.ts",
     "db:backfill-announcement-recipients": "tsx prisma/backfill-announcement-recipients.ts",
+    "db:backfill-announcement-read-receipts": "tsx prisma/backfill-announcement-read-receipts.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

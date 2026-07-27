@@ -9,6 +9,7 @@ import {
   DEFAULT_ANNOUNCEMENT_LOCALE,
   mapAnnouncement,
   mapRecipientStatusView,
+  mapUserReadStatusView,
   resolveAnnouncementContent,
   targetApplicantUsersWhere,
   targetingToColumns,
@@ -17,6 +18,7 @@ import {
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
   notifyAnnouncementTargetExpanded,
+  notifyAnnouncementUserReadReminder,
 } from "@/lib/server/announcement-notifications";
 import type {
   Announcement,
@@ -25,8 +27,8 @@ import type {
 } from "@/types/announcement";
 import type {
   AnnouncementRecipientStatusView,
-  AnnouncementSelfStatus,
   AnnouncementTrackingSummary,
+  AnnouncementUserReadStatusView,
 } from "@/types/announcement-recipient";
 
 // `resolveAnnouncementContent`・`targetApplicantUsersWhere`は`announcement-mapper.ts`
@@ -371,24 +373,155 @@ export async function getAnnouncementRecipientStatuses(
 }
 
 /**
- * 指定したお知らせの確認済み・実施済み人数を集計する。
- * `actionRequired`が偽のお知らせでは`completedCount`は`null`を返す。
+ * あるお知らせの確認済みトラッキング対象母集団（配信対象の国に属し`isActive: true`の
+ * `ApplicantUser`。`targetApplicantUsersWhere`と同一の対象定義、要件39.2）を、
+ * 個人受信レシート（`AnnouncementReadReceipt`）と左外部結合した一覧を返す（要件39.4）。
+ * 該当お知らせが存在しない場合は空配列を返す。無効化された`ApplicantUser`は含まれない。
+ */
+export async function getAnnouncementUserReadStatuses(
+  announcementId: string
+): Promise<AnnouncementUserReadStatusView[]> {
+  const announcement = await findAnnouncementById(announcementId);
+  if (!announcement) {
+    return [];
+  }
+
+  const applicantUsers = await prisma.applicantUser.findMany({
+    where: targetApplicantUsersWhere(announcement),
+    include: {
+      company: true,
+      announcementReadReceipts: { where: { announcementId } },
+    },
+  });
+
+  return applicantUsers.map((applicantUser) =>
+    mapUserReadStatusView(applicantUser, applicantUser.announcementReadReceipts[0])
+  );
+}
+
+/**
+ * 指定した`ApplicantUser`本人の、あるお知らせに対する確認済み（既読）日時を返す。
+ * 受信レシートが存在しない場合は`null`（未確認）を返す。
+ */
+export async function getUserSelfConfirmation(
+  announcementId: string,
+  applicantUserId: string
+): Promise<string | null> {
+  const receipt = await prisma.announcementReadReceipt.findUnique({
+    where: { announcementId_applicantUserId: { announcementId, applicantUserId } },
+  });
+
+  return receipt?.confirmedAt ? receipt.confirmedAt.toISOString() : null;
+}
+
+/**
+ * 指定した`ApplicantUser`本人の受信レシートにのみ確認済み日時を記録する。
+ * 同一会社の他の`ApplicantUser`の既読状態は変更しない（要件39.3）。既に確認済みの場合、
+ * 記録時刻は上書きしない。
+ */
+export async function recordUserConfirmation(
+  announcementId: string,
+  applicantUserId: string
+): Promise<void> {
+  const existing = await prisma.announcementReadReceipt.findUnique({
+    where: { announcementId_applicantUserId: { announcementId, applicantUserId } },
+  });
+  if (existing?.confirmedAt) {
+    return;
+  }
+
+  await prisma.announcementReadReceipt.upsert({
+    where: { announcementId_applicantUserId: { announcementId, applicantUserId } },
+    update: { confirmedAt: new Date() },
+    create: { announcementId, applicantUserId, confirmedAt: new Date() },
+  });
+}
+
+/**
+ * 対象の`ApplicantUser`のうち未確認の者へ、個人単位の既読リマインドを送信したことを
+ * 受信レシートに記録し（`readReminderSentAt`）、対象者のメール宛にリマインドを送信する
+ * （要件39.6）。受信レシートが未生成の場合は`confirmedAt: null`のまま新規作成する。
+ * 既に確認済み（`confirmedAt`非`null`）の`ApplicantUser`はリマインド対象・記録の両方から
+ * 除外する（要件39.6, 42.2）。空配列を渡した場合は何もしない。
+ */
+export async function sendUserReadReminders(
+  announcementId: string,
+  applicantUserIds: string[]
+): Promise<void> {
+  if (applicantUserIds.length === 0) {
+    return;
+  }
+
+  const applicantUsers = await prisma.applicantUser.findMany({
+    where: { id: { in: applicantUserIds } },
+    include: { announcementReadReceipts: { where: { announcementId } } },
+  });
+
+  const targets = applicantUsers.filter(
+    (applicantUser) => !applicantUser.announcementReadReceipts[0]?.confirmedAt
+  );
+  if (targets.length === 0) {
+    return;
+  }
+
+  const sentAt = new Date();
+  await Promise.all(
+    targets.map((applicantUser) =>
+      prisma.announcementReadReceipt.upsert({
+        where: {
+          announcementId_applicantUserId: {
+            announcementId,
+            applicantUserId: applicantUser.id,
+          },
+        },
+        update: { readReminderSentAt: sentAt },
+        create: {
+          announcementId,
+          applicantUserId: applicantUser.id,
+          readReminderSentAt: sentAt,
+        },
+      })
+    )
+  );
+
+  await notifyAnnouncementUserReadReminder(
+    announcementId,
+    targets.map((applicantUser) => ({
+      email: applicantUser.email,
+      preferredLocale: applicantUser.preferredLocale,
+    }))
+  );
+}
+
+/**
+ * 指定したお知らせの確認済み（人数ベース）・実施済み（会社ベース）人数を集計する。
+ * 確認済みの分母は対象`ApplicantUser`数、実施済みの分母は対象会社数であり、単位・分母が
+ * 異なる（要件39.2, 40.2）。`actionRequired`が偽のお知らせでは`completedCount`は`null`を返す。
  */
 export async function getAnnouncementTrackingSummary(
   announcementId: string
 ): Promise<AnnouncementTrackingSummary> {
   const announcement = await findAnnouncementById(announcementId);
   if (!announcement) {
-    return { totalRecipients: 0, confirmedCount: 0, completedCount: null };
+    return { totalRecipientUsers: 0, confirmedCount: 0, totalCompanies: 0, completedCount: null };
   }
 
-  const statuses = await getAnnouncementRecipientStatuses(announcementId);
-  const confirmedCount = statuses.filter((status) => status.confirmedAt !== null).length;
+  const [userReadStatuses, companyStatuses] = await Promise.all([
+    getAnnouncementUserReadStatuses(announcementId),
+    getAnnouncementRecipientStatuses(announcementId),
+  ]);
+
+  const confirmedCount = userReadStatuses.filter((status) => status.confirmedAt !== null).length;
   const completedCount = announcement.actionRequired
-    ? statuses.filter((status) => status.completedAt !== null).length
+    ? companyStatuses.filter((status) => status.completedAt !== null).length
     : null;
 
-  return { totalRecipients: statuses.length, confirmedCount, completedCount };
+  return {
+    totalRecipientUsers: userReadStatuses.length,
+    confirmedCount,
+    totalCompanies: companyStatuses.length,
+    completedCount,
+  };
 }
 
 /**
@@ -470,56 +603,10 @@ async function findTargetRecipientsForCompany(
 }
 
 /**
- * 指定した会社かつ配信対象に含まれる担当者全員について、`field`が未記録のものにのみ
- * 現在時刻を記録する。既に記録済みの担当者は上書きしない。
- */
-async function recordCompanyStatus(
-  announcementId: string,
-  companyCode: string,
-  field: "confirmedAt" | "completedAt"
-): Promise<void> {
-  const announcement = await findAnnouncementById(announcementId);
-  if (!announcement) {
-    return;
-  }
-
-  const recipients = await findTargetRecipientsForCompany(
-    announcement,
-    announcementId,
-    companyCode
-  );
-  const unrecorded = recipients.filter((recipient) => !recipient.statuses[0]?.[field]);
-
-  const recordedAt = new Date();
-  await Promise.all(
-    unrecorded.map((recipient) =>
-      prisma.announcementRecipientStatus.upsert({
-        where: {
-          announcementId_recipientId: { announcementId, recipientId: recipient.id },
-        },
-        update: { [field]: recordedAt },
-        create: { announcementId, recipientId: recipient.id, [field]: recordedAt },
-      })
-    )
-  );
-}
-
-/**
- * 指定した会社かつ配信対象に含まれる担当者全員について、確認済み日時が未記録の
- * ものにのみ現在時刻を記録する。既に確認済みの担当者の記録時刻は上書きしない。
- * 配信対象に指定会社が含まれない場合、対象0件で何も記録しない。
- */
-export async function recordCompanyConfirmation(
-  announcementId: string,
-  companyCode: string
-): Promise<void> {
-  await recordCompanyStatus(announcementId, companyCode, "confirmedAt");
-}
-
-/**
  * 対応要否（`actionRequired`）が真のお知らせについてのみ、指定した会社かつ配信対象に
  * 含まれる担当者全員の実施済み日時を記録する。対応要否が偽のお知らせに対しては
- * 何も記録しない。既に実施済みの担当者の記録時刻は上書きしない。
+ * 何も記録しない。既に実施済みの担当者の記録時刻は上書きしない。実施済み（対応完了）は
+ * 引き続き会社単位のまま（要件40.4、確認済みの個人単位化の対象外）。
  */
 export async function recordCompanyCompletion(
   announcementId: string,
@@ -530,21 +617,40 @@ export async function recordCompanyCompletion(
     return;
   }
 
-  await recordCompanyStatus(announcementId, companyCode, "completedAt");
+  const recipients = await findTargetRecipientsForCompany(
+    announcement,
+    announcementId,
+    companyCode
+  );
+  const unrecorded = recipients.filter((recipient) => !recipient.statuses[0]?.completedAt);
+
+  const recordedAt = new Date();
+  await Promise.all(
+    unrecorded.map((recipient) =>
+      prisma.announcementRecipientStatus.upsert({
+        where: {
+          announcementId_recipientId: { announcementId, recipientId: recipient.id },
+        },
+        update: { completedAt: recordedAt },
+        create: { announcementId, recipientId: recipient.id, completedAt: recordedAt },
+      })
+    )
+  );
 }
 
 /**
- * 指定した会社かつ配信対象に含まれる担当者全員が確認済み（または実施済み）のときのみ、
- * 対応する日時を返す。1人でも未記録の担当者がいる場合、または対象担当者が
- * 1人も存在しない場合はnullを返す。
+ * 指定した会社かつ配信対象に含まれる担当者全員が実施済みのときのみ、対応完了日時を返す。
+ * 1人でも未記録の担当者がいる場合、または対象担当者が1人も存在しない場合は`null`を返す。
+ * 確認済み（既読）は個人単位化されたため本関数では扱わない（`getUserSelfConfirmation`が担う。
+ * 要件18.3）。
  */
 export async function getAnnouncementSelfStatusForCompany(
   announcementId: string,
   companyCode: string
-): Promise<AnnouncementSelfStatus> {
+): Promise<{ completedAt: string | null }> {
   const announcement = await findAnnouncementById(announcementId);
   if (!announcement) {
-    return { confirmedAt: null, completedAt: null };
+    return { completedAt: null };
   }
 
   const recipients = await findTargetRecipientsForCompany(
@@ -553,15 +659,13 @@ export async function getAnnouncementSelfStatusForCompany(
     companyCode
   );
   if (recipients.length === 0) {
-    return { confirmedAt: null, completedAt: null };
+    return { completedAt: null };
   }
 
   const statuses = recipients.map((recipient) => recipient.statuses[0]);
-  const allConfirmed = statuses.every((status) => status?.confirmedAt);
   const allCompleted = statuses.every((status) => status?.completedAt);
 
   return {
-    confirmedAt: allConfirmed ? statuses[0]!.confirmedAt!.toISOString() : null,
     completedAt: allCompleted ? statuses[0]!.completedAt!.toISOString() : null,
   };
 }

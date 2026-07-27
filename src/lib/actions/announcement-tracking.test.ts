@@ -7,6 +7,7 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
   completeAnnouncementForCurrentCompany: vi.fn(),
   confirmAnnouncementForCurrentCompany: vi.fn(),
   sendAnnouncementReminders: vi.fn(),
+  sendAnnouncementUserReadReminders: vi.fn(),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -14,11 +15,13 @@ import {
   completeAnnouncementForCurrentCompany,
   confirmAnnouncementForCurrentCompany,
   sendAnnouncementReminders,
+  sendAnnouncementUserReadReminders,
 } from "@/lib/api/announcement-tracking";
 import {
   completeAnnouncementAction,
   confirmAnnouncementAction,
   sendAnnouncementRemindersAction,
+  sendAnnouncementUserReadRemindersAction,
 } from "@/lib/actions/announcement-tracking";
 
 beforeEach(() => {
@@ -41,6 +44,26 @@ describe("sendAnnouncementRemindersAction", () => {
     await sendAnnouncementRemindersAction("announcement-1", []);
 
     expect(sendAnnouncementReminders).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendAnnouncementUserReadRemindersAction", () => {
+  it("対象ApplicantUser IDを渡すと個人単位の既読リマインドを送信し、関連ルートを再検証する", async () => {
+    vi.mocked(sendAnnouncementUserReadReminders).mockResolvedValue(undefined);
+
+    await sendAnnouncementUserReadRemindersAction("announcement-1", ["user-1"]);
+
+    expect(sendAnnouncementUserReadReminders).toHaveBeenCalledWith("announcement-1", [
+      "user-1",
+    ]);
+    expect(revalidatePath).toHaveBeenCalled();
+  });
+
+  it("空配列を渡した場合は何もせず正常終了する", async () => {
+    await sendAnnouncementUserReadRemindersAction("announcement-1", []);
+
+    expect(sendAnnouncementUserReadReminders).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

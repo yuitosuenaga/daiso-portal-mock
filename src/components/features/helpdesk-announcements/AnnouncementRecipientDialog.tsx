@@ -10,40 +10,87 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { sendAnnouncementRemindersAction } from "@/lib/actions/announcement-tracking";
-import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
+import {
+  sendAnnouncementRemindersAction,
+  sendAnnouncementUserReadRemindersAction,
+} from "@/lib/actions/announcement-tracking";
+import type {
+  AnnouncementRecipientStatusView,
+  AnnouncementUserReadStatusView,
+} from "@/types/announcement-recipient";
 
-export interface AnnouncementRecipientDialogProps {
+interface ConfirmedModeProps {
+  /** 未確認の`ApplicantUser`一覧（個人単位・要件39.5） */
+  mode: "confirmed";
+  recipients: AnnouncementUserReadStatusView[];
+}
+
+interface CompletedModeProps {
+  /** 未実施の会社一覧（会社単位・従来どおり） */
+  mode: "completed";
+  recipients: AnnouncementRecipientStatusView[];
+}
+
+export type AnnouncementRecipientDialogProps = (ConfirmedModeProps | CompletedModeProps) & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   announcementId: string;
-  /** どの状態（未確認/未実施）の担当者一覧かを示す表示モード */
-  mode: "confirmed" | "completed";
-  /** 未対応（`mode`に応じた未確認または未実施）の担当者一覧 */
-  recipients: AnnouncementRecipientStatusView[];
+};
+
+interface DisplayRow {
+  id: string;
+  primaryLabel: string;
+  email: string | null;
+  companyName: string;
+  country: string;
+  reminderSentAt: string | null;
 }
 
 /**
  * 未対応の担当者一覧を表示し、個別・一括でリマインドを送信するダイアログ。
- * 実際の通知配信は行わず、送信完了の表示のみを行う。
+ * `mode: "confirmed"`は確認済みトラッキング対象母集団のうち未確認の`ApplicantUser`一覧
+ * （担当者名・メール・会社名・国）を表示し、個人宛の既読リマインドを送信する（要件39.5, 39.6）。
+ * `mode: "completed"`は従来どおり会社単位の未実施一覧＋完了督促を表示する（要件40.2）。
  */
-export function AnnouncementRecipientDialog({
-  open,
-  onOpenChange,
-  announcementId,
-  mode,
-  recipients,
-}: AnnouncementRecipientDialogProps) {
+export function AnnouncementRecipientDialog(props: AnnouncementRecipientDialogProps) {
+  const { open, onOpenChange, announcementId } = props;
   const t = useTranslations("helpdeskAnnouncements.tracking");
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
   const [locallyRemindedIds, setLocallyRemindedIds] = useState<string[]>([]);
 
-  function handleRemind(recipientIds: string[]) {
+  const rows: DisplayRow[] =
+    props.mode === "confirmed"
+      ? props.recipients.map((recipient) => ({
+          id: recipient.applicantUserId,
+          primaryLabel: recipient.displayName,
+          email: recipient.email,
+          companyName: recipient.companyName,
+          country: recipient.country,
+          reminderSentAt: recipient.readReminderSentAt,
+        }))
+      : props.recipients.map((recipient) => ({
+          id: recipient.recipientId,
+          primaryLabel: recipient.contactName,
+          email: null,
+          companyName: recipient.companyName,
+          country: recipient.country,
+          reminderSentAt: recipient.reminderSentAt,
+        }));
+
+  function isAlreadyReminded(row: DisplayRow): boolean {
+    return row.reminderSentAt !== null || locallyRemindedIds.includes(row.id);
+  }
+
+  function handleRemind(ids: string[]) {
     startTransition(async () => {
       try {
-        await sendAnnouncementRemindersAction(announcementId, recipientIds);
-        setLocallyRemindedIds((current) => [...current, ...recipientIds]);
+        if (props.mode === "confirmed") {
+          await sendAnnouncementUserReadRemindersAction(announcementId, ids);
+        } else {
+          await sendAnnouncementRemindersAction(announcementId, ids);
+        }
+        setLocallyRemindedIds((current) => [...current, ...ids]);
         setFeedback("success");
       } catch {
         setFeedback("error");
@@ -51,23 +98,15 @@ export function AnnouncementRecipientDialog({
     });
   }
 
-  function isAlreadyReminded(recipient: AnnouncementRecipientStatusView): boolean {
-    return (
-      recipient.reminderSentAt !== null ||
-      locallyRemindedIds.includes(recipient.recipientId)
-    );
-  }
-
-  const pendingRecipientIds = recipients
-    .filter((recipient) => !isAlreadyReminded(recipient))
-    .map((recipient) => recipient.recipientId);
+  const pendingIds = rows.filter((row) => !isAlreadyReminded(row)).map((row) => row.id);
+  const showEmailColumn = props.mode === "confirmed";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === "confirmed"
+            {props.mode === "confirmed"
               ? t("dialogTitleConfirmed")
               : t("dialogTitleCompleted")}
           </DialogTitle>
@@ -84,18 +123,18 @@ export function AnnouncementRecipientDialog({
           </Alert>
         )}
 
-        {recipients.length === 0 ? (
+        {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("allRespondedMessage")}</p>
         ) : (
           <div className="space-y-3">
-            {pendingRecipientIds.length > 0 && (
+            {pendingIds.length > 0 && (
               <div className="flex justify-end">
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
                   disabled={isPending}
-                  onClick={() => handleRemind(pendingRecipientIds)}
+                  onClick={() => handleRemind(pendingIds)}
                 >
                   {t("remindAllButton")}
                 </Button>
@@ -106,25 +145,25 @@ export function AnnouncementRecipientDialog({
                 <thead>
                   <tr className="text-left text-xs text-muted-foreground">
                     <th className="pb-2 font-medium">{t("columnContact")}</th>
+                    {showEmailColumn && (
+                      <th className="pb-2 font-medium">{t("columnEmail")}</th>
+                    )}
                     <th className="pb-2 font-medium">{t("columnCompany")}</th>
                     <th className="pb-2 font-medium">{t("columnCountry")}</th>
                     <th className="pb-2" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {recipients.map((recipient) => (
-                    <tr key={recipient.recipientId}>
-                      <td className="py-2 pr-2 font-medium">
-                        {recipient.contactName}
-                      </td>
-                      <td className="py-2 pr-2 text-muted-foreground">
-                        {recipient.companyName}
-                      </td>
-                      <td className="py-2 pr-2 text-muted-foreground">
-                        {recipient.country}
-                      </td>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="py-2 pr-2 font-medium">{row.primaryLabel}</td>
+                      {showEmailColumn && (
+                        <td className="py-2 pr-2 text-muted-foreground">{row.email}</td>
+                      )}
+                      <td className="py-2 pr-2 text-muted-foreground">{row.companyName}</td>
+                      <td className="py-2 pr-2 text-muted-foreground">{row.country}</td>
                       <td className="py-2 text-right">
-                        {isAlreadyReminded(recipient) ? (
+                        {isAlreadyReminded(row) ? (
                           <span className="text-xs text-muted-foreground">
                             {t("alreadyRemindedLabel")}
                           </span>
@@ -134,7 +173,7 @@ export function AnnouncementRecipientDialog({
                             size="sm"
                             variant="outline"
                             disabled={isPending}
-                            onClick={() => handleRemind([recipient.recipientId])}
+                            onClick={() => handleRemind([row.id])}
                           >
                             {t("remindButton")}
                           </Button>

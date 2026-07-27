@@ -241,7 +241,6 @@ import { createCompany } from "@/lib/server/company-service";
 import {
   getAnnouncementRecipientStatuses,
   recordCompanyCompletion,
-  recordCompanyConfirmation,
 } from "@/lib/server/announcement-service";
 
 beforeEach(() => {
@@ -267,24 +266,9 @@ describe("Company作成直後のAnnouncementRecipient同期（結合テスト）
       companyCode: "ph-new-onboarding",
       companyName: "新規オンボーディング商事",
       contactName: "新規オンボーディング商事",
-      confirmedAt: null,
       completedAt: null,
     });
     expect(company.companyCode).toBe("ph-new-onboarding");
-  });
-
-  it("新規Companyがrecordコンパニーコンファーメーション（recordCompanyConfirmation）の記録対象に含まれる", async () => {
-    await createCompany({
-      name: "新規オンボーディング商事",
-      country: "PH",
-      companyCode: "ph-new-onboarding",
-    });
-
-    await recordCompanyConfirmation(store.FIXED_ANNOUNCEMENT_ID, "ph-new-onboarding");
-
-    const statuses = await getAnnouncementRecipientStatuses(store.FIXED_ANNOUNCEMENT_ID);
-    expect(statuses).toHaveLength(1);
-    expect(statuses[0].confirmedAt).not.toBeNull();
   });
 
   it("新規Companyがrecordコンパニーコンプリーション（recordCompanyCompletion）の記録対象に含まれる", async () => {

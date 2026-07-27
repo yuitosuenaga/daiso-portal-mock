@@ -289,9 +289,11 @@ async function seedAnnouncements(): Promise<void> {
 
 async function seedAnnouncementRecipientStatuses(): Promise<void> {
   for (const seed of RECIPIENT_STATUS_SEEDS) {
-    const recipientIds = Array.from(
-      new Set([...seed.confirmed, ...seed.completed, ...seed.reminded])
-    );
+    // 実施済み（completed）・完了督促（reminded）は引き続き会社単位（`AnnouncementRecipient`）
+    // で保持する。確認済み（confirmed）は個人単位化されたため、`AnnouncementRecipientStatus`
+    // 側では扱わず`seedAnnouncementReadReceipts`が個人単位（`AnnouncementReadReceipt`）で
+    // 生成する（2026-07-27 追記: 要件39〜42のトラッキング個人単位化）。
+    const recipientIds = Array.from(new Set([...seed.completed, ...seed.reminded]));
 
     for (const recipientId of recipientIds) {
       await prisma.announcementRecipientStatus.upsert({
@@ -305,7 +307,6 @@ async function seedAnnouncementRecipientStatuses(): Promise<void> {
         create: {
           announcementId: seed.announcementId,
           recipientId,
-          confirmedAt: seed.confirmed.includes(recipientId) ? new Date(CONFIRMED_AT) : null,
           completedAt: seed.completed.includes(recipientId) ? new Date(COMPLETED_AT) : null,
           reminderSentAt: seed.reminded.includes(recipientId)
             ? new Date(REMINDER_SENT_AT)
@@ -313,6 +314,34 @@ async function seedAnnouncementRecipientStatuses(): Promise<void> {
         },
       });
     }
+  }
+}
+
+/**
+ * 唯一の実申請者アカウント（`applicant@daiso-vietnam.example.com`、`vn-daiso-vietnam`所属）を、
+ * フェーズ1モックの会社単位担当者ID`vn-daiso-vietnam-1`が確認済みだった各お知らせについて
+ * 個人単位で確認済みとして扱う（要件39、個人単位化後のデモ用シード）。
+ */
+async function seedAnnouncementReadReceipts(applicantUserId: string): Promise<void> {
+  for (const seed of RECIPIENT_STATUS_SEEDS) {
+    if (!seed.confirmed.includes("vn-daiso-vietnam-1")) {
+      continue;
+    }
+
+    await prisma.announcementReadReceipt.upsert({
+      where: {
+        announcementId_applicantUserId: {
+          announcementId: seed.announcementId,
+          applicantUserId,
+        },
+      },
+      update: {},
+      create: {
+        announcementId: seed.announcementId,
+        applicantUserId,
+        confirmedAt: new Date(CONFIRMED_AT),
+      },
+    });
   }
 }
 
@@ -951,6 +980,7 @@ async function main() {
   await seedAnnouncementRecipients(companyIdByCode);
   await seedAnnouncements();
   await seedAnnouncementRecipientStatuses();
+  await seedAnnouncementReadReceipts(applicantUser.id);
   await seedDocuments();
   await seedFaqs();
   await seedLinks();

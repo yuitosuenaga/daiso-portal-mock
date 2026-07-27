@@ -17,7 +17,10 @@ import {
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
-import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
+import type {
+  AnnouncementRecipientStatusView,
+  AnnouncementUserReadStatusView,
+} from "@/types/announcement-recipient";
 
 export interface AnnouncementManagementListClientProps {
   /** 公開日降順で整列済みの全お知らせ */
@@ -35,8 +38,10 @@ export interface AnnouncementManagementListClientProps {
   publishPeriodToSeparator: string;
   dueDateLabel: string;
   editLinkLabel: string;
-  /** お知らせIDごとの担当者別確認済み・実施済み・リマインド送信状態 */
+  /** お知らせIDごとの、実施済み・完了督促の会社単位状態（要件40） */
   recipientStatusesByAnnouncementId: Record<string, AnnouncementRecipientStatusView[]>;
+  /** お知らせIDごとの、確認済み（既読）の個人単位受信レシート結合ビュー（要件39） */
+  userReadStatusesByAnnouncementId: Record<string, AnnouncementUserReadStatusView[]>;
 }
 
 /**
@@ -59,6 +64,7 @@ export function AnnouncementManagementListClient({
   dueDateLabel,
   editLinkLabel,
   recipientStatusesByAnnouncementId,
+  userReadStatusesByAnnouncementId,
 }: AnnouncementManagementListClientProps) {
   const t = useTranslations("helpdeskAnnouncements.list.filter");
   const tList = useTranslations("helpdeskAnnouncements.list");
@@ -146,6 +152,9 @@ export function AnnouncementManagementListClient({
                     actionRequired={announcement.actionRequired}
                     recipientStatuses={
                       recipientStatusesByAnnouncementId[announcement.id] ?? []
+                    }
+                    userReadStatuses={
+                      userReadStatusesByAnnouncementId[announcement.id] ?? []
                     }
                   />
                 )}

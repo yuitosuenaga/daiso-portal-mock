@@ -1,6 +1,9 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllAnnouncements } from "@/lib/api/announcements";
-import { getAnnouncementRecipientStatuses } from "@/lib/api/announcement-tracking";
+import {
+  getAnnouncementRecipientStatuses,
+  getAnnouncementUserReadStatuses,
+} from "@/lib/api/announcement-tracking";
 import { triggerAutoEscalationBestEffort } from "@/lib/server/announcement-escalation";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
@@ -12,7 +15,10 @@ import {
   ManagementListSkeleton,
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { Announcement, AnnouncementCategory } from "@/types/announcement";
-import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
+import type {
+  AnnouncementRecipientStatusView,
+  AnnouncementUserReadStatusView,
+} from "@/types/announcement-recipient";
 
 export async function AnnouncementManagementList() {
   // 対応期限超過の自動エスカレーション（要件38）をアクセス時トリガーとしてベストエフォートで
@@ -77,19 +83,34 @@ export async function AnnouncementManagementList() {
     label: tCategories(code),
   }));
 
-  const recipientStatusesEntries = await Promise.all(
-    announcements.map(
-      async (announcement) =>
-        [
-          announcement.id,
-          await getAnnouncementRecipientStatuses(announcement.id),
-        ] as const
-    )
-  );
+  const [recipientStatusesEntries, userReadStatusesEntries] = await Promise.all([
+    Promise.all(
+      announcements.map(
+        async (announcement) =>
+          [
+            announcement.id,
+            await getAnnouncementRecipientStatuses(announcement.id),
+          ] as const
+      )
+    ),
+    Promise.all(
+      announcements.map(
+        async (announcement) =>
+          [
+            announcement.id,
+            await getAnnouncementUserReadStatuses(announcement.id),
+          ] as const
+      )
+    ),
+  ]);
   const recipientStatusesByAnnouncementId: Record<
     string,
     AnnouncementRecipientStatusView[]
   > = Object.fromEntries(recipientStatusesEntries);
+  const userReadStatusesByAnnouncementId: Record<
+    string,
+    AnnouncementUserReadStatusView[]
+  > = Object.fromEntries(userReadStatusesEntries);
 
   return (
     <div>
@@ -111,6 +132,7 @@ export async function AnnouncementManagementList() {
           dueDateLabel={t("dueDateLabel")}
           editLinkLabel={t("editLink")}
           recipientStatusesByAnnouncementId={recipientStatusesByAnnouncementId}
+          userReadStatusesByAnnouncementId={userReadStatusesByAnnouncementId}
         />
       </ManagementListCard>
     </div>
