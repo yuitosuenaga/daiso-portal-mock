@@ -11,6 +11,7 @@ function company(overrides: Partial<CompanyWithStats> = {}): CompanyWithStats {
     companyCode: "TH-001",
     createdAt: "2026-07-01T00:00:00.000Z",
     applicantUserCount: 2,
+    activeApplicantUserCount: 2,
     ...overrides,
   };
 }

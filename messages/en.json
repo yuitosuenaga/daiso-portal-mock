@@ -575,6 +575,50 @@
       "activateConfirmButton": "Confirm Reactivation",
       "cancelButton": "Cancel",
       "toggleError": "Failed to update. Please try again later."
+    },
+    "import": {
+      "title": "Bulk Import Companies (CSV)",
+      "description": "Upload a CSV file with the columns \"name,country,companyCode\" (first row is the header). You can review the validation results for every row before anything is saved. If any row has an error, nothing will be registered.",
+      "backToList": "Back to list",
+      "templateDownloadLabel": "Download CSV template",
+      "fileInputLabel": "Choose CSV file",
+      "uploadButtonLabel": "Validate and upload",
+      "uploadingLabel": "Validating…",
+      "resultsHeading": "Validation results",
+      "rowNumberHeader": "Row",
+      "rowNameHeader": "Company name",
+      "rowCompanyCodeHeader": "Company code",
+      "rowStatusHeader": "Result",
+      "rowErrorsHeader": "Errors",
+      "statusOk": "Ready",
+      "statusError": "Error",
+      "successMessage": "Registered '{count}' companies",
+      "noFileSelected": "Please choose a CSV file",
+      "genericError": "Validation or registration failed. Please try again later.",
+      "errors": {
+        "required": "Company name, country, and company code are required",
+        "companyCodeFormat": "The company code format is invalid (only lowercase letters, digits, and hyphens are allowed; no leading, trailing, or consecutive hyphens)",
+        "invalidCountry": "The country code is invalid",
+        "companyCodeDuplicate": "This company code is already registered",
+        "duplicateInFile": "This company code is duplicated within this CSV file"
+      },
+      "fileErrors": {
+        "empty": "The CSV file is empty",
+        "headerMismatch": "The header row does not match \"name,country,companyCode\"",
+        "noDataRows": "The file has no data rows"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "Select all",
+      "selectRowLabel": "Select '{name}'",
+      "selectedCount": "'{count}' companies selected",
+      "bulkDeactivateButton": "Bulk deactivate selected companies",
+      "confirmTitle": "Bulk Deactivate Companies",
+      "confirmMessage": "This will deactivate all '{userCount}' active applicant account(s) belonging to the '{companyCount}' selected company(ies). Deactivated accounts will no longer be able to log in. Are you sure?",
+      "confirmButton": "Confirm Bulk Deactivation",
+      "cancelButton": "Cancel",
+      "successMessage": "Deactivated {count} applicant account(s)",
+      "errorMessage": "Bulk deactivation failed. Please try again later."
     }
   },
   "nav": {

@@ -75,19 +75,27 @@ export async function listCompaniesForHelpdesk(): Promise<CompanyOption[]> {
 
 /**
  * 販社管理画面向けに、`name`昇順で全社を取得する。各社の`applicantUserCount`
- * （所属する`ApplicantUser`件数）をPrismaの`_count`で集計して付与する。
+ * （所属する`ApplicantUser`総件数）をPrismaの`_count`で集計して付与し、
+ * `activeApplicantUserCount`（有効な`ApplicantUser`件数。一括無効化の対象見込み件数、
+ * 要件20.4）を`applicantUsers`をフィルタ付きで取得した件数から算出して付与する。
+ * （Prismaの`_count`はフィルタ付き集計に制約があるため、design.mdの方針どおり
+ * `applicantUsers`を`select`して集計する方式を採る。）
  */
 export async function listCompaniesForManagement(): Promise<CompanyWithStats[]> {
   await requireHelpdeskStaffSession();
 
   const records = await prisma.company.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { applicantUsers: true } } },
+    include: {
+      _count: { select: { applicantUsers: true } },
+      applicantUsers: { where: { isActive: true }, select: { id: true } },
+    },
   });
 
   return records.map((record) => ({
     ...mapCompany(record),
     applicantUserCount: record._count.applicantUsers,
+    activeApplicantUserCount: record.applicantUsers.length,
   }));
 }
 
@@ -182,4 +190,96 @@ export async function isCompanyCodeTaken(
   });
 
   return record !== null;
+}
+
+/**
+ * 指定された販社コード群のうち、既に`Company`として存在するものを返す
+ * （CSV一括登録の一意性検証・要件19.7向けの読み取り専用関数。多層防御）。
+ * `codes`が空配列の場合はPrismaを呼び出さず空配列を返す。
+ */
+export async function findExistingCompanyCodes(codes: string[]): Promise<string[]> {
+  await requireHelpdeskStaffSession();
+
+  if (codes.length === 0) {
+    return [];
+  }
+
+  const records = await prisma.company.findMany({
+    where: { companyCode: { in: codes } },
+    select: { companyCode: true },
+  });
+
+  return records.map((record) => record.companyCode);
+}
+
+/**
+ * 複数の会社を1トランザクションで一括作成する（CSV一括登録・要件19.9, 19.10）。
+ * 各`Company`作成時に、既存の単件登録（`createCompany`／要件12）と同一の規則で
+ * 対応する`AnnouncementRecipient`（`contactName` = 会社名）を同時に作成する。
+ * いずれか1件でも失敗した場合は全件がロールバックされる（all-or-nothing）。
+ * 呼び出し元（`importCompaniesAction`）が事前に全行の検証を完了させていることを前提とする。
+ */
+export async function createCompaniesBulk(
+  inputs: CreateCompanyInput[]
+): Promise<Company[]> {
+  await requireHelpdeskStaffSession();
+
+  if (inputs.length === 0) {
+    return [];
+  }
+
+  const records = await prisma.$transaction(async (tx) => {
+    const created: Awaited<ReturnType<typeof tx.company.create>>[] = [];
+
+    for (const input of inputs) {
+      const company = await tx.company.create({
+        data: {
+          name: input.name,
+          country: input.country,
+          companyCode: input.companyCode,
+        },
+      });
+
+      await tx.announcementRecipient.create({
+        data: {
+          companyId: company.id,
+          contactName: input.name,
+        },
+      });
+
+      created.push(company);
+    }
+
+    return created;
+  });
+
+  return records.map(mapCompany);
+}
+
+/**
+ * 選択された会社群に所属する有効な（`isActive = true`の）`ApplicantUser`を
+ * 一括で無効化する（複数販社の一括無効化・要件20.2, 20.5, 20.6）。
+ * `Company`自体には有効/無効フラグを持たせず、所属アカウントの`isActive`のみを
+ * 更新する。`where`に`isActive: true`を含めることで、既に無効なレコードを
+ * 対象外にし冪等性を担保する。`companyIds`が空配列の場合はPrismaを呼び出さず
+ * `{ deactivatedCount: 0 }`を返す（防御）。
+ */
+export async function deactivateApplicantUsersByCompanies(
+  companyIds: string[]
+): Promise<{ deactivatedCount: number }> {
+  await requireHelpdeskStaffSession();
+
+  if (companyIds.length === 0) {
+    return { deactivatedCount: 0 };
+  }
+
+  const result = await prisma.applicantUser.updateMany({
+    where: {
+      companyId: { in: companyIds },
+      isActive: true,
+    },
+    data: { isActive: false },
+  });
+
+  return { deactivatedCount: result.count };
 }
