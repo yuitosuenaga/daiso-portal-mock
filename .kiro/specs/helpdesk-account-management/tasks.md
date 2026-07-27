@@ -305,3 +305,70 @@
   - `companyFormSchema`のフォーマット検証（正常系/異常系）、`CompanyForm`のヘルプテキスト表示・フォーマットエラー表示・blur重複警告表示・編集モードでの自コード除外を検証する
   - _Requirements: 18.3, 18.4, 18.5_
   - _Depends: 35_
+
+- [ ] 36. 販社（Company）のCSV一括登録を実装する（2026-07-27 追記 / 要件19）
+- [ ] 36.1 CSVパース+行検証の純粋関数を実装する
+  - `src/lib/company-csv.ts`（新規）に`parseAndValidateCompanyCsv(csvText, existingCodes)`を実装する。ヘッダー行（`name,country,companyCode`固定）検証、UTF-8前提の行分割・カンマ分割（値トリム・ダブルクォート囲みの基本対応）、`country`の大文字化＋`INQUIRY_COUNTRY_CODES`所属検証、各行の`companyFormSchema.safeParse`、販社コードの「既存Company重複（`existingCodes`）」「ファイル内重複」検証を行い、`{ committed候補判定, rows: [{ rowNumber, name, companyCode, status, errors[] }], fileError? }`を構築する
+  - 行エラーは機械可読コード（`required`/`companyCodeFormat`/`companyCodeDuplicate`/`invalidCountry`/`duplicateInFile`）で返し、表示文言はUI側で解決する方針とする
+  - _Requirements: 19.2, 19.4, 19.5, 19.6, 19.7, 19.12_
+  - _Boundary: company-csv（純粋関数）_
+- [ ] 36.2 サービス層に一括作成・既存コード照会を追加する
+  - `src/lib/server/company-service.ts`に`findExistingCompanyCodes(codes: string[]): Promise<string[]>`（読み取り・多層防御）と`createCompaniesBulk(inputs: CreateCompanyInput[]): Promise<Company[]>`を追加する
+  - `createCompaniesBulk`は`prisma.$transaction`で全社の`company.create`＋対応する`announcementRecipient.create({ data: { companyId, contactName: input.name } })`をまとめて作成し、1件でも失敗すれば全ロールバックする（要件12と同一規則）。冒頭で`requireHelpdeskStaffSession()`を呼ぶ
+  - _Requirements: 19.7, 19.9, 19.10, 19.13_
+  - _Boundary: CompanyService_
+  - _Depends: 36.1_
+- [ ] 36.3 Server Action `importCompaniesAction` を追加する
+  - `src/lib/actions/companies.ts`に`importCompaniesAction(csvText: string): Promise<CompanyCsvImportResult>`を追加する。`requireHelpdeskStaffSession`後、`findExistingCompanyCodes`で既存コードを取得→`parseAndValidateCompanyCsv`で全行検証→全行okのときのみ`createCompaniesBulk`を実行し、`committed`/`createdCount`/`rows`/`fileError`を返す。`committed && createdCount>0`のとき既存`revalidateCompanyRoutes()`を呼ぶ
+  - _Requirements: 19.8, 19.9, 19.11, 19.13, 19.15, 19.16_
+  - _Boundary: CompanyActions_
+  - _Depends: 36.1, 36.2_
+- [ ] 36.4 CSV一括登録画面・フォームを実装する
+  - `src/app/[locale]/helpdesk/(dashboard)/companies/import/page.tsx`（新規, Server）に見出し・戻る導線・CSVテンプレートのダウンロード導線・アップロードClientの組み立てを実装する
+  - `src/components/features/helpdesk-companies/CompanyCsvImportForm.tsx`（新規, Client）にファイル選択→UTF-8テキスト読込→`importCompaniesAction`呼び出し→行別結果テーブル（行番号・会社名/コード・成功見込み/エラー内容）表示→全件成功時に「N社を登録しました」表示を実装する
+  - 一覧ページ（`companies/page.tsx`）に`/helpdesk/companies/import`への導線を追加する
+  - _Requirements: 19.1, 19.3, 19.8, 19.11, 19.12_
+  - _Boundary: import page, CompanyCsvImportForm, companies/page.tsx（導線のみ）_
+  - _Depends: 36.3_
+- [ ] 36.5 (P) CSV一括登録の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`に`helpdeskCompanies.import`名前空間（画面見出し・説明・テンプレDLラベル・アップロードラベル・行別ステータス/各エラーコードの文言・成功/ファイルエラー文言）を日英で追加する
+  - _Requirements: 19.14_
+- [ ]* 36.6 CSV一括登録のテストを追加する
+  - `parseAndValidateCompanyCsv`の単体テスト（正常/ヘッダー不一致/空・0件/国コード不正/命名規則違反/既存コード重複/ファイル内重複/混在時に全件未登録）、`createCompaniesBulk`のサービステスト（全件作成+Recipient同期・途中失敗で全ロールバック）、`CompanyCsvImportForm`のコンポーネントテスト（結果テーブル表示・全件成功時のみ成功表示）
+  - _Requirements: 19.4〜19.12_
+  - _Depends: 36.1, 36.2, 36.3, 36.4_
+- [ ] 36.7 検証（型・Lint・テスト・ビルド・実機）
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が通ることを確認する
+  - playwright（日英）でエラー行提示→修正版で全件登録→一覧反映を確認する
+  - _Requirements: 19.1〜19.16_
+  - _Depends: 36.1, 36.2, 36.3, 36.4, 36.5_
+
+- [ ] 37. 複数販社の一括無効化（所属申請者アカウントの一括無効化）を実装する（2026-07-27 追記 / 要件20）
+- [ ] 37.1 サービス層に一括無効化と有効ユーザー数集計を追加する
+  - `src/lib/server/company-service.ts`に`deactivateApplicantUsersByCompanies(companyIds: string[]): Promise<{ deactivatedCount: number }>`を追加する。`requireHelpdeskStaffSession`後、`prisma.applicantUser.updateMany({ where: { companyId: { in: companyIds }, isActive: true }, data: { isActive: false } })`を実行し件数を返す。`companyIds`空は`{ deactivatedCount: 0 }`で早期return（冪等）
+  - `CompanyWithStats`（`src/types/company.ts`）に`activeApplicantUserCount: number`を追加し、`listCompaniesForManagement`で有効な申請者数を集計して付与する（既存の`applicantUserCount`総数は維持）
+  - _Requirements: 20.2, 20.4, 20.5, 20.6, 20.9_
+  - _Boundary: CompanyService, Company型_
+- [ ] 37.2 Server Action `deactivateCompaniesApplicantUsersAction` を追加する
+  - `src/lib/actions/companies.ts`に`deactivateCompaniesApplicantUsersAction(companyIds: string[]): Promise<{ deactivatedCount: number }>`を追加する。`deactivateApplicantUsersByCompanies`を呼び、実行後に`revalidateCompanyRoutes()`（一覧・詳細）を呼ぶ
+  - _Requirements: 20.5, 20.7, 20.9_
+  - _Boundary: CompanyActions_
+  - _Depends: 37.1_
+- [ ] 37.3 一覧に複数選択・一括無効化UIを実装する
+  - `CompanyManagementListClient.tsx`に行チェックボックス・ヘッダー全選択・選択件数表示・「選択した販社を一括無効化」ボタンを追加する。ボタンは共通`ConfirmDialog`を開き、本文に選択会社数と選択会社の`activeApplicantUserCount`合計（無効化見込み件数）を埋め込む。確定時のみ`deactivateCompaniesApplicantUsersAction`を実行し、成功後は件数表示＋選択クリア、失敗時はエラー表示（選択維持）
+  - `activeApplicantUserCount`を一覧に渡すため、`CompanyManagementList`（Server）から当該値を含めて渡す。既存の検索絞り込み・詳細導線・レスポンシブ表示を壊さない
+  - _Requirements: 20.1, 20.3, 20.4, 20.5, 20.7, 20.8, 20.13_
+  - _Boundary: CompanyManagementListClient, CompanyManagementList_
+  - _Depends: 37.1, 37.2_
+- [ ] 37.4 (P) 一括無効化の翻訳キーを追加する
+  - `messages/ja.json`・`messages/en.json`に`helpdeskCompanies.bulkDeactivate`名前空間（チェックボックスラベル・全選択・選択件数・一括無効化ボタン・確認モーダルの見出し/本文（`{companyCount}`・`{userCount}`プレースホルダー）/確認/キャンセル・成功/エラー文言）を日英で追加する
+  - _Requirements: 20.12_
+- [ ]* 37.5 一括無効化のテストを追加する
+  - `deactivateApplicantUsersByCompanies`のサービステスト（有効ユーザーのみfalse化・既存無効は不変・件数返却・空配列で0件）、`listCompaniesForManagement`の`activeApplicantUserCount`集計テスト、`CompanyManagementListClient`のコンポーネントテスト（選択・全選択・件数表示・ConfirmDialog確定でaction呼び出し・キャンセルで未実行）
+  - _Requirements: 20.1〜20.7_
+  - _Depends: 37.1, 37.2, 37.3_
+- [ ] 37.6 検証（型・Lint・テスト・ビルド・実機）
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が通ることを確認する
+  - playwright（日英・レスポンシブ）で複数選択→確認モーダルの件数表示→一括無効化→詳細で当該会社の全ユーザー無効表示、および無効化ユーザーの再ログイン拒否（要件7.5・15の既存挙動）を確認する
+  - _Requirements: 20.1〜20.13_
+  - _Depends: 37.1, 37.2, 37.3, 37.4_
