@@ -300,3 +300,19 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 18.1, 18.2, 18.3, 18.4_
   - _Depends: documents-management タスク10_
+
+## 追加ラウンド（2026-07-27）: 選択ロケールに応じたタイトル・説明の表示（要件19）
+
+> 前提: `documents-management`spec のタスク11（`DocumentTranslation`追加・`resolveDocumentContent`・`getDocuments`への`locale`引数追加）が実装済みであること（同一エージェントが「documents一式」として先に`documents-management`タスク11 → 本タスク13の順で実装する）。
+
+- [ ] 13. 申請者側一覧を選択ロケールのタイトル・説明で表示する（要件19）
+  - `src/components/features/documents/DocumentList.tsx`で、既に`getLocale()`で取得済みの`locale`を用いて`getDocuments()`を`getDocuments({ locale })`に変更する（お知らせ`AnnouncementList`と同型）
+  - `DocumentListClient` / `DocumentListItem`は既存の`{document.title}`/`{document.description}`描画のまま変更しない（`getDocuments`が解決済みの内容を返す）
+  - _Requirements: 19.1, 19.2, 19.4_
+  - _Depends: documents-management タスク11.4, 11.8_
+
+- [ ]* 13.1 ロケール別表示の確認を行う
+  - `documents-management`spec側で`en`翻訳を持つドキュメントを用意し、申請者側`/documents`を`en`ロケールで表示すると`en`のタイトル・説明、`ja`ロケールでは`ja`の内容が表示され、未登録ロケールでは`ja`にフォールバックすることを確認する
+  - キーワード検索（要件12）が表示中ロケールの内容に対して機能すること、2列グリッド・新着バッジ・下書き非表示が従来どおり機能することを確認する
+  - _Requirements: 19.1, 19.3, 19.4_
+  - _Depends: 13_

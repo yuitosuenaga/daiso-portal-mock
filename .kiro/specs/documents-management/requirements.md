@@ -286,3 +286,40 @@
 12. The ヘルプデスクポータル shall `status`のバリデーションを、クライアント側（`documentFormSchema`）とServer Actions（`createDocumentAction` / `updateDocumentAction`）によるサーバー側保存時の両方で行い、`"draft"`・`"published"`以外の値を拒否する。
 13. The ヘルプデスクポータル shall 既存の登録済みドキュメント（seed投入済みの5件を含む）について、`status`列のデフォルト値を`published`とし、マイグレーション適用時に既存レコードが全て`published`（従来どおり申請者側に表示される状態）となるようにして後方互換を壊さない。
 14. When ドキュメントの`status`を変更して保存したとき、the ヘルプデスクポータル shall 既存の`revalidatePath`対象（ヘルプデスク側一覧・編集、申請者側一覧・詳細、要件8.1）を再検証し、状態変更が申請者側の表示（公開↔非表示の切り替え）へ反映されるようにする。
+
+---
+
+### 追加要望（2026-07-27）: ドキュメントのタイトル・説明の多言語対応（言語タブ入力）
+
+2026-07-21実施のプロダクト全体レビューで、ドキュメント（タイトル・説明）とFAQ（質問・回答）は単一言語入力のみで、お知らせ（`announcements`/`announcements-management`spec）だけが言語タブ方式（ja/en＋任意の追加言語）に対応しており、3機能間で多言語対応が非対称であることが報告された。20か国以上の海外販社が利用する発信ポータルとして、ドキュメントのタイトル・説明も、お知らせと同じ「ヘルプデスク担当者が言語ごとに手動入力できる」言語タブ方式へ揃える。
+
+本specは`Document`型・データモデル（Prisma）・マッパー（`document-mapper.ts`）・読み取り/書き込みサービス（`document-service.ts`）・バリデーション（`document.ts`）・ヘルプデスク側フォーム（`DocumentForm`）を所有するため、翻訳テーブル（`DocumentTranslation`）の新設・言語タブUI・言語別入力の保存・申請者側読み取り関数への表示解決（`resolveDocumentContent`）を本specで担う。申請者側の一覧画面（`/documents`）が「選択ロケールに応じたタイトル・説明を表示する」こと自体は`documents`spec側の要件として記述する（本specは表示解決関数と`locale`を受け取る読み取り関数の型契約を提供する）。
+
+既存のお知らせ多言語実装（`AnnouncementTranslation`モデル、`resolveAnnouncementContent`、`AnnouncementForm`の言語タブUI、`announcementFormSchema`の`titleEn`/`bodyEn`＋`translations`）をそのまま横展開し、新しい抽象化は導入しない。
+
+**スコープ外:**
+- 実際の機械翻訳（Google Cloud Translation API等）連携（お知らせと同じく対象外。あくまでヘルプデスク担当者が言語ごとに手動入力するUIまで）
+- 既存の単一言語ドキュメント（seed 5件・本番データ）に対する既存タイトル・説明の自動翻訳（既存の`title`/`description`は既定言語`ja`の内容として扱う。詳細は要件17.11の後方互換方針を参照）
+- ヘルプデスク管理一覧（要件1・14）の各行タイトル表示を選択ロケールで解決すること（管理一覧は従来どおり既定言語`ja`の`title`を表示する。お知らせ管理一覧と同じ挙動）
+- PDF/Googleドキュメント本体（ファイル・埋め込みコンテンツ）の多言語化（翻訳対象は`Document`の`title`・`description`テキストのみ）
+
+### 要件 17: ドキュメントのタイトル・説明の多言語対応
+
+**目的:** ヘルプデスク担当者として、ドキュメントのタイトル・説明を言語ごとに入力したい。そうすることで、20か国以上の海外販社担当者が自分の言語（または共通語の英語）でドキュメントの内容を把握できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall Prismaに`Document`のタイトル・説明を言語別に保持する子テーブル`DocumentTranslation`（`documentId`・`locale`・`title`・`description`（任意））を新設し、`@@unique([documentId, locale])`・`@@index([documentId])`・`onDelete: Cascade`を設定する（`AnnouncementTranslation`と同型。`title`/`description`が翻訳対象で、`title`は必須・`description`は任意）。
+2. The ヘルプデスクポータル shall 既定言語（`ja`）のタイトル・説明を引き続き`Document.title`/`Document.description`（親テーブルの列）に保持し、`locale === "ja"`の行を`DocumentTranslation`に作らない（`AnnouncementTranslation`と同一の方針）。
+3. The ヘルプデスクポータル shall ドキュメントの新規作成・編集フォーム（`DocumentForm`）に、`AnnouncementForm`と同型の言語タブUI（固定の「日本語（`ja`）」タブ・「English（`en`）」タブに加え、「言語を追加」ボタンで任意の言語コードの追加タブを動的に追加・削除できる）を提供し、各タブでタイトル・説明を言語別に入力できるようにする。
+4. The ヘルプデスクポータル shall `ja`タブ・`en`タブの両方でタイトルの入力を必須とし（`en`は`AnnouncementForm`と同じく実質必須）、いずれかのタイトルが未入力のまま保存しようとしたとき、保存操作をブロックしエラーのあるタブへ自動的に切り替えて入力を促す。説明（`description`）は全言語で任意とする（要件2.1の「説明（任意）」を維持）。
+5. The ヘルプデスクポータル shall 追加言語タブについて、言語コード（例: `th`・`vi`・`zh`）を自由入力で受け付け、`ja`・`en`・他の追加言語との重複を禁止し、重複時はエラーメッセージを表示して保存をブロックする（`announcementFormSchema`の重複検証と同型）。
+6. When ユーザーがフォームで各言語のタイトル・説明を入力して保存したとき、the ヘルプデスクポータル shall 既定言語（`ja`）の内容を`Document.title`/`description`に、`en`および追加言語の内容を`DocumentTranslation`の行として保存する（作成・編集の両方）。
+7. The ヘルプデスクポータル shall 既存ドキュメントの編集時に、登録済みの`ja`（親列）・`en`（翻訳行）・追加言語（翻訳行）を各タブの初期値として復元表示する。
+8. The ヘルプデスクポータル shall 申請者側の読み取り関数（`getDocuments` / `getDocumentById`、および`document-service.ts`の`listDocumentsVisibleTo` / `findDocumentVisibleTo`）が、呼び出し元から渡された`locale`に対応するタイトル・説明を解決して返す表示解決関数`resolveDocumentContent(document, locale)`を提供する。解決順序は`resolveAnnouncementContent`と同一とし、`locale`一致 → `en`翻訳 → 既定言語（`ja`＝親列）の順にフォールバックする。
+9. The ヘルプデスクポータル shall ヘルプデスク側の読み取り関数（`getAllDocuments` / `getDocumentByIdForHelpdesk`、および`listAllDocuments` / `findDocumentById`）については表示解決を行わず、既定言語（`ja`＝親列）のタイトル・説明と、全翻訳（`translations`配列）をそのまま返す（`DocumentForm`が全言語を編集できるようにするため。`listAllAnnouncements` / `findAnnouncementById`が`resolveAnnouncementContent`を適用しないのと同型）。
+10. The ヘルプデスクポータル shall タイトル・説明の多言語入力のバリデーション（`ja`/`en`タイトル必須・言語コード重複禁止・追加言語件数上限）を、クライアント側（`documentFormSchema`）とServer Actions（`createDocumentAction` / `updateDocumentAction`）によるサーバー側保存時の両方で行う。
+11. The ヘルプデスクポータル shall 既存の登録済みドキュメント（seed投入済みの5件・本番データ）について、既存の`Document.title`/`description`を既定言語（`ja`）の内容として扱い、翻訳テーブル追加のためのデータ移行（既存行の書き換え）を必要としない後方互換方針とする。`en`翻訳行を持たない既存ドキュメントを`en`ロケールで閲覧した場合は、要件17.8のフォールバック（`en`なし → `ja`）により既定言語の内容を表示する。
+12. The ヘルプデスクポータル shall 言語タブUIの文字列（`ja`/`en`タブ名・「言語を追加」「この言語を削除」・言語コードラベル/プレースホルダー・言語コード重複エラー）を`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する（`helpdeskAnnouncements.form.language`と同型の`helpdeskDocuments.form.language`名前空間を新設する）。
+13. The ヘルプデスクポータル shall タイトル・説明の多言語化を、登録方法（要件13の`sourceType`：アップロード／Googleリンク）・公開範囲（要件5の`targeting`）・公開状態（要件16の`status`）と独立して機能させる（いずれの`sourceType`・`targeting`・`status`のドキュメントにも言語別のタイトル・説明を設定できる）。
+14. When ドキュメントのタイトル・説明（各言語）を保存したとき、the ヘルプデスクポータル shall 既存の`revalidatePath`対象（ヘルプデスク側一覧・編集、申請者側一覧、要件8.1）を再検証し、言語別の内容が申請者側の表示へ反映されるようにする。

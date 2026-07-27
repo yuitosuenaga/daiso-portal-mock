@@ -459,3 +459,78 @@
   - 上記確認が問題ないことで完了とする
   - _Requirements: 16.8, 16.9, 16.14_
   - _Depends: 10.7, 10.8
+
+## 追加ラウンド（2026-07-27）: ドキュメントのタイトル・説明の多言語対応（要件17）
+
+> 本ラウンドは「documents一式」（`documents-management`＋`documents`）の実装を担当する1エージェントが、先に本specのタスク11を全て実装し、続けて`documents`spec側のタスク13（申請者側のロケール表示・確認）を行う想定。「faq一式」とはコード上の依存がなく、別エージェントで並行実装できる。
+> 参考実装（そのまま横展開する）: `AnnouncementTranslation`（schema.prisma）、`announcement-mapper.ts`の`resolveAnnouncementContent`/`ANNOUNCEMENT_INCLUDE`、`announcement-service.ts`の`translationsToNestedWrite`、`validation/announcement.ts`の`titleEn`/`bodyEn`＋`translations`＋transform、`AnnouncementForm.tsx`の言語タブUI。
+
+- [ ] 11. ドキュメントのタイトル・説明を多言語（言語タブ）対応にする（要件17）
+
+- [ ] 11.1 Prismaに`DocumentTranslation`モデルを追加しマイグレーションを生成する（要件17.1, 17.2, 17.11）
+  - `prisma/schema.prisma`に`AnnouncementTranslation`と同型の`model DocumentTranslation`（`documentId`・`locale`・`title`・`description String?`・`@@unique([documentId, locale])`・`@@index([documentId])`・`onDelete: Cascade`）を追加し、`Document`に`translations DocumentTranslation[]`を追加する
+  - `prisma migrate dev`で`add_document_translations`マイグレーションを生成する（テーブル作成のみ。既存`Document`行のデータ移行は行わない＝後方互換）
+  - _Requirements: 17.1, 17.2, 17.11_
+
+- [ ] 11.2 `Document`型に`translations`を追加する（要件17.1）
+  - `src/types/document.ts`に`DocumentTranslationView { locale; title; description? }`を追加し、`DocumentBase`に`translations: DocumentTranslationView[]`を追加する（`CreateDocumentInput`にも自動で含まれる）
+  - _Requirements: 17.1_
+  - _Depends: 11.1_
+
+- [ ] 11.3 マッパーに`DOCUMENT_INCLUDE`・`resolveDocumentContent`を追加する（要件17.8, 17.11）
+  - `src/lib/server/document-mapper.ts`に`DOCUMENT_INCLUDE = { translations: true }`・`DEFAULT_DOCUMENT_LOCALE = "ja"`・`resolveDocumentContent(document, locale)`（フォールバック順`locale`→`en`→`ja`）を追加する
+  - `mapDocument`の入力型を`Prisma.DocumentGetPayload<{ include: typeof DOCUMENT_INCLUDE }>`に変更し、`base`に`translations`のマッピングを追加する
+  - _Requirements: 17.8, 17.11_
+  - _Depends: 11.2_
+
+- [ ] 11.4 サービス層の読み書きを翻訳対応にする（要件17.6, 17.8, 17.9）
+  - `src/lib/server/document-service.ts`に`translationsToNestedWrite`（`announcement-service.ts`と同型：create=`{create}`、update=`{deleteMany:{}, create}`）を追加し、`createDocumentRecord`/`updateDocumentRecord`をネスト書き込み＋`include: DOCUMENT_INCLUDE`に変更する（`toDocumentData`は`ja`を親列に書く既存挙動を維持）
+  - 全読み取り関数に`include: DOCUMENT_INCLUDE`を付ける
+  - `listDocumentsVisibleTo`/`findDocumentVisibleTo`に`locale = DEFAULT_DOCUMENT_LOCALE`引数を追加し、`resolveDocumentContent`で`title`/`description`を上書きして返す。`listAllDocuments`/`findDocumentById`は未解決（ja）＋`translations`をそのまま返す
+  - _Requirements: 17.6, 17.8, 17.9_
+  - _Depends: 11.3_
+
+- [ ] 11.5 `documentFormSchema`を多言語入力に対応させる（要件17.4, 17.5, 17.10, 17.13）
+  - `src/lib/validation/document.ts`に`documentTranslationSchema`（`locale` min2/max10・`title` min1・`description` optional）を追加し、両ブランチ（またはブランチ共通base）へ`titleEn`（optional・実質必須）・`descriptionEn`（optional）・`translations`（default []）を追加する
+  - `.superRefine`に`en`タイトル必須・追加言語件数上限（20）・`ja`/`en`/追加言語間の言語コード重複禁止を追加し、`.transform`で`titleEn`/`descriptionEn`を`translations`の`en`行へ合成する（`announcementFormSchema`と同型）
+  - 型を`DocumentFormValues = z.input<...>`・`DocumentSubmitValues = z.output<...>`に分ける
+  - _Requirements: 17.4, 17.5, 17.10, 17.13_
+  - _Depends: 11.2_
+
+- [ ] 11.6 (P) 言語タブUIの翻訳キーを追加する（要件17.12）
+  - `messages/ja.json`・`messages/en.json`の`helpdeskDocuments.form`に`language`サブ名前空間（`jaTab`・`enTab`・`addButton`・`removeButton`・`localeCodeLabel`・`localeCodePlaceholder`・`localeDuplicateError`）を`helpdeskAnnouncements.form.language`と同一構成で追加する（ja/en両方、キー構造一致）
+  - _Requirements: 17.12_
+
+- [ ] 11.7 DocumentFormに言語タブUIを実装する（要件17.3, 17.4, 17.5, 17.7）
+  - `AnnouncementForm.tsx`の言語タブ実装（`activeLanguageTab`・`useFieldArray({name:"translations"})`・固定ja/enタブ＋追加言語タブ・言語追加ボタン・新規/エラータブ自動切替の`useEffect`）を`DocumentForm.tsx`へ移植し、各タブで`title`/`description`（ja）・`titleEn`/`descriptionEn`（en）・`translations.${i}.{locale,title,description}`を`register`する
+  - `useForm`を`<DocumentFormValues, unknown, DocumentSubmitValues>`の入力/出力2型構成に変更する
+  - 言語タブprops（`languageJaTabLabel`・`languageEnTabLabel`・`languageAddButtonLabel`・`languageRemoveButtonLabel`・`languageLocaleCodeLabel`・`languageLocaleCodePlaceholder`・`languageLocaleDuplicateErrorMessage`）を`AnnouncementForm`と同名で追加する
+  - `DocumentDetailPanel.toFormDefaultValues(document)`を、`document.translations`から`titleEn`/`descriptionEn`（en行）と`translations`（追加言語）を復元するよう変更する
+  - `new`/`[id]/edit`ページから`DocumentForm`へ言語タブ用の翻訳文字列を渡す
+  - _Requirements: 17.3, 17.4, 17.5, 17.7_
+  - _Depends: 11.5, 11.6_
+
+- [ ] 11.8 (P) 申請者側読み取りに`locale`を通す（要件17.8）
+  - `src/lib/api/documents.ts`の`getDocuments`/`getDocumentById`に`options?: { locale?: string }`を追加し、申請者側サービス（`listDocumentsVisibleTo`/`findDocumentVisibleTo`）へ`locale`を転送する（`api/announcements.ts`と同型）
+  - _Requirements: 17.8_
+  - _Depends: 11.4_
+
+- [ ] 11.9 (P) seedに`en`翻訳を追加する（要件17.11）
+  - `prisma/seed.ts`・`prisma/seed.sql`の既存ドキュメント5件に`DocumentTranslation`の`en`行（英語のtitle/description）を投入する（`ja`は親列のまま。デモ用）
+  - _Requirements: 17.11_
+  - _Depends: 11.1_
+
+- [ ]* 11.10 (P) 多言語対応の単体テストを追加・更新する
+  - `resolveDocumentContent`のフォールバック（`locale`→`en`→`ja`）、`mapDocument`の`translations`マッピングを検証する（`document-mapper.test.ts`）
+  - `document-service`のcreate/updateが`ja`=親列・`en`/追加=翻訳行に書くこと（updateは全置換）、`listDocumentsVisibleTo`/`findDocumentVisibleTo`が`locale`に応じた内容を返すこと、`listAllDocuments`/`findDocumentById`が未解決＋`translations`を返すことを検証する
+  - `documentFormSchema`が`ja`/`en`タイトル未入力・言語コード重複・件数上限を拒否し、transformが`en`を`translations`へ合成すること（upload/google両ブランチ）を検証する
+  - 既存の`DocumentForm.test.tsx`・`document-service.test.ts`・`document-mapper.test.ts`・`validation/document.test.ts`を追従させ、全テストがパスすることで完了とする
+  - _Requirements: 17.4, 17.5, 17.6, 17.8, 17.9, 17.10_
+  - _Depends: 11.4, 11.5, 11.7_
+
+- [ ]* 11.11 (P) 多言語入力の統合確認を行う
+  - ヘルプデスク側で`en`・追加言語のタイトル/説明を入力して保存し、申請者側を`en`ロケールで取得すると`en`の内容、未登録ロケールでは`ja`にフォールバックすることを確認する（`revalidatePath`反映）
+  - 日本語・英語両ロケールで、新規作成/編集フォームに言語タブ（ja/en＋追加）が表示され、言語追加・削除・エラータブ自動切替が機能することを確認する
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 17.3, 17.8, 17.14_
+  - _Depends: 11.7, 11.8_

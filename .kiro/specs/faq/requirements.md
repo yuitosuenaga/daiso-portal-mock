@@ -181,3 +181,39 @@ FAQ機能。日本の大手小売店ポータルにおいて、海外販社担�
 #### 設計判断: 統合せず個別性を維持
 
 3機能を単一の共通UIコンポーネントへは統合しない。各specの個別性を残しつつ、**FAQのみをdocuments/linksのパターンへ寄せて構造的・視覚的一貫性を揃える**。理由: ドメインモデルが実際に異なり（カテゴリ有無、`sourceType`/`scope`）、単一汎用コンポーネント化は過剰抽象化と3spec間の密結合を生み「1画面=1spec」の独立性に反する。視覚的一貫性は低レベルの共有プリミティブ（`Input`/`Label`/`Button`/`Badge`、`ManagementList`、`muted-foreground`の空状態）で既に担保されている。
+
+---
+
+### 追加要望（2026-07-27）: FAQの質問・回答の多言語対応（選択ロケール表示）
+
+2026-07-21実施のプロダクト全体レビューで、FAQ（質問・回答）とドキュメント（タイトル・説明）は単一言語入力のみで、お知らせ（`announcements`/`announcements-management`spec）だけが言語タブ方式（ja/en＋任意の追加言語）に対応しており、3機能間で多言語対応が非対称であることが報告された。20か国以上の海外販社が利用する発信ポータルとして、FAQの質問・回答も、お知らせと同じ「ヘルプデスク担当者が言語ごとに手動入力できる」方式へ揃える。
+
+本spec（申請者側`/faq`）は、`faq`spec の従来スコープ（`Faq`型・`FaqCategory`定義の所有、および「共有基盤への変更」節で確立した申請者側読み取り経路＝`lib/api/faqs.ts`の`getFaqs`・`lib/server/faq-service.ts`の`mapFaq`/`listFaqs`への後方互換な拡張を本specが担う方針。要件9で`updatedAt`カラム追加を本specで実施済み）に従い、**FAQの言語別データモデル（`FaqTranslation`）・`Faq`型への`translations`追加・表示解決関数（`resolveFaqContent`）・`locale`を受け取る申請者側読み取り（`listFaqs`/`getFaqs`）・申請者側の選択ロケール表示**を所有する。ヘルプデスク側の言語タブ入力UI・書き込み（`createFaqRecord`/`updateFaqRecord`のネスト書き込み）・フォームバリデーション（`faqFormSchema`）は`faq-management`spec（要件12）が所有する。
+
+既存のお知らせ多言語実装（`AnnouncementTranslation`モデル・`resolveAnnouncementContent`・`announcement-mapper.ts`）をそのまま横展開する。質問（`question`）＝お知らせのタイトル、回答（`answer`）＝お知らせの本文に相当し、いずれも全言語で必須とする。
+
+スコープ外:
+- 実際の機械翻訳（Google Cloud Translation API等）連携（お知らせと同じく対象外）
+- 既存の単一言語FAQ（seed 12件・本番データ）に対する自動翻訳（既存の`question`/`answer`は既定言語`ja`の内容として扱う。後方互換方針は要件12.9を参照）
+- ヘルプデスク側の言語タブ入力フォーム・書き込み経路・バリデーション（`faq-management`spec 要件12所有）
+
+#### 共有基盤への変更（画面ではないため 1画面=1spec に非抵触）
+- `prisma/schema.prisma`の`Faq`モデルへの`translations FaqTranslation[]`追加と`model FaqTranslation`新設、および対応するPrismaマイグレーション新規作成（要件9で`updatedAt`カラム追加を本specで行ったのと同じ位置づけ）。
+- `faq-service.ts`（`faq-management`spec 作成・所有）の申請者側読み取り経路（`mapFaq`/`listFaqs`）への`translations`露出・表示解決の適用は後方互換な追加であり、`faq-management`の書き込み経路・ヘルプデスク一覧（`listFaqsForHelpdesk`）の既存挙動を壊さない。読み取り用の`FAQ_INCLUDE`・`DEFAULT_FAQ_LOCALE`・`resolveFaqContent`・`mapFaq`は新規の`src/lib/server/faq-mapper.ts`（leafモジュール）へ集約する。
+
+### 要件 12: FAQの質問・回答の多言語対応（選択ロケール表示）
+
+**目的:** 販社担当者として、FAQの質問・回答を自分が選択中の言語（未登録の場合は共通語の英語、それも無ければ既定言語の日本語）で読みたい。そうすることで、母国語または英語でよくある質問と回答を理解し、問い合わせ前に自己解決できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall Prismaに`Faq`の質問・回答を言語別に保持する子テーブル`FaqTranslation`（`faqId`・`locale`・`question`・`answer`）を新設し、`@@unique([faqId, locale])`・`@@index([faqId])`・`onDelete: Cascade`を設定する（`AnnouncementTranslation`と同型。`question`＝タイトル相当、`answer`＝本文相当で、いずれも必須）。
+2. The ヘルプデスクポータル shall 既定言語（`ja`）の質問・回答を引き続き`Faq.question`/`Faq.answer`（親テーブルの列）に保持し、`locale === "ja"`の行を`FaqTranslation`に作らない（`AnnouncementTranslation`と同一の方針）。
+3. The ヘルプデスクポータル shall `Faq`型に言語別の質問・回答を表す`translations: FaqTranslationView[]`（`FaqTranslationView { locale; question; answer }`）を追加する。`CreateFaqInput`（`faq-management`spec所有）にも自動的に含まれる。
+4. The ヘルプデスクポータル shall 申請者側読み取り経路に、指定`locale`に対応する質問・回答を解決する表示解決関数`resolveFaqContent(faq, locale)`を提供する。解決順序は`resolveAnnouncementContent`と同一とし、`locale`一致 → `en`翻訳 → 既定言語（`ja`＝親列）の順にフォールバックする。
+5. The ヘルプデスクポータル shall 申請者側読み取り関数`listFaqs(locale)`（および`lib/api/faqs.ts`の`getFaqs({ locale })`）が、渡された`locale`に対応する質問・回答を`resolveFaqContent`で解決して返す。`locale`未指定時は既定言語（`ja`）とし後方互換を保つ。
+6. The ヘルプデスクポータル shall 申請者側FAQ一覧ページ（`/faq`）で、各FAQの質問・回答を、販社担当者が選択中のロケール（`FaqList`が`getLocale()`で取得済み）に対応する内容で表示する。表示解決は`getFaqs({ locale })`へ`locale`を渡すことで行い、本spec側の表示コンポーネント（`FaqAccordion`・`FaqCategoryGroup`・`FaqListClient`）に言語別の分岐ロジックを新規に追加しない（`getFaqs`が返す解決済みの`question`/`answer`をそのまま描画する）。
+7. The ヘルプデスクポータル shall 申請者側キーワード検索（要件10）を、`getFaqs`が返す解決済み（＝選択ロケール）の`question`/`answer`に対して部分一致で機能させる（表示中の言語で検索できる挙動とし、要件10の検索ロジックをそのまま適用する）。
+8. The ヘルプデスクポータル shall ヘルプデスク側読み取り関数（`listFaqsForHelpdesk`・`findFaqById`）については表示解決を行わず、既定言語（`ja`＝親列）の質問・回答と、全翻訳（`translations`配列）をそのまま返す（`FaqForm`が全言語を編集できるようにするため。`faq-management`spec 要件12が利用する）。
+9. The ヘルプデスクポータル shall 既存の登録済みFAQ（seed投入済みの12件・本番データ）について、既存の`Faq.question`/`answer`を既定言語（`ja`）の内容として扱い、翻訳テーブル追加のためのデータ移行（既存行の書き換え）を必要としない後方互換方針とする。`en`翻訳行を持たない既存FAQを`en`ロケールで閲覧した場合は、要件12.4のフォールバック（`en`なし → `ja`）により既定言語の内容を表示する。
+10. The ヘルプデスクポータル shall ロケール別表示の導入後も、既存の回答の改行保持（要件8）・更新日/新着バッジ（要件9）・キーワード検索（要件10）・検索UIの一貫性（要件11）・カテゴリ別グループ表示（要件2）・アコーディオン（要件3）を従来どおり適用する（本要件は質問・回答の表示内容の解決のみを変更する）。
