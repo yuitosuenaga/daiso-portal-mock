@@ -173,7 +173,16 @@ export async function createDocumentRecord(
   const record = await prisma.document.create({
     data: {
       ...toDocumentData(input),
-      translations: translationsToNestedWrite(input.translations),
+      // 新規作成時は既存の翻訳行が存在しないため`deleteMany`を含まない単純な`create`のみを使う
+      // （`deleteMany`は更新時にのみ有効なネスト書き込み操作。`announcement-service.ts`の
+      // `createAnnouncementRecord`と同型）。
+      translations: {
+        create: input.translations.map((translation) => ({
+          locale: translation.locale,
+          title: translation.title,
+          description: translation.description,
+        })),
+      },
     },
     include: DOCUMENT_INCLUDE,
   });

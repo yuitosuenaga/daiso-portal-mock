@@ -65,7 +65,9 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     isReminderPendingForCompany(announcement.id, companyCode),
     getAnnouncementSelfStatus(announcement.id),
     Promise.all(
-      announcement.linkedDocumentIds.map((documentId) => getDocumentById(documentId))
+      announcement.linkedDocumentIds.map((documentId) =>
+        getDocumentById(documentId, { locale })
+      )
     ),
   ]);
   const visibleLinkedDocuments = linkedDocumentResults.filter(

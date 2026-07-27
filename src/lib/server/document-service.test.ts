@@ -346,6 +346,71 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     );
   });
 
+  it("createDocumentRecordはtranslationsを`create`のみ（deleteManyなし）のネスト書き込みで保存する", async () => {
+    // 新規作成時は既存の翻訳行が存在しないため、Prismaの`create`ネスト書き込みは
+    // `deleteMany`を含められない（update専用の操作）。誤って含めると
+    // `PrismaClientValidationError`（Unknown argument `deleteMany`）が実行時に発生するため、
+    // createとupdateのネスト書き込み形状の違いを明示的に検証する。
+    vi.mocked(prisma.document.create).mockResolvedValue(
+      baseDocumentRecord({ id: "1" }) as never
+    );
+
+    await createDocumentRecord({
+      sourceType: "upload",
+      title: "タイトル",
+      status: "published",
+      fileName: "test.pdf",
+      fileType: "application/pdf",
+      fileSize: 1024,
+      dataUrl: "data:application/pdf;base64,AAAA",
+      targeting: { scope: "all" },
+      translations: [{ locale: "en", title: "Title" }],
+    });
+
+    expect(prisma.document.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          translations: {
+            create: [
+              { locale: "en", title: "Title", description: undefined },
+            ],
+          },
+        }),
+      })
+    );
+  });
+
+  it("updateDocumentRecordはtranslationsを`deleteMany`+`create`（全置換）のネスト書き込みで保存する", async () => {
+    vi.mocked(prisma.document.update).mockResolvedValue(
+      baseDocumentRecord({ id: "1" }) as never
+    );
+
+    await updateDocumentRecord("1", {
+      sourceType: "upload",
+      title: "タイトル",
+      status: "published",
+      fileName: "test.pdf",
+      fileType: "application/pdf",
+      fileSize: 1024,
+      dataUrl: "data:application/pdf;base64,AAAA",
+      targeting: { scope: "all" },
+      translations: [{ locale: "en", title: "Title" }],
+    });
+
+    expect(prisma.document.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          translations: {
+            deleteMany: {},
+            create: [
+              { locale: "en", title: "Title", description: undefined },
+            ],
+          },
+        }),
+      })
+    );
+  });
+
   it("存在しないIDの更新はDocumentNotFoundErrorを送出する", async () => {
     vi.mocked(prisma.document.update).mockRejectedValue(new Error("not found"));
 

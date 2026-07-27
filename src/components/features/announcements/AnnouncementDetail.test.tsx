@@ -58,7 +58,7 @@ vi.mock("@/lib/actions/announcement-tracking", () => ({
 const getDocumentByIdMock = vi.fn();
 
 vi.mock("@/lib/api/documents", () => ({
-  getDocumentById: (id: string) => getDocumentByIdMock(id),
+  getDocumentById: (...args: unknown[]) => getDocumentByIdMock(...args),
 }));
 
 vi.mock("@/lib/server/auth-session", () => ({
@@ -414,7 +414,22 @@ describe("AnnouncementDetail", () => {
     const jsx = await AnnouncementDetail({ id: "1" });
     render(jsx);
 
-    expect(getDocumentByIdMock).toHaveBeenCalledWith("doc-not-visible");
+    expect(getDocumentByIdMock).toHaveBeenCalledWith("doc-not-visible", {
+      locale: "ja",
+    });
     expect(screen.queryByText("添付ファイル")).toBeNull();
+  });
+
+  it("getLocale()の戻り値を紐づけドキュメントのgetDocumentByIdのlocaleオプションとして渡す", async () => {
+    getDocumentByIdMock.mockResolvedValue(null);
+    getAnnouncementByIdMock.mockResolvedValueOnce({
+      ...ANNOUNCEMENT,
+      linkedDocumentIds: ["doc-1", "doc-2"],
+    });
+
+    await AnnouncementDetail({ id: "1" });
+
+    expect(getDocumentByIdMock).toHaveBeenCalledWith("doc-1", { locale: "ja" });
+    expect(getDocumentByIdMock).toHaveBeenCalledWith("doc-2", { locale: "ja" });
   });
 });
