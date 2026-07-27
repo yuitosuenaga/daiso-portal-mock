@@ -1104,3 +1104,33 @@ export interface OverdueBadgeProps {
 - **Integration/UI Tests**:
   - 日本語・英語両ロケールで「期限超過」バッジ文言が翻訳されること
   - ダッシュボードの「最新のお知らせ」プレビュー（`AnnouncementListItem`再利用）で、超過お知らせに期限超過表示が波及すること（要件17.8）
+
+---
+
+## 追加ラウンド（2026-07-27）: 確認済み（既読）の個人単位化（要件18）
+
+### Overview（追加分）
+申請者側の確認済み自己申告を会社単位から個人（`ApplicantUser`）単位へ移す。データモデル・サーバーロジック・移行は `announcements-management`spec 要件39〜42（`AnnouncementReadReceipt` 導入、`confirmedAt` の会社単位廃止、キャリーフォワード移行）が所有し、本specはそれを呼ぶ結線と表示のみを担当する。実施済み（対応完了）は会社単位のまま維持。
+
+### Boundary Commitments（追加分）
+- **This Spec Owns**: 詳細画面マウント時の本人確認記録の結線（`confirmAnnouncementAction` → 本人単位記録）、自己状態の `confirmedAt`（本人の既読）取得への切り替え、`AnnouncementSelfReportPanel`・一覧の確認済みバッジ表示。
+- **Out of Boundary**: `AnnouncementReadReceipt` モデル・型・`recordUserConfirmation`/`getUserSelfConfirmation`/`getAnnouncementUserReadStatuses` 等のサーバー実装、移行・バックフィル、ヘルプデスク側UI（すべて `announcements-management`spec）。
+- **Revalidation Trigger**: `AnnouncementSelfStatus` の意味（`confirmedAt`＝本人既読・`completedAt`＝会社完了）が変わるため、`announcements-management`spec と型を整合させる。
+
+### Components and Interfaces（追加分）
+- **`lib/api/announcement-tracking.ts`（申請者向け）**:
+  - `confirmAnnouncementForCurrentCompany` を本人単位の記録に変更（実質 `confirmAnnouncementForCurrentUser`）。`claims.applicantUserId` を用いて `recordUserConfirmation(id, applicantUserId)` を呼ぶ。対象お知らせが下書き・配信対象外・公開期間外・非存在なら何も記録せず、記録前と同じ自己状態を返す（既存ガードを踏襲）。
+  - `getAnnouncementSelfStatus(id)`: `confirmedAt` を `getUserSelfConfirmation(id, claims.applicantUserId)`、`completedAt` を会社単位（`getAnnouncementSelfStatusForCompany` の completedAt）から合成して返す。
+  - `completeAnnouncementForCurrentCompany`（対応完了）・`isReminderPendingForCompany`（会社単位リマインド）は無変更。
+- **`lib/actions/announcement-tracking.ts`**: `confirmAnnouncementAction`/`completeAnnouncementAction` のシグネチャは据え置き（内部で呼ぶAPIが本人単位化）。再検証パス（applicant 詳細・一覧、helpdesk 一覧）は維持。
+- **`AnnouncementSelfReportPanel.tsx`**: `initialStatus.confirmedAt`（本人既読）で確認済みバッジ・マウント時自動記録を判定する既存ロジックのまま動作（`confirmedAt` の取得元が個人に変わるだけで、コンポーネントの分岐は不変）。
+- **`AnnouncementList.tsx` / `AnnouncementListClient.tsx` / `AnnouncementDetail.tsx`**: `getAnnouncementSelfStatus` 経由の `selfConfirmed`/`selfCompleted` を引き続き使用。`selfConfirmed` が本人の既読を反映するようになる（サーバー関数の変更のみ、Props 形状は不変）。
+
+### Data Model（追加分・参照）
+- 本specはモデルを定義しない。参照する新モデル `AnnouncementReadReceipt`（お知らせ×`ApplicantUser`、`confirmedAt`/`readReminderSentAt`）は `announcements-management`spec 設計書「Data Models（追加分）」を正とする。
+
+### Testing Strategy（追加分）
+- 単体: `confirmAnnouncementForCurrentCompany`（本人単位）が `claims.applicantUserId` で記録し、下書き/対象外/期間外で no-op になること。`getAnnouncementSelfStatus` が confirmedAt を本人・completedAt を会社から合成すること。
+- UI/結線: 同一会社の別ユーザーが既読でも、本人が未読なら詳細を開くまで確認済みバッジが付かず、開くと本人だけ確認済みになること。対応完了は会社単位のまま（1名の完了で会社完了）であること。
+
+---
