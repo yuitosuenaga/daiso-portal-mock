@@ -251,11 +251,12 @@
       "linkedDocumentsTargetingCompaniesPrefixLabel": "Companies:"
     },
     "tracking": {
-      "confirmedCount": "Confirmed {confirmed}/{total}",
-      "completedCount": "Completed {completed}/{total}",
+      "confirmedCount": "Confirmed {confirmed}/{total} people",
+      "completedCount": "Completed {completed}/{total} companies",
       "dialogTitleConfirmed": "Unconfirmed recipients",
-      "dialogTitleCompleted": "Recipients with pending action",
+      "dialogTitleCompleted": "Companies with pending action",
       "columnContact": "Contact",
+      "columnEmail": "Email",
       "columnCompany": "Company",
       "columnCountry": "Country/Region",
       "remindButton": "Remind",

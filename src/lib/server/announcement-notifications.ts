@@ -76,7 +76,7 @@ interface NotificationRecipient {
  */
 async function sendAndLog(
   announcement: Announcement,
-  kind: "publish" | "reminder" | "target_added" | "escalation",
+  kind: "publish" | "reminder" | "target_added" | "escalation" | "read_reminder",
   recipient: NotificationRecipient
 ): Promise<void> {
   const { title, body } = resolveAnnouncementContent(announcement, recipient.preferredLocale);
@@ -202,6 +202,32 @@ export async function notifyAnnouncementReminder(
 
   await Promise.all(
     recipients.map((recipient) => sendAndLog(announcement, "reminder", recipient))
+  );
+}
+
+/**
+ * 個人単位の既読リマインド（要件39.6）を、指定した宛先（未確認の`ApplicantUser`）へ
+ * メールで送信する。会社単位の完了督促（`notifyAnnouncementReminder`）と同型だが、宛先を
+ * 呼び出し元（`announcement-service.ts`の`sendUserReadReminders`）が解決済みの個人一覧に
+ * 限定する点が異なる。`kind: "read_reminder"`で記録するため、自動エスカレーションの
+ * 当日重複判定（`DEDUP_KINDS`＝`escalation`/`reminder`）には影響しない（要件42.2）。
+ * 宛先ごとの送信はベストエフォートで行い、この関数自体は例外をthrowしない。
+ */
+export async function notifyAnnouncementUserReadReminder(
+  announcementId: string,
+  recipients: NotificationRecipient[]
+): Promise<void> {
+  if (recipients.length === 0) {
+    return;
+  }
+
+  const announcement = await findAnnouncementForNotification(announcementId);
+  if (!announcement) {
+    return;
+  }
+
+  await Promise.all(
+    recipients.map((recipient) => sendAndLog(announcement, "read_reminder", recipient))
   );
 }
 

@@ -434,7 +434,7 @@
 
 > 前提: `announcements-management`spec 側のモデル・サーバーロジック（`AnnouncementReadReceipt`、`recordUserConfirmation`・`getUserSelfConfirmation`）が実装済みであること（同spec タスク61〜63）。本specは申請者側の結線・表示のみ。
 
-- [ ] 29. 申請者側の確認済み自己申告を本人単位に切り替える（`lib/api/announcement-tracking.ts`）
+- [x] 29. 申請者側の確認済み自己申告を本人単位に切り替える（`lib/api/announcement-tracking.ts`）
   - `confirmAnnouncementForCurrentCompany` を本人単位化: `claims.applicantUserId` を用いて `recordUserConfirmation(id, applicantUserId)` を呼ぶ（会社単位 `recordCompanyConfirmation` から置換）。下書き/配信対象外/公開期間外/非存在の既存ガードは維持
   - `getAnnouncementSelfStatus` を、`confirmedAt`＝`getUserSelfConfirmation(id, applicantUserId)`・`completedAt`＝会社単位状態、から合成して返すよう変更
   - `completeAnnouncementForCurrentCompany`・`isReminderPendingForCompany` は無変更
@@ -442,13 +442,13 @@
   - _Requirements: 18.1, 18.2, 18.3, 18.5, 18.7_
   - _Depends: なし（announcements-management タスク63 が前提）_
 
-- [ ] 30. 表示コンポーネントの確認済みバッジが本人既読を反映することを確認・調整する
+- [x] 30. 表示コンポーネントの確認済みバッジが本人既読を反映することを確認・調整する
   - `AnnouncementSelfReportPanel.tsx`・`AnnouncementList.tsx`/`AnnouncementListClient.tsx`・`AnnouncementDetail.tsx` は Props 形状不変で動作するため、`selfConfirmed` が本人既読を反映することを確認する（必要ならテストのモックを本人単位に更新）
   - 既存テスト（`AnnouncementSelfReportPanel.test.tsx`・`AnnouncementList.test.tsx`・`AnnouncementDetail.test.tsx`）を本人単位の自己状態に合わせて更新する
   - _Requirements: 18.4, 18.5, 18.6_
   - _Depends: 29_
 
-- [ ] 31. 検証: 実機確認（実装担当者の完了確認）
+- [x] 31. 検証: 実機確認（実装担当者の完了確認）
   - 同一会社の別ユーザーが既読でも、本人が未読なら一覧で確認済みバッジが付かず、詳細を開くと本人だけ確認済みになること
   - 「実施済みにする」は会社単位のまま（1名の完了操作で会社完了、同僚側にも完了が反映）であること
   - 会社単位「リマインドが届いています」バッジの挙動が従来どおりであること

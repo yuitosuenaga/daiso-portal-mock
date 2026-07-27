@@ -56,6 +56,7 @@ model ApplicantUser {
   isActive        Boolean  @default(true)
   /// 通知メール・お知らせ表示に用いる言語設定。未設定（既定値）は"en"として扱う。
   preferredLocale String   @default("en")
+  announcementReadReceipts AnnouncementReadReceipt[]
 }
 
 model HelpdeskStaff {
@@ -140,6 +141,10 @@ enum AnnouncementNotificationKind {
   reminder
   target_added
   escalation
+  /// 個人単位の既読リマインド（要件39.6）。会社単位の完了督促（reminder/escalation）とは
+  /// 別種別として記録し、自動エスカレーションの当日重複判定（DEDUP_KINDS）に含めない
+  /// （要件42.2、既読リマインドと完了督促の送信実績を混同しないため）。
+  read_reminder
 }
 
 enum AnnouncementNotificationStatus {
@@ -168,6 +173,7 @@ model Announcement {
   linkedDocuments    AnnouncementDocumentLink[]
   translations       AnnouncementTranslation[]
   notificationLogs   AnnouncementNotificationLog[]
+  readReceipts       AnnouncementReadReceipt[]
 }
 
 /**
@@ -245,12 +251,32 @@ model AnnouncementRecipientStatus {
   announcement   Announcement          @relation(fields: [announcementId], references: [id])
   recipientId    String
   recipient      AnnouncementRecipient @relation(fields: [recipientId], references: [id])
-  confirmedAt    DateTime?
   completedAt    DateTime?
   reminderSentAt DateTime?
 
   @@unique([announcementId, recipientId])
   @@index([announcementId])
+}
+
+/**
+ * お知らせ×`ApplicantUser`単位の個人受信レシート（確認済み＝既読の個人単位トラッキング）。
+ * レコードが存在しない組は「未確認・既読リマインド未送信」を意味する（スパース保持）。
+ * `AnnouncementRecipientStatus`（会社単位、実施済み・完了督促・自動エスカレーション用）とは
+ * 別トラックであり、`confirmedAt`はこのモデルにのみ保持する
+ * （`announcements-management`spec 要件39〜42）。
+ */
+model AnnouncementReadReceipt {
+  id                 String        @id @default(cuid())
+  announcementId     String
+  announcement       Announcement  @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  applicantUserId    String
+  applicantUser      ApplicantUser @relation(fields: [applicantUserId], references: [id], onDelete: Cascade)
+  confirmedAt        DateTime?
+  readReminderSentAt DateTime?
+
+  @@unique([announcementId, applicantUserId])
+  @@index([announcementId])
+  @@index([applicantUserId])
 }
 
 enum DocumentTargetingScope {

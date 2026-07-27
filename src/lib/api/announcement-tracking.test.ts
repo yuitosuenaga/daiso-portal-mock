@@ -7,10 +7,13 @@ vi.mock("@/lib/server/announcement-service", () => ({
   getAnnouncementRecipientStatuses: vi.fn(),
   getAnnouncementSelfStatusForCompany: vi.fn(),
   getAnnouncementTrackingSummary: vi.fn(),
+  getAnnouncementUserReadStatuses: vi.fn(),
+  getUserSelfConfirmation: vi.fn(),
   isReminderPendingForCompany: vi.fn(),
   recordCompanyCompletion: vi.fn(),
-  recordCompanyConfirmation: vi.fn(),
+  recordUserConfirmation: vi.fn(),
   sendAnnouncementReminders: vi.fn(),
+  sendUserReadReminders: vi.fn(),
 }));
 
 import { getSession } from "@/lib/server/get-session";
@@ -19,10 +22,13 @@ import {
   getAnnouncementRecipientStatuses as getAnnouncementRecipientStatusesService,
   getAnnouncementSelfStatusForCompany as getAnnouncementSelfStatusForCompanyService,
   getAnnouncementTrackingSummary as getAnnouncementTrackingSummaryService,
+  getAnnouncementUserReadStatuses as getAnnouncementUserReadStatusesService,
+  getUserSelfConfirmation as getUserSelfConfirmationService,
   isReminderPendingForCompany as isReminderPendingForCompanyService,
   recordCompanyCompletion as recordCompanyCompletionService,
-  recordCompanyConfirmation as recordCompanyConfirmationService,
+  recordUserConfirmation as recordUserConfirmationService,
   sendAnnouncementReminders as sendAnnouncementRemindersService,
+  sendUserReadReminders as sendUserReadRemindersService,
 } from "@/lib/server/announcement-service";
 import {
   completeAnnouncementForCurrentCompany,
@@ -30,8 +36,10 @@ import {
   getAnnouncementRecipientStatuses,
   getAnnouncementSelfStatus,
   getAnnouncementTrackingSummary,
+  getAnnouncementUserReadStatuses,
   isReminderPendingForCompany,
   sendAnnouncementReminders,
+  sendAnnouncementUserReadReminders,
 } from "@/lib/api/announcement-tracking";
 
 const helpdeskSession = {
@@ -81,13 +89,57 @@ describe("getAnnouncementRecipientStatuses", () => {
   });
 });
 
+describe("getAnnouncementUserReadStatuses", () => {
+  it("ヘルプデスクセッションでサービス層に委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(getAnnouncementUserReadStatusesService).mockResolvedValue([]);
+
+    const result = await getAnnouncementUserReadStatuses("announcement-1");
+
+    expect(getAnnouncementUserReadStatusesService).toHaveBeenCalledWith(
+      "announcement-1"
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      getAnnouncementUserReadStatuses("announcement-1")
+    ).rejects.toThrow();
+  });
+});
+
+describe("sendAnnouncementUserReadReminders", () => {
+  it("ヘルプデスクセッションでサービス層に委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(sendUserReadRemindersService).mockResolvedValue(undefined);
+
+    await sendAnnouncementUserReadReminders("announcement-1", ["user-1"]);
+
+    expect(sendUserReadRemindersService).toHaveBeenCalledWith("announcement-1", [
+      "user-1",
+    ]);
+  });
+
+  it("申請者セッションでは例外を送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      sendAnnouncementUserReadReminders("announcement-1", ["user-1"])
+    ).rejects.toThrow();
+  });
+});
+
 describe("getAnnouncementTrackingSummary", () => {
   it("ヘルプデスクセッションでサービス層に委譲する", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(getAnnouncementTrackingSummaryService).mockResolvedValue({
-      totalRecipients: 16,
+      totalRecipientUsers: 16,
       confirmedCount: 10,
-      completedCount: 6,
+      totalCompanies: 4,
+      completedCount: 2,
     });
 
     const result = await getAnnouncementTrackingSummary("announcement-1");
@@ -95,7 +147,7 @@ describe("getAnnouncementTrackingSummary", () => {
     expect(getAnnouncementTrackingSummaryService).toHaveBeenCalledWith(
       "announcement-1"
     );
-    expect(result.totalRecipients).toBe(16);
+    expect(result.totalRecipientUsers).toBe(16);
   });
 
   it("申請者セッションでは例外を送出する", async () => {
@@ -147,15 +199,17 @@ describe("sendAnnouncementReminders", () => {
 });
 
 describe("confirmAnnouncementForCurrentCompany", () => {
-  it("可視性チェックを通過した場合、セッションのcompanyCode/countryで記録する", async () => {
+  it("可視性チェックを通過した場合、セッションのapplicantUserIdで本人単位に記録する", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
     vi.mocked(findAnnouncementVisibleToCountryService).mockResolvedValue({
       id: "announcement-1",
       actionRequired: false,
     } as never);
-    vi.mocked(recordCompanyConfirmationService).mockResolvedValue(undefined);
+    vi.mocked(recordUserConfirmationService).mockResolvedValue(undefined);
+    vi.mocked(getUserSelfConfirmationService).mockResolvedValue(
+      "2026-07-13T00:00:00.000Z"
+    );
     vi.mocked(getAnnouncementSelfStatusForCompanyService).mockResolvedValue({
-      confirmedAt: "2026-07-13T00:00:00.000Z",
       completedAt: null,
     });
 
@@ -165,9 +219,9 @@ describe("confirmAnnouncementForCurrentCompany", () => {
       "announcement-1",
       "VN"
     );
-    expect(recordCompanyConfirmationService).toHaveBeenCalledWith(
+    expect(recordUserConfirmationService).toHaveBeenCalledWith(
       "announcement-1",
-      "test-co"
+      "applicant-1"
     );
     expect(result.confirmedAt).toBe("2026-07-13T00:00:00.000Z");
   });
@@ -175,14 +229,14 @@ describe("confirmAnnouncementForCurrentCompany", () => {
   it("下書き・配信対象外・公開期間外のときは記録せず正常終了する", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
     vi.mocked(findAnnouncementVisibleToCountryService).mockResolvedValue(null);
+    vi.mocked(getUserSelfConfirmationService).mockResolvedValue(null);
     vi.mocked(getAnnouncementSelfStatusForCompanyService).mockResolvedValue({
-      confirmedAt: null,
       completedAt: null,
     });
 
     const result = await confirmAnnouncementForCurrentCompany("draft-announcement");
 
-    expect(recordCompanyConfirmationService).not.toHaveBeenCalled();
+    expect(recordUserConfirmationService).not.toHaveBeenCalled();
     expect(result).toEqual({ confirmedAt: null, completedAt: null });
   });
 
@@ -192,7 +246,7 @@ describe("confirmAnnouncementForCurrentCompany", () => {
     await expect(
       confirmAnnouncementForCurrentCompany("announcement-1")
     ).rejects.toThrow();
-    expect(recordCompanyConfirmationService).not.toHaveBeenCalled();
+    expect(recordUserConfirmationService).not.toHaveBeenCalled();
   });
 });
 
@@ -204,8 +258,10 @@ describe("completeAnnouncementForCurrentCompany", () => {
       actionRequired: true,
     } as never);
     vi.mocked(recordCompanyCompletionService).mockResolvedValue(undefined);
+    vi.mocked(getUserSelfConfirmationService).mockResolvedValue(
+      "2026-07-13T00:00:00.000Z"
+    );
     vi.mocked(getAnnouncementSelfStatusForCompanyService).mockResolvedValue({
-      confirmedAt: "2026-07-13T00:00:00.000Z",
       completedAt: "2026-07-13T00:00:00.000Z",
     });
 
@@ -224,8 +280,8 @@ describe("completeAnnouncementForCurrentCompany", () => {
       id: "announcement-1",
       actionRequired: false,
     } as never);
+    vi.mocked(getUserSelfConfirmationService).mockResolvedValue(null);
     vi.mocked(getAnnouncementSelfStatusForCompanyService).mockResolvedValue({
-      confirmedAt: null,
       completedAt: null,
     });
 
@@ -237,8 +293,8 @@ describe("completeAnnouncementForCurrentCompany", () => {
   it("下書き・配信対象外・公開期間外のときは記録せず正常終了する", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
     vi.mocked(findAnnouncementVisibleToCountryService).mockResolvedValue(null);
+    vi.mocked(getUserSelfConfirmationService).mockResolvedValue(null);
     vi.mocked(getAnnouncementSelfStatusForCompanyService).mockResolvedValue({
-      confirmedAt: null,
       completedAt: null,
     });
 
@@ -249,20 +305,29 @@ describe("completeAnnouncementForCurrentCompany", () => {
 });
 
 describe("getAnnouncementSelfStatus", () => {
-  it("セッションのcompanyCodeで自社の状態を取得する", async () => {
+  it("confirmedAtを本人（applicantUserId）から、completedAtを所属会社（companyCode）から合成する", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(getUserSelfConfirmationService).mockResolvedValue(
+      "2026-07-13T00:00:00.000Z"
+    );
     vi.mocked(getAnnouncementSelfStatusForCompanyService).mockResolvedValue({
-      confirmedAt: "2026-07-13T00:00:00.000Z",
       completedAt: null,
     });
 
     const result = await getAnnouncementSelfStatus("announcement-1");
 
+    expect(getUserSelfConfirmationService).toHaveBeenCalledWith(
+      "announcement-1",
+      "applicant-1"
+    );
     expect(getAnnouncementSelfStatusForCompanyService).toHaveBeenCalledWith(
       "announcement-1",
       "test-co"
     );
-    expect(result.confirmedAt).toBe("2026-07-13T00:00:00.000Z");
+    expect(result).toEqual({
+      confirmedAt: "2026-07-13T00:00:00.000Z",
+      completedAt: null,
+    });
   });
 
   it("未認証（ヘルプデスクセッション）では例外を送出する", async () => {

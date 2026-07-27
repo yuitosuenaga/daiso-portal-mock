@@ -252,10 +252,11 @@
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",
-      "completedCount": "実施済み {completed}/{total}人",
+      "completedCount": "実施済み {completed}/{total}社",
       "dialogTitleConfirmed": "未確認の担当者",
-      "dialogTitleCompleted": "未実施の担当者",
+      "dialogTitleCompleted": "未実施の会社",
       "columnContact": "担当者名",
+      "columnEmail": "メールアドレス",
       "columnCompany": "会社",
       "columnCountry": "国・地域",
       "remindButton": "リマインド",

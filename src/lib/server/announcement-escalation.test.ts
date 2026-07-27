@@ -77,7 +77,6 @@ function recipientStatus(
     companyName: "Daiso Vietnam",
     country: "VN",
     contactName: "Nguyen",
-    confirmedAt: null,
     completedAt: null,
     reminderSentAt: null,
     ...overrides,
@@ -227,6 +226,29 @@ describe("runAnnouncementAutoEscalation", () => {
     const second = await runAnnouncementAutoEscalation(NOW);
     expect(second.notifiedRecipients).toBe(0);
     expect(second.skippedByDedup).toBe(1);
+  });
+
+  it("当日ログに個人単位の既読リマインド（kind: read_reminder）が存在しても、当日重複とはみなさず通常どおり督促を送信する（要件42.1, 42.2, 42.3）", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([
+      recipientStatus({ recipientId: "r-1", companyCode: "vn-daiso-vietnam", completedAt: null }),
+    ] as never);
+    // 当日重複判定のログ照会はkind: {in: ["escalation", "reminder"]}に限定されるため、
+    // 同一宛先に対しread_reminder（個人単位の既読リマインド）が当日送信済みであっても
+    // このクエリでは返らない（本モックはkind条件でフィルタした結果を模して常に空配列を返す）。
+    vi.mocked(prisma.announcementNotificationLog.findMany).mockImplementation(
+      (async (args?: { where: { kind: { in: string[] } } }) => {
+        const kindIn = args?.where.kind.in ?? [];
+        expect(kindIn).toEqual(["escalation", "reminder"]);
+        expect(kindIn).not.toContain("read_reminder");
+        return [];
+      }) as never
+    );
+
+    const result = await runAnnouncementAutoEscalation(NOW);
+
+    expect(result.notifiedRecipients).toBe(1);
+    expect(result.skippedByDedup).toBe(0);
   });
 
   it("お知らせ取得自体が例外を投げても、throwせず結果を返す（ベストエフォート）", async () => {

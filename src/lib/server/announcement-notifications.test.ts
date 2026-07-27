@@ -26,6 +26,7 @@ import {
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
   notifyAnnouncementTargetExpanded,
+  notifyAnnouncementUserReadReminder,
 } from "@/lib/server/announcement-notifications";
 
 function announcementRecord(
@@ -359,6 +360,43 @@ describe("notifyAnnouncementReminder", () => {
         },
       })
     );
+  });
+});
+
+describe("notifyAnnouncementUserReadReminder", () => {
+  it("渡した宛先一覧へ個人単位の既読リマインドを送信し、kind: \"read_reminder\"のログを作成する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      announcementRecord() as never
+    );
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    await notifyAnnouncementUserReadReminder("announcement-1", [
+      { email: "u1@example.com", preferredLocale: "ja" },
+    ]);
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "u1@example.com" })
+    );
+    expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ kind: "read_reminder", recipientEmail: "u1@example.com" }),
+    });
+  });
+
+  it("空の宛先配列を渡した場合は何もしない", async () => {
+    await notifyAnnouncementUserReadReminder("announcement-1", []);
+
+    expect(prisma.announcement.findUnique).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("存在しないお知らせIDに対しては何もしない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
+
+    await notifyAnnouncementUserReadReminder("missing", [
+      { email: "u1@example.com", preferredLocale: "ja" },
+    ]);
+
+    expect(sendMail).not.toHaveBeenCalled();
   });
 });
 

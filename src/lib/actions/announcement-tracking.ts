@@ -6,6 +6,7 @@ import {
   completeAnnouncementForCurrentCompany,
   confirmAnnouncementForCurrentCompany,
   sendAnnouncementReminders,
+  sendAnnouncementUserReadReminders,
 } from "@/lib/api/announcement-tracking";
 import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
 
@@ -32,6 +33,23 @@ export async function sendAnnouncementRemindersAction(
   }
 
   await sendAnnouncementReminders(announcementId, recipientIds);
+
+  revalidateAnnouncementTrackingRoutes();
+}
+
+/**
+ * 未確認の`ApplicantUser`へ個人単位の既読リマインドを送信したことを記録する（要件39.6）。
+ * 空配列を渡した場合は何もせず正常終了する。
+ */
+export async function sendAnnouncementUserReadRemindersAction(
+  announcementId: string,
+  applicantUserIds: string[]
+): Promise<void> {
+  if (applicantUserIds.length === 0) {
+    return;
+  }
+
+  await sendAnnouncementUserReadReminders(announcementId, applicantUserIds);
 
   revalidateAnnouncementTrackingRoutes();
 }

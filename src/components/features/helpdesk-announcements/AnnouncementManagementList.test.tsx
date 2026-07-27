@@ -27,6 +27,7 @@ vi.mock("@/lib/api/announcements", () => ({
 
 vi.mock("@/lib/api/announcement-tracking", () => ({
   getAnnouncementRecipientStatuses: async () => [],
+  getAnnouncementUserReadStatuses: async () => [],
 }));
 
 const triggerAutoEscalationBestEffortMock = vi.fn().mockResolvedValue(undefined);

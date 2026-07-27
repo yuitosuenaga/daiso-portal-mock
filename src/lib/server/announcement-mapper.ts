@@ -6,7 +6,10 @@ import type {
   Announcement,
   AnnouncementTargeting,
 } from "@/types/announcement";
-import type { AnnouncementRecipientStatusView } from "@/types/announcement-recipient";
+import type {
+  AnnouncementRecipientStatusView,
+  AnnouncementUserReadStatusView,
+} from "@/types/announcement-recipient";
 import type { DocumentCompanyCode } from "@/lib/constants/document-company-options";
 
 /** 添付ファイル・ドキュメント紐づけ・言語別翻訳を含むAnnouncementレコードの読み取り時のinclude句。 */
@@ -25,9 +28,20 @@ type PrismaRecipientWithCompany = Prisma.AnnouncementRecipientGetPayload<{
 }>;
 
 type PrismaRecipientStatus = {
-  confirmedAt: Date | null;
   completedAt: Date | null;
   reminderSentAt: Date | null;
+};
+
+type PrismaApplicantUserWithCompany = {
+  id: string;
+  displayName: string;
+  email: string;
+  company: { companyCode: string; name: string; country: string };
+};
+
+type PrismaReadReceipt = {
+  confirmedAt: Date | null;
+  readReminderSentAt: Date | null;
 };
 
 export function mapTargeting(record: PrismaAnnouncement): AnnouncementTargeting {
@@ -92,9 +106,29 @@ export function mapRecipientStatusView(
     companyName: recipient.company.name,
     country: recipient.company.country,
     contactName: recipient.contactName,
-    confirmedAt: status?.confirmedAt?.toISOString() ?? null,
     completedAt: status?.completedAt?.toISOString() ?? null,
     reminderSentAt: status?.reminderSentAt?.toISOString() ?? null,
+  };
+}
+
+/**
+ * 確認済みトラッキング対象母集団の`ApplicantUser`1名分と、その個人受信レシート
+ * （`AnnouncementReadReceipt`）を結合したビューへ変換する（要件39.4）。
+ * レシートが未生成（`status`が`undefined`）の場合は「未確認・既読リマインド未送信」を表す。
+ */
+export function mapUserReadStatusView(
+  applicantUser: PrismaApplicantUserWithCompany,
+  status: PrismaReadReceipt | undefined
+): AnnouncementUserReadStatusView {
+  return {
+    applicantUserId: applicantUser.id,
+    displayName: applicantUser.displayName,
+    email: applicantUser.email,
+    companyCode: applicantUser.company.companyCode as DocumentCompanyCode,
+    companyName: applicantUser.company.name,
+    country: applicantUser.company.country,
+    confirmedAt: status?.confirmedAt?.toISOString() ?? null,
+    readReminderSentAt: status?.readReminderSentAt?.toISOString() ?? null,
   };
 }
 
