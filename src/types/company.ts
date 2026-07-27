@@ -8,9 +8,14 @@ export interface Company {
   createdAt: string;
 }
 
-/** 販社管理一覧向けに、所属する申請者アカウント数（`applicantUserCount`）を加えた表示用の型。 */
+/**
+ * 販社管理一覧向けに、所属する申請者アカウント数（`applicantUserCount`）を加えた表示用の型。
+ * `activeApplicantUserCount`は、そのうち有効（`isActive = true`）な申請者アカウント数
+ * （一括無効化の対象見込み件数。`helpdesk-account-management`spec 要件20.4）。
+ */
 export interface CompanyWithStats extends Company {
   applicantUserCount: number;
+  activeApplicantUserCount: number;
 }
 
 /**

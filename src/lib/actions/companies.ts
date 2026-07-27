@@ -4,10 +4,20 @@ import { revalidatePath } from "next/cache";
 
 import {
   CompanyCodeTakenError,
+  createCompaniesBulk,
   createCompany,
+  deactivateApplicantUsersByCompanies,
+  findExistingCompanyCodes,
   isCompanyCodeTaken,
   updateCompany,
 } from "@/lib/server/company-service";
+import {
+  isFullyValidCompanyCsv,
+  parseAndValidateCompanyCsv,
+  toCreateCompanyInputs,
+  type CompanyCsvRowResult,
+} from "@/lib/company-csv";
+import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import { companyFormSchema } from "@/lib/validation/company";
 import type { Company, CreateCompanyInput } from "@/types/company";
 
@@ -77,4 +87,88 @@ export async function checkCompanyCodeAvailabilityAction(
   }
 
   return isCompanyCodeTaken(trimmed, excludeCompanyId);
+}
+
+export interface CompanyCsvImportResult {
+  /** true=全件登録実施, false=登録なし（要件19.9） */
+  committed: boolean;
+  createdCount: number;
+  rows: CompanyCsvRowResult[];
+  /** ヘッダー不一致・空ファイル等のファイル全体エラー（要件19.12） */
+  fileError?: string;
+}
+
+/**
+ * 販社CSVの一括登録を行うServer Action（要件19）。生のCSVテキストを受け取り、
+ * `parseAndValidateCompanyCsv`で全データ行を検証し、全行が検証を通過した場合にのみ
+ * `createCompaniesBulk`で1トランザクション登録する（all-or-nothing、要件19.8・19.9）。
+ * 1行でも検証エラーがある場合は登録を行わず、行別の検証結果のみを返す。
+ */
+export async function importCompaniesAction(
+  csvText: string
+): Promise<CompanyCsvImportResult> {
+  // CSVがファイル全体エラー（空・ヘッダー不一致等）の場合、以降のどのサービス関数
+  // （`findExistingCompanyCodes`等）も呼び出されないため、ここで明示的にヘルプデスク
+  // セッションを検証する（多層防御。要件19.13）。
+  await requireHelpdeskStaffSession();
+
+  const parsed = parseAndValidateCompanyCsv(csvText, []);
+
+  if (parsed.fileError) {
+    return {
+      committed: false,
+      createdCount: 0,
+      rows: [],
+      fileError: parsed.fileError,
+    };
+  }
+
+  const candidateCodes = parsed.rows.map((row) => row.companyCode).filter(Boolean);
+  const existingCodes = await findExistingCompanyCodes(candidateCodes);
+
+  const revalidated = parseAndValidateCompanyCsv(csvText, existingCodes);
+
+  if (revalidated.fileError) {
+    return {
+      committed: false,
+      createdCount: 0,
+      rows: [],
+      fileError: revalidated.fileError,
+    };
+  }
+
+  if (!isFullyValidCompanyCsv(revalidated)) {
+    return {
+      committed: false,
+      createdCount: 0,
+      rows: revalidated.rows,
+    };
+  }
+
+  const created = await createCompaniesBulk(toCreateCompanyInputs(revalidated.rows));
+
+  if (created.length > 0) {
+    revalidateCompanyRoutes();
+  }
+
+  return {
+    committed: true,
+    createdCount: created.length,
+    rows: revalidated.rows,
+  };
+}
+
+/**
+ * 選択された複数販社に所属する有効な申請者アカウントを一括無効化するServer Action
+ * （要件20）。`deactivateApplicantUsersByCompanies`を呼び、実行後に一覧・詳細ルートを
+ * 再検証する。
+ */
+export async function deactivateCompaniesApplicantUsersAction(
+  companyIds: string[]
+): Promise<{ deactivatedCount: number }> {
+  const result = await deactivateApplicantUsersByCompanies(companyIds);
+
+  revalidateCompanyRoutes();
+
+  return result;
 }

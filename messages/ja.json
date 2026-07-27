@@ -575,6 +575,50 @@
       "activateConfirmButton": "再有効化を実行",
       "cancelButton": "キャンセル",
       "toggleError": "更新に失敗しました。時間を置いて再度お試しください。"
+    },
+    "import": {
+      "title": "販社のCSV一括登録",
+      "description": "「name,country,companyCode」の3列を含むCSVファイル（1行目はヘッダー行）をアップロードすると、登録前に全行の検証結果を確認できます。1行でもエラーがある場合は1件も登録されません。",
+      "backToList": "一覧へ戻る",
+      "templateDownloadLabel": "CSVテンプレートをダウンロード",
+      "fileInputLabel": "CSVファイルを選択",
+      "uploadButtonLabel": "検証してアップロード",
+      "uploadingLabel": "検証中…",
+      "resultsHeading": "検証結果",
+      "rowNumberHeader": "行番号",
+      "rowNameHeader": "会社名",
+      "rowCompanyCodeHeader": "販社コード",
+      "rowStatusHeader": "判定",
+      "rowErrorsHeader": "エラー内容",
+      "statusOk": "登録可",
+      "statusError": "エラー",
+      "successMessage": "'{count}'社を登録しました",
+      "noFileSelected": "CSVファイルを選択してください",
+      "genericError": "検証・登録に失敗しました。時間を置いて再度お試しください。",
+      "errors": {
+        "required": "会社名・国・販社コードは必須です",
+        "companyCodeFormat": "販社コードの形式が正しくありません（半角英小文字・数字・ハイフンのみ、先頭・末尾や連続したハイフンは使用できません）",
+        "invalidCountry": "国コードが不正です",
+        "companyCodeDuplicate": "この販社コードは既に登録されています",
+        "duplicateInFile": "このCSV内で販社コードが重複しています"
+      },
+      "fileErrors": {
+        "empty": "CSVファイルが空です",
+        "headerMismatch": "ヘッダー行が「name,country,companyCode」と一致しません",
+        "noDataRows": "データ行が0件です"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "全て選択",
+      "selectRowLabel": "'{name}'を選択",
+      "selectedCount": "'{count}'社を選択中",
+      "bulkDeactivateButton": "選択した販社を一括無効化",
+      "confirmTitle": "販社の一括無効化",
+      "confirmMessage": "選択した'{companyCount}'社に所属する、有効な申請者アカウント合計'{userCount}'件を無効化します。無効化したアカウントはログインできなくなります。よろしいですか？",
+      "confirmButton": "一括無効化を実行",
+      "cancelButton": "キャンセル",
+      "successMessage": "'{count}'件の申請者アカウントを無効化しました",
+      "errorMessage": "一括無効化に失敗しました。時間を置いて再度お試しください。"
     }
   },
   "nav": {
