@@ -1,8 +1,17 @@
 import "server-only";
 
-import type { Document as PrismaDocument } from "@prisma/client";
+import type { Prisma, Document as PrismaDocument } from "@prisma/client";
 
 import type { Document, DocumentTargeting } from "@/types/document";
+
+/** 翻訳行を含むDocumentレコードの読み取り時のinclude句。 */
+export const DOCUMENT_INCLUDE = {
+  translations: true,
+} as const satisfies Prisma.DocumentInclude;
+
+export type PrismaDocumentWithTranslations = Prisma.DocumentGetPayload<{
+  include: typeof DOCUMENT_INCLUDE;
+}>;
 
 export function mapTargeting(record: PrismaDocument): DocumentTargeting {
   if (record.targetingScope === "countries") {
@@ -51,7 +60,7 @@ export class DocumentDataIntegrityError extends Error {
   }
 }
 
-export function mapDocument(record: PrismaDocument): Document {
+export function mapDocument(record: PrismaDocumentWithTranslations): Document {
   const base = {
     id: record.id,
     title: record.title,
@@ -59,6 +68,11 @@ export function mapDocument(record: PrismaDocument): Document {
     status: record.status,
     targeting: mapTargeting(record),
     uploadedAt: record.uploadedAt.toISOString(),
+    translations: record.translations.map((translation) => ({
+      locale: translation.locale,
+      title: translation.title,
+      description: translation.description ?? undefined,
+    })),
   };
 
   if (record.sourceType === "google") {
@@ -84,4 +98,39 @@ export function mapDocument(record: PrismaDocument): Document {
     fileSize: record.fileSize,
     dataUrl: record.dataUrl,
   };
+}
+
+/**
+ * ドキュメントの既定言語。翻訳データが見つからない場合、常にこの言語にフォールバックする。
+ * `document-service.ts`から参照される。
+ */
+export const DEFAULT_DOCUMENT_LOCALE = "ja";
+
+/**
+ * 指定した言語に対応するドキュメントのタイトル・説明を解決する。`locale`が既定言語（`ja`）の
+ * ときは`document.title`/`description`を返す。それ以外は`document.translations`から`locale`が
+ * 一致する行を探し、見つかればその内容を返す。一致する翻訳が無い場合、20か国以上へ発信する
+ * 本ポータルの共通語である`en`翻訳を優先してフォールバックし、`en`翻訳も無い場合にのみ
+ * 既定言語（`ja`）の内容にフォールバックする
+ * （`resolveAnnouncementContent`と同一のフォールバック順序: `locale`一致 → `en` → `ja`）。
+ */
+export function resolveDocumentContent(
+  document: Pick<Document, "title" | "description" | "translations">,
+  locale: string
+): { title: string; description?: string } {
+  if (locale === DEFAULT_DOCUMENT_LOCALE) {
+    return { title: document.title, description: document.description };
+  }
+
+  const translation = document.translations.find((item) => item.locale === locale);
+  if (translation) {
+    return { title: translation.title, description: translation.description };
+  }
+
+  const enTranslation = document.translations.find((item) => item.locale === "en");
+  if (enTranslation) {
+    return { title: enTranslation.title, description: enTranslation.description };
+  }
+
+  return { title: document.title, description: document.description };
 }

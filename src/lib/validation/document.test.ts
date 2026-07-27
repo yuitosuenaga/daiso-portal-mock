@@ -10,6 +10,7 @@ function buildValidInput(overrides: Record<string, unknown> = {}) {
     sourceType: "upload",
     title: "テストタイトル",
     status: "published",
+    titleEn: "Test title",
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
@@ -24,6 +25,7 @@ function buildValidGoogleInput(overrides: Record<string, unknown> = {}) {
     sourceType: "google",
     title: "テストタイトル",
     status: "published",
+    titleEn: "Test title",
     googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
     googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
     targeting: { scope: "all" },
@@ -217,6 +219,124 @@ describe("documentFormSchema", () => {
       if (result.success) {
         expect("fileName" in result.data).toBe(false);
       }
+    });
+  });
+
+  describe("多言語対応（タイトル・説明）", () => {
+    it("titleEnが未入力の場合はエラーになる（アップロード方式）", () => {
+      const input = buildValidInput();
+      delete (input as Record<string, unknown>).titleEn;
+
+      const result = documentFormSchema.safeParse(input);
+
+      expect(result.success).toBe(false);
+    });
+
+    it("titleEnが未入力の場合はエラーになる（Google方式）", () => {
+      const input = buildValidGoogleInput();
+      delete (input as Record<string, unknown>).titleEn;
+
+      const result = documentFormSchema.safeParse(input);
+
+      expect(result.success).toBe(false);
+    });
+
+    it("titleEnが入力されていれば検証を通過し、transformでtranslationsのen行へ合成される", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({ titleEn: "English Title", descriptionEn: "English description" })
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.translations).toEqual([
+          { locale: "en", title: "English Title", description: "English description" },
+        ]);
+        expect("titleEn" in result.data).toBe(false);
+        expect("descriptionEn" in result.data).toBe(false);
+      }
+    });
+
+    it("追加言語（例: vi）を1件以上のtranslationsとして受理する", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({
+          translations: [{ locale: "vi", title: "Vietnamese title" }],
+        })
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.translations).toEqual([
+          { locale: "en", title: "Test title", description: undefined },
+          { locale: "vi", title: "Vietnamese title" },
+        ]);
+      }
+    });
+
+    it("追加言語の言語コードがjaと重複する場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({
+          translations: [{ locale: "ja", title: "重複" }],
+        })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("追加言語の言語コードがenと重複する場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({
+          translations: [{ locale: "en", title: "重複" }],
+        })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("追加言語同士で言語コードが重複する場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({
+          translations: [
+            { locale: "vi", title: "1件目" },
+            { locale: "vi", title: "2件目" },
+          ],
+        })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("追加言語が上限（20件）を超える場合はエラーになる", () => {
+      const translations = Array.from({ length: 21 }, (_, i) => ({
+        locale: `l${i}`,
+        title: `タイトル${i}`,
+      }));
+
+      const result = documentFormSchema.safeParse(
+        buildValidInput({ translations })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("追加言語のタイトルが空文字列の場合はエラーになる", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({
+          translations: [{ locale: "vi", title: "" }],
+        })
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it("descriptionは全言語で任意である", () => {
+      const result = documentFormSchema.safeParse(
+        buildValidInput({
+          titleEn: "English Title",
+          translations: [{ locale: "vi", title: "Vietnamese title" }],
+        })
+      );
+
+      expect(result.success).toBe(true);
     });
   });
 });

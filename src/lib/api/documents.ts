@@ -15,22 +15,33 @@ import {
 
 /**
  * 自社（ログイン中の申請者セッションが所属する会社）に公開範囲が及ぶドキュメント全件を
- * アップロード日の降順で返す。
+ * アップロード日の降順で返す。`options.locale`に対応するタイトル・説明
+ * （要件17.8、未指定時は既定言語`ja`）で解決する。
  */
-export async function getDocuments(): Promise<Document[]> {
+export async function getDocuments(
+  options?: { locale?: string }
+): Promise<Document[]> {
   const { claims } = await requireApplicantSession();
 
-  return listDocumentsVisibleTo(claims.country, claims.companyCode);
+  return options?.locale
+    ? listDocumentsVisibleTo(claims.country, claims.companyCode, options.locale)
+    : listDocumentsVisibleTo(claims.country, claims.companyCode);
 }
 
 /**
  * 指定したIDのドキュメントを1件返す。自社に公開範囲が及ばない、または該当データが
- * 存在しない場合はnullを解決する。
+ * 存在しない場合はnullを解決する。`options.locale`に対応するタイトル・説明
+ * （要件17.8、未指定時は既定言語`ja`）で解決する。
  */
-export async function getDocumentById(id: string): Promise<Document | null> {
+export async function getDocumentById(
+  id: string,
+  options?: { locale?: string }
+): Promise<Document | null> {
   const { claims } = await requireApplicantSession();
 
-  return findDocumentVisibleTo(id, claims.country, claims.companyCode);
+  return options?.locale
+    ? findDocumentVisibleTo(id, claims.country, claims.companyCode, options.locale)
+    : findDocumentVisibleTo(id, claims.country, claims.companyCode);
 }
 
 /**

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DocumentDataIntegrityError,
   mapDocument,
+  resolveDocumentContent,
 } from "@/lib/server/document-mapper";
 
 function baseRecord(overrides: Record<string, unknown> = {}) {
@@ -22,6 +23,7 @@ function baseRecord(overrides: Record<string, unknown> = {}) {
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     targetingCompanyCodes: [] as string[],
+    translations: [] as { locale: string; title: string; description: string | null }[],
     ...overrides,
   };
 }
@@ -109,5 +111,78 @@ describe("mapDocument", () => {
         }) as never
       )
     ).toThrow(DocumentDataIntegrityError);
+  });
+
+  it("record.translationsをDocument.translationsへマッピングする", () => {
+    const result = mapDocument(
+      baseRecord({
+        translations: [
+          { locale: "en", title: "English title", description: "English description" },
+          { locale: "vi", title: "Vietnamese title", description: null },
+        ],
+      }) as never
+    );
+
+    expect(result.translations).toEqual([
+      { locale: "en", title: "English title", description: "English description" },
+      { locale: "vi", title: "Vietnamese title", description: undefined },
+    ]);
+  });
+});
+
+describe("resolveDocumentContent", () => {
+  function document(
+    overrides: Partial<{
+      title: string;
+      description?: string;
+      translations: { locale: string; title: string; description?: string }[];
+    }> = {}
+  ) {
+    return {
+      title: "日本語タイトル",
+      description: "日本語の説明",
+      translations: [
+        { locale: "en", title: "English title", description: "English description" },
+      ],
+      ...overrides,
+    };
+  }
+
+  it("localeがjaのとき親列（title/description）を返す", () => {
+    const result = resolveDocumentContent(document(), "ja");
+
+    expect(result).toEqual({ title: "日本語タイトル", description: "日本語の説明" });
+  });
+
+  it("localeに一致する翻訳があればその内容を返す", () => {
+    const result = resolveDocumentContent(
+      document({
+        translations: [
+          { locale: "en", title: "English title", description: "English description" },
+          { locale: "vi", title: "Vietnamese title", description: "Vietnamese description" },
+        ],
+      }),
+      "vi"
+    );
+
+    expect(result).toEqual({
+      title: "Vietnamese title",
+      description: "Vietnamese description",
+    });
+  });
+
+  it("localeに一致する翻訳が無い場合はenにフォールバックする", () => {
+    const result = resolveDocumentContent(document(), "vi");
+
+    expect(result).toEqual({
+      title: "English title",
+      description: "English description",
+    });
+  });
+
+  it("localeに一致する翻訳もenも無い場合は既定言語（ja＝親列）にフォールバックする", () => {
+    const result = resolveDocumentContent(document({ translations: [] }), "vi");
+
+    expect(result).toEqual({ title: "日本語タイトル", description: "日本語の説明" });
   });
 });

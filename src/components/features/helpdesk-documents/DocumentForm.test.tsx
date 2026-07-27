@@ -29,6 +29,13 @@ const labels = {
   titlePlaceholder: "タイトルを入力してください",
   descriptionLabel: "説明",
   descriptionPlaceholder: "説明を入力してください",
+  languageJaTabLabel: "日本語",
+  languageEnTabLabel: "English",
+  languageAddButtonLabel: "言語を追加",
+  languageRemoveButtonLabel: "この言語を削除",
+  languageLocaleCodeLabel: "言語コード",
+  languageLocaleCodePlaceholder: "例: th, vi, zh",
+  languageLocaleDuplicateErrorMessage: "他の言語と重複しない言語コードを入力してください",
   statusLabel: "公開状態",
   statusDraftOption: "下書き",
   statusPublishedOption: "公開",
@@ -75,6 +82,10 @@ describe("DocumentForm", () => {
     fireEvent.change(screen.getByLabelText(/タイトル/), {
       target: { value: "新規ドキュメント" },
     });
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "New Document" },
+    });
     fireEvent.change(screen.getByLabelText("登録方法"), {
       target: { value: "google" },
     });
@@ -94,7 +105,11 @@ describe("DocumentForm", () => {
 
     await waitFor(() => {
       expect(createDocumentActionMock).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "published", sourceType: "google" })
+        expect.objectContaining({
+          status: "published",
+          sourceType: "google",
+          translations: [{ locale: "en", title: "New Document", description: "" }],
+        })
       );
     });
   });
@@ -123,6 +138,9 @@ describe("DocumentForm", () => {
           sourceType: "google",
           title: "既存ドキュメント",
           description: "",
+          titleEn: "Existing Document",
+          descriptionEn: "",
+          translations: [],
           status: "published",
           googleUrl: "https://docs.google.com/document/d/abc123/edit",
           googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
@@ -146,6 +164,9 @@ describe("DocumentForm", () => {
           sourceType: "google",
           title: "既存ドキュメント",
           description: "",
+          titleEn: "Existing Document",
+          descriptionEn: "",
+          translations: [],
           status: "published",
           googleUrl: "https://docs.google.com/document/d/abc123/edit",
           googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
@@ -188,5 +209,146 @@ describe("DocumentForm", () => {
       expect(screen.getByText("この項目は必須です")).toBeTruthy();
     });
     expect(createDocumentActionMock).not.toHaveBeenCalled();
+  });
+
+  describe("言語タブ", () => {
+    it("既定では日本語タブが表示され、英語タブに切り替えるとタイトル入力欄が入れ替わる", () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      const jaInput = screen.getByLabelText(/タイトル/) as HTMLInputElement;
+      fireEvent.change(jaInput, { target: { value: "日本語タイトル" } });
+
+      fireEvent.click(screen.getByRole("tab", { name: "English" }));
+      const enInput = screen.getByLabelText(/タイトル/) as HTMLInputElement;
+      expect(enInput.value).toBe("");
+
+      fireEvent.click(screen.getByRole("tab", { name: "日本語" }));
+      expect((screen.getByLabelText(/タイトル/) as HTMLInputElement).value).toBe(
+        "日本語タイトル"
+      );
+    });
+
+    it("英語タイトルが未入力のまま保存しようとすると英語タブへ自動的に切り替わり送信がブロックされる", async () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "日本語タイトル" },
+      });
+      fireEvent.change(screen.getByLabelText("登録方法"), {
+        target: { value: "google" },
+      });
+      fireEvent.change(
+        screen.getByLabelText("Googleドキュメントの共有リンク"),
+        { target: { value: "https://docs.google.com/document/d/abc123/edit" } }
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("tab", { name: "English" }).getAttribute("aria-selected")
+        ).toBe("true");
+      });
+      expect(screen.getByText("この項目は必須です")).toBeTruthy();
+      expect(createDocumentActionMock).not.toHaveBeenCalled();
+    });
+
+    it("「言語を追加」で追加言語タブを作成し、言語コード・タイトルを入力して保存できる", async () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "日本語タイトル" },
+      });
+      fireEvent.click(screen.getByRole("tab", { name: "English" }));
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "English Title" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "言語を追加" }));
+
+      fireEvent.change(screen.getByLabelText(/言語コード/), {
+        target: { value: "vi" },
+      });
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "Tiêu đề tiếng Việt" },
+      });
+
+      fireEvent.change(screen.getByLabelText("登録方法"), {
+        target: { value: "google" },
+      });
+      fireEvent.change(
+        screen.getByLabelText("Googleドキュメントの共有リンク"),
+        { target: { value: "https://docs.google.com/document/d/abc123/edit" } }
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+      await waitFor(() => {
+        expect(createDocumentActionMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            translations: expect.arrayContaining([
+              { locale: "en", title: "English Title", description: "" },
+              { locale: "vi", title: "Tiêu đề tiếng Việt", description: "" },
+            ]),
+          })
+        );
+      });
+    });
+
+    it("追加言語の言語コードが既存言語と重複するとエラーになり送信がブロックされる", async () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      // 登録方法をGoogleリンクに切り替え、有効なURLを入力しておく。アップロード方式のまま
+      // 検証すると、ファイル未選択によるfileType（enum）の検証エラーが同時に発生し、
+      // zodのdiscriminatedUnion+superRefineの仕様上、後続のsuperRefine（言語コード重複検証）が
+      // 実行されなくなる（`announcementFormSchema`の`category`等でも同様の既知の挙動）ため、
+      // 本テストではこの相互作用を避けるべく登録方法側のフィールドを有効にしておく。
+      fireEvent.change(screen.getByLabelText("登録方法"), {
+        target: { value: "google" },
+      });
+      fireEvent.change(
+        screen.getByLabelText("Googleドキュメントの共有リンク"),
+        { target: { value: "https://docs.google.com/document/d/abc123/edit" } }
+      );
+
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "日本語タイトル" },
+      });
+      fireEvent.click(screen.getByRole("tab", { name: "English" }));
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "English Title" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "言語を追加" }));
+      fireEvent.change(screen.getByLabelText(/言語コード/), {
+        target: { value: "en" },
+      });
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "重複言語" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("他の言語と重複しない言語コードを入力してください")
+        ).toBeTruthy();
+      });
+      expect(createDocumentActionMock).not.toHaveBeenCalled();
+    });
+
+    it("「この言語を削除」で追加言語タブを削除し、日本語タブへ戻る", () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "言語を追加" }));
+      expect(screen.getByLabelText(/言語コード/)).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "この言語を削除" }));
+
+      expect(screen.queryByLabelText("言語コード")).toBeNull();
+      expect(
+        screen.getByRole("tab", { name: "日本語" }).getAttribute("aria-selected")
+      ).toBe("true");
+    });
   });
 });

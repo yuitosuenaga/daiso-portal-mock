@@ -48,11 +48,24 @@ export interface DocumentDetailPanelProps {
 }
 
 function toFormDefaultValues(document: Document): DocumentFormValues {
+  const enTranslation = document.translations.find(
+    (translation) => translation.locale === "en"
+  );
+  const additionalTranslations = document.translations.filter(
+    (translation) => translation.locale !== "en"
+  );
+  const languageValues = {
+    titleEn: enTranslation?.title ?? "",
+    descriptionEn: enTranslation?.description ?? "",
+    translations: additionalTranslations,
+  };
+
   if (document.sourceType === "google") {
     return {
       sourceType: "google",
       title: document.title,
       description: document.description ?? "",
+      ...languageValues,
       status: document.status,
       googleUrl: document.googleUrl,
       googleEmbedUrl: document.googleEmbedUrl,
@@ -66,6 +79,7 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
     sourceType: "upload",
     title: document.title,
     description: document.description ?? "",
+    ...languageValues,
     status: document.status,
     fileName: document.fileName,
     fileType: document.fileType,

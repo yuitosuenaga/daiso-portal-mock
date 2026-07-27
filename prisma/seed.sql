@@ -156,6 +156,17 @@ INSERT INTO public."Document" (id, title, description, "fileName", "fileType", "
 
 
 --
+-- Data for Name: DocumentTranslation; Type: TABLE DATA; Schema: public; Owner: portal_mock
+--
+
+INSERT INTO public."DocumentTranslation" (id, "documentId", locale, title, description) VALUES ('seed-document-translation-001-en', 'seed-document-001', 'en', 'Store Operations Manual (Common Edition)', 'A manual summarizing the basic rules for store operations common to all distributors.');
+INSERT INTO public."DocumentTranslation" (id, "documentId", locale, title, description) VALUES ('seed-document-translation-002-en', 'seed-document-002', 'en', 'Merchandising Guidelines (Southeast Asia Edition)', 'Guidelines for product display layout for the Southeast Asia region.');
+INSERT INTO public."DocumentTranslation" (id, "documentId", locale, title, description) VALUES ('seed-document-translation-003-en', 'seed-document-003', 'en', 'POS Operation Manual (Vietnam Only)', 'A document summarizing the POS terminal operation procedures for the Vietnam distributor.');
+INSERT INTO public."DocumentTranslation" (id, "documentId", locale, title, description) VALUES ('seed-document-translation-004-en', 'seed-document-004', 'en', 'Internal Audit Materials (HQ Only)', 'Materials related to internal audits, limited to Japan headquarters.');
+INSERT INTO public."DocumentTranslation" (id, "documentId", locale, title, description) VALUES ('seed-document-translation-005-en', 'seed-document-005', 'en', 'Fixture Assembly Instructions (For North America)', 'A document summarizing the assembly procedure for store fixtures for the North America region.');
+
+
+--
 -- Data for Name: Faq; Type: TABLE DATA; Schema: public; Owner: portal_mock
 --
 

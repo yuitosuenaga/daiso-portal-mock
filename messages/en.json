@@ -97,6 +97,15 @@
       "titlePlaceholder": "Enter the document title",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Enter a supplementary description (optional)",
+      "language": {
+        "jaTab": "Japanese",
+        "enTab": "English",
+        "addButton": "Add language",
+        "removeButton": "Remove this language",
+        "localeCodeLabel": "Language code",
+        "localeCodePlaceholder": "e.g. th, vi, zh",
+        "localeDuplicateError": "Enter a language code that is not used by another language"
+      },
       "statusLabel": "Publish status",
       "statusDraftOption": "Draft",
       "statusPublishedOption": "Published",

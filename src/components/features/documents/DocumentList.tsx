@@ -20,7 +20,7 @@ export async function DocumentList() {
 
   let documents: Document[];
   try {
-    documents = await getDocuments();
+    documents = await getDocuments({ locale });
   } catch {
     return (
       <div>
