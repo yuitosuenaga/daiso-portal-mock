@@ -733,3 +733,182 @@ export interface UpdateApplicantUserInput {
   - Server Action追加: `src/lib/actions/companies.ts`（既存）に`checkCompanyCodeAvailabilityAction(code, excludeCompanyId?)`を追加し、`company-service`側で当該コードの存在有無を返す（読み取り専用）。最終的な一意性担保は既存の`createCompanyAction`/`updateCompanyAction`のユニーク制約に依存。
 - i18n: プレースホルダー・ヘルプテキスト・フォーマットエラー・重複警告の翻訳キーを`helpdeskCompanies.form`配下に追加（ja/en）。
 - テスト: `companyFormSchema`のフォーマット検証（正常系/異常系）、`CompanyForm`のヘルプテキスト表示・フォーマットエラー表示・blur重複警告表示・編集モードでの自コード除外を単体テストで検証する。
+
+---
+
+## 追加設計: 販社の一括登録（CSVインポート）・一括無効化（2026-07-27 追記・要件19・20）
+
+### Overview（本追記のスコープ）
+
+本追記は、既存の販社管理画面（`/helpdesk/companies`）に2つの一括操作を追加する。いずれも既存の単件処理（`companyFormSchema`・`createCompany`・`setApplicantUserActive`）と認可（`requireHelpdeskStaffSession`）を再利用し、新たな認証・認可・セッションの仕組みは導入しない。
+
+- 要件19: `Company`のCSV一括登録（新規`/helpdesk/companies/import`ページ）。**全件検証 → 全件成功時のみ1トランザクションで登録（all-or-nothing）**。
+- 要件20: 販社管理一覧でのチェックボックス複数選択による一括無効化。**「選択会社に所属する全ての有効な`ApplicantUser`の`isActive`を`false`にする」**操作として実装（`Company.isActive`は新設しない）。
+
+### 重要な設計判断と根拠
+
+#### 判断1: CSV取り込みは all-or-nothing（部分成功なし）
+
+- **決定**: 全データ行を先に検証し、1行でもエラーがあれば1件も登録しない。全行が有効な場合のみ`prisma.$transaction`で一括作成する。
+- **根拠**: (i) `companyCode`のDBユニーク制約下で行単位に部分成功させると、修正後の再アップロード時に登録済み/未登録の行が混在し追跡が煩雑。(ii) 対象は数十行規模の管理データで再アップロードのコストが小さい。(iii) 既存単件登録（要件12）の`Company`+`AnnouncementRecipient`アトミック方針と整合。
+- **代替案**: 行単位で独立コミット（有効行のみ登録）。→ 部分成功状態と再アップロードの重複判定の複雑さを理由に不採用。ただし検証結果は行単位で（成功見込み/エラー内容とともに）ユーザーに提示するため、どの行を直せばよいかは明確に伝わる。
+
+#### 判断2: 一括無効化の対象は「所属`ApplicantUser`の`isActive`一括false化」（`Company.isActive`は新設しない）
+
+- **決定**: 一括無効化 = 選択された各`Company`に所属する有効な`ApplicantUser`全員の`isActive`を`false`にする。`Company`モデルに有効/無効フラグは追加しない。
+- **根拠**: (i) `prisma/schema.prisma`の`Company`には`isActive`相当のフィールドが無く、新設すると「無効な会社」の意味を認証・認可・一覧・お知らせトラッキング等の各所で新たに定義する必要が生じ影響範囲が広い。(ii) 本specは一貫して`Company`の削除・無効化をスコープ外としてきた（外部キー参照整合性）。会社レコードの状態は変えず担当者アクセスのみ止める本定義はこの方針と整合。(iii) `ApplicantUser.isActive`にはログイン拒否（要件7.5）とログイン済みセッションの即時失効（要件15）が既に整備済みで、これを再利用すれば新たな認証・認可を作らずに即時遮断が実現できる。
+- **代替案**: `Company.isActive`新設 + 認証層で「無効会社に属するユーザーを拒否」。→ スキーマ変更・多層の追加実装・既存スコープ方針との不整合を理由に不採用。
+
+### File Structure Plan（追記分）
+
+```
+src/app/[locale]/helpdesk/(dashboard)/companies/
+├── page.tsx                                # 変更: 一覧に一括選択・一括無効化UIを組み込む（下記Client側）／import導線追加
+└── import/
+    └── page.tsx                            # 新規: CSV一括登録画面（Server: 見出し・テンプレDL導線・アップロードClientの組み立て）
+
+src/components/features/helpdesk-companies/
+├── CompanyManagementListClient.tsx         # 変更: 行チェックボックス・全選択・選択件数表示・一括無効化トリガー(ConfirmDialog)を追加
+├── CompanyBulkDeactivateAction.tsx         # 新規(任意): 一括無効化の確認モーダル+action呼び出しを担うClient（ListClientに内包しても可）
+└── CompanyCsvImportForm.tsx                # 新規: Client: ファイル選択→検証結果テーブル表示→確定登録
+
+src/lib/server/
+└── company-service.ts                      # 変更: createCompaniesBulk / deactivateApplicantUsersByCompanies を追加、
+                                            #        listCompaniesForManagement に activeApplicantUserCount を追加
+
+src/lib/actions/
+├── companies.ts                            # 変更: importCompaniesAction / deactivateCompaniesApplicantUsersAction を追加
+└── (既存 applicant-users.ts は変更しない。無効化ロジックは company-service 側に会社単位で新設)
+
+src/lib/
+└── company-csv.ts                          # 新規: CSVパース+行検証の純粋関数（parseAndValidateCompanyCsv 等）。UIとサーバーの双方から使える形
+
+messages/ja.json, messages/en.json          # 変更: helpdeskCompanies.import / helpdeskCompanies.bulkDeactivate 名前空間を追加
+```
+
+### 要件19: CSV一括登録の設計
+
+#### データフロー
+
+1. ヘルプデスク担当者が`/helpdesk/companies/import`でCSVファイルを選択する。
+2. Client（`CompanyCsvImportForm`）がファイルをUTF-8テキストとして読み込み、`importCompaniesAction(csvText)`（Server Action）に**生のCSVテキスト**を渡す（検証の正はサーバー側に置く。多層防御・要件19.13）。
+3. Server Action（Node.jsランタイム）は`requireHelpdeskStaffSession()`で認可後、`parseAndValidateCompanyCsv(csvText)`（`src/lib/company-csv.ts`）で以下を行う:
+   - ヘッダー行が`name,country,companyCode`（順不同許容は不要、固定順）であることの確認（不一致/空/データ0件はエラー・要件19.12）。
+   - 各データ行を`{ name, country, companyCode }`に対応付け、`country`を大文字化し`INQUIRY_COUNTRY_CODES`に含まれるか検証（要件19.5）。
+   - 各行を`companyFormSchema.safeParse`で検証（会社名・国・販社コード必須＋コード命名規則。要件19.6）。
+   - 販社コードの一意性を (a) 既存`Company`（`company-service`で当該コード群の存在を一括問い合わせ）と (b) 同一ファイル内の重複、の両面で検証（要件19.7）。
+   - 行ごとの結果 `{ rowNumber, name, companyCode, status: "ok" | "error", errors: string[] }` を構築。
+4. Server Actionは、**全行が`ok`の場合のみ**`createCompaniesBulk(inputs)`を呼び、そうでなければ登録は行わず行別結果のみ返す（要件19.8・19.9）。
+5. Client は返却された行別結果テーブルを表示。全件成功時は「N社を登録しました」を表示し一覧へ反映（`revalidatePath`。要件19.11）。エラーがある場合は修正すべき行と理由を提示（登録は0件）。
+
+> **注**: CSVパースは軽量な自前実装（改行分割 + カンマ分割、値の前後空白トリム、ダブルクォート囲みの基本対応）を`src/lib/company-csv.ts`に純粋関数として実装し、単体テスト可能にする。会社名にカンマ・改行を含むケースは要件外（テンプレートで単純な値を案内）だが、ダブルクォート囲みは最低限考慮する。外部CSVライブラリの新規依存は追加しない方針（既存の`documents`系CSV処理があれば流用検討）。
+
+#### サービス層インターフェース（追記）
+
+```typescript
+// company-service.ts に追加
+interface CompanyServiceBulkAdditions {
+  // 全件を1トランザクションで作成。各 Company 作成時に対応する AnnouncementRecipient も作成（要件12と同一規則）
+  createCompaniesBulk(inputs: CreateCompanyInput[]): Promise<Company[]>;
+  // 指定コード群のうち既存 Company に存在するものを返す（CSV検証の一意性チェック用・読み取り専用）
+  findExistingCompanyCodes(codes: string[]): Promise<string[]>;
+}
+```
+- `createCompaniesBulk`は`prisma.$transaction(async (tx) => { for (const input of inputs) { const c = await tx.company.create(...); await tx.announcementRecipient.create({ data: { companyId: c.id, contactName: input.name } }); } })`の形で、全社の`Company`+`AnnouncementRecipient`を単一トランザクションで作成する（1件でも失敗すれば全ロールバック。要件19.9・19.10）。
+- 冒頭で`requireHelpdeskStaffSession()`を呼ぶ（多層防御）。
+- `companyCode`のユニーク制約違反（`P2002`）はトランザクションを失敗させ呼び出し元へ伝播（同時実行での競合時）。
+
+#### Server Actionインターフェース（追記）
+
+```typescript
+// companies.ts に追加
+interface CompanyCsvImportResultRow {
+  rowNumber: number;         // データ行の番号（1始まり、ヘッダー除く）
+  name: string;
+  companyCode: string;
+  status: "ok" | "error";
+  errors: string[];          // i18nキー or 解決済みメッセージ（下記方針参照）
+}
+interface CompanyCsvImportResult {
+  committed: boolean;        // true=全件登録実施, false=登録なし
+  createdCount: number;
+  rows: CompanyCsvImportResultRow[];
+  fileError?: string;        // ヘッダー不一致・空ファイル等のファイル全体エラー
+}
+async function importCompaniesAction(csvText: string): Promise<CompanyCsvImportResult>;
+```
+- i18n方針: 行エラーは機械可読なコード（例: `required`/`companyCodeFormat`/`companyCodeDuplicate`/`invalidCountry`/`duplicateInFile`）で返し、Client側で`next-intl`により表示文言へ解決する（要件19.14）。
+- `revalidatePath`は既存`revalidateCompanyRoutes`を流用し、`committed`かつ`createdCount > 0`のときに呼ぶ。
+
+### 要件20: 一括無効化の設計
+
+#### データフロー
+
+1. `CompanyManagementListClient`で各会社行の先頭にチェックボックスを表示（全選択チェックボックスをヘッダーに置く）。選択状態は`useState<Set<string>>`で保持。選択件数を表示（要件20.1）。
+2. 「選択した販社を一括無効化」ボタン押下で`ConfirmDialog`を開く。本文には選択会社数と、選択会社の`activeApplicantUserCount`の合計（＝無効化見込み件数）を埋め込む（要件20.3・20.4）。
+3. 確定時に`deactivateCompaniesApplicantUsersAction(companyIds)`を呼ぶ。
+4. Server Action → `deactivateApplicantUsersByCompanies(companyIds)`（`company-service`）が`requireHelpdeskStaffSession()`後、`prisma.applicantUser.updateMany({ where: { companyId: { in: companyIds }, isActive: true }, data: { isActive: false } })`を1回のクエリ（単一トランザクション相当）で実行し、`count`（無効化件数）を返す（要件20.5・20.6）。
+5. `revalidateCompanyRoutes()`で一覧・詳細を再検証（要件20.7）。Clientは無効化件数を表示し選択をクリア。
+6. 無効化された`ApplicantUser`の既存セッションは、要件15（`getSession`/`requireApplicantSession`でのDB再照会）により次アクセス時に失効。本要件は追加の認証処理を持たない（要件20.8）。
+
+#### サービス層インターフェース（追記）
+
+```typescript
+// company-service.ts に追加
+interface CompanyServiceBulkDeactivateAdditions {
+  // 選択会社群に所属する有効な ApplicantUser を一括無効化。無効化した件数を返す（冪等）
+  deactivateApplicantUsersByCompanies(companyIds: string[]): Promise<{ deactivatedCount: number }>;
+}
+// listCompaniesForManagement の戻り型 CompanyWithStats に activeApplicantUserCount を追加（要件20.4）
+```
+- `companyIds`が空配列のときは何もせず`{ deactivatedCount: 0 }`を返す（防御）。
+- `updateMany`の`where`に`isActive: true`を含めることで既に無効なレコードを対象外にし冪等性を担保（要件20.6）。
+- 型`CompanyWithStats`に`activeApplicantUserCount: number`を追加し、`listCompaniesForManagement`で`applicantUsers`の`where: { isActive: true }`件数を集計（Prismaの`_count`はフィルタ付き集計に制約があるため、必要なら`applicantUsers`を`select`して集計、または2回のクエリで対応）。既存の`applicantUserCount`（総数）は維持する。
+
+#### Server Actionインターフェース（追記）
+
+```typescript
+// companies.ts に追加
+async function deactivateCompaniesApplicantUsersAction(
+  companyIds: string[]
+): Promise<{ deactivatedCount: number }>;
+```
+
+### System Flows（追記・要約）
+
+- CSV import: `CompanyCsvImportForm`(client) → `importCompaniesAction`(server, 認可→`parseAndValidateCompanyCsv`→全件okなら`createCompaniesBulk`) → 行別結果を返却 → client表示/一覧revalidate。
+- Bulk deactivate: `CompanyManagementListClient`(client, 選択) → `ConfirmDialog` → `deactivateCompaniesApplicantUsersAction`(server, 認可→`updateMany`) → 件数返却/一覧・詳細revalidate → 既存要件15により対象セッション失効。
+
+### Error Handling（追記）
+
+- CSV: ファイル全体エラー（ヘッダー不一致・空・データ0件）は`fileError`で表示し登録しない。行エラーは行別に理由表示し全件ロールバック（部分登録なし）。`createCompaniesBulk`中の`P2002`（同時実行競合）はトランザクション失敗として全ロールバックし、Client側に一般エラー表示。
+- 一括無効化: `companyIds`空・該当有効ユーザー0はエラーとせず件数0で正常終了。DB更新失敗時はaction例外→Client側でエラー表示（選択は維持）。
+
+### Requirements Traceability（追記・要件19・20）
+
+| 要件 | 内容 | コンポーネント/関数 | 主な契約 |
+|------|------|----------------------|----------|
+| 19.1〜19.3 | import画面・UI・テンプレDL | `companies/import/page.tsx`, `CompanyCsvImportForm` | ページ・ファイル入力・テンプレDL |
+| 19.4〜19.7 | パース・国コード・行検証・一意性 | `company-csv.ts`(`parseAndValidateCompanyCsv`), `companyFormSchema`, `findExistingCompanyCodes` | 行別検証結果 |
+| 19.8〜19.10 | 全件検証→全件成功時のみ一括登録+Recipient同期 | `importCompaniesAction`, `createCompaniesBulk` | `$transaction`, all-or-nothing |
+| 19.11 | 成功件数表示・一覧反映 | `CompanyCsvImportForm`, `revalidateCompanyRoutes` | revalidate |
+| 19.12 | 空/ヘッダー不一致エラー | `parseAndValidateCompanyCsv` | `fileError` |
+| 19.13 | 多層防御認可 | `importCompaniesAction`, `createCompaniesBulk` | `requireHelpdeskStaffSession` |
+| 19.14 | i18n(ja/en) | messages, `CompanyCsvImportForm` | `helpdeskCompanies.import` |
+| 19.15/19.16 | 削除なし・Company単位限定 | 設計全体 | — |
+| 20.1 | チェックボックス複数選択・選択件数 | `CompanyManagementListClient` | `useState<Set>` |
+| 20.2 | 定義=所属ApplicantUser一括false化 | `deactivateApplicantUsersByCompanies` | `updateMany` |
+| 20.3/20.4 | 確認モーダル・対象件数表示 | `ConfirmDialog`, `activeApplicantUserCount` | `CompanyWithStats.activeApplicantUserCount` |
+| 20.5/20.6 | トランザクション・冪等 | `deactivateApplicantUsersByCompanies` | `where.isActive=true` |
+| 20.7 | 件数表示・一覧/詳細反映 | action, `revalidateCompanyRoutes` | revalidate |
+| 20.8 | 既存要件15でセッション失効 | （認証層は変更なし） | `getSession`再照会 |
+| 20.9 | 多層防御認可 | action, service | `requireHelpdeskStaffSession` |
+| 20.10/20.11 | 削除なし・一括再有効化は対象外 | 設計全体 | — |
+| 20.12/20.13 | i18n・既存挙動非破壊 | messages, `CompanyManagementListClient` | `helpdeskCompanies.bulkDeactivate` |
+
+### テスト追加方針（要件19・20）
+
+- 単体（純粋関数）: `parseAndValidateCompanyCsv` … 正常CSV、ヘッダー不一致、空/データ0件、国コード不正、コード命名規則違反、既存コード重複、ファイル内重複、混在（一部エラー時に全件`committed:false`）。
+- サービス層: `createCompaniesBulk`（全件作成+各社`AnnouncementRecipient`同期、途中失敗で全ロールバック）、`deactivateApplicantUsersByCompanies`（有効ユーザーのみfalse化・既存無効は不変・件数返却・空配列で0件）、`listCompaniesForManagement`の`activeApplicantUserCount`集計。
+- コンポーネント: `CompanyCsvImportForm`（検証結果テーブル表示・全件成功時のみ登録ボタン活性/成功表示・エラー時の行別表示）、`CompanyManagementListClient`（選択・全選択・選択件数・ConfirmDialog起動・確定でaction呼び出し・キャンセルで未実行）。
+- 実機（playwright, ja/en, レスポンシブ）: CSVアップロード→エラー行提示→修正版で全件登録→一覧反映。一覧で複数選択→確認モーダルの件数表示→無効化→詳細で当該会社の全ユーザーが無効表示。
