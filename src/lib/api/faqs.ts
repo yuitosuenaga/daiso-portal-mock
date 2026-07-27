@@ -13,9 +13,11 @@ import {
 /**
  * FAQ全件を返す。並び順の保証はなく、カテゴリ別グループ化は呼び出し側の責務とする。
  * 会社・ロールによるスコープ制御は行わない（申請者側・ヘルプデスク側で同一の結果を返す）。
+ * `options.locale`に対応する質問・回答（未指定時は既定言語`ja`）で解決する
+ * （`api/announcements.ts`の`getAnnouncements`と同型）。
  */
-export async function getFaqs(): Promise<Faq[]> {
-  return listFaqs();
+export async function getFaqs(options?: { locale?: string }): Promise<Faq[]> {
+  return listFaqs(options?.locale);
 }
 
 /** ヘルプデスク管理一覧向けに、登録日降順で全件を返す。ヘルプデスクセッションを要求する。 */

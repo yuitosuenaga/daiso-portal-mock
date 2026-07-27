@@ -41,6 +41,7 @@ const INQUIRY_METHOD_FAQ: Faq = {
   answer: "ポータル上の「問い合わせ申請」ページから送信してください。",
   createdAt: "2020-01-01T00:00:00.000Z",
   updatedAt: "2020-01-01T00:00:00.000Z",
+  translations: [],
 };
 
 describe("FaqList", () => {
@@ -60,6 +61,15 @@ describe("FaqList", () => {
     render(jsx);
 
     expect(screen.getByText("FAQの取得に失敗しました")).toBeTruthy();
+  });
+
+  it("getFaqsへ選択中ロケール（getLocale()の結果）を渡す（要件12.6）", async () => {
+    getFaqsMock.mockResolvedValueOnce([]);
+
+    const jsx = await FaqList();
+    render(jsx);
+
+    expect(getFaqsMock).toHaveBeenCalledWith({ locale: "ja" });
   });
 
   it("空状態メッセージとエラーメッセージは異なる", () => {

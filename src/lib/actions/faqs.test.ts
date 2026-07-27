@@ -23,6 +23,9 @@ function buildInput(overrides: Partial<CreateFaqInput> = {}): CreateFaqInput {
     category: "inquiry_method",
     question: "問い合わせはどこから行えますか？",
     answer: "ダッシュボードの「問い合わせ・申請」から行えます。",
+    translations: [
+      { locale: "en", question: "Where can I submit an inquiry?", answer: "From the dashboard's \"Inquiries\" page." },
+    ],
     ...overrides,
   };
 }
@@ -35,6 +38,7 @@ function faq(overrides: Partial<Faq> = {}): Faq {
     answer: "回答",
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
+    translations: [],
     ...overrides,
   };
 }

@@ -19,6 +19,7 @@ const FAQS: Faq[] = [
     answer: "ポータル上の問い合わせ申請ページから送信してください。",
     createdAt: "2020-01-01T00:00:00.000Z",
     updatedAt: "2020-01-01T00:00:00.000Z",
+    translations: [],
   },
   {
     id: "2",
@@ -27,6 +28,7 @@ const FAQS: Faq[] = [
     answer: "通常2営業日以内に返信します。",
     createdAt: "2020-01-01T00:00:00.000Z",
     updatedAt: "2020-01-01T00:00:00.000Z",
+    translations: [],
   },
 ];
 

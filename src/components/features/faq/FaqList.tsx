@@ -18,7 +18,7 @@ export async function FaqList() {
 
   let faqs: Faq[];
   try {
-    faqs = await getFaqs();
+    faqs = await getFaqs({ locale });
   } catch {
     return (
       <div>

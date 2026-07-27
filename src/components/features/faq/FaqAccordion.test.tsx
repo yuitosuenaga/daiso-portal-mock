@@ -19,6 +19,7 @@ const FAQS: Faq[] = [
     answer: "ポータル上の問い合わせ申請ページから送信してください。",
     createdAt: "2020-01-01T00:00:00.000Z",
     updatedAt: "2020-01-01T00:00:00.000Z",
+    translations: [],
   },
   {
     id: "2",
@@ -27,6 +28,7 @@ const FAQS: Faq[] = [
     answer: "翻訳・確認作業に利用します。",
     createdAt: "2020-01-01T00:00:00.000Z",
     updatedAt: "2020-01-01T00:00:00.000Z",
+    translations: [],
   },
 ];
 
@@ -105,6 +107,7 @@ describe("FaqAccordion", () => {
       answer: "1行目\n2行目\n3行目",
       createdAt: "2020-01-01T00:00:00.000Z",
       updatedAt: "2020-01-01T00:00:00.000Z",
+      translations: [],
     };
     render(<FaqAccordion faqs={[multilineFaq]} {...DEFAULT_PROPS} />);
 

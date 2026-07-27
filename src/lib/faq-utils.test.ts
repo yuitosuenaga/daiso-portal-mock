@@ -15,6 +15,7 @@ function buildFaq(overrides: Partial<Faq> = {}): Faq {
     answer: "回答",
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
+    translations: [],
     ...overrides,
   };
 }
