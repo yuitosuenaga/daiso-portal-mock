@@ -408,7 +408,7 @@ async function seedDocuments(): Promise<void> {
   }
 }
 
-/** 既存モック（`MOCK_FAQS`）と同内容のFAQ12件。 */
+/** 既存モック（`MOCK_FAQS`）と同内容のFAQ12件。`en`は要件12（多言語対応）のデモ用翻訳。 */
 const FAQ_SEEDS = [
   {
     id: "seed-faq-001",
@@ -416,6 +416,9 @@ const FAQ_SEEDS = [
     question: "本社への問い合わせはどの方法で行えば良いですか。",
     answer:
       "ポータル上の「問い合わせ申請」ページから、案件種別・緊急度・内容を入力して送信してください。メールや電話での問い合わせは受け付けておりません。",
+    questionEn: "How should I contact the head office?",
+    answerEn:
+      "Please submit your inquiry from the \"Inquiry\" page on the portal, entering the case type, urgency, and details. Inquiries by email or phone are not accepted.",
   },
   {
     id: "seed-faq-002",
@@ -423,6 +426,9 @@ const FAQ_SEEDS = [
     question: "複数の案件をまとめて1件の問い合わせとして送信できますか。",
     answer:
       "1件の問い合わせにつき1つの案件のみご記入ください。複数の案件がある場合は、それぞれ個別に問い合わせを作成してください。",
+    questionEn: "Can I submit multiple cases in a single inquiry?",
+    answerEn:
+      "Please include only one case per inquiry. If you have multiple cases, create a separate inquiry for each one.",
   },
   {
     id: "seed-faq-003",
@@ -430,6 +436,9 @@ const FAQ_SEEDS = [
     question: "緊急度の高い問い合わせを行った場合、対応は早くなりますか。",
     answer:
       "緊急度は対応の優先順位付けの参考情報として利用しますが、対応順序や対応完了時期を保証するものではありません。緊急性の高い内容は具体的な状況を本文に記載してください。",
+    questionEn: "Will a high-urgency inquiry be handled faster?",
+    answerEn:
+      "Urgency is used as a reference for prioritizing responses, but it does not guarantee the order or timing of resolution. For urgent matters, please describe the specific situation in the inquiry text.",
   },
   {
     id: "seed-faq-004",
@@ -437,6 +446,9 @@ const FAQ_SEEDS = [
     question: "問い合わせフォームの「原文言語」は何のために入力しますか。",
     answer:
       "「原文言語」は、問い合わせ内容（自由記述）が元々どの言語で書かれているかを示す項目です。本社側での翻訳・確認作業に利用します。",
+    questionEn: "What is the \"original language\" field on the inquiry form for?",
+    answerEn:
+      "The \"original language\" field indicates the language in which the free-text inquiry content was originally written. It is used by the head office for translation and review.",
   },
   {
     id: "seed-faq-005",
@@ -444,6 +456,9 @@ const FAQ_SEEDS = [
     question: "自由記述欄の文字数に上限はありますか。",
     answer:
       "自由記述欄には文字数の上限があります。入力欄の下に表示される残り文字数を確認しながら入力し、上限を超える場合は内容を要約して記載してください。",
+    questionEn: "Is there a character limit for the free-text field?",
+    answerEn:
+      "Yes, the free-text field has a character limit. Check the remaining character count shown below the field as you type, and summarize your content if it exceeds the limit.",
   },
   {
     id: "seed-faq-006",
@@ -451,6 +466,9 @@ const FAQ_SEEDS = [
     question: "会社名や国の情報は毎回入力する必要がありますか。",
     answer:
       "現在のフェーズでは問い合わせごとに会社名・国を入力していただく仕様となっています。入力内容に誤りがあると対応が遅れる可能性がありますので、正確にご入力ください。",
+    questionEn: "Do I need to enter the company name and country every time?",
+    answerEn:
+      "In the current phase, the company name and country must be entered for each inquiry. Incorrect input may delay the response, so please enter this information accurately.",
   },
   {
     id: "seed-faq-007",
@@ -458,6 +476,9 @@ const FAQ_SEEDS = [
     question: "送信した問い合わせの対応状況はどこで確認できますか。",
     answer:
       "「申請一覧」ページで、自社が送信した問い合わせの対応状況（新規・対応中・解決済み）を確認できます。",
+    questionEn: "Where can I check the status of an inquiry I submitted?",
+    answerEn:
+      "You can check the status of inquiries submitted by your company (New, In Progress, Resolved) on the \"Inquiry List\" page.",
   },
   {
     id: "seed-faq-008",
@@ -465,6 +486,10 @@ const FAQ_SEEDS = [
     question: "「対応中」から「解決済み」に変わるまでの目安期間はどれくらいですか。",
     answer:
       "案件の内容や混雑状況により対応期間は異なるため、一律の目安期間は設けておりません。進捗が気になる場合は、申請一覧の詳細画面をご確認ください。",
+    questionEn:
+      "How long does it typically take for a case to move from \"In Progress\" to \"Resolved\"?",
+    answerEn:
+      "The response time varies depending on the content of the case and current workload, so no uniform estimate is provided. If you are concerned about progress, please check the detail screen on the inquiry list.",
   },
   {
     id: "seed-faq-009",
@@ -472,6 +497,10 @@ const FAQ_SEEDS = [
     question: "解決済みになった問い合わせについて、追加で質問したい場合はどうすれば良いですか。",
     answer:
       "解決済みの問い合わせに対する追記機能は現在提供しておりません。追加で確認したい内容がある場合は、新規の問い合わせとして改めて送信してください。",
+    questionEn:
+      "What should I do if I have an additional question about an inquiry that is already resolved?",
+    answerEn:
+      "There is currently no feature to add a follow-up to a resolved inquiry. If you have additional questions, please submit a new inquiry.",
   },
   {
     id: "seed-faq-010",
@@ -479,6 +508,9 @@ const FAQ_SEEDS = [
     question: "ポータルの表示言語はどこで切り替えられますか。",
     answer:
       "画面上部のヘッダーにある言語切り替えメニューから、日本語・英語の表示を切り替えることができます。",
+    questionEn: "Where can I switch the display language of the portal?",
+    answerEn:
+      "You can switch between Japanese and English using the language switcher menu in the header at the top of the screen.",
   },
   {
     id: "seed-faq-011",
@@ -486,6 +518,9 @@ const FAQ_SEEDS = [
     question: "ポータルにログインできない場合はどうすれば良いですか。",
     answer:
       "ログインに関するトラブルは、社内の情報システム管理者または導入時にご案内した連絡先にお問い合わせください。本ポータルの問い合わせフォームでは対応できません。",
+    questionEn: "What should I do if I cannot log in to the portal?",
+    answerEn:
+      "For login issues, please contact your company's IT administrator or the contact provided during setup. This cannot be handled through the portal's inquiry form.",
   },
   {
     id: "seed-faq-012",
@@ -493,6 +528,9 @@ const FAQ_SEEDS = [
     question: "リンク集やお知らせの内容はどのくらいの頻度で更新されますか。",
     answer:
       "リンク集やお知らせは、本社側で随時更新しています。更新頻度は内容によって異なり、一定のスケジュールは定めていません。",
+    questionEn: "How often is the content of the links list or announcements updated?",
+    answerEn:
+      "Links and announcements are updated by the head office as needed. The update frequency varies by content, and no fixed schedule is set.",
   },
 ];
 
@@ -506,6 +544,15 @@ async function seedFaqs(): Promise<void> {
         category: seed.category,
         question: seed.question,
         answer: seed.answer,
+        translations: {
+          create: [
+            {
+              locale: "en",
+              question: seed.questionEn,
+              answer: seed.answerEn,
+            },
+          ],
+        },
       },
     });
   }

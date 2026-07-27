@@ -60,6 +60,7 @@ function faq(overrides: Partial<Faq> = {}): Faq {
     answer: "テスト回答",
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
+    translations: [],
     ...overrides,
   };
 }
@@ -74,18 +75,18 @@ const TIMESTAMP = {
 };
 
 const MOCK_FAQS: Faq[] = [
-  { id: "1", category: "inquiry_method", question: "q1", answer: "a1", ...TIMESTAMP },
-  { id: "2", category: "inquiry_method", question: "q2", answer: "a2", ...TIMESTAMP },
-  { id: "3", category: "inquiry_method", question: "q3", answer: "a3", ...TIMESTAMP },
-  { id: "4", category: "form_input", question: "q4", answer: "a4", ...TIMESTAMP },
-  { id: "5", category: "form_input", question: "q5", answer: "a5", ...TIMESTAMP },
-  { id: "6", category: "form_input", question: "q6", answer: "a6", ...TIMESTAMP },
-  { id: "7", category: "status", question: "q7", answer: "a7", ...TIMESTAMP },
-  { id: "8", category: "status", question: "q8", answer: "a8", ...TIMESTAMP },
-  { id: "9", category: "status", question: "q9", answer: "a9", ...TIMESTAMP },
-  { id: "10", category: "other", question: "q10", answer: "a10", ...TIMESTAMP },
-  { id: "11", category: "other", question: "q11", answer: "a11", ...TIMESTAMP },
-  { id: "12", category: "other", question: "q12", answer: "a12", ...TIMESTAMP },
+  { id: "1", category: "inquiry_method", question: "q1", answer: "a1", translations: [], ...TIMESTAMP },
+  { id: "2", category: "inquiry_method", question: "q2", answer: "a2", translations: [], ...TIMESTAMP },
+  { id: "3", category: "inquiry_method", question: "q3", answer: "a3", translations: [], ...TIMESTAMP },
+  { id: "4", category: "form_input", question: "q4", answer: "a4", translations: [], ...TIMESTAMP },
+  { id: "5", category: "form_input", question: "q5", answer: "a5", translations: [], ...TIMESTAMP },
+  { id: "6", category: "form_input", question: "q6", answer: "a6", translations: [], ...TIMESTAMP },
+  { id: "7", category: "status", question: "q7", answer: "a7", translations: [], ...TIMESTAMP },
+  { id: "8", category: "status", question: "q8", answer: "a8", translations: [], ...TIMESTAMP },
+  { id: "9", category: "status", question: "q9", answer: "a9", translations: [], ...TIMESTAMP },
+  { id: "10", category: "other", question: "q10", answer: "a10", translations: [], ...TIMESTAMP },
+  { id: "11", category: "other", question: "q11", answer: "a11", translations: [], ...TIMESTAMP },
+  { id: "12", category: "other", question: "q12", answer: "a12", translations: [], ...TIMESTAMP },
 ];
 
 describe("getFaqs", () => {
@@ -131,6 +132,14 @@ describe("getFaqs", () => {
     const ids = result.map((faq) => faq.id);
 
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("options.localeをlistFaqsへ転送する（要件12.5）", async () => {
+    vi.mocked(listFaqs).mockResolvedValue(MOCK_FAQS);
+
+    await getFaqs({ locale: "en" });
+
+    expect(listFaqs).toHaveBeenCalledWith("en");
   });
 });
 
@@ -190,6 +199,7 @@ describe("createFaq / updateFaq / deleteFaq", () => {
       category: "other",
       question: "新しい質問",
       answer: "新しい回答",
+      translations: [],
     });
 
     expect(createFaqRecord).toHaveBeenCalled();
@@ -200,7 +210,7 @@ describe("createFaq / updateFaq / deleteFaq", () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
     await expect(
-      createFaq({ category: "other", question: "q", answer: "a" })
+      createFaq({ category: "other", question: "q", answer: "a", translations: [] })
     ).rejects.toThrow();
   });
 
@@ -212,12 +222,14 @@ describe("createFaq / updateFaq / deleteFaq", () => {
       category: "other",
       question: "更新後の質問",
       answer: "更新後の回答",
+      translations: [],
     });
 
     expect(updateFaqRecord).toHaveBeenCalledWith("faq-1", {
       category: "other",
       question: "更新後の質問",
       answer: "更新後の回答",
+      translations: [],
     });
     expect(result.question).toBe("更新後の質問");
   });

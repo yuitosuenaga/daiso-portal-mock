@@ -401,6 +401,15 @@
       "categoryPlaceholder": "カテゴリを選択してください",
       "answerLabel": "回答",
       "answerPlaceholder": "回答を入力してください",
+      "language": {
+        "jaTab": "日本語",
+        "enTab": "English",
+        "addButton": "言語を追加",
+        "removeButton": "この言語を削除",
+        "localeCodeLabel": "言語コード",
+        "localeCodePlaceholder": "例: th, vi, zh",
+        "localeDuplicateError": "他の言語と重複しない言語コードを入力してください"
+      },
       "submitButton": "保存する",
       "backToList": "一覧へ戻る",
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",

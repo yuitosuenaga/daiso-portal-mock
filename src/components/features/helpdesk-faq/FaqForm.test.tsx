@@ -29,10 +29,29 @@ const labels = {
   categoryPlaceholder: "カテゴリを選択してください",
   answerLabel: "回答",
   answerPlaceholder: "回答を入力してください",
+  languageJaTabLabel: "日本語",
+  languageEnTabLabel: "English",
+  languageAddButtonLabel: "言語を追加",
+  languageRemoveButtonLabel: "この言語を削除",
+  languageLocaleCodeLabel: "言語コード",
+  languageLocaleCodePlaceholder: "例: th, vi, zh",
+  languageLocaleDuplicateErrorMessage: "他の言語と重複しない言語コードを入力してください",
   submitButtonLabel: "保存する",
   requiredErrorMessage: "この項目は必須です",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
 };
+
+/** enタブに切り替えてquestionEn/answerEnを入力し、jaタブへ戻る。 */
+function fillEnFields(questionEn: string, answerEn: string) {
+  fireEvent.click(screen.getByRole("tab", { name: "English" }));
+  fireEvent.change(screen.getByLabelText("質問"), {
+    target: { value: questionEn },
+  });
+  fireEvent.change(screen.getByLabelText("回答"), {
+    target: { value: answerEn },
+  });
+  fireEvent.click(screen.getByRole("tab", { name: "日本語" }));
+}
 
 describe("FaqForm", () => {
   it("必須項目が未入力のまま送信するとcreateFaqActionが呼ばれない", async () => {
@@ -46,17 +65,18 @@ describe("FaqForm", () => {
     expect(createFaqActionMock).not.toHaveBeenCalled();
   });
 
-  it("入力済みで送信するとcreateFaqActionが呼ばれ一覧へ遷移する", async () => {
+  it("ja/en/カテゴリを入力済みで送信するとcreateFaqActionが呼ばれ一覧へ遷移する", async () => {
     render(<FaqForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("質問"), {
       target: { value: "新規質問" },
     });
-    fireEvent.change(screen.getByLabelText("カテゴリ"), {
-      target: { value: "other" },
-    });
     fireEvent.change(screen.getByLabelText("回答"), {
       target: { value: "新規回答" },
+    });
+    fillEnFields("New question", "New answer");
+    fireEvent.change(screen.getByLabelText("カテゴリ"), {
+      target: { value: "other" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -65,9 +85,69 @@ describe("FaqForm", () => {
         category: "other",
         question: "新規質問",
         answer: "新規回答",
+        translations: [{ locale: "en", question: "New question", answer: "New answer" }],
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/faq");
+  });
+
+  it("enタブが未入力のまま送信すると送信がブロックされる", async () => {
+    render(<FaqForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("質問"), {
+      target: { value: "新規質問" },
+    });
+    fireEvent.change(screen.getByLabelText("回答"), {
+      target: { value: "新規回答" },
+    });
+    fireEvent.change(screen.getByLabelText("カテゴリ"), {
+      target: { value: "other" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createFaqActionMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("言語を追加ボタンで追加言語のタブが表示され、入力した内容が送信される", async () => {
+    render(<FaqForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("質問"), {
+      target: { value: "新規質問" },
+    });
+    fireEvent.change(screen.getByLabelText("回答"), {
+      target: { value: "新規回答" },
+    });
+    fillEnFields("New question", "New answer");
+    fireEvent.change(screen.getByLabelText("カテゴリ"), {
+      target: { value: "other" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "言語を追加" }));
+    fireEvent.click(screen.getByRole("tab", { name: "言語コード" }));
+    fireEvent.change(screen.getByLabelText(/言語コード/), {
+      target: { value: "th" },
+    });
+    fireEvent.change(screen.getByLabelText("質問"), {
+      target: { value: "คำถาม" },
+    });
+    fireEvent.change(screen.getByLabelText("回答"), {
+      target: { value: "คำตอบ" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createFaqActionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          translations: [
+            { locale: "en", question: "New question", answer: "New answer" },
+            { locale: "th", question: "คำถาม", answer: "คำตอบ" },
+          ],
+        })
+      );
+    });
   });
 
   it("保存操作が失敗したとき送信エラーメッセージを表示し、入力内容を保持する", async () => {
@@ -77,11 +157,12 @@ describe("FaqForm", () => {
     fireEvent.change(screen.getByLabelText("質問"), {
       target: { value: "新規質問" },
     });
-    fireEvent.change(screen.getByLabelText("カテゴリ"), {
-      target: { value: "other" },
-    });
     fireEvent.change(screen.getByLabelText("回答"), {
       target: { value: "新規回答" },
+    });
+    fillEnFields("New question", "New answer");
+    fireEvent.change(screen.getByLabelText("カテゴリ"), {
+      target: { value: "other" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -105,6 +186,9 @@ describe("FaqForm", () => {
           category: "status",
           question: "編集前の質問",
           answer: "編集前の回答",
+          questionEn: "Existing question (EN)",
+          answerEn: "Existing answer (EN)",
+          translations: [],
         }}
         {...labels}
       />
@@ -127,6 +211,9 @@ describe("FaqForm", () => {
         category: "status",
         question: "編集前の質問",
         answer: "編集後の回答",
+        translations: [
+          { locale: "en", question: "Existing question (EN)", answer: "Existing answer (EN)" },
+        ],
       });
     });
   });

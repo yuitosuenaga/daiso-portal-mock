@@ -401,6 +401,15 @@
       "categoryPlaceholder": "Select a category",
       "answerLabel": "Answer",
       "answerPlaceholder": "Enter the answer",
+      "language": {
+        "jaTab": "Japanese",
+        "enTab": "English",
+        "addButton": "Add language",
+        "removeButton": "Remove this language",
+        "localeCodeLabel": "Language code",
+        "localeCodePlaceholder": "e.g. th, vi, zh",
+        "localeDuplicateError": "Enter a language code that is not used by another language"
+      },
       "submitButton": "Save",
       "backToList": "Back to list",
       "submitError": "Failed to save. Please try again later.",

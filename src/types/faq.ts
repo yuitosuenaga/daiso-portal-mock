@@ -4,6 +4,13 @@
 /** FAQの種別（category）。ヒアリング後に選択肢が変更される前提の仮値。 */
 export type FaqCategory = "inquiry_method" | "form_input" | "status" | "other";
 
+/** FAQの質問・回答を`ja`以外の言語で表す1件分（`AnnouncementTranslationView`と同型）。 */
+export interface FaqTranslationView {
+  locale: string;
+  question: string;
+  answer: string;
+}
+
 export interface Faq {
   id: string;
   category: FaqCategory;
@@ -13,6 +20,8 @@ export interface Faq {
   createdAt: string;
   /** 更新日時（ISO文字列）。Prismaの`@updatedAt`によりレコード更新時に自動更新される。 */
   updatedAt: string;
+  /** ja以外の言語別質問・回答（jaは親のquestion/answerが正）。 */
+  translations: FaqTranslationView[];
 }
 
 /**
