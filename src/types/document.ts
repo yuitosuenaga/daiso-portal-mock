@@ -12,6 +12,13 @@ export type DocumentTargeting =
   | { scope: "countries"; countries: string[] }
   | { scope: "companies"; companyCodes: string[] };
 
+/** ドキュメントのタイトル・説明の言語別（`ja`以外）の内容。`ja`は親の`title`/`description`が正。 */
+export interface DocumentTranslationView {
+  locale: string;
+  title: string;
+  description?: string;
+}
+
 interface DocumentBase {
   id: string;
   title: string;
@@ -22,6 +29,8 @@ interface DocumentBase {
   targeting: DocumentTargeting;
   /** ISO 8601 形式のアップロード時刻。編集しても更新しない */
   uploadedAt: string;
+  /** ja以外の言語別タイトル・説明（jaは親のtitle/descriptionが正）。 */
+  translations: DocumentTranslationView[];
 }
 
 export type Document =

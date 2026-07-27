@@ -66,6 +66,7 @@ function document(overrides: Partial<Document> = {}): Document {
     dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00.000Z",
+    translations: [],
     ...overrides,
   } as Document;
 }
@@ -83,6 +84,19 @@ describe("getDocuments", () => {
 
     expect(listDocumentsVisibleTo).toHaveBeenCalledWith("VN", "vn-daiso-vietnam");
     expect(result).toHaveLength(1);
+  });
+
+  it("options.localeが指定されたときlistDocumentsVisibleToへ転送する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(listDocumentsVisibleTo).mockResolvedValue([document()]);
+
+    await getDocuments({ locale: "en" });
+
+    expect(listDocumentsVisibleTo).toHaveBeenCalledWith(
+      "VN",
+      "vn-daiso-vietnam",
+      "en"
+    );
   });
 
   it("ヘルプデスクセッションでは例外を送出する", async () => {
@@ -111,6 +125,20 @@ describe("getDocumentById", () => {
       "vn-daiso-vietnam"
     );
     expect(result?.id).toBe("document-1");
+  });
+
+  it("options.localeが指定されたときfindDocumentVisibleToへ転送する", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findDocumentVisibleTo).mockResolvedValue(document());
+
+    await getDocumentById("document-1", { locale: "en" });
+
+    expect(findDocumentVisibleTo).toHaveBeenCalledWith(
+      "document-1",
+      "VN",
+      "vn-daiso-vietnam",
+      "en"
+    );
   });
 
   it("未ログインのとき例外を送出する", async () => {
@@ -166,6 +194,7 @@ describe("createDocument / updateDocument / deleteDocument", () => {
     fileSize: 1024,
     dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
+    translations: [],
   };
 
   it("ヘルプデスクセッションでcreateDocumentRecordに委譲する", async () => {

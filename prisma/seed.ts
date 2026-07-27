@@ -323,12 +323,15 @@ async function seedAnnouncementRecipientStatuses(): Promise<void> {
 const SAMPLE_PDF_DATA_URL =
   "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNjIgPj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiAyMCAxMDAgVGQgKFNhbXBsZSBEb2N1bWVudCBQREYpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjAKJSVFT0YK";
 
-/** 既存モック（`MOCK_DOCUMENTS`）と同内容のドキュメント5件。 */
+/** 既存モック（`MOCK_DOCUMENTS`）と同内容のドキュメント5件。`titleEn`/`descriptionEn`はデモ用の`en`翻訳（要件17.11）。 */
 const DOCUMENT_SEEDS = [
   {
     id: "seed-document-001",
     title: "店舗運営マニュアル（共通版）",
     description: "全販社共通の店舗運営における基本ルールをまとめたマニュアルです。",
+    titleEn: "Store Operations Manual (Common Edition)",
+    descriptionEn:
+      "A manual summarizing the basic rules for store operations common to all distributors.",
     fileName: "store-operations-manual.pdf",
     fileSize: 245_760,
     uploadedAt: "2026-07-01T09:00:00Z",
@@ -340,6 +343,9 @@ const DOCUMENT_SEEDS = [
     id: "seed-document-002",
     title: "商品陳列ガイドライン（東南アジア版）",
     description: "東南アジア地域向けの商品陳列レイアウトのガイドラインです。",
+    titleEn: "Merchandising Guidelines (Southeast Asia Edition)",
+    descriptionEn:
+      "Guidelines for product display layout for the Southeast Asia region.",
     fileName: "merchandising-guideline-sea.pdf",
     fileSize: 512_000,
     uploadedAt: "2026-06-25T09:00:00Z",
@@ -351,6 +357,9 @@ const DOCUMENT_SEEDS = [
     id: "seed-document-003",
     title: "レジ操作マニュアル（ベトナム限定）",
     description: "ベトナム販社向けのレジ端末操作手順をまとめた資料です。",
+    titleEn: "POS Operation Manual (Vietnam Only)",
+    descriptionEn:
+      "A document summarizing the POS terminal operation procedures for the Vietnam distributor.",
     fileName: "pos-manual-vietnam.pdf",
     fileSize: 189_440,
     uploadedAt: "2026-06-20T09:00:00Z",
@@ -362,6 +371,8 @@ const DOCUMENT_SEEDS = [
     id: "seed-document-004",
     title: "内部監査資料（本部限定）",
     description: "日本本部限定の内部監査に関する資料です。",
+    titleEn: "Internal Audit Materials (HQ Only)",
+    descriptionEn: "Materials related to internal audits, limited to Japan headquarters.",
     fileName: "internal-audit-hq-only.pdf",
     fileSize: 1_048_576,
     uploadedAt: "2026-06-15T09:00:00Z",
@@ -373,6 +384,9 @@ const DOCUMENT_SEEDS = [
     id: "seed-document-005",
     title: "什器組み立て手順書（北米向け）",
     description: "北米地域向け店舗什器の組み立て手順をまとめた資料です。",
+    titleEn: "Fixture Assembly Instructions (For North America)",
+    descriptionEn:
+      "A document summarizing the assembly procedure for store fixtures for the North America region.",
     fileName: "fixture-assembly-us.pdf",
     fileSize: 358_400,
     uploadedAt: "2026-06-10T09:00:00Z",
@@ -403,6 +417,11 @@ async function seedDocuments(): Promise<void> {
         targetingScope: seed.targetingScope,
         targetingCountries: seed.targetingCountries,
         targetingCompanyCodes: seed.targetingCompanyCodes,
+        translations: {
+          create: [
+            { locale: "en", title: seed.titleEn, description: seed.descriptionEn },
+          ],
+        },
       },
     });
   }

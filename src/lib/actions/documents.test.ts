@@ -34,6 +34,7 @@ function buildInput(overrides: Partial<CreateDocumentInput> = {}): CreateDocumen
     fileSize: 1024,
     dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
+    translations: [{ locale: "en", title: "New document via action" }],
     ...overrides,
   } as CreateDocumentInput;
 }
@@ -48,6 +49,7 @@ function buildGoogleInput(
     googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
     googleEmbedUrl: "https://docs.google.com/document/d/should-be-ignored/preview",
     targeting: { scope: "all" },
+    translations: [{ locale: "en", title: "New document via Google link" }],
     ...overrides,
   } as CreateDocumentInput;
 }
@@ -64,6 +66,7 @@ function document(overrides: Partial<Document> = {}): Document {
     dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00.000Z",
+    translations: [],
     ...overrides,
   } as Document;
 }
@@ -153,6 +156,36 @@ describe("createDocumentAction", () => {
     ).rejects.toThrow();
 
     expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("en翻訳が1件も無い不正な入力は例外になり、保存されない", async () => {
+    await expect(
+      createDocumentAction(buildInput({ translations: [] }))
+    ).rejects.toThrow();
+
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("translations（en＋追加言語）をそのままcreateDocumentへ渡す", async () => {
+    vi.mocked(createDocument).mockResolvedValue(document());
+
+    await createDocumentAction(
+      buildInput({
+        translations: [
+          { locale: "en", title: "English title" },
+          { locale: "vi", title: "Vietnamese title" },
+        ],
+      })
+    );
+
+    expect(createDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        translations: [
+          { locale: "en", title: "English title" },
+          { locale: "vi", title: "Vietnamese title" },
+        ],
+      })
+    );
   });
 });
 

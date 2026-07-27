@@ -33,6 +33,7 @@ const DOCUMENT: Document = {
   dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
+  translations: [],
 };
 
 const GOOGLE_DOCUMENT: Document = {
@@ -45,6 +46,7 @@ const GOOGLE_DOCUMENT: Document = {
   googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-02T09:00:00Z",
+  translations: [{ locale: "en", title: "Google Document", description: "EN description" }],
 };
 
 const BASE_PROPS = {
@@ -84,6 +86,13 @@ const BASE_PROPS = {
     titlePlaceholder: "",
     descriptionLabel: "説明",
     descriptionPlaceholder: "",
+    languageJaTabLabel: "日本語",
+    languageEnTabLabel: "English",
+    languageAddButtonLabel: "言語を追加",
+    languageRemoveButtonLabel: "この言語を削除",
+    languageLocaleCodeLabel: "言語コード",
+    languageLocaleCodePlaceholder: "例: th, vi, zh",
+    languageLocaleDuplicateErrorMessage: "他の言語と重複しない言語コードを入力してください",
     statusLabel: "公開状態",
     statusDraftOption: "下書き",
     statusPublishedOption: "公開",
@@ -170,5 +179,15 @@ describe("DocumentDetailPanel", () => {
     expect(screen.getByText("元のドキュメントを開く")).toBeTruthy();
     expect(screen.getByText("登録方法: Googleリンク")).toBeTruthy();
     expect(screen.getByText("公開状態: 下書き")).toBeTruthy();
+  });
+
+  it("編集モードで英語タブに切り替えると登録済みのen翻訳が初期値として復元される", () => {
+    render(<DocumentDetailPanel {...BASE_PROPS} document={GOOGLE_DOCUMENT} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
+
+    expect(
+      (screen.getByLabelText(/タイトル/) as HTMLInputElement).value
+    ).toBe("Google Document");
   });
 });

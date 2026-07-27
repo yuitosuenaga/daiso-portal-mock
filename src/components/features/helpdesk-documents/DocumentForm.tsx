@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Controller, useForm, type Resolver } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
@@ -22,6 +22,7 @@ import {
 import {
   documentFormSchema,
   type DocumentFormValues,
+  type DocumentSubmitValues,
 } from "@/lib/validation/document";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type { CreateDocumentInput } from "@/types/document";
@@ -36,6 +37,13 @@ export interface DocumentFormProps {
   titlePlaceholder: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
+  languageJaTabLabel: string;
+  languageEnTabLabel: string;
+  languageAddButtonLabel: string;
+  languageRemoveButtonLabel: string;
+  languageLocaleCodeLabel: string;
+  languageLocaleCodePlaceholder: string;
+  languageLocaleDuplicateErrorMessage: string;
   statusLabel: string;
   statusDraftOption: string;
   statusPublishedOption: string;
@@ -81,6 +89,9 @@ interface DocumentFormFieldValues {
   sourceType: "upload" | "google";
   title: string;
   description?: string;
+  titleEn: string;
+  descriptionEn?: string;
+  translations: { locale: string; title: string; description?: string }[];
   status: "draft" | "published";
   fileName: string;
   fileType: UploadFormValues["fileType"] | "";
@@ -104,11 +115,18 @@ const EMPTY_GOOGLE_VALUES = {
 };
 
 function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
+  const languageValues = {
+    titleEn: values.titleEn ?? "",
+    descriptionEn: values.descriptionEn,
+    translations: values.translations ?? [],
+  };
+
   if (values.sourceType === "google") {
     return {
       sourceType: "google",
       title: values.title,
       description: values.description,
+      ...languageValues,
       status: values.status,
       targeting: values.targeting,
       ...EMPTY_UPLOAD_VALUES,
@@ -121,6 +139,7 @@ function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
     sourceType: "upload",
     title: values.title,
     description: values.description,
+    ...languageValues,
     status: values.status,
     targeting: values.targeting,
     fileName: values.fileName,
@@ -146,6 +165,13 @@ export function DocumentForm({
   titlePlaceholder,
   descriptionLabel,
   descriptionPlaceholder,
+  languageJaTabLabel,
+  languageEnTabLabel,
+  languageAddButtonLabel,
+  languageRemoveButtonLabel,
+  languageLocaleCodeLabel,
+  languageLocaleCodePlaceholder,
+  languageLocaleDuplicateErrorMessage,
   statusLabel,
   statusDraftOption,
   statusPublishedOption,
@@ -178,6 +204,7 @@ export function DocumentForm({
 }: DocumentFormProps) {
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
+  const [activeLanguageTab, setActiveLanguageTab] = useState<string>("ja");
   const {
     register,
     handleSubmit,
@@ -185,13 +212,15 @@ export function DocumentForm({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<DocumentFormFieldValues>({
+  } = useForm<DocumentFormFieldValues, unknown, DocumentSubmitValues>({
     // `documentFormSchema`は`sourceType`による判別可能ユニオン型を検証・出力するが、
     // フォーム内部状態は上記の理由でフラットな型を使うため、resolverの型を明示的に合わせる。
     // 実行時の検証・整形は`documentFormSchema`がそのまま行うため安全性は損なわれない。
-    resolver: zodResolver(
-      documentFormSchema
-    ) as unknown as Resolver<DocumentFormFieldValues>,
+    resolver: zodResolver(documentFormSchema) as unknown as Resolver<
+      DocumentFormFieldValues,
+      unknown,
+      DocumentSubmitValues
+    >,
     defaultValues:
       defaultValues !== undefined
         ? toFieldValues(defaultValues)
@@ -199,12 +228,62 @@ export function DocumentForm({
             sourceType: "upload",
             title: "",
             description: "",
+            titleEn: "",
+            descriptionEn: "",
+            translations: [],
             status: "draft",
             targeting: { scope: "all" },
             ...EMPTY_UPLOAD_VALUES,
             ...EMPTY_GOOGLE_VALUES,
           },
   });
+  const {
+    fields: translationFields,
+    append: appendTranslation,
+    remove: removeTranslation,
+  } = useFieldArray({ control, name: "translations" });
+  const previousTranslationCountRef = useRef(translationFields.length);
+
+  // 言語を追加した直後、追加した行のタブへ自動的に切り替える。
+  useEffect(() => {
+    if (translationFields.length > previousTranslationCountRef.current) {
+      const lastField = translationFields[translationFields.length - 1];
+      if (lastField) {
+        setActiveLanguageTab(lastField.id);
+      }
+    }
+    previousTranslationCountRef.current = translationFields.length;
+  }, [translationFields]);
+
+  // 保存操作でja/en/追加言語のいずれかにエラーがある場合、そのタブへ自動的に切り替える
+  // （非表示タブのフィールドにエラーが出ていても、閲覧者が気づけるようにするため）。
+  useEffect(() => {
+    if (errors.title) {
+      setActiveLanguageTab("ja");
+      return;
+    }
+    if (errors.titleEn) {
+      setActiveLanguageTab("en");
+      return;
+    }
+    const translationErrors = errors.translations;
+    const translationErrorIndex = Array.isArray(translationErrors)
+      ? translationErrors.findIndex((entry) => entry)
+      : -1;
+    if (translationErrorIndex >= 0) {
+      const field = translationFields[translationErrorIndex];
+      if (field) {
+        setActiveLanguageTab(field.id);
+      }
+    }
+  }, [errors, translationFields]);
+
+  const languageTabButtonClassName = (isActive: boolean) =>
+    `rounded-md border px-3 py-1.5 text-sm ${
+      isActive
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-input bg-background text-foreground"
+    }`;
 
   const statusOptions: SelectOption[] = [
     { value: "draft", label: statusDraftOption },
@@ -268,11 +347,11 @@ export function DocumentForm({
     });
   }
 
-  async function onSubmit(values: DocumentFormFieldValues) {
+  async function onSubmit(values: DocumentSubmitValues) {
     setHasSubmitError(false);
     try {
       // `documentFormSchema`が`sourceType`に応じて正しい形へ再検証・整形するため、
-      // フラットなフォーム値をそのまま渡してよい（サーバー側でも同一スキーマで再検証する）。
+      // 変換済みのフォーム値をそのまま渡してよい（サーバー側でも同一スキーマで再検証する）。
       const input = values as unknown as CreateDocumentInput;
       if (mode === "edit" && documentId) {
         await updateDocumentAction(documentId, input);
@@ -287,32 +366,171 @@ export function DocumentForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <FormField
-        label={titleLabel}
-        required
-        requiredIndicator={requiredIndicator}
-        htmlFor="document-title"
-        error={errors.title ? requiredErrorMessage : undefined}
-      >
-        <Input
-          id="document-title"
-          placeholder={titlePlaceholder}
-          aria-invalid={errors.title ? true : undefined}
-          {...register("title")}
-        />
-      </FormField>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeLanguageTab === "ja"}
+            className={languageTabButtonClassName(activeLanguageTab === "ja")}
+            onClick={() => setActiveLanguageTab("ja")}
+          >
+            {languageJaTabLabel}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeLanguageTab === "en"}
+            className={languageTabButtonClassName(activeLanguageTab === "en")}
+            onClick={() => setActiveLanguageTab("en")}
+          >
+            {languageEnTabLabel}
+          </button>
+          {translationFields.map((field, index) => {
+            const locale = watch(`translations.${index}.locale`);
+            return (
+              <button
+                key={field.id}
+                type="button"
+                role="tab"
+                aria-selected={activeLanguageTab === field.id}
+                className={languageTabButtonClassName(activeLanguageTab === field.id)}
+                onClick={() => setActiveLanguageTab(field.id)}
+              >
+                {locale || languageLocaleCodeLabel}
+              </button>
+            );
+          })}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              appendTranslation({ locale: "", title: "", description: "" });
+            }}
+          >
+            {languageAddButtonLabel}
+          </Button>
+        </div>
 
-      <FormField
-        label={descriptionLabel}
-        htmlFor="document-description"
-      >
-        <Textarea
-          id="document-description"
-          placeholder={descriptionPlaceholder}
-          rows={3}
-          {...register("description")}
-        />
-      </FormField>
+        {activeLanguageTab === "ja" && (
+          <div className="flex flex-col gap-4">
+            <FormField
+              label={titleLabel}
+              required
+              requiredIndicator={requiredIndicator}
+              htmlFor="document-title"
+              error={errors.title ? requiredErrorMessage : undefined}
+            >
+              <Input
+                id="document-title"
+                placeholder={titlePlaceholder}
+                aria-invalid={errors.title ? true : undefined}
+                {...register("title")}
+              />
+            </FormField>
+            <FormField label={descriptionLabel} htmlFor="document-description">
+              <Textarea
+                id="document-description"
+                placeholder={descriptionPlaceholder}
+                rows={3}
+                {...register("description")}
+              />
+            </FormField>
+          </div>
+        )}
+
+        {activeLanguageTab === "en" && (
+          <div className="flex flex-col gap-4">
+            <FormField
+              label={titleLabel}
+              required
+              requiredIndicator={requiredIndicator}
+              htmlFor="document-title-en"
+              error={errors.titleEn ? requiredErrorMessage : undefined}
+            >
+              <Input
+                id="document-title-en"
+                placeholder={titlePlaceholder}
+                aria-invalid={errors.titleEn ? true : undefined}
+                {...register("titleEn")}
+              />
+            </FormField>
+            <FormField label={descriptionLabel} htmlFor="document-description-en">
+              <Textarea
+                id="document-description-en"
+                placeholder={descriptionPlaceholder}
+                rows={3}
+                {...register("descriptionEn")}
+              />
+            </FormField>
+          </div>
+        )}
+
+        {translationFields.map((field, index) => {
+          if (activeLanguageTab !== field.id) {
+            return null;
+          }
+          const translationError = errors.translations?.[index];
+          return (
+            <div key={field.id} className="flex flex-col gap-4">
+              <FormField
+                label={languageLocaleCodeLabel}
+                required
+                requiredIndicator={requiredIndicator}
+                htmlFor={`document-translation-${index}-locale`}
+                error={
+                  translationError?.locale
+                    ? languageLocaleDuplicateErrorMessage
+                    : undefined
+                }
+              >
+                <Input
+                  id={`document-translation-${index}-locale`}
+                  placeholder={languageLocaleCodePlaceholder}
+                  aria-invalid={translationError?.locale ? true : undefined}
+                  {...register(`translations.${index}.locale`)}
+                />
+              </FormField>
+              <FormField
+                label={titleLabel}
+                required
+                requiredIndicator={requiredIndicator}
+                htmlFor={`document-translation-${index}-title`}
+                error={translationError?.title ? requiredErrorMessage : undefined}
+              >
+                <Input
+                  id={`document-translation-${index}-title`}
+                  placeholder={titlePlaceholder}
+                  aria-invalid={translationError?.title ? true : undefined}
+                  {...register(`translations.${index}.title`)}
+                />
+              </FormField>
+              <FormField
+                label={descriptionLabel}
+                htmlFor={`document-translation-${index}-description`}
+              >
+                <Textarea
+                  id={`document-translation-${index}-description`}
+                  placeholder={descriptionPlaceholder}
+                  rows={3}
+                  {...register(`translations.${index}.description`)}
+                />
+              </FormField>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-fit"
+                onClick={() => {
+                  removeTranslation(index);
+                  setActiveLanguageTab("ja");
+                }}
+              >
+                {languageRemoveButtonLabel}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
 
       <FormField label={statusLabel} htmlFor="document-status">
         <Controller

@@ -16,6 +16,7 @@ const DOCUMENT: Document = {
   dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
+  translations: [],
 };
 
 const GOOGLE_DOCUMENT: Document = {
@@ -28,6 +29,7 @@ const GOOGLE_DOCUMENT: Document = {
   googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-02T09:00:00Z",
+  translations: [],
 };
 
 const DEFAULT_PROPS = {

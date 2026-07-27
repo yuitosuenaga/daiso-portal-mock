@@ -45,9 +45,18 @@ const DOCUMENT: Document = {
   dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
+  translations: [],
 };
 
 describe("DocumentList", () => {
+  it("getDocumentsへ選択中のロケールを渡す", async () => {
+    getDocumentsMock.mockResolvedValueOnce([]);
+
+    await DocumentList();
+
+    expect(getDocumentsMock).toHaveBeenCalledWith({ locale: "ja" });
+  });
+
   it("ドキュメントが0件のとき空状態メッセージを表示する", async () => {
     getDocumentsMock.mockResolvedValueOnce([]);
 
@@ -118,6 +127,7 @@ describe("DocumentList", () => {
       googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
       targeting: { scope: "all" },
       uploadedAt: "2026-07-02T09:00:00Z",
+      translations: [],
     };
     getDocumentsMock.mockResolvedValueOnce([DOCUMENT, googleDocument]);
 

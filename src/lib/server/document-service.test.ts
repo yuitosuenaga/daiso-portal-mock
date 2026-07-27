@@ -42,6 +42,7 @@ function baseDocumentRecord(
     targetingScope: "all" | "countries" | "companies";
     targetingCountries: string[];
     targetingCompanyCodes: string[];
+    translations: { locale: string; title: string; description: string | null }[];
   }> = {}
 ) {
   return {
@@ -60,6 +61,7 @@ function baseDocumentRecord(
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     targetingCompanyCodes: [] as string[],
+    translations: [] as { locale: string; title: string; description: string | null }[],
     ...overrides,
   };
 }
@@ -255,6 +257,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       fileSize: 1024,
       dataUrl: "data:application/pdf;base64,AAAA",
       targeting: { scope: "companies", companyCodes: ["jp-daiso-japan-trading"] },
+      translations: [],
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -292,6 +295,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       googleUrl: "https://docs.google.com/document/d/abc123/edit",
       googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
       targeting: { scope: "all" },
+      translations: [],
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -329,6 +333,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       fileSize: 1024,
       dataUrl: "data:application/pdf;base64,AAAA",
       targeting: { scope: "all" },
+      translations: [],
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -354,6 +359,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
         fileSize: 1,
         dataUrl: "data:application/pdf;base64,AAAA",
         targeting: { scope: "all" },
+        translations: [],
       })
     ).rejects.toThrow(DocumentNotFoundError);
   });
