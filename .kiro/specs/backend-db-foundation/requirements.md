@@ -217,6 +217,8 @@ backend-db-foundation バックエンド・DB基盤の導入。決定事項: API
 4. The プロジェクト shall `confirmedAt`・`completedAt`の値を初期投入（シード）によってのみ設定し、アプリケーションからの更新経路は設けない（既読・実施管理は本spec・隣接specの対象外という既存の決定を維持する）。
 5. When ヘルプデスク担当者がリマインドを送信したとき、the プロジェクト shall 対象の`AnnouncementRecipientStatus`の`reminderSentAt`をDBへ永続化する。
 
+> **隣接仕様との境界（2026-07-27 追記・お知らせトラッキングの個人単位化）**: 本要件11のデータモデル（`AnnouncementRecipient`＝会社単位マスタ、`AnnouncementRecipientStatus`）は、`announcements-management`spec 要件39〜42（2026-07-27）により拡張される。具体的には、確認済み（既読）を個人（`ApplicantUser`）単位で保持する新テーブル `AnnouncementReadReceipt` を追加し、`AnnouncementRecipientStatus.confirmedAt`（会社単位の確認済み）を廃止（実施済み `completedAt`・完了督促 `reminderSentAt` は会社単位で存続）する。`prisma/schema.prisma` は本spec（`backend-db-foundation`）と `announcements-management`/`announcements` の共同所有だが、この個人単位化に伴うスキーマ変更・マイグレーション・データ移行（キャリーフォワードのバックフィル）の実装主体は `announcements-management`spec とし、詳細・手順は同spec の requirements/design/tasks（2026-07-27 追加ラウンド）を正とする。本注記は境界の明示のみで、本spec側に実装タスクは追加しない。
+
 ---
 
 ### 要件 12: お知らせ・お知らせ管理APIのDB化

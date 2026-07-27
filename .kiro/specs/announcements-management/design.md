@@ -2361,3 +2361,120 @@ export async function notifyAnnouncementEscalation(
 - enum 追加マイグレーション（`escalation`）を本番 Cloud SQL に `prisma migrate deploy` で反映すること（反映漏れると督促ログ記録＝送信が失敗する）。
 
 ---
+
+## 追加ラウンド（2026-07-27）: お知らせトラッキングの個人単位化（確認済みは個人・実施済みは会社）（要件39〜42）
+
+### Overview（追加分）
+
+確認済み（既読）トラッキングを会社単位から個人（`ApplicantUser`）単位へ移行し、実施済み（対応完了）は会社単位のまま維持する。会社単位の代表1件マスタ（`AnnouncementRecipient`）＋お知らせ×会社の状態（`AnnouncementRecipientStatus`）は「実施済み・完了督促・自動エスカレーション」のアンカーとして存続させ、確認済みは新規の個人単位受信レシート（`AnnouncementReadReceipt`）で保持する。
+
+#### Goals（追加分）
+- 「誰が未読か」を個人単位で追跡可能にする（要件39）。
+- 確認済み分母＝有効`ApplicantUser`数（人数ベース）、実施済み分母＝対象会社数（会社ベース）に整理し、通知対象（`targetApplicantUsersWhere`）と確認済み分母を一致させる（要件39.2・40）。
+- 既存の期限超過自動エスカレーション（要件38、`announcement-escalation.ts`）をロジック無変更のまま維持する（要件42）。
+
+#### Non-Goals（追加分）
+- 実施済みの個人単位化、記録の取り消し、`ApplicantUser`作成連動のレシート事前生成（いずれも要件スコープ外）。
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- 新規モデル `AnnouncementReadReceipt`（お知らせ×`ApplicantUser`の既読レシート）の Prisma スキーマ定義・型（`src/types/announcement-recipient.ts` への追加）・読み取り/更新ロジック（`announcement-service.ts`・`lib/api/announcement-tracking.ts`）。
+- 確認済みトラッキングの個人単位化に伴う、ヘルプデスク側 `AnnouncementTrackingBadge`（人数ベース確認済み＋会社ベース実施済みの2表示）・`AnnouncementRecipientDialog`（確認モード＝個人一覧／実施モード＝会社一覧）の変更。
+- 個人単位の既読リマインド送信（`readReminderSentAt` の記録＋個人メール宛送信）。
+- `AnnouncementRecipientStatus.confirmedAt` の削除マイグレーションと、`confirmedAt` を個人受信レシートへ引き継ぐバックフィルスクリプト。
+
+**Out of Boundary（追加）**
+- 申請者側の確認済み自動記録トリガー・詳細/一覧のバッジ表示（`announcements`spec 所有。本specは個人単位の記録関数・読み取り関数・型を提供し、`announcements`spec がそれを呼ぶ。要件39.3 の記録関数は `announcements`spec の Server Action から呼ばれる）。
+- `Company` 作成時の `AnnouncementRecipient` 同期生成・既存 `Company` の補完（`helpdesk-account-management`spec 要件12/13 所有。本ラウンドで変更しない）。
+
+**隣接仕様との境界（重要）**
+- **`helpdesk-account-management`spec（要件12・14）**: `Company` 作成時の会社単位 `AnnouncementRecipient` 同期生成は引き続き必要（実施済み・完了督促の会社アンカーとして）で、無変更。要件14「`ApplicantUser` 作成時に `AnnouncementRecipient` を生成・変更しない」の結論は本ラウンドでも維持される（確認済みは個人単位の `AnnouncementReadReceipt` を確認・既読リマインド時に遅延生成するため、`ApplicantUser` 作成時のマスタ事前生成は不要）。ただし要件14.2 の根拠文言「トラッキング・自己申告・リマインド選択が会社単位で成立する」は、確認済みが個人単位化されることで一部が現状にそぐわなくなるため、同spec側に 2026-07-27 追記として境界注記を加える（実装変更は伴わない）。
+- **`backend-db-foundation`spec**: `prisma/schema.prisma` は同spec が共同所有する。本ラウンドの `AnnouncementReadReceipt` 追加・`AnnouncementRecipientStatus.confirmedAt` 削除は、トラッキングモデルの共同所有者である本spec（`announcements-management`）が実装・マイグレーション作成の主体となり、`backend-db-foundation`spec 側にはデータモデル差分の境界注記（2026-07-27 追記）を残す。
+
+**Revalidation Triggers（追加）**
+- `AnnouncementReadReceipt` の型・意味の変更、または `AnnouncementSelfStatus.confirmedAt` の取得元（個人受信レシート）の変更（`announcements`spec が再確認する必要がある）。
+
+### Data Models（追加分）
+
+新規モデル（Prisma、`backend-db-foundation`spec と共同所有の `prisma/schema.prisma` に追加）:
+
+```prisma
+model AnnouncementReadReceipt {
+  id             String        @id @default(cuid())
+  announcementId String
+  announcement   Announcement  @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  applicantUserId String
+  applicantUser  ApplicantUser @relation(fields: [applicantUserId], references: [id], onDelete: Cascade)
+  confirmedAt     DateTime?
+  readReminderSentAt DateTime?
+
+  @@unique([announcementId, applicantUserId])
+  @@index([announcementId])
+  @@index([applicantUserId])
+}
+```
+- `Announcement` に `readReceipts AnnouncementReadReceipt[]`、`ApplicantUser` に `announcementReadReceipts AnnouncementReadReceipt[]` の逆リレーションを追加する。
+- レコード不在＝「未確認・既読リマインド未送信」（スパース保持、要件39.1）。`confirmedAt: null` かつ `readReminderSentAt` 非 `null` の行は「既読リマインド送信済みだが未読」を表す。
+
+変更モデル:
+- `AnnouncementRecipientStatus`: `confirmedAt` を**削除**（会社単位の確認済みを廃止）。`completedAt`・`reminderSentAt` は会社単位のまま存続（実施済み・完了督促・エスカレーション用）。`AnnouncementRecipient`（会社単位マスタ）は無変更で存続。
+
+型定義（`src/types/announcement-recipient.ts`）:
+- 追加: `AnnouncementUserReadStatusView`（`applicantUserId`・`displayName`・`email`・`companyCode`・`companyName`・`country`・`confirmedAt: string | null`・`readReminderSentAt: string | null`）＝確認モードのダイアログ・確認済み集計が使う個人単位ビュー。
+- 変更: `AnnouncementRecipientStatusView` は実施済み（会社単位）専用に整理し `confirmedAt` を除去（`completedAt`・`reminderSentAt` を残す）。`AnnouncementTrackingSummary` は確認済みを人数ベース（`confirmedCount`/`totalRecipientUsers`）、実施済みを会社ベース（`completedCount`/`totalCompanies`）に分離。
+- `AnnouncementSelfStatus`（`{ confirmedAt, completedAt }`）は形状据え置き。ただし `confirmedAt` の取得元を「当該 `ApplicantUser` の受信レシート」、`completedAt` を「所属会社の会社単位状態」に変更（要件は `announcements`spec 側）。
+
+### マイグレーション・データ移行手順（追加分・要件41）
+
+順序が重要（テーブル追加 → バックフィル → カラム削除）:
+1. **マイグレーションA（テーブル追加）**: `AnnouncementReadReceipt` を追加。この時点で `AnnouncementRecipientStatus.confirmedAt` はまだ残す。
+2. **バックフィルスクリプト**（`scripts/` 等に冪等実装。例: `backfill-announcement-read-receipts.ts`）:
+   - `AnnouncementRecipientStatus` で `confirmedAt` が非 `null` の各行について、`recipient.companyId` に属する `isActive: true` の全 `ApplicantUser` を取得し、各ユーザー×当該 `announcementId` の `AnnouncementReadReceipt` を `confirmedAt`＝元の会社単位 `confirmedAt` で `upsert`（`@@unique([announcementId, applicantUserId])` により再実行しても重複しない＝冪等）。
+   - 既存レシートがある場合は `confirmedAt` を上書きしない（冪等・べき等再実行時の巻き戻し防止）。
+3. **マイグレーションB（カラム削除）**: バックフィル完了確認後に `AnnouncementRecipientStatus.confirmedAt` を削除。
+4. **本番反映（手動・都度）**: `main` 統合後、Cloud SQL に対して `prisma migrate deploy`（A・B の2本）を実行し、A と B の**間で**バックフィルスクリプトを本番DBに対して実行する。反映漏れ・順序誤りは確認済みトラッキング機能不全（カラム不在エラー／既読の逆戻り）を招くため、PR 申し送り事項として明記する。
+
+**データ移行方針の判断（要件41.3）**: キャリーフォワード（会社単位 confirmed → 有効全 `ApplicantUser`）を採用。理由: (1) 会社単位時代は個人を追跡しておらず個人単位化で失われる精度はない、(2) 「一律未読リセット」は既に対応済みのお知らせの確認済み率を一時的に見かけ上低下させ、申請者側で「未読」が再表示され・ヘルプデスク側の把握を混乱させる逆戻りを生む、(3) 実施済み（会社単位）は無変換で 1:1 に残るため確認済みだけキャリーフォワードすれば整合する。却下した代替案「一律未読リセット」も設計上検討したが上記(2)により不採用。
+
+### Components and Interfaces（追加分）
+
+#### announcement-service（差分: 確認済みの個人単位化）
+- 追加 `recordUserConfirmation(announcementId, applicantUserId)`: 当該ユーザーの受信レシートに `confirmedAt` を `upsert`（既存なら上書きしない）。同一会社の他ユーザーに波及しない（要件39.3）。
+- 追加 `getAnnouncementUserReadStatuses(announcementId): AnnouncementUserReadStatusView[]`: 配信対象（`targetApplicantUsersWhere`）の有効 `ApplicantUser` を左外部結合で受信レシートと突き合わせ、確認モードのダイアログ・確認済み集計に返す（要件39.4）。存在しないお知らせは空配列。
+- 追加 `sendUserReadReminders(announcementId, applicantUserIds)`: 対象ユーザーの受信レシートに `readReminderSentAt` を `upsert`（未生成なら `confirmedAt: null` で作成）し、当該ユーザーのメール宛にリマインド送信（`announcement-notifications.ts` に個人宛の送信経路を追加、既存の会社単位リマインドと同型・宛先を個人に限定）。確認済みユーザーは除外（要件39.6・42.2）。
+- 追加 `getUserSelfConfirmation(announcementId, applicantUserId): string | null`: 申請者詳細画面の自己状態（confirmedAt）用。
+- 変更 `getAnnouncementTrackingSummary`: 確認済みを `getAnnouncementUserReadStatuses` ベース（人数）、実施済みを既存 `getAnnouncementRecipientStatuses`（会社）ベースに分離集計。
+- 維持（無変更）: `getAnnouncementRecipientStatuses`（会社単位・実施済み/完了督促用）、`recordCompanyCompletion`、`sendAnnouncementReminders`（会社単位完了督促）、`isReminderPendingForCompany`。`getAnnouncementSelfStatusForCompany` は `completedAt` のみ会社単位で返す形に整理（confirmedAt は個人単位関数へ移す）。
+
+#### lib/api/announcement-tracking（差分）
+- 追加（ヘルプデスク）: `getAnnouncementUserReadStatuses`（`requireHelpdeskStaffSession`）、`sendAnnouncementUserReadReminders`。
+- 変更（申請者）: `confirmAnnouncementForCurrentCompany` を `confirmAnnouncementForCurrentUser` 相当に変更し、`claims.applicantUserId` で `recordUserConfirmation` を呼ぶ（`companyCode` ではなく個人単位。なりすまし防止のためユーザーIDはセッションから取得）。`completeAnnouncementForCurrentCompany` は会社単位のまま維持。`getAnnouncementSelfStatus` は confirmedAt を個人（`applicantUserId`）・completedAt を会社（`companyCode`）から合成して返す。
+
+#### announcement-escalation（差分: 影響確認のみ）
+- ロジック変更なし（要件42.1/42.3）。`getAnnouncementRecipientStatuses`（会社単位・`completedAt`/`companyCode`/`recipientId`）に依存し続ける。`confirmedAt` を参照していないため、`AnnouncementRecipientStatus.confirmedAt` 削除の影響を受けないことを設計・テストで確認する。
+
+#### AnnouncementTrackingBadge（差分）
+- 確認済み: `getAnnouncementUserReadStatuses` から算出した「確認済み {人数} / {対象ユーザー数} 人」。クリックで確認モードのダイアログ（未確認の個人一覧）。
+- 実施済み: 会社単位の「実施済み {会社数} / {対象会社数} 社」。クリックで実施モードのダイアログ（未実施の会社一覧）。
+- サーバー側（`AnnouncementManagementList.tsx`）で個人単位ビューと会社単位ビューの両方を取得して渡す（`recipientStatusesByAnnouncementId` を実施済み用に維持しつつ、確認済み用の `userReadStatusesByAnnouncementId` を追加）。
+
+#### AnnouncementRecipientDialog（差分）
+- `mode: "confirmed"`: 個人一覧（担当者名＝`displayName`・メール・会社名・国）を表示し、個別/一括の既読リマインド（`sendAnnouncementUserReadReminders`）。行キー・リマインド対象は `applicantUserId`。
+- `mode: "completed"`: 従来どおり会社単位の未実施一覧＋完了リマインド。
+- 型分岐のため、確認モードは `AnnouncementUserReadStatusView[]`、実施モードは会社単位ビューを受け取る（判別可能なユニオンまたはモード別 props）。
+
+#### i18n（差分）
+- `helpdeskAnnouncements.tracking.confirmedCount` を「確認済み {confirmed}/{total}人」（人数ベース、既存文言流用可）、`completedCount` を「実施済み {completed}/{total}社」（会社ベース、単位を「社」に変更）へ。確認モードダイアログにメール列（`columnEmail`）を追加。日本語・英語両対応。
+
+### Testing Strategy（追加分）
+- 単体: `recordUserConfirmation` が本人のみ記録し同僚に波及しないこと。`getAnnouncementUserReadStatuses` が無効ユーザーを除外し分母＝有効ユーザー数になること。`sendUserReadReminders` が確認済みを除外し `readReminderSentAt` を記録すること。
+- 移行: バックフィルが会社単位 confirmed を有効全ユーザーへ引き継ぎ、再実行しても重複しない（冪等）こと。`completedAt`/`reminderSentAt` が無変換で残ること。
+- 回帰: `announcement-escalation` が `confirmedAt` 削除後も会社単位完了判定で正しく督促し、当日重複判定が既読リマインドの影響を受けないこと（`escalation`/`reminder` ログのみで判定）。
+- 結線: 新規 `ApplicantUser`（`createApplicantUser`）が追加マスタ生成なしに確認済み分母へ「未確認」として現れること（要件42.4）。
+
+### PR 申し送り事項（追加分）
+- 本番 Cloud SQL への `prisma migrate deploy`（マイグレーションA→バックフィル→マイグレーションB の順）が手動・都度必要。`AnnouncementReadReceipt` 追加と `confirmedAt` 削除の間にバックフィルを挟むこと。
+- 既存の会社単位確認済みが存在する環境では、バックフィル後に確認済み率が「人数ベース」に変わるため、数値の見え方（分母＝有効ユーザー数）が変わることを運用へ周知。
+
+---

@@ -616,3 +616,69 @@
 - 対応期限超過時のお知らせ `status` の自動書き換えやUI上の状態遷移（本要件はメール督促の自動化のみを対象とし、要件17のスコープ外「自動的な状態変更」は引き続き対象外）。
 - 督促メールの専用文面の新設（既存の手動リマインドと同型の本文＝タイトル・`Due:`行・詳細リンクを用いる）。
 - 送信回数の上限（当日1回以外の、通算N回で打ち切る等の抑制）や、宛先個人単位での配信停止（opt-out）。
+
+---
+
+### 追加要望（2026-07-27）: お知らせトラッキングの個人単位化（確認済みは個人・実施済みは会社）
+
+2026-07-21 のプロダクト全体レビューで、お知らせのトラッキング（`AnnouncementRecipient`＝会社単位マスタ・`AnnouncementRecipientStatus`＝お知らせ×会社単位の状態）が会社ごとに1レコードしか持たず、同一会社に複数の申請者担当者（`ApplicantUser`）がいる場合に「1名が確認・完了操作をすると同僚を含む会社全体が確認済み扱いになる」構造的な問題が判明した。「誰が未読・未対応か」を個人単位で追跡できず、確認済み率の分母（会社数）と実際の通知対象（有効な`ApplicantUser`数、要件27/28/30・`announcement-notifications.ts`）も不一致になっている。これは要件23（2026-07-13、会社単位の自己申告記録）および `announcements`spec 要件15 が「個人単位への拡張は将来の検討事項とする」と明記して先送りしていた事項であり、本ラウンドでその将来対応を実施する。
+
+壁打ちの結果、確認済み（既読）と実施済み（対応完了）を業務的な性質に応じて別々の粒度で設計する。
+
+- **確認済み（既読）= 個人（`ApplicantUser`）単位**。「このお知らせをその個人が読んだか」は本質的に個人ごとの事実であり、同僚の既読が自分の既読を意味してはならない。
+- **実施済み（対応完了）= 会社単位のまま維持**。「対応（ポリシー適用・メンテ実施等）を会社として完了したか」は会社単位の業務成果であり、会社の誰か1名が実施すれば会社として完了とみなすのが妥当。会社単位を維持することで、対応期限超過の自動エスカレーション（要件38、`announcement-escalation.ts`）が「会社が未完了なら督促」というロジックのまま破綻しない。
+
+スコープ外:
+- 記録の取り消し（一度「確認済み」「対応完了」にした後に未対応へ戻す操作。要件23のスコープ外を踏襲）。
+- 実施済み（対応完了）の個人単位化（上記の業務的理由により、対応完了は引き続き会社単位で扱う）。
+- 会社単位マスタ`AnnouncementRecipient`そのものの廃止（実施済み・完了督促の会社単位アンカーとして存続させる。要件40参照）。
+- `ApplicantUser`の作成・無効化に連動した個人受信レシートの事前生成（レシートは確認・既読リマインド時に遅延生成する。`helpdesk-account-management`spec 要件14との境界は設計書に明記）。
+
+### Requirement 39: 確認済み（既読）トラッキングの個人（`ApplicantUser`）単位化
+
+**Objective:** As a ヘルプデスク担当者, I want お知らせの確認済み（既読）状況を申請者担当者（`ApplicantUser`）1名ごとに追跡したい, so that 同一会社内で誰がまだお知らせを読んでいないかを正確に把握し、個人に対して既読を促せる。
+
+#### Acceptance Criteria
+
+1. The Portal shall お知らせ×`ApplicantUser`の組ごとの既読状態を保持する個人単位の受信レシート（新規モデル `AnnouncementReadReceipt`。`announcementId`・`applicantUserId`・`confirmedAt`・`readReminderSentAt` を持つ）を導入する。レコードが存在しない組は「未確認・既読リマインド未送信」を意味する（スパース保持）。
+2. The Portal shall あるお知らせの確認済みトラッキングの対象母集団を、当該お知らせの配信対象（`targeting`）に含まれる国に属し、かつ `isActive: true` の `ApplicantUser`（既存の `targetApplicantUsersWhere` と同一の対象定義）とする。無効化された `ApplicantUser` は分母にも未確認者一覧にも含めない。
+3. The Portal shall 申請者が自分の確認済みを記録したとき、その申請者本人（`applicantUserId`）の受信レシートにのみ `confirmedAt` を記録し、同一会社の他の `ApplicantUser` の既読状態は変更しないサーバー関数を提供する（会社単位で全員に波及させない）。
+4. The Portal shall 指定したお知らせについて、対象母集団（要件39.2）の各 `ApplicantUser` を、その受信レシート（`confirmedAt`・`readReminderSentAt`）と結合した個人単位の一覧（`displayName`・`email`・所属会社名・国・`confirmedAt`・`readReminderSentAt`）を返す読み取り関数を提供する。該当お知らせが存在しない場合は空配列を返す。
+5. The Portal shall ヘルプデスク側お知らせ管理一覧の確認済みバッジを「確認済み {確認済み人数} / {対象 `ApplicantUser` 数} 人」という人数ベースの表示に変更し、クリック時のダイアログに未確認の `ApplicantUser` 一覧（担当者名・メール・会社名・国）を表示する。
+6. When ヘルプデスク担当者が未確認ダイアログから特定の `ApplicantUser` に既読リマインドを送ったとき、the Portal shall その `ApplicantUser` の受信レシートに `readReminderSentAt` を記録し（受信レシートが未生成なら `confirmedAt: null` のまま新規作成）、当該個人のメールアドレス宛にリマインドを送信する（宛先解決は既存の会社単位リマインドと同型だが、送信対象を選択された個人に限定する）。既に確認済み（`confirmedAt` 非 `null`）の `ApplicantUser` はリマインド対象から除外する。
+
+### Requirement 40: 実施済み（対応完了）トラッキングの会社単位維持と集計分母の明確化
+
+**Objective:** As a ヘルプデスク担当者, I want 実施済み（対応完了）を引き続き会社単位で追跡しつつ、確認済み（人数ベース）と実施済み（会社ベース）で分母が異なることを明確にUIへ反映したい, so that 会社としての対応完了状況と、個人の既読状況を混同せず正しく読み取れる。
+
+#### Acceptance Criteria
+
+1. The Portal shall 実施済み（対応完了）状態を、既存の会社単位マスタ `AnnouncementRecipient`（会社ごとに代表1件）と `AnnouncementRecipientStatus.completedAt`（お知らせ×会社単位）で引き続き保持する。`AnnouncementRecipient` は廃止せず、実施済み・完了督促（`reminderSentAt`）・自動エスカレーションの会社単位アンカーとして存続させる。
+2. The Portal shall 実施済み人数の集計分母を「対象会社数」（配信対象 `targeting` に含まれる `AnnouncementRecipient` の件数）とし、ヘルプデスク側管理一覧の実施済みバッジを「実施済み {実施済み会社数} / {対象会社数} 社」という会社ベースの表示にする。未実施ダイアログには未実施の会社一覧を表示する（従来どおり）。
+3. The Portal shall 確認済みバッジ（人数ベース・要件39.5）と実施済みバッジ（会社ベース・要件40.2）で単位（人／社）と分母が異なることを、`next-intl` 翻訳キーの文言（例: 「…人」「…社」）で明示し、日本語・英語の両方に対応する。
+4. The Portal shall 会社単位の実施済み記録関数（`recordCompanyCompletion` 相当）の挙動を本ラウンドでも維持する（会社の誰か1名の対応完了操作で当該会社の完了を記録する）。実施済みを個人単位に変更しない。
+5. The Portal shall 確認済みトラッキング（個人単位・要件39）と実施済みトラッキング（会社単位）を別々の読み取り関数・別々のダイアログ表示モードとして分離し、両者を1つの一覧型に無理に統合しない。
+
+### Requirement 41: データモデル移行と既存状態のデータ移行
+
+**Objective:** As a 運用者, I want 会社単位から個人単位（確認済み）への移行を、既存の確認済み・実施済み状態を失わず・矛盾なく行いたい, so that 移行後に既に対応済みのお知らせが「未読」に逆戻りして現場・ヘルプデスクを混乱させない。
+
+#### Acceptance Criteria
+
+1. The Portal shall Prisma スキーマに新規モデル `AnnouncementReadReceipt` を追加し（`@@unique([announcementId, applicantUserId])`、`applicantUserId` は `ApplicantUser` への外部キー）、対応するマイグレーションを作成する。
+2. The Portal shall 既存の `AnnouncementRecipientStatus.confirmedAt`（会社単位の確認済み）を、移行時点で当該会社に属する有効な（`isActive: true`）全 `ApplicantUser` の `AnnouncementReadReceipt.confirmedAt` へ引き継ぐ（キャリーフォワード）データ移行を、冪等なバックフィルスクリプトとして提供する。引き継ぐ `confirmedAt` の値は元の会社単位 `confirmedAt` とする。
+3. The Portal shall データ移行方針としてキャリーフォワード（要件41.2）を採用し、その理由を設計書に明記する（会社単位時代は個人を追跡していなかったため個人単位化で失われる精度はなく、一方で「一律未読リセット」を選ぶと既に対応済みのお知らせで確認済み率が一時的に見かけ上低下し、申請者・ヘルプデスク双方に不要な「未読」再表示・混乱を生むため、逆戻りを避けるキャリーフォワードを妥当とする）。
+4. The Portal shall 実施済み（`AnnouncementRecipientStatus.completedAt`）・完了督促（`reminderSentAt`）は会社単位のまま保持するため、これらに対する変換・移行を行わない（既存データをそのまま残す）。
+5. The Portal shall バックフィル完了後、不要となった `AnnouncementRecipientStatus.confirmedAt` カラムを削除するマイグレーションを、`AnnouncementReadReceipt` へのデータ移行の後に実行する順序で用意する（テーブル追加 → バックフィル → カラム削除）。
+6. The Portal shall 本番 Cloud SQL への反映は `main` 統合後も自動では行われず、`prisma migrate deploy`（スキーマ2本）とバックフィルスクリプトの実行が手動・都度必要である旨を、マイグレーション手順として設計書・タスクに明記する（反映漏れると確認済みトラッキングがカラム不在で失敗する）。
+
+### Requirement 42: 個人単位の既読リマインドと会社単位の完了督促・自動エスカレーションの整合
+
+**Objective:** As a ヘルプデスク担当者, I want 既読リマインド（個人単位）と完了督促・自動エスカレーション（会社単位）を別トラックとして扱いたい, so that 既存の期限超過自動督促（要件38）を壊さずに、個人への既読促しを追加できる。
+
+#### Acceptance Criteria
+
+1. The Portal shall 完了督促（手動リマインド `sendAnnouncementReminders` および自動エスカレーション要件38）を引き続き会社単位（`AnnouncementRecipientStatus.reminderSentAt` と `completedAt`）で扱い、本ラウンドでロジックを変更しない。自動エスカレーションは「会社が未完了（`completedAt` が `null`）なら督促」の判定を維持する。
+2. The Portal shall 既読リマインド（要件39.6）を、完了督促とは別の状態（`AnnouncementReadReceipt.readReminderSentAt`）で記録し、自動エスカレーションの当日重複判定（`AnnouncementNotificationLog` の `escalation`/`reminder`）には影響させない（既読リマインドは完了督促の送信実績と混同しない）。
+3. The Portal shall `announcement-escalation.ts` が参照する会社単位の状態取得（`getAnnouncementRecipientStatuses` 相当＝会社単位の `completedAt`/`companyCode`/`recipientId` を返す読み取り）を、確認済みの個人単位化後も会社単位の実施済み・完了督促情報を返すよう維持し、エスカレーション処理が個人単位化の影響を受けないことを設計書で確認する。
+4. The Portal shall 新規に作成された `ApplicantUser`（`helpdesk-account-management`spec 経由）が、追加のマスタ生成なしに確認済みトラッキングの対象母集団（要件39.2）へ自動的に「未確認」として含まれるようにする（受信レシートは確認・既読リマインド時に遅延生成するため、`ApplicantUser` 作成時のレシート事前生成は不要）。

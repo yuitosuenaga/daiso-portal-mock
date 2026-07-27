@@ -1091,3 +1091,87 @@
   - Cron APIを `curl -H "Authorization: Bearer <CRON_SECRET>" .../api/cron/announcement-escalation` で叩き、要約JSONが返ることを確認する
   - _Requirements: 38.9, 38.10_
   - _Depends: 57, 58_
+
+---
+
+## 追加ラウンド（2026-07-27）: お知らせトラッキングの個人単位化（要件39〜42）
+
+> 実装順序の要点: スキーマ追加（マイグレーションA）→ 型・サービス・API・UI 実装 → バックフィル → confirmedAt 削除（マイグレーションB）。本番 Cloud SQL への反映（`prisma migrate deploy` 2本＋バックフィル）は手動・都度。confirmedAt 削除（タスク67）はバックフィル（タスク66）完了後に行うこと。
+
+- [ ] 61. Prisma スキーマに `AnnouncementReadReceipt` を追加しマイグレーションAを作成する
+  - `prisma/schema.prisma` に `AnnouncementReadReceipt`（`announcementId`・`applicantUserId`・`confirmedAt: DateTime?`・`readReminderSentAt: DateTime?`、`@@unique([announcementId, applicantUserId])`、`@@index` 各種、`onDelete: Cascade`）を追加し、`Announcement`・`ApplicantUser` に逆リレーションを追加する
+  - `AnnouncementRecipientStatus.confirmedAt` はこの時点では残す（削除はタスク67）
+  - `npx prisma migrate dev --name add_announcement_read_receipt` でマイグレーションAを生成し、`prisma generate` を通す
+  - _Requirements: 39.1, 41.1_
+  - _Depends: なし_
+
+- [ ] 62. 型定義（`src/types/announcement-recipient.ts`）を個人単位/会社単位に整理する
+  - `AnnouncementUserReadStatusView`（`applicantUserId`・`displayName`・`email`・`companyCode`・`companyName`・`country`・`confirmedAt`・`readReminderSentAt`）を追加する
+  - `AnnouncementRecipientStatusView` から `confirmedAt` を除去（実施済み/完了督促の会社単位ビュー専用に）し、`AnnouncementTrackingSummary` を確認済み（人数: `confirmedCount`/`totalRecipientUsers`）と実施済み（会社: `completedCount`/`totalCompanies`）に分離する
+  - `AnnouncementSelfStatus`（`{confirmedAt, completedAt}`）は形状据え置き
+  - _Requirements: 39.4, 40.2, 40.5_
+  - _Depends: 61_
+
+- [ ] 63. サービス層に確認済みの個人単位ロジックを実装する（`announcement-service.ts`）
+  - `recordUserConfirmation(announcementId, applicantUserId)`: 当該ユーザーの受信レシートに `confirmedAt` を upsert（既存は上書きしない）。同僚に波及しないこと
+  - `getAnnouncementUserReadStatuses(announcementId)`: `targetApplicantUsersWhere` で解決した有効 `ApplicantUser` を受信レシートと左外部結合し `AnnouncementUserReadStatusView[]` を返す（無効ユーザー除外、存在しないお知らせは空配列）
+  - `getUserSelfConfirmation(announcementId, applicantUserId)`: 個人の `confirmedAt` を返す
+  - `getAnnouncementSelfStatusForCompany` を completedAt（会社単位）のみ返す形に整理し、confirmedAt は個人単位関数へ移す
+  - `getAnnouncementTrackingSummary` を確認済み（人数）＋実施済み（会社）の分離集計に変更する
+  - 単体テスト: 本人のみ記録・同僚非波及・無効ユーザー除外・分母＝有効ユーザー数
+  - _Requirements: 39.2, 39.3, 39.4, 40.2, 40.5_
+  - _Depends: 62_
+
+- [ ] 64. 個人単位の既読リマインド送信を実装する（`announcement-service.ts` + `announcement-notifications.ts`）
+  - `announcement-notifications.ts` に個人宛リマインド送信経路（会社単位 `notifyAnnouncementReminder` と同型だが宛先を指定 `applicantUserId`/email に限定）を追加する
+  - `sendUserReadReminders(announcementId, applicantUserIds)`: 受信レシートに `readReminderSentAt` を upsert（未生成なら `confirmedAt: null` で作成）、確認済みユーザーは除外、対象ユーザーのメール宛に送信する
+  - `readReminderSentAt` を自動エスカレーションの当日重複判定（`AnnouncementNotificationLog` の `escalation`/`reminder`）と混同しないこと
+  - 単体テスト: 確認済み除外・`readReminderSentAt` 記録・レシート遅延生成
+  - _Requirements: 39.6, 42.2_
+  - _Depends: 63_
+
+- [ ] 65. API 層（`lib/api/announcement-tracking.ts`）にヘルプデスク向け関数を追加する
+  - `getAnnouncementUserReadStatuses`（`requireHelpdeskStaffSession`）、`sendAnnouncementUserReadReminders`（`requireHelpdeskStaffSession`）を追加する
+  - 既存の会社単位 `getAnnouncementRecipientStatuses`（実施済み用）は維持する
+  - _Requirements: 39.4, 39.6_
+  - _Depends: 64_
+
+- [ ] 66. ヘルプデスクUIを個人単位（確認済み）＋会社単位（実施済み）に更新する
+  - `AnnouncementManagementList.tsx`（サーバー）で確認済み用の個人単位ビューと実施済み用の会社単位ビューの両方を取得し `AnnouncementManagementListClient` へ渡す
+  - `AnnouncementTrackingBadge`: 確認済み「{人数}/{対象ユーザー数}人」・実施済み「{会社数}/{対象会社数}社」の2表示にする
+  - `AnnouncementRecipientDialog`: `mode: "confirmed"` は個人一覧（担当者名・メール・会社・国）＋個人宛既読リマインド（`applicantUserId` キー）、`mode: "completed"` は従来の会社単位未実施一覧＋完了リマインド
+  - コンポーネントテスト（`*.test.tsx`）を個人/会社の分離に合わせて更新する
+  - _Requirements: 39.5, 40.1, 40.2, 40.5_
+  - _Depends: 65_
+
+- [ ] 67. i18n を人数/会社の単位差に合わせて更新する
+  - `messages/ja.json`・`messages/en.json` の `helpdeskAnnouncements.tracking.confirmedCount`（「…人」）・`completedCount`（「…社」に変更）、確認モードダイアログのメール列（`columnEmail`）を追加/更新する
+  - _Requirements: 40.3_
+  - _Depends: 66_
+
+- [ ] 68. バックフィルスクリプトを実装し実行する（confirmedAt → 個人受信レシート）
+  - `scripts/backfill-announcement-read-receipts.ts`（冪等）: `AnnouncementRecipientStatus.confirmedAt` が非 `null` の各行につき、`recipient.companyId` の `isActive: true` 全 `ApplicantUser` × `announcementId` の `AnnouncementReadReceipt` を `confirmedAt`＝元値で upsert（既存レシートは上書きしない）
+  - 再実行しても重複しない（冪等）ことをテスト/実行確認する
+  - `completedAt`/`reminderSentAt` は無変換で残す
+  - _Requirements: 41.2, 41.3, 41.4_
+  - _Depends: 63_
+
+- [ ] 69. `AnnouncementRecipientStatus.confirmedAt` を削除するマイグレーションB（バックフィル後）
+  - バックフィル完了確認後に `prisma/schema.prisma` から `confirmedAt` を削除し `npx prisma migrate dev --name drop_recipient_status_confirmed_at` でマイグレーションBを生成する
+  - _Requirements: 41.5_
+  - _Depends: 68_
+
+- [ ] 70. 自動エスカレーション（要件38）の回帰確認
+  - `announcement-escalation.ts` は confirmedAt を参照せず会社単位 `completedAt` で判定することを確認し、`confirmedAt` 削除後もテスト（`announcement-escalation.test.ts`）が通ることを検証する
+  - 当日重複判定が `readReminderSentAt` の影響を受けない（`escalation`/`reminder` ログのみで判定）ことをテストで確認する
+  - _Requirements: 42.1, 42.3_
+  - _Depends: 69_
+
+- [ ] 71. 結線テスト・検証（実装担当者の完了確認）
+  - 新規 `ApplicantUser`（`createApplicantUser`）が追加マスタ生成なしに確認済み分母へ「未確認」として現れること（要件42.4）を結線テストで確認する
+  - ヘルプデスク管理一覧で、同一会社の1名だけが詳細を開いた後に確認済みが「1/N人」になり同僚が未確認のまま残ること、未確認ダイアログに個人が並び個人宛リマインドが送れること、実施済みは「{会社数}/{対象会社数}社」のままであることをブラウザで確認する
+  - 日本語・英語両ロケールで単位（人/社）文言が翻訳されること、タブレット幅で横スクロールしないことを確認する
+  - _Requirements: 39.5, 40.2, 40.3, 42.4_
+  - _Depends: 67, 70_
+
+> 本番反映（PR 申し送り）: `main` 統合後、Cloud SQL に対し マイグレーションA（`prisma migrate deploy`）→ バックフィルスクリプト → マイグレーションB（`prisma migrate deploy`）の順で手動実行する。順序・反映漏れは確認済みトラッキングの機能不全・既読の逆戻りを招く。

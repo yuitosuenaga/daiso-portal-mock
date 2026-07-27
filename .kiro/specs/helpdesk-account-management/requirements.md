@@ -220,6 +220,8 @@ helpdesk-account-management: ヘルプデスク担当者が海外販社（Compan
 2. The ヘルプデスクポータル shall この扱いの根拠として、`AnnouncementRecipient`が`Company`に対して多対一（会社単位）のマスタであり、`ApplicantUser`とはリレーション（外部キー）を持たず`companyCode`（会社）でのみ引かれること、およびお知らせのトラッキング・自己申告・リマインド選択が会社単位で成立することを、設計に明記する。
 3. The ヘルプデスクポータル shall `AnnouncementRecipient`の同期生成を`Company`作成時のみに限定し、`ApplicantUser`作成・編集・無効化・再有効化のフローでは`AnnouncementRecipient`に触れない。
 
+> **隣接仕様との境界（2026-07-27 追記・お知らせトラッキングの個人単位化）**: `announcements-management`spec 要件39〜42（2026-07-27）で、お知らせの確認済み（既読）トラッキングが会社単位から個人（`ApplicantUser`）単位（新テーブル `AnnouncementReadReceipt`）へ移行される。ただし本spec 要件12（`Company`作成時の会社単位 `AnnouncementRecipient` 同期生成）は、実施済み（対応完了）・完了督促・自動エスカレーションの会社単位アンカーとして引き続き必要であり無変更。要件14（`ApplicantUser`作成時に `AnnouncementRecipient` を生成・変更しない）の結論も維持される（個人単位の `AnnouncementReadReceipt` は確認・既読リマインド時に遅延生成するため、`ApplicantUser`作成時のマスタ事前生成は不要）。なお要件14.2 の根拠文言のうち「お知らせのトラッキング…が会社単位で成立する」の部分は、確認済みが個人単位化されることで実態と一部ずれるが、本要件の**結論（作成時に触れない）**は変わらないため、本注記で境界を明示するに留め、本specの実装・承認状態は変更しない。個人単位化の実装・移行手順は `announcements-management`spec（2026-07-27 追加ラウンド）を正とする。
+
 ---
 
 ## セキュリティ修正: 無効化された申請者アカウントのセッション即時失効（2026-07-21 追記）
