@@ -163,3 +163,35 @@
 4. When 利用者が確認モーダルで確定したときのみ, the ヘルプデスクポータル shall 既存の削除処理を実行し、成功後の挙動・失敗時のエラー表示を維持する。キャンセル時は何も実行しない。
 5. The ヘルプデスクポータル shall `DeleteFaqButton`へ対象質問文を渡せるよう、必要に応じて呼び出し側から`question`をpropsで受け取る。
 6. The ヘルプデスクポータル shall 既存の`window.confirm`をモックする単体テスト（`DeleteFaqButton.test.tsx`）を、`ConfirmDialog`ベースの操作（トリガー押下→確認押下で削除、キャンセルで未実行）へ更新する。
+
+---
+
+### 追加要望（2026-07-27）: FAQの質問・回答の言語タブ入力
+
+2026-07-21実施のプロダクト全体レビューで、FAQ（質問・回答）とドキュメント（タイトル・説明）は単一言語入力のみで、お知らせ（`announcements-management`spec）だけが言語タブ方式（ja/en＋任意の追加言語）に対応しており、3機能間で多言語対応が非対称であることが報告された。20か国以上の海外販社が利用する発信ポータルとして、FAQの質問・回答も、お知らせと同じ「ヘルプデスク担当者が言語ごとに手動入力できる」言語タブ方式へ揃える。
+
+本specはFAQの書き込み経路（`createFaqRecord`/`updateFaqRecord`）・フォーム（`FaqForm`）・サーバー側バリデーション（`faqFormSchema`）を所有するため、**言語タブUI・言語別入力の保存（ネスト書き込み）・多言語入力のバリデーション**を本specで担う。FAQの言語別データモデル（`FaqTranslation`）・`Faq`型への`translations`追加・表示解決関数（`resolveFaqContent`）・申請者側読み取り（`listFaqs`/`getFaqs`）・申請者側の選択ロケール表示は`faq`spec（要件12）が所有する。両者は「faq一式」として1エージェントがまとめて実装し、`faq`spec のデータモデル/型/読み取り（`faq`spec タスク22）を先行させる。
+
+既存のお知らせ多言語実装（`announcementFormSchema`の`titleEn`/`bodyEn`＋`translations`＋`superRefine`＋`transform`、`AnnouncementForm.tsx`の言語タブUI、`announcement-service.ts`の`translationsToNestedWrite`）をそのまま横展開し、新しい抽象化は導入しない。質問（`question`）＝タイトル相当、回答（`answer`）＝本文相当で、いずれも全言語で必須とする。
+
+スコープ外:
+- 実際の機械翻訳（Google Cloud Translation API等）連携（お知らせと同じく対象外）
+- `FaqTranslation`モデル・`Faq`型への`translations`追加・表示解決関数・申請者側読み取り/表示（`faq`spec 要件12所有）
+- ヘルプデスク管理一覧（要件1・10）の各行質問文表示を選択ロケールで解決すること（管理一覧は従来どおり既定言語`ja`の`question`を表示する。お知らせ管理一覧と同挙動）
+
+### 要件 12: FAQの質問・回答の言語タブ入力
+
+**目的:** ヘルプデスク担当者として、FAQの質問・回答を言語ごとに入力したい。そうすることで、20か国以上の海外販社担当者が自分の言語（または共通語の英語）でよくある質問と回答を理解できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall FAQの新規作成・編集フォーム（`FaqForm`）に、`AnnouncementForm`と同型の言語タブUI（固定の「日本語（`ja`）」タブ・「English（`en`）」タブに加え、「言語を追加」ボタンで任意の言語コードの追加タブを動的に追加・削除できる）を提供し、各タブで質問・回答を言語別に入力できるようにする。カテゴリ選択（要件5）は言語に依存しない共通項目として言語タブの外に配置する。
+2. The ヘルプデスクポータル shall `ja`タブ・`en`タブの両方で質問・回答の入力を必須とし（`en`は`AnnouncementForm`と同じく実質必須）、いずれかが未入力のまま保存しようとしたとき、保存操作をブロックしエラーのあるタブへ自動的に切り替えて入力を促す（要件2.2・3.2の質問・回答必須を全言語へ拡張する）。
+3. The ヘルプデスクポータル shall 追加言語タブについて、言語コード（例: `th`・`vi`・`zh`）を自由入力で受け付け、`ja`・`en`・他の追加言語との重複を禁止し、重複時はエラーメッセージを表示して保存をブロックする（`announcementFormSchema`の重複検証と同型）。
+4. When ユーザーがフォームで各言語の質問・回答を入力して保存したとき、the ヘルプデスクポータル shall 既定言語（`ja`）の内容を`Faq.question`/`answer`（親列）に、`en`および追加言語の内容を`FaqTranslation`の行として保存する（作成・編集の両方）。編集時は既存の翻訳行を全置換する（`announcement-service.ts`の`translationsToNestedWrite`＝`deleteMany`＋`create`と同型）。
+5. The ヘルプデスクポータル shall 既存FAQの編集時に、登録済みの`ja`（親列）・`en`（翻訳行）・追加言語（翻訳行）を各タブの初期値として復元表示する（`faq`spec の`findFaqById`が未解決の`question`/`answer`＋`translations`を返すことに依拠する）。
+6. The ヘルプデスクポータル shall FAQフォームのサーバー側バリデーションスキーマ（`faqFormSchema`）を、`announcementFormSchema`と同型に拡張する（`question`/`answer`（ja）＋`questionEn`/`answerEn`（en、実質必須）＋`translations`（追加言語、`question`/`answer`必須・言語コード重複禁止・件数上限）＋`superRefine`＋`en`を`translations`へ合成する`transform`＋`z.input`/`z.output`の2型化）。
+7. The ヘルプデスクポータル shall 多言語入力のバリデーション（`ja`/`en`質問・回答必須・言語コード重複禁止・追加言語件数上限）を、クライアント側（`faqFormSchema`）とServer Actions（`createFaqAction` / `updateFaqAction`）によるサーバー側保存時の両方で行う。
+8. The ヘルプデスクポータル shall 言語タブUIの文字列（`ja`/`en`タブ名・「言語を追加」「この言語を削除」・言語コードラベル/プレースホルダー・言語コード重複エラー）を`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する（`helpdeskAnnouncements.form.language`と同型の`helpdeskFaq.form.language`名前空間を新設する）。質問・回答・カテゴリの既存ラベル（要件8）は全タブで共用する。
+9. When FAQの質問・回答（各言語）を保存したとき、the ヘルプデスクポータル shall 既存の`revalidatePath`対象（ヘルプデスク側一覧・編集、申請者側`/faq`、要件7.1）を再検証し、言語別の内容が申請者側の表示へ反映されるようにする。
+10. The ヘルプデスクポータル shall 言語タブUI導入後も、カテゴリ指定（要件5）・削除確認モーダル（要件11）・管理一覧の検索/絞り込み/ページネーション（要件10）・i18n（要件8）・レスポンシブ（要件9）を従来どおり適用する。

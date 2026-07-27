@@ -450,3 +450,130 @@ messages/ja.json, messages/en.json             # faq.search.label→keywordLabel
 - 検索挙動（キーワード即時絞り込み・カテゴリ別表示維持・0件メッセージ・クリア）が要件10 から不変であることを回帰確認する（要件11.5）。
 - `keywordLabel`/`keywordPlaceholder` の翻訳キーが ja/en 双方に存在し、旧 `label`/`placeholder` 参照が残っていないことを確認する。
 - **E2E**: 日英で検索欄ラベル・更新日・新着バッジ・0件メッセージが切り替わること、タブレット幅で検索欄・アコーディオンが横スクロールを起こさないこと
+
+---
+
+## 追加ラウンド（2026-07-27）: FAQの質問・回答の多言語対応（要件12）
+
+### Overview（追加分）
+`Faq`の質問・回答を言語別に保持できるようにし、申請者側`/faq`で販社担当者の選択ロケールに応じた質問・回答を表示する。既存のお知らせ多言語実装（`AnnouncementTranslation`モデル・`announcement-mapper.ts`の`resolveAnnouncementContent`/`ANNOUNCEMENT_INCLUDE`）をそのまま横展開する。質問（`question`）＝お知らせのタイトル、回答（`answer`）＝お知らせの本文に相当し、いずれも全言語で必須。`ja`（既定言語）は親テーブル（`Faq.question`/`answer`）に保持し、`FaqTranslation`には`ja`行を作らない。
+
+本spec（`faq`）は「共有基盤への変更」節の方針（要件9で`updatedAt`を本specで追加したのと同じ）に従い、**データモデル（`FaqTranslation`）・`Faq`型への`translations`追加・読み取り経路の表示解決（`faq-mapper.ts`の`resolveFaqContent`・`listFaqs`/`getFaqs`への`locale`）・申請者側の選択ロケール表示**を所有する。ヘルプデスク側の言語タブ入力フォーム・書き込み（ネスト書き込み）・`faqFormSchema`は`faq-management`spec（要件12）が所有する。両者は「faq一式」として1エージェントがまとめて実装する（`faq`のデータモデル/読み取り → `faq-management`の書き込み/フォームの順）。
+
+### Data Model（追加分）
+
+#### schema.prisma
+`AnnouncementTranslation`と同型の子テーブルを追加し、`Faq`に`translations`リレーションを持たせる（`title`/`body`の代わりに`question`/`answer`）。
+
+```prisma
+model Faq {
+  // ...既存フィールド（id, category, question, answer, createdAt, updatedAt）...
+  translations FaqTranslation[]
+}
+
+/**
+ * FAQの質問・回答を`ja`以外の言語で保持する子テーブル。`ja`（既定言語）の内容は
+ * 引き続き`Faq.question`/`answer`が正であり、`locale === "ja"`の行は作らない。
+ * `en`の行は作成・編集時に必ず1件存在するようフォームスキーマ（faqFormSchema）のtransformで保証する。
+ */
+model FaqTranslation {
+  id       String @id @default(cuid())
+  faqId    String
+  faq      Faq    @relation(fields: [faqId], references: [id], onDelete: Cascade)
+  locale   String
+  question String
+  answer   String
+
+  @@unique([faqId, locale])
+  @@index([faqId])
+}
+```
+
+- マイグレーション（例: `add_faq_translations`）は`prisma migrate dev`で生成。想定SQLは`AnnouncementTranslation`追加時と同型（`CREATE TABLE "FaqTranslation"` + unique/index/FK）。テーブル新設のみで既存`Faq`行の移行はしない（後方互換、要件12.9）。本番反映は`prisma migrate deploy`が別途必要（MEMORY「本番マイグレーション反映漏れ」参照）。
+
+#### 型（`src/types/faq.ts`）
+```ts
+export interface FaqTranslationView {
+  locale: string;
+  question: string;
+  answer: string;
+}
+export interface Faq {
+  id: string;
+  category: FaqCategory;
+  question: string;
+  answer: string;
+  createdAt: string;
+  updatedAt: string;
+  /** ja以外の言語別質問・回答（jaは親のquestion/answerが正）。 */
+  translations: FaqTranslationView[];
+}
+// CreateFaqInput = Omit<Faq, "id" | "createdAt" | "updatedAt"> のため translations は自動的に含まれる
+```
+
+#### マッパー（`src/lib/server/faq-mapper.ts`, 新規）
+現状`mapFaq`は`faq-service.ts`内にインラインで定義され、`faq-mapper.ts`は存在しない。`announcement-mapper.ts`を範として新規に`faq-mapper.ts`（leafモジュール）を作り、以下を集約する:
+
+- `FAQ_INCLUDE = { translations: true } as const satisfies Prisma.FaqInclude`
+- `DEFAULT_FAQ_LOCALE = "ja"`
+- `mapFaq(record)`（`faq-service.ts`から移動・拡張）: `record.translations`を`FaqTranslationView[]`にマッピングして`Faq`へ含める
+- `resolveFaqContent(faq, locale)`: `resolveAnnouncementContent`と同一のフォールバック（`locale`一致 → `en` → `ja`＝親列）で`{ question, answer }`を返す
+
+```ts
+export function resolveFaqContent(
+  faq: Pick<Faq, "question" | "answer" | "translations">,
+  locale: string
+): { question: string; answer: string } {
+  if (locale === DEFAULT_FAQ_LOCALE) return { question: faq.question, answer: faq.answer };
+  const match = faq.translations.find((t) => t.locale === locale);
+  if (match) return { question: match.question, answer: match.answer };
+  const en = faq.translations.find((t) => t.locale === "en");
+  if (en) return { question: en.question, answer: en.answer };
+  return { question: faq.question, answer: faq.answer };
+}
+```
+
+### 型・サービス層の変更（申請者側読み取り経路, 要件12.5/12.6）
+- `src/lib/server/faq-service.ts`: `mapFaq`を`faq-mapper.ts`へ移動し、そこからimportする。読み取り（`listFaqs`・`listFaqsForHelpdesk`・`findFaqById`）に`include: FAQ_INCLUDE`を付ける。`listFaqs(locale = DEFAULT_FAQ_LOCALE)`に`locale`引数を追加し、`mapFaq`後に`resolveFaqContent`で`question`/`answer`を上書きして返す（`listAnnouncementsVisibleToCountry`と同型）。`listFaqsForHelpdesk`/`findFaqById`は表示解決せず、親列（ja）＋`translations`をそのまま返す（要件12.8。`faq-management`が利用）。
+- `src/lib/api/faqs.ts`: `getFaqs(options?: { locale?: string })`に変更し、`listFaqs`へ`locale`を転送する（`api/announcements.ts`の`getAnnouncements`と同型）。ヘルプデスク向け（`getFaqsForHelpdesk`等）は変更しない。
+
+### Components and Interfaces（追記分）
+
+#### FaqList（Server）の変更（要件12.6）
+`FaqList.tsx`は既に`getLocale()`を`Promise.all`で取得している（日付書式・表示propsに使用）。この`locale`を`getFaqs()` → `getFaqs({ locale })`へ渡すよう結線する。取得結果（解決済みの`question`/`answer`を持つ`Faq[]`）を`FaqListClient` → `FaqCategoryGroup` → `FaqAccordion`へ渡す既存フローは変更しない。
+
+#### FaqListClient / FaqCategoryGroup / FaqAccordion（変更なし・要件12.6/12.7）
+`{faq.question}`・`{faq.answer}`（改行保持`whitespace-pre-wrap`）の既存描画のまま。`getFaqs`が解決済みの内容を返すため、言語別分岐UIの追加は不要。キーワード検索（要件10）も解決済みの`question`/`answer`に対してそのまま機能する（要件12.7）。
+
+### 翻訳キー（追記分）
+本spec側は表示コンポーネントの分岐を追加しないため、申請者側`faq`名前空間への**新規翻訳キー追加は不要**（質問・回答の文言はデータ由来）。言語タブUIの翻訳キー（`helpdeskFaq.form.language`）は`faq-management`spec が追加する。
+
+### File Structure Plan（追記分）
+新規:
+- `src/lib/server/faq-mapper.ts` — `FAQ_INCLUDE`・`DEFAULT_FAQ_LOCALE`・`mapFaq`（faq-serviceから移動・拡張）・`resolveFaqContent`
+- `prisma/migrations/<timestamp>_add_faq_translations/migration.sql` — `FaqTranslation`テーブル作成（既存行の移行なし）
+
+変更:
+- `prisma/schema.prisma` — `model FaqTranslation`追加、`Faq.translations`追加
+- `src/types/faq.ts` — `FaqTranslationView`追加、`Faq.translations`追加
+- `src/lib/server/faq-service.ts` — `mapFaq`をfaq-mapperへ移動、読み取りに`FAQ_INCLUDE`、`listFaqs(locale)`＋`resolveFaqContent`
+- `src/lib/api/faqs.ts` — `getFaqs({ locale })`
+- `src/components/features/faq/FaqList.tsx` — `getFaqs({ locale })`結線（`locale`は既存の`getLocale()`結果）
+- `prisma/seed.ts` / `prisma/seed.sql` — 既存12件のFAQに`en`翻訳行を投入（デモ用。`ja`は親列のまま）
+
+### Requirements Traceability（追記分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 12.1, 12.2 | `FaqTranslation`モデル・`ja`は親列 | schema.prisma, migration |
+| 12.3 | `Faq.translations`型 | types/faq.ts |
+| 12.4 | 表示解決（locale→en→ja） | faq-mapper.ts（resolveFaqContent） |
+| 12.5 | `listFaqs(locale)`/`getFaqs({locale})`の解決 | faq-service.ts, api/faqs.ts |
+| 12.6 | 申請者側の選択ロケール表示（結線のみ） | FaqList.tsx |
+| 12.7 | 検索が解決済み内容に対して機能 | FaqListClient（変更なし） |
+| 12.8 | ヘルプデスク側読み取りは未解決＋全翻訳 | faq-service.ts（listFaqsForHelpdesk/findFaqById） |
+| 12.9 | 既存データの後方互換（親列=ja・移行不要） | migration, resolveFaqContent |
+| 12.10 | 既存の改行/更新日/検索/カテゴリ表示を維持 | FaqAccordion/FaqListClient（変更最小） |
+
+### Error Handling / Testing（追記分）
+- **Unit Tests**: `resolveFaqContent`のフォールバック（`locale`→`en`→`ja`）、`mapFaq`の`translations`マッピング、`listFaqs(locale)`が解決済み内容を返すこと、`listFaqsForHelpdesk`/`findFaqById`が未解決＋`translations`を返すことを検証する（`faq-mapper.test.ts`／`faq-service.test.ts`）。
+- **Integration/E2E**: `en`翻訳を持つFAQを用意し、`/faq`を`en`ロケールで表示すると`en`の質問・回答、`ja`では`ja`の内容が表示され、未登録ロケールでは`ja`にフォールバックすること。検索・カテゴリ別グループ・アコーディオン・更新日/新着が従来どおり機能することを日英で確認する。

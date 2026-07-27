@@ -604,3 +604,178 @@ interface DocumentBase {
   - ヘルプデスク側で`status: "draft"`のドキュメントを作成した後、申請者側の一覧・詳細に表示されないこと。`published`に変更・保存すると表示されるようになること（`revalidatePath`反映）
 - **E2E/UI Tests**:
   - 日本語・英語両ロケールで、新規作成フォームの状態選択が初期値「下書き」で表示され、一覧に状態バッジが表示されること
+
+---
+
+## 追加ラウンド（2026-07-27）: ドキュメントのタイトル・説明の多言語対応（要件17）
+
+### Overview（追加分）
+`Document`のタイトル・説明を言語別に保持できるようにし、ヘルプデスク担当者が`AnnouncementForm`と同型の言語タブUI（ja/en＋任意の追加言語）で言語ごとに手動入力できるようにする。既存のお知らせ多言語実装（`AnnouncementTranslation`モデル・`resolveAnnouncementContent`・`announcementFormSchema`の`titleEn`/`bodyEn`＋`translations`・`AnnouncementForm`の言語タブ）をそのまま横展開し、新しい抽象化は導入しない。翻訳対象は`title`（必須）・`description`（任意）のみ。データモデル・マッパー・サービス・バリデーション・ヘルプデスク側フォームは本specが所有するため本ラウンドで担う。申請者側の一覧UI（`/documents`）で「選択ロケールの内容を表示する」ことは`documents`spec側の要件（要件19）で扱い、本specは`locale`を受け取る読み取り関数と表示解決関数`resolveDocumentContent`の型契約を提供する。
+
+`ja`（既定言語）はお知らせと同じく親テーブル（`Document.title`/`description`）に保持し、`DocumentTranslation`には`ja`行を作らない。既存の単一言語ドキュメントは、既存の親列＝`ja`としてそのまま扱い、翻訳テーブル追加のためのデータ移行を要さない（後方互換。要件17.11）。
+
+### Data Model（追加分）
+
+#### Prisma スキーマ（`prisma/schema.prisma`）
+`AnnouncementTranslation`（`prisma/schema.prisma`）と同型の子テーブルを追加し、`Document`に`translations`リレーションを持たせる。`body`の代わりに`title`＋`description`（任意）を持つ点のみ異なる。
+
+```prisma
+model Document {
+  // ...既存フィールド...
+  translations          DocumentTranslation[]
+}
+
+/**
+ * ドキュメントのタイトル・説明を`ja`以外の言語で保持する子テーブル。`ja`（既定言語）の内容は
+ * 引き続き`Document.title`/`description`が正であり、`locale === "ja"`の行は作らない。
+ * `en`の行は作成・編集時に必ず1件存在するようサービス層（documentFormSchemaのtransform）で保証する。
+ */
+model DocumentTranslation {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  locale      String
+  title       String
+  description String?
+
+  @@unique([documentId, locale])
+  @@index([documentId])
+}
+```
+
+#### マイグレーション
+新規マイグレーション（例: `add_document_translations`）を`prisma migrate dev`で生成する。想定SQLは`AnnouncementTranslation`追加時（`20260716041522_add_announcement_translations_notifications_and_preferred_locale/migration.sql`の`CREATE TABLE "AnnouncementTranslation"`部分）と同型:
+
+```sql
+-- CreateTable
+CREATE TABLE "DocumentTranslation" (
+    "id" TEXT NOT NULL,
+    "documentId" TEXT NOT NULL,
+    "locale" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    CONSTRAINT "DocumentTranslation_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX "DocumentTranslation_documentId_locale_key" ON "DocumentTranslation"("documentId", "locale");
+CREATE INDEX "DocumentTranslation_documentId_idx" ON "DocumentTranslation"("documentId");
+ALTER TABLE "DocumentTranslation" ADD CONSTRAINT "DocumentTranslation_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "Document"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+```
+
+- テーブル新設のみで、既存`Document`行への`UPDATE`（データ移行）は不要（後方互換、要件17.11）。`AnnouncementTranslation`追加時も`en`行のバックフィルは行っておらず、フォールバック（`en`なし → `ja`）で既存データを表示する方針を踏襲する。
+- 本番反映は`prisma migrate deploy`が別途必要（Cloud SQLへの反映は手動・都度。MEMORY「本番マイグレーション反映漏れ」参照）。design上はマイグレーションファイル追加までを本specの範囲とする。
+
+#### 型（`src/types/document.ts`）
+`AnnouncementTranslationView`に相当する`DocumentTranslationView`を追加し、`DocumentBase`に`translations`を持たせる。`title`＋任意`description`で、`body`は持たない。
+
+```typescript
+export interface DocumentTranslationView {
+  locale: string;
+  title: string;
+  description?: string;
+}
+
+interface DocumentBase {
+  id: string;
+  title: string;
+  description?: string;
+  status: "draft" | "published";
+  targeting: DocumentTargeting;
+  uploadedAt: string;
+  /** ja以外の言語別タイトル・説明（jaは親のtitle/descriptionが正）。 */
+  translations: DocumentTranslationView[];
+}
+```
+
+- `CreateDocumentInput`は`Document`から`id`・`uploadedAt`を除いた判別可能ユニオンのため、`translations`は自動的に入力へ含まれる。
+
+#### マッパー（`src/lib/server/document-mapper.ts`）
+`announcement-mapper.ts`を範として以下を追加する。
+
+- `DOCUMENT_INCLUDE = { translations: true } as const satisfies Prisma.DocumentInclude` を定義し、読み取り時に`translations`をincludeする（現状`document-service.ts`のread/createはincludeを付けていないため、`mapDocument`の入力型を`Prisma.DocumentGetPayload<{ include: typeof DOCUMENT_INCLUDE }>`に変更する）。
+- `mapDocument`: `base`に`translations: record.translations.map((t) => ({ locale: t.locale, title: t.title, description: t.description ?? undefined }))`を追加する（`sourceType`分岐の前、共通フィールドとして）。
+- `DEFAULT_DOCUMENT_LOCALE = "ja"` を定義（`DEFAULT_ANNOUNCEMENT_LOCALE`と同型）。
+- `resolveDocumentContent(document, locale)`: `resolveAnnouncementContent`と同一のフォールバック（`locale`一致 → `en` → `ja`＝親の`title`/`description`）で`{ title, description }`を返す。`description`は翻訳行にあればそれを、なければ親の`description`を返す。
+
+```typescript
+export function resolveDocumentContent(
+  document: Pick<Document, "title" | "description" | "translations">,
+  locale: string
+): { title: string; description?: string } {
+  if (locale === DEFAULT_DOCUMENT_LOCALE) {
+    return { title: document.title, description: document.description };
+  }
+  const match = document.translations.find((t) => t.locale === locale);
+  if (match) return { title: match.title, description: match.description };
+  const en = document.translations.find((t) => t.locale === "en");
+  if (en) return { title: en.title, description: en.description };
+  return { title: document.title, description: document.description };
+}
+```
+
+### Component / Service Design（追加分）
+
+- **document-service.ts（変更・要件17.6/17.8/17.9）**:
+  - `toDocumentData`は親列（`title`・`description`）に`ja`の内容を書く既存挙動を維持する。翻訳行はネスト書き込みで扱うため、`createDocumentRecord`/`updateDocumentRecord`を`prisma.document.create/update({ data: { ...toDocumentData(input), translations: translationsToNestedWrite(input.translations) }, include: DOCUMENT_INCLUDE })`に変更する。`translationsToNestedWrite`は`announcement-service.ts`と同型で、create時は`{ create: [...] }`、update時は`{ deleteMany: {}, create: [...] }`（全置換）とする（`en`行必須＋任意追加言語）。
+  - 読み取り関数に`include: DOCUMENT_INCLUDE`を付ける（現状はincludeなし）。
+  - 申請者側`listDocumentsVisibleTo(country, companyCode, locale = DEFAULT_DOCUMENT_LOCALE)`・`findDocumentVisibleTo(id, country, companyCode, locale = DEFAULT_DOCUMENT_LOCALE)`に`locale`引数を追加し、`mapDocument`後に`resolveDocumentContent`で`title`/`description`を上書きして返す（`listAnnouncementsVisibleToCountry`/`findAnnouncementVisibleToCountry`と同型）。既定引数によりロケール未指定時は`ja`となり後方互換。
+  - ヘルプデスク側`listAllDocuments`/`findDocumentById`は`resolveDocumentContent`を適用せず、親列（`ja`）＋`translations`配列をそのまま返す（要件17.9）。
+- **documentFormSchema（変更・要件17.4/17.5/17.10）**: `announcementFormSchema`のtitle多言語入力パターンを`title`＋`description`向けに移植する。現状の`z.discriminatedUnion("sourceType", [upload, google]).superRefine(...)`に対し、両ブランチ（またはブランチ共通のbaseオブジェクト）へ以下を追加する:
+  - `titleEn: z.string().trim().min(1).optional()`（実質必須、superRefineで検証）、`descriptionEn: z.string().trim().optional()`
+  - `translations: z.array(documentTranslationSchema).default([])`（`documentTranslationSchema = z.object({ locale: z.string().trim().min(2).max(10), title: z.string().trim().min(1), description: z.string().trim().optional() })`）
+  - `.superRefine`に、`en`タイトル必須（`titleEn` or `translations`内`en`から導出）・追加言語件数上限（`announcementFormSchema`と同じ20件）・`ja`/`en`/追加言語間の言語コード重複禁止を追加する（`announcementFormSchema`のロジックをそのまま流用）。
+  - `.superRefine`の後段に`.transform(...)`を連結し、`titleEn`/`descriptionEn`を`translations`の`en`行へ合成する（`announcementFormSchema`のtransformと同型。`z.discriminatedUnion(...).superRefine(...)`は`ZodEffects`を返すため、その上に`.transform`を連結できる）。
+  - 型を`DocumentFormValues = z.input<...>`・`DocumentSubmitValues = z.output<...>`の入力/出力2型に分ける（`AnnouncementFormValues`/`AnnouncementSubmitValues`と同型）。現状`DocumentFormValues = z.infer<...>`のためこの分割はDocumentForm/DocumentActionsの型に波及する（下記参照）。
+- **DocumentForm（変更・要件17.3/17.4/17.5/17.7）**: `AnnouncementForm`の言語タブUIをそのまま移植する:
+  - `activeLanguageTab`（`useState<string>("ja")`）、`useFieldArray({ control, name: "translations" })`、`role="tablist"`の固定ja/enタブ＋追加言語タブ、「言語を追加」ボタン（`appendTranslation({ locale: "", title: "", description: "" })`）、新規追加タブへの自動切替・エラータブへの自動切替の`useEffect`。
+  - 各タブで`title`/`description`（ja）、`titleEn`/`descriptionEn`（en）、`translations.${index}.{locale,title,description}`（追加言語）を`register`する。既存の単一`titleLabel`/`titlePlaceholder`/`descriptionLabel`/`descriptionPlaceholder`は全タブで共用する。
+  - `useForm<DocumentFormValues, unknown, DocumentSubmitValues>`の入力/出力2型構成へ変更する（現状は`DocumentFormFieldValues`のフラット型＋`Resolver`キャスト。判別可能ユニオンのため`keyof`崩れ対策のキャストは維持しつつ、`translations`のフィールド配列も扱えるよう`control`ベースで実装する）。
+  - 言語タブ用の新規props（`languageJaTabLabel`・`languageEnTabLabel`・`languageAddButtonLabel`・`languageRemoveButtonLabel`・`languageLocaleCodeLabel`・`languageLocaleCodePlaceholder`・`languageLocaleDuplicateErrorMessage`）を`AnnouncementForm`と同名で追加し、翻訳解決は呼び出し元ページ（`new`/`[id]/edit`）が行う既存規約を踏襲する。
+  - `DocumentDetailPanel.toFormDefaultValues(document)`（編集時の初期値生成）を、`document.translations`から`titleEn`/`descriptionEn`（`en`行）と`translations`（追加言語）を復元するよう変更する（要件17.7）。`ja`は既存どおり`document.title`/`description`。
+- **DocumentActions（変更・要件17.10）**: `createDocumentAction`/`updateDocumentAction`は既存どおり`documentFormSchema.parse(input)`でサーバー側再検証する（transformにより`en`合成・`translations`整形が行われる）。`withServerRecomputedEmbedUrl`・`revalidateDocumentRoutes`は変更不要。
+- **DocumentManagementList / DocumentDetailPanel の表示（要件スコープ外の確認）**: 管理一覧の行タイトルは従来どおり`document.title`（＝`ja`）を表示する（本ラウンドで多言語解決しない。お知らせ管理一覧と同挙動）。`DocumentDetailPanel`の表示モードのタイトル・説明も`ja`（親列）を表示する。
+
+### i18n（追加分）
+- `messages/ja.json` / `messages/en.json` の `helpdeskDocuments.form` に `language` サブ名前空間を追加する（`helpdeskAnnouncements.form.language`と同一キー構成）:
+  - `jaTab`（「日本語」/"Japanese"）、`enTab`（「English」/"English"）、`addButton`（「言語を追加」/"Add language"）、`removeButton`（「この言語を削除」/"Remove language"）、`localeCodeLabel`（「言語コード」/"Language code"）、`localeCodePlaceholder`（「例: th, vi, zh」/"e.g. th, vi, zh"）、`localeDuplicateError`（言語コード重複エラー文言）。
+- 既存の`titleLabel`/`descriptionLabel`等はそのまま全タブで共用する（新規追加不要）。
+- `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していること。
+
+### Modified / New Files（追加分）
+- `prisma/schema.prisma`（変更） — `model DocumentTranslation`追加、`Document.translations DocumentTranslation[]`追加
+- `prisma/migrations/<timestamp>_add_document_translations/migration.sql`（新規） — テーブル作成＋unique/index/FK（既存行の移行なし）
+- `src/types/document.ts`（変更） — `DocumentTranslationView`追加、`DocumentBase.translations`追加
+- `src/lib/server/document-mapper.ts`（変更） — `DOCUMENT_INCLUDE`・`DEFAULT_DOCUMENT_LOCALE`・`resolveDocumentContent`追加、`mapDocument`の入力型変更＋`translations`マッピング
+- `src/lib/server/document-service.ts`（変更） — `translationsToNestedWrite`追加、create/updateのネスト書き込み＋`include`、`listDocumentsVisibleTo`/`findDocumentVisibleTo`に`locale`引数＋`resolveDocumentContent`適用
+- `src/lib/validation/document.ts`（変更） — `documentTranslationSchema`・`titleEn`/`descriptionEn`/`translations`追加、`superRefine`（en必須・重複禁止・件数上限）、`transform`（en合成）、`z.input`/`z.output`の2型化
+- `src/lib/api/documents.ts`（変更） — `getDocuments`/`getDocumentById`に`options?: { locale?: string }`を追加し、申請者側サービスへ`locale`を転送（`api/announcements.ts`と同型。`documents`spec要件19の依存）
+- `src/lib/actions/documents.ts`（変更なし想定） — `documentFormSchema.parse`のtransform経由で`translations`が保存される。型が`DocumentSubmitValues`に変わる場合はimport調整のみ
+- `src/components/features/helpdesk-documents/DocumentForm.tsx`（変更） — 言語タブUI・`useFieldArray`・言語タブprops・入力/出力2型化
+- `src/components/features/helpdesk-documents/DocumentDetailPanel.tsx`（変更） — `toFormDefaultValues`で`translations`から各タブ初期値を復元
+- `src/app/[locale]/helpdesk/(dashboard)/documents/new/page.tsx` / `[id]/edit/page.tsx`（変更） — `DocumentForm`へ`languageJaTabLabel`等の翻訳文字列を渡す
+- `prisma/seed.ts` / `prisma/seed.sql`（変更） — 既存5件のドキュメントに`en`翻訳行（`DocumentTranslation`）を追加投入（デモ用。`ja`は親列のまま）
+- `messages/ja.json` / `messages/en.json`（変更） — `helpdeskDocuments.form.language.*`追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 17.1, 17.2 | `DocumentTranslation`モデル・`ja`は親列 | schema.prisma, migration |
+| 17.3, 17.4, 17.5, 17.7 | 言語タブUI・ja/enタイトル必須・重複禁止・編集時の復元 | DocumentForm, DocumentDetailPanel, documentFormSchema |
+| 17.6 | 言語別の保存（ja=親列 / en・追加=翻訳行） | document-service.ts（translationsToNestedWrite） |
+| 17.8 | 申請者側読み取りの表示解決（locale→en→ja） | document-mapper.ts（resolveDocumentContent）, document-service.ts, api/documents.ts |
+| 17.9 | ヘルプデスク側読み取りは未解決＋全翻訳を返す | document-service.ts（listAllDocuments/findDocumentById） |
+| 17.10 | クライアント/サーバー両方のバリデーション | documentFormSchema, DocumentActions |
+| 17.11 | 既存データの後方互換（親列=ja・移行不要・フォールバック） | migration, resolveDocumentContent |
+| 17.12 | 言語タブUIのi18n | i18n messages（helpdeskDocuments.form.language） |
+| 17.13 | sourceType/targeting/statusと独立 | documentFormSchema（両ブランチ共通）, DocumentForm |
+| 17.14 | 保存時の`revalidatePath`反映 | DocumentActions（既存revalidateDocumentRoutesで担保） |
+
+### Testing Strategy（追加分）
+- **Unit Tests**:
+  - `resolveDocumentContent`が`locale`一致 → `en` → `ja`の順にフォールバックすること（`document-mapper.test.ts`）。`description`が翻訳行になければ親の`description`を返すこと
+  - `mapDocument`が`record.translations`を`DocumentTranslationView[]`にマッピングすること
+  - `document-service`のcreate/updateが`ja`を親列に、`en`・追加言語を`DocumentTranslation`行に書くこと（updateは全置換）。`listDocumentsVisibleTo`/`findDocumentVisibleTo`が`locale`に応じた内容を返すこと。`listAllDocuments`/`findDocumentById`が未解決（ja）＋`translations`を返すこと
+  - `documentFormSchema`が`ja`/`en`タイトル未入力・言語コード重複・件数上限超過を拒否し、transformが`en`を`translations`へ合成すること（upload/google両ブランチ）
+- **Integration Tests**:
+  - ヘルプデスク側で`en`・追加言語のタイトル/説明を入力して保存 → 申請者側を`en`ロケールで取得すると`en`の内容、未登録ロケールでは`ja`の内容にフォールバックすること（`revalidatePath`反映）
+- **E2E/UI Tests**:
+  - 日本語・英語両ロケールで、新規作成/編集フォームに言語タブ（ja/en＋追加）が表示され、言語追加・削除・エラータブ自動切替が機能すること

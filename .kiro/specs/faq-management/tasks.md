@@ -163,3 +163,42 @@
   - トリガー押下→確認押下で削除実行、キャンセルで未実行、本文に対象質問文表示を検証する
   - _Requirements: 11.6_
   - _Depends: 21_
+
+## 追加ラウンド（2026-07-27）: FAQの質問・回答の言語タブ入力（要件12）
+
+> 前提: `faq`spec のタスク22（`FaqTranslation`追加・`Faq.translations`型・`faq-mapper.ts`の`FAQ_INCLUDE`/`mapFaq`・`findFaqById`が未解決＋`translations`を返す）が実装済みであること（同一エージェントが「faq一式」として`faq`spec タスク22 → 本タスク22の順で実装する）。
+> 参考実装（そのまま横展開する）: `announcementFormSchema`（`titleEn`/`bodyEn`＋`translations`＋superRefine＋transform＋z.input/z.output）、`announcement-service.ts`の`translationsToNestedWrite`、`AnnouncementForm.tsx`の言語タブUI。
+
+- [ ] 22. FAQの質問・回答を言語タブ入力に対応させる（要件12）
+
+- [ ] 22.1 `faqFormSchema`を多言語入力に対応させる（要件12.6, 12.7）
+  - `src/lib/validation/faq.ts`を`announcementFormSchema`と同型へ拡張する（`questionEn`/`answerEn`（optional・実質必須）＋`translations: z.array(faqTranslationSchema).default([])`＋`superRefine`（en必須・追加言語件数上限20・ja/en/追加言語間の言語コード重複禁止・`isSecondPass`処理）＋`transform`（en合成）＋`FaqFormValues = z.input`・`FaqSubmitValues = z.output`）
+  - `category`は言語非依存の共通項目として`translations`の外に置く
+  - _Requirements: 12.6, 12.7_
+  - _Depends: faq タスク22.2_
+
+- [ ] 22.2 書き込みサービスをネスト書き込みに変更する（要件12.4, 12.9）
+  - `src/lib/server/faq-service.ts`に`translationsToNestedWrite`（`announcement-service.ts`と同型：create=`{create}`、update=`{deleteMany:{}, create}`）を追加し、`createFaqRecord`/`updateFaqRecord`を`ja`=親列（`question`/`answer`）＋`en`・追加言語=`translations`ネスト書き込み＋`include: FAQ_INCLUDE`に変更する（`mapFaq`は`faq`spec 所有の`faq-mapper.ts`からimport）
+  - _Requirements: 12.4, 12.9_
+  - _Depends: faq タスク22.3, 22.1_
+
+- [ ] 22.3 (P) 言語タブUIの翻訳キーを追加する（要件12.8）
+  - `messages/ja.json`・`messages/en.json`の`helpdeskFaq.form`に`language`サブ名前空間（`jaTab`・`enTab`・`addButton`・`removeButton`・`localeCodeLabel`・`localeCodePlaceholder`・`localeDuplicateError`）を`helpdeskAnnouncements.form.language`と同一構成で追加する（ja/en両方、キー構造一致）
+  - _Requirements: 12.8_
+
+- [ ] 22.4 FaqFormに言語タブUIを実装する（要件12.1, 12.2, 12.3, 12.5）
+  - `AnnouncementForm.tsx`の言語タブ実装（`activeLanguageTab`・`useFieldArray({name:"translations"})`・固定ja/enタブ＋追加言語タブ・言語追加ボタン・新規/エラータブ自動切替の`useEffect`）を`FaqForm.tsx`へ移植し、各タブで`question`/`answer`（ja）・`questionEn`/`answerEn`（en）・`translations.${i}.{locale,question,answer}`（追加言語）を`register`する。`category`セレクトは言語タブの外に配置する
+  - `useForm`を`<FaqFormValues, unknown, FaqSubmitValues>`の入力/出力2型構成に変更する
+  - 言語タブprops（`languageJaTabLabel`・`languageEnTabLabel`・`languageAddButtonLabel`・`languageRemoveButtonLabel`・`languageLocaleCodeLabel`・`languageLocaleCodePlaceholder`・`languageLocaleDuplicateErrorMessage`）を`AnnouncementForm`と同名で追加する
+  - `new`/`[id]/edit`ページから`FaqForm`へ言語タブ用の翻訳文字列を渡す。編集ページの`defaultValues`を`findFaqById`が返す`Faq`（未解決question/answer＝ja、`translations`）から`questionEn`/`answerEn`（en行）・`translations`（追加言語）を復元するよう変更する
+  - _Requirements: 12.1, 12.2, 12.3, 12.5_
+  - _Depends: 22.1, 22.3_
+
+- [ ]* 22.5 (P) 多言語入力の単体・統合テストを追加・更新する
+  - `faqFormSchema`が`ja`/`en`の質問・回答未入力・言語コード重複・件数上限を拒否し、transformが`en`を`translations`へ合成すること（`validation/faq.test.ts`）
+  - `createFaqRecord`/`updateFaqRecord`が`ja`=親列・`en`/追加=翻訳行に書くこと（updateは全置換）を検証する（`faq-service.test.ts`）
+  - ヘルプデスク側で`en`・追加言語の質問/回答を保存し、申請者側を`en`ロケールで取得すると`en`の内容、未登録ロケールでは`ja`にフォールバックすることを確認する（`revalidatePath`反映）
+  - 日本語・英語両ロケールで、新規作成/編集フォームに言語タブ（ja/en＋追加）が表示され、言語追加・削除・エラータブ自動切替が機能し、カテゴリ選択が言語タブ外に表示されることを確認する
+  - 既存の`FaqForm.test.tsx`・`faq-service.test.ts`・`validation/faq.test.ts`を追従させ、`tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることで完了とする
+  - _Requirements: 12.1, 12.4, 12.6, 12.7, 12.9_
+  - _Depends: 22.2, 22.4_

@@ -418,3 +418,107 @@ messages/ja.json, messages/en.json                          # helpdeskFaq.list.f
 
 ### テスト
 - `DeleteFaqButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（トリガー→確認で削除、キャンセルで未実行、本文に質問文表示）。
+
+---
+
+## 追加ラウンド（2026-07-27）: FAQの質問・回答の言語タブ入力（要件12）
+
+### Overview（追加分）
+FAQの新規作成・編集フォーム（`FaqForm`）に`AnnouncementForm`と同型の言語タブUI（ja/en＋任意の追加言語）を追加し、質問・回答を言語別に手動入力できるようにする。言語別の保存（`ja`＝親列、`en`・追加＝`FaqTranslation`行のネスト書き込み）とサーバー側バリデーション（`faqFormSchema`の`announcementFormSchema`化）を本specで担う。データモデル（`FaqTranslation`）・`Faq.translations`型・表示解決（`resolveFaqContent`）・申請者側読み取り/表示は`faq`spec（要件12）が所有し、`faq`spec タスク22を先行させる。FAQは質問（=タイトル相当）・回答（=本文相当）がいずれも全言語で必須のため、お知らせと最も近い形で`announcementFormSchema`をほぼそのまま移植できる。
+
+### 前提（`faq`spec 所有・先行実装）
+- `Faq.translations: FaqTranslationView[]`（`{ locale; question; answer }`）と`CreateFaqInput.translations`（`CreateFaqInput = Omit<Faq, ...>`により自動）。
+- `src/lib/server/faq-mapper.ts`の`FAQ_INCLUDE`・`mapFaq`（`translations`込み）。本specの書き込み関数はこれをimportして返却値をマッピングする。
+- `findFaqById`が未解決の`question`/`answer`（ja）＋`translations`を返す（要件12.5の編集初期値復元に使用）。
+
+### Components and Interfaces（追記分）
+
+#### faqFormSchema（変更・要件12.6/12.7）
+`src/lib/validation/faq.ts`を`announcementFormSchema`（`src/lib/validation/announcement.ts`）と同型へ拡張する。現状は`z.object({ category, question, answer })`のフラットな`z.infer`。
+
+```ts
+const faqTranslationSchema = z.object({
+  locale: z.string().trim().min(2).max(10),
+  question: z.string().trim().min(1),
+  answer: z.string().trim().min(1),
+});
+const FAQ_ADDITIONAL_TRANSLATIONS_MAX_COUNT = 20;
+
+export const faqFormSchema = z
+  .object({
+    category: z.enum(FAQ_CATEGORY_CODES),
+    question: z.string().trim().min(1),
+    answer: z.string().trim().min(1),
+    questionEn: z.string().trim().min(1).optional(),
+    answerEn: z.string().trim().min(1).optional(),
+    translations: z.array(faqTranslationSchema).default([]),
+  })
+  .superRefine((values, ctx) => {
+    // en必須（questionEn/answerEn または translations内enから導出）
+    // 追加言語件数上限（FAQ_ADDITIONAL_TRANSLATIONS_MAX_COUNT）
+    // ja/en/追加言語間の言語コード重複禁止
+    // ※ announcementFormSchema の superRefine を question/answer 向けにそのまま移植
+  })
+  .transform(({ questionEn, answerEn, translations, ...values }) => {
+    // questionEn/answerEn を translations の en 行へ合成
+    // （announcementFormSchema の transform と同型）
+    return { ...values, translations: [{ locale: "en", question: ..., answer: ... }, ...additional] };
+  });
+
+export type FaqFormValues = z.input<typeof faqFormSchema>;   // フォーム入力型
+export type FaqSubmitValues = z.output<typeof faqFormSchema>; // 送信時（en合成済み）型
+```
+
+- `category`は言語非依存の共通項目のため`translations`の外側に置く（全言語で同一カテゴリ）。
+- `announcementFormSchema`の`isSecondPass`ロジック（Server Actionで2回目のparse時に`en`を重複扱いしない）もそのまま移植する（`createFaqAction`/`updateFaqAction`のサーバー側再検証で冪等に通すため）。
+
+#### CreateFaqInput（`faq`spec所有だが本specが利用・要件12.4）
+`faq`spec が`Faq`に`translations`を追加することで`CreateFaqInput`にも自動的に含まれる。本specの書き込みは`FaqSubmitValues`（`{ category, question, answer, translations }`）を`CreateFaqInput`として渡す。
+
+#### 書き込みサービス（変更・要件12.4/12.9）
+`src/lib/server/faq-service.ts`の`createFaqRecord`/`updateFaqRecord`を、`announcement-service.ts`の`translationsToNestedWrite`と同型に変更する。
+
+- `translationsToNestedWrite(translations)`: create時は`{ create: translations.map(...) }`、update時は`{ deleteMany: {}, create: [...] }`（全置換）。`ja`は親列（`data.question`/`answer`）へ、`en`・追加言語は`translations`ネストへ。
+- `createFaqRecord`: `prisma.faq.create({ data: { category, question, answer, translations: { create: [...] } }, include: FAQ_INCLUDE })`。
+- `updateFaqRecord`: `prisma.faq.update({ where, data: { category, question, answer, translations: translationsToNestedWrite(...) }, include: FAQ_INCLUDE })`。
+- 返却は`faq-mapper.ts`の`mapFaq`（`faq`spec所有）でマッピングする。
+
+#### FaqForm（変更・要件12.1/12.2/12.3/12.5）
+`AnnouncementForm.tsx`の言語タブ実装を`question`/`answer`向けに移植する。現状の`FaqForm`は単一`useForm<FaqFormValues>`でフラットな`question`/`category`/`answer`を`register`しているのみ。
+
+- `activeLanguageTab`（`useState<string>("ja")`）、`useFieldArray({ control, name: "translations" })`、`role="tablist"`の固定ja/enタブ＋追加言語タブ、「言語を追加」ボタン（`appendTranslation({ locale: "", question: "", answer: "" })`）、新規追加タブ・エラータブへの自動切替`useEffect`を移植する。
+- 各タブで`question`/`answer`（ja）、`questionEn`/`answerEn`（en）、`translations.${index}.{locale,question,answer}`（追加言語）を`register`する。既存の`questionLabel`/`questionPlaceholder`/`answerLabel`/`answerPlaceholder`は全タブで共用する。
+- `category`セレクト（要件5）は言語タブの外に共通項目として配置する。
+- `useForm`を`<FaqFormValues, unknown, FaqSubmitValues>`の入力/出力2型構成に変更する。
+- 言語タブ用の新規props（`languageJaTabLabel`・`languageEnTabLabel`・`languageAddButtonLabel`・`languageRemoveButtonLabel`・`languageLocaleCodeLabel`・`languageLocaleCodePlaceholder`・`languageLocaleDuplicateErrorMessage`）を`AnnouncementForm`と同名で追加し、翻訳解決は呼び出し元ページ（`new`/`[id]/edit`）が行う既存規約を踏襲する。
+- 編集ページ（`/helpdesk/faq/[id]/edit`）の`defaultValues`生成を、`findFaqById`が返す`Faq`（未解決`question`/`answer`＝ja、`translations`）から`questionEn`/`answerEn`（en行）と`translations`（追加言語）を復元するよう変更する（要件12.5）。
+
+#### Server Actions（変更・要件12.7/12.9）
+`src/lib/actions/faqs.ts`の`createFaqAction`/`updateFaqAction`は既存どおり`faqFormSchema.parse(input)`でサーバー側再検証する（transformにより`en`合成・`translations`整形が行われる）。`revalidateFaqRoutes()`（`/[locale]/helpdesk/faq`・`/[locale]/helpdesk/faq/[id]/edit`・`/[locale]/faq`）は変更不要（要件12.9）。
+
+### 定数・i18n（追記分）
+- `messages/ja.json` / `messages/en.json` の `helpdeskFaq.form` に `language` サブ名前空間を追加する（`helpdeskAnnouncements.form.language`と同一キー構成）: `jaTab`・`enTab`・`addButton`・`removeButton`・`localeCodeLabel`・`localeCodePlaceholder`・`localeDuplicateError`（ja/en両方、キー構造一致）。
+- 既存の`questionLabel`/`answerLabel`/`categoryLabel`等はそのまま全タブ・共通項目で共用する（新規追加不要）。
+
+### File Structure Plan（追記分）
+変更:
+- `src/lib/validation/faq.ts` — `announcementFormSchema`化（`questionEn`/`answerEn`/`translations`/superRefine/transform/z.input・z.output）
+- `src/lib/server/faq-service.ts` — `translationsToNestedWrite`追加、create/updateのネスト書き込み＋`include: FAQ_INCLUDE`（`faq-mapper`は`faq`spec 所有）
+- `src/components/features/helpdesk-faq/FaqForm.tsx` — 言語タブUI・`useFieldArray`・言語タブprops・入力/出力2型化
+- `src/app/[locale]/helpdesk/faq/new/page.tsx` / `[id]/edit/page.tsx` — 言語タブ翻訳文字列のprops渡し、編集ページのdefaultValues復元
+- `messages/ja.json` / `messages/en.json` — `helpdeskFaq.form.language.*`追加
+
+### Requirements Traceability（追記分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 12.1, 12.2, 12.3, 12.5 | 言語タブUI・ja/en質問回答必須・重複禁止・編集時復元 | FaqForm, faqFormSchema, edit page |
+| 12.4 | 言語別の保存（ja=親列 / en・追加=翻訳行、update全置換） | faq-service.ts（translationsToNestedWrite） |
+| 12.6, 12.7 | faqFormSchemaの多言語化・クライアント/サーバー両検証 | faqFormSchema, FaqActions |
+| 12.8 | 言語タブUIのi18n | i18n messages（helpdeskFaq.form.language） |
+| 12.9 | 保存時の`revalidatePath`反映 | FaqActions（既存revalidateFaqRoutesで担保） |
+| 12.10 | 既存のカテゴリ/削除確認/検索/i18n/レスポンシブを維持 | FaqForm/FaqManagement*（変更最小） |
+
+### Testing Strategy（追記分）
+- **Unit Tests**: `faqFormSchema`が`ja`/`en`の質問・回答未入力・言語コード重複・件数上限を拒否し、transformが`en`を`translations`へ合成すること。`createFaqRecord`/`updateFaqRecord`が`ja`=親列・`en`/追加=翻訳行に書くこと（updateは全置換）。
+- **Integration Tests**: ヘルプデスク側で`en`・追加言語の質問/回答を入力して保存 → `faq`spec 側の申請者読み取りを`en`ロケールで取得すると`en`の内容、未登録ロケールでは`ja`にフォールバックすること（`revalidatePath`反映）。
+- **E2E/UI Tests**: 日本語・英語両ロケールで、新規作成/編集フォームに言語タブ（ja/en＋追加）が表示され、言語追加・削除・エラータブ自動切替が機能し、カテゴリ選択が言語タブ外に表示されること。

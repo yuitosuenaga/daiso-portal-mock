@@ -294,3 +294,27 @@
 2. The ヘルプデスクポータル shall 下書き（`status: "draft"`）のドキュメントの非表示を、`documents-management`spec所有の読み取り関数（`getDocuments`）が公開範囲フィルタ（要件2）に加えて`status === "published"`で絞り込むことにより実現し、本spec側の一覧UI（`DocumentList` / `DocumentListClient` / `DocumentListItem` / `PdfViewer`）には新規の状態分岐UIを追加しない。
 3. If 販社担当者が下書きのドキュメントIDへ直接アクセス（`getDocumentById`相当）したとき, the ヘルプデスクポータル shall 公開範囲外のドキュメントと同様に「見つからない」として扱う（`documents-management`spec要件16.9に準拠）。
 4. The ヘルプデスクポータル shall 下書きフィルタ適用後も、既存の検索（要件12）・2列グリッド（要件11）・見出し（要件9）・アップロード日降順の並び順（要件3.1）・遅延描画（要件14）・新着バッジ（要件16）・Google埋め込みフォールバック（要件17）を、公開済みドキュメントに対して従来どおり適用する。
+
+---
+
+### 追加要望（2026-07-27）: 選択ロケールに応じたタイトル・説明の表示
+
+2026-07-21実施のプロダクト全体レビューで、ドキュメント（タイトル・説明）は単一言語入力のみで、お知らせ（`announcements`spec）だけが言語別表示に対応しており非対称であることが報告された。`documents-management`spec（要件17）で`Document`に`DocumentTranslation`（言語別のタイトル・説明）を追加し、ヘルプデスク担当者が言語タブで各言語のタイトル・説明を手動入力できるようにする。本spec（申請者側の一覧画面`/documents`）は、この言語別内容を「販社担当者が選択中のロケールに応じて表示する」ことを要件として明記する。
+
+本specは読み取り専用であり、翻訳テーブル・型・表示解決関数（`resolveDocumentContent`）・`locale`を受け取る読み取り関数（`getDocuments` / `getDocumentById`）の実装は`documents-management`spec所有（要件17.8）。したがって本spec側の変更は、既に`DocumentList`（Server）が`getLocale()`で取得済みの`locale`を`getDocuments({ locale })`へ渡すよう結線するだけであり（お知らせ申請者側`AnnouncementList`が`getAnnouncements({ locale })`を呼ぶのと同型）、`getDocuments`が返す`Document.title`/`description`が解決済みになることで一覧カード（`DocumentListItem`）の表示は自動的にロケール対応となる（既存の`{document.title}`/`{document.description}`描画のまま）。
+
+スコープ外:
+- `DocumentTranslation`モデル・型・表示解決関数・`locale`引数付き読み取り関数の実装、ヘルプデスク側の言語タブ入力UI（いずれも`documents-management`spec所有・要件17）
+- 申請者側での言語切り替えUI自体（既存のポータル共通のロケール切り替え＝`next-intl`に委ねる。本specは`getLocale()`の結果を読み取り関数へ渡すのみ）
+- 機械翻訳連携（`documents-management`spec同様に対象外）
+
+### 要件 19: 選択ロケールに応じたタイトル・説明の表示
+
+**目的:** 販社担当者として、ドキュメントのタイトル・説明を自分が選択中の言語（未登録の場合は共通語の英語、それも無ければ既定言語の日本語）で読みたい。そうすることで、母国語または英語でドキュメントの内容を素早く把握できる。
+
+#### 受け入れ基準
+
+1. The ヘルプデスクポータル shall ドキュメント一覧ページ（`/documents`）で、各ドキュメントのタイトル・説明を、販社担当者が選択中のロケール（`getLocale()`）に対応する内容で表示する。
+2. The ヘルプデスクポータル shall 選択ロケールに対応するタイトル・説明の解決を、`documents-management`spec（要件17.8）が提供する読み取り関数（`getDocuments`）へ`locale`を渡すことで実現し、本spec側の一覧UI（`DocumentList` / `DocumentListClient` / `DocumentListItem`）に言語別の分岐ロジックを新規に追加しない（`getDocuments`が返す解決済みの`title`/`description`をそのまま描画する）。
+3. If 選択ロケールの翻訳が未登録のとき、the ヘルプデスクポータル shall `documents-management`spec（要件17.8）のフォールバック（選択ロケール → `en` → 既定言語`ja`）に従った内容を表示する。
+4. The ヘルプデスクポータル shall ロケール別表示の導入後も、既存の検索（要件12）・2列グリッド（要件11）・見出し（要件9）・アップロード日降順（要件3.1）・遅延描画（要件14）・新着バッジ（要件16）・Google埋め込みフォールバック（要件17）・下書き非表示（要件18）を従来どおり適用する（本要件はタイトル・説明の表示内容の解決のみを変更する）。

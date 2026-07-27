@@ -388,3 +388,35 @@ interface DocumentsReadOnlyApi {
 ### Testing Strategy（追加分）
 - **Integration Tests**:
   - `documents-management`spec側で`status: "draft"`のドキュメントを作成した状態で、申請者側`/documents`の一覧に当該ドキュメントが表示されないこと、`published`のドキュメントは従来どおり表示されることを確認する（フィルタの主たる単体テストは`documents-management`spec の`document-service.test.ts`が担う）。
+
+---
+
+## 追加ラウンド（2026-07-27）: 選択ロケールに応じたタイトル・説明の表示（要件19）
+
+### Overview（追加分）
+`documents-management`spec（要件17）が`Document`に言語別のタイトル・説明（`DocumentTranslation`）と、`locale`を受け取る読み取り関数（`getDocuments` / `getDocumentById`）・表示解決関数（`resolveDocumentContent`）を追加する。本spec（申請者側`/documents`）は、既に`DocumentList`（Server Component）が`getLocale()`で取得済みの`locale`を`getDocuments({ locale })`へ渡すよう結線するだけで、一覧カードの表示は自動的にロケール対応となる。お知らせ申請者側（`AnnouncementList`が`getLocale()` → `getAnnouncements({ locale })`）と同型であり、本spec側に言語別の分岐UIは追加しない。
+
+### 前提（`documents-management`spec 所有）
+- `getDocuments`が`options?: { locale?: string }`を受け取り、`locale`に応じて`title`/`description`を解決して返す（要件17.8。`api/documents.ts`の変更は`documents-management`spec タスク11.8が担う）。
+- フォールバック順序（`locale` → `en` → `ja`）は`resolveDocumentContent`が担う。
+
+### Component Design（追加分）
+- **`DocumentList.tsx`（Server, 変更・要件19.1/19.2）**: 現状`getDocuments()`（locale未指定）で取得している箇所を、既に`getLocale()`で得ている`locale`を用いて`getDocuments({ locale })`に変更する。取得結果（解決済みの`title`/`description`を持つ`Document[]`）を`DocumentListClient`へ渡す既存フローは変更しない。
+- **`DocumentListClient.tsx` / `DocumentListItem.tsx`（変更なし・要件19.2）**: `{document.title}`・`{document.description}`の既存描画のまま。`getDocuments`が解決済みの内容を返すため、言語別分岐UIの追加は不要。
+  - 注意: `DocumentListClient`のキーワード検索（要件12）は、`getDocuments`が返す解決済み`title`/`description`（＝選択ロケールの内容）に対して部分一致する。これは「表示中の言語で検索できる」挙動であり、要件12の`filterDocuments`をそのまま適用する（追加変更不要）。
+
+### Modified Files（追加分）
+- `src/components/features/documents/DocumentList.tsx`（変更） — `getDocuments()` → `getDocuments({ locale })`（`locale`は既存の`getLocale()`結果を使用）
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 19.1, 19.2 | 選択ロケールでタイトル・説明を表示（`getDocuments({ locale })`結線のみ） | DocumentList（依存: documents-management所有の`getDocuments`/`resolveDocumentContent`） |
+| 19.3 | 未登録ロケールのフォールバック（locale→en→ja） | documents-management所有（`resolveDocumentContent`） |
+| 19.4 | 既存の検索・グリッド・新着・下書き非表示等を維持 | DocumentList/DocumentListClient（変更最小） |
+
+### Testing Strategy（追加分）
+- **Integration Tests**:
+  - `documents-management`spec側で`en`翻訳を持つドキュメントを用意し、申請者側`/documents`を`en`ロケールで表示すると`en`のタイトル・説明が、`ja`ロケールでは`ja`の内容が表示されること、未登録ロケールでは`ja`にフォールバックすることを確認する（解決ロジックの主たる単体テストは`documents-management`spec の`document-mapper.test.ts`／`document-service.test.ts`が担う）。
+- **E2E/UI Tests**:
+  - 日本語・英語ロケールで一覧カードのタイトル・説明が切り替わることを確認する。
