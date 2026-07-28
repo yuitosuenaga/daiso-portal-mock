@@ -80,13 +80,22 @@
         "scopeCountries": "By country",
         "scopeCompanies": "By company",
         "clearButton": "Clear filters",
-        "noResults": "No matching documents found"
+        "noResults": "No matching documents found",
+        "categoryLabel": "Major category",
+        "categoryAll": "All major categories",
+        "categoryUnassigned": "Unassigned",
+        "subCategoryLabel": "Subcategory",
+        "subCategoryAll": "All subcategories"
       },
       "pagination": {
         "previousLabel": "Previous",
         "nextLabel": "Next",
         "pageStatus": "Page {current} of {total}"
-      }
+      },
+      "categoryLabel": "Major category",
+      "subCategoryLabel": "Subcategory",
+      "categoryUnassigned": "Unassigned",
+      "manageCategoriesLink": "Manage categories"
     },
     "form": {
       "createTitle": "Create Document",
@@ -135,13 +144,19 @@
         "sizeExceeded": "The file size exceeds the limit (20MB)",
         "typeNotAllowed": "This file type is not allowed (PDF only)",
         "readFailed": "Failed to read the file. Please try again.",
-        "googleUrlInvalid": "Enter a Google Docs, Sheets, or Slides share link"
+        "googleUrlInvalid": "Enter a Google Docs, Sheets, or Slides share link",
+        "categoryRequired": "Select a major category",
+        "categoryPairInvalid": "The selected subcategory does not belong to the selected major category"
       },
       "detailTitle": "Document Details",
       "editButton": "Edit",
       "cancelButton": "Cancel",
       "downloadLink": "Download",
-      "openOriginalLink": "Open the original document"
+      "openOriginalLink": "Open the original document",
+      "categoryLabel": "Major category",
+      "categoryPlaceholderOption": "Please select",
+      "subCategoryLabel": "Subcategory",
+      "subCategoryNoneOption": "None"
     }
   },
   "helpdeskAnnouncements": {
@@ -782,7 +797,16 @@
       "keywordLabel": "Search keyword",
       "keywordPlaceholder": "Words in the title or description",
       "clearButton": "Clear filters",
-      "noResults": "No matching documents found"
+      "noResults": "No matching documents found",
+      "subCategoryLabel": "Filter by sub-category",
+      "subCategoryAll": "All sub-categories"
+    },
+    "categories": {
+      "documentCount": "{count} documents"
+    },
+    "category": {
+      "notFound": "The requested documents could not be found",
+      "backToCategories": "Back to categories"
     }
   },
   "inquiryForm": {
@@ -1026,6 +1050,66 @@
       "keywordPlaceholder": "Keyword in question or answer",
       "noResults": "No matching FAQs",
       "clearButton": "Clear"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "Document Category Management",
+      "description": "Add, edit, delete, and reorder major and subcategories for documents.",
+      "backToDocuments": "Back to document management",
+      "empty": "No categories",
+      "error": "Failed to load categories",
+      "addParentButton": "Add major category",
+      "addChildButton": "Add subcategory",
+      "editButton": "Edit",
+      "moveUpButton": "Move up",
+      "moveDownButton": "Move down",
+      "documentCountLabel": "{count} document(s)",
+      "subCategoryCountLabel": "{count} subcategory(ies)",
+      "targetingAllLabel": "Public to all",
+      "targetingCountriesLabel": "Target countries",
+      "targetingCompaniesLabel": "Target companies",
+      "delete": {
+        "buttonLabel": "Delete",
+        "confirmTitle": "Delete Category",
+        "confirmMessage": "This will delete \"{name}\". This action cannot be undone. Are you sure?",
+        "confirmButtonLabel": "Delete",
+        "cancelButtonLabel": "Cancel",
+        "errorMessage": "Failed to delete. Please try again later.",
+        "blockedByDocuments": "\"{name}\" cannot be deleted because {count} document(s) are still assigned to it. Please reassign those documents first.",
+        "blockedByChildren": "\"{name}\" cannot be deleted because it has {count} subcategory(ies). Please delete the subcategories first."
+      }
+    },
+    "form": {
+      "createParentTitle": "Add Major Category",
+      "createChildTitle": "Add Subcategory",
+      "editTitle": "Edit Category",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter the category name",
+      "targetingLabel": "Visibility",
+      "targetingAllOption": "Public to all",
+      "targetingCountriesOption": "Specify countries/regions",
+      "targetingCompaniesOption": "Specify companies",
+      "countriesLabel": "Countries/regions (multiple allowed)",
+      "companiesLabel": "Companies (multiple allowed)",
+      "submitButton": "Save",
+      "cancelButton": "Cancel",
+      "submitError": "Failed to save. Please try again later.",
+      "language": {
+        "jaTab": "Japanese",
+        "enTab": "English",
+        "addButton": "Add language",
+        "removeButton": "Remove this language",
+        "localeCodeLabel": "Language code",
+        "localeCodePlaceholder": "e.g. th, vi, zh",
+        "localeDuplicateError": "Enter a language code that is not used by another language"
+      },
+      "validation": {
+        "required": "This field is required",
+        "nameConflict": "A category with this name already exists at this level",
+        "countriesRequired": "Select at least one country or region",
+        "companiesRequired": "Select at least one company"
+      }
     }
   }
 }

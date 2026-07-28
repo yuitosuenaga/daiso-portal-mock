@@ -557,6 +557,8 @@ describe("AnnouncementForm", () => {
             targeting: { scope: "all" },
             uploadedAt: "2026-07-01T00:00:00.000Z",
             translations: [],
+            categoryId: null,
+            subCategoryId: null,
           },
         ]}
       />

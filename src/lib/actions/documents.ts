@@ -9,18 +9,24 @@ import {
 } from "@/lib/api/documents";
 import { documentFormSchema } from "@/lib/validation/document";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
+import { assertDocumentCategoryPair } from "@/lib/server/document-category-service";
 import type { CreateDocumentInput, Document } from "@/types/document";
 
 const HELPDESK_DOCUMENT_LIST_PATH = "/[locale]/helpdesk/documents";
+const HELPDESK_DOCUMENT_NEW_PATH = "/[locale]/helpdesk/documents/new";
 const HELPDESK_DOCUMENT_EDIT_PATH = "/[locale]/helpdesk/documents/[id]/edit";
 const APPLICANT_DOCUMENT_LIST_PATH = "/[locale]/documents";
-const APPLICANT_DOCUMENT_DETAIL_PATH = "/[locale]/documents/[id]";
+const APPLICANT_DOCUMENT_CATEGORY_PATH = "/[locale]/documents/categories/[categoryId]";
 
 function revalidateDocumentRoutes() {
   revalidatePath(HELPDESK_DOCUMENT_LIST_PATH, "page");
+  revalidatePath(HELPDESK_DOCUMENT_NEW_PATH, "page");
   revalidatePath(HELPDESK_DOCUMENT_EDIT_PATH, "page");
   revalidatePath(APPLICANT_DOCUMENT_LIST_PATH, "page");
-  revalidatePath(APPLICANT_DOCUMENT_DETAIL_PATH, "page");
+  // 2026-07-28: 申請者側詳細パス（`/[locale]/documents/[id]`）は2026-07-09の画面変更で
+  // 既に撤廃済みのため、大分類配下のドキュメント一覧（`documents`spec要件20・21）の
+  // 再検証へ置き換える（要件18.14）。
+  revalidatePath(APPLICANT_DOCUMENT_CATEGORY_PATH, "page");
 }
 
 /**
@@ -50,6 +56,9 @@ export async function createDocumentAction(
   input: CreateDocumentInput
 ): Promise<Document> {
   const parsed = documentFormSchema.parse(input);
+  // 大分類・中分類の親子整合（要件18.9・18.10）はzodでは検証できないため、
+  // スキーマ検証後にサービス層で検証してから保存する。
+  await assertDocumentCategoryPair(parsed.categoryId, parsed.subCategoryId);
   const created = await createDocument(withServerRecomputedEmbedUrl(parsed));
   revalidateDocumentRoutes();
 
@@ -65,6 +74,7 @@ export async function updateDocumentAction(
   input: CreateDocumentInput
 ): Promise<Document> {
   const parsed = documentFormSchema.parse(input);
+  await assertDocumentCategoryPair(parsed.categoryId, parsed.subCategoryId);
   const updated = await updateDocument(id, withServerRecomputedEmbedUrl(parsed));
   revalidateDocumentRoutes();
 

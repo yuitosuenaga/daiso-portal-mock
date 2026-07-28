@@ -311,8 +311,52 @@ model Document {
   targetingScope        DocumentTargetingScope     @default(all)
   targetingCountries    String[]                   @default([])
   targetingCompanyCodes String[]                   @default([])
+  categoryId            String?
+  category              DocumentCategory?          @relation("DocumentPrimaryCategory", fields: [categoryId], references: [id], onDelete: Restrict)
+  subCategoryId         String?
+  subCategory           DocumentCategory?          @relation("DocumentSubCategory", fields: [subCategoryId], references: [id], onDelete: Restrict)
   linkedByAnnouncements AnnouncementDocumentLink[]
   translations          DocumentTranslation[]
+}
+
+/**
+ * ドキュメントのカテゴリ。`parentId === null`が大分類、非nullが中分類（親は必ず大分類）。
+ * 3階層以上のネストはサービス層で禁止する（要件18.2）。
+ */
+model DocumentCategory {
+  id                    String                        @id @default(cuid())
+  parentId              String?
+  parent                DocumentCategory?             @relation("DocumentCategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children              DocumentCategory[]            @relation("DocumentCategoryHierarchy")
+  /** 既定言語（ja）の名称。他言語はtranslationsが持つ */
+  name                  String
+  /** 同一階層内の表示順（昇順）。要件19.11の並び替えで更新する */
+  displayOrder          Int                           @default(0)
+  targetingScope        DocumentTargetingScope        @default(all)
+  targetingCountries    String[]                      @default([])
+  targetingCompanyCodes String[]                      @default([])
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+  translations          DocumentCategoryTranslation[]
+  documents             Document[]                    @relation("DocumentPrimaryCategory")
+  subCategoryDocuments  Document[]                    @relation("DocumentSubCategory")
+
+  @@index([parentId, displayOrder])
+}
+
+/**
+ * カテゴリ名を`ja`以外の言語で保持する子テーブル（`DocumentTranslation`と同型）。
+ * `ja`は`DocumentCategory.name`が正であり、`locale === "ja"`の行は作らない。
+ */
+model DocumentCategoryTranslation {
+  id         String           @id @default(cuid())
+  categoryId String
+  category   DocumentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String
+  name       String
+
+  @@unique([categoryId, locale])
+  @@index([categoryId])
 }
 
 /**

@@ -5,6 +5,8 @@ import { DocumentDetailPanel } from "@/components/features/helpdesk-documents/Do
 import { getDocumentByIdForHelpdesk } from "@/lib/api/documents";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
+import { getAllDocumentCategories } from "@/lib/api/document-categories";
+import { toDocumentCategoryFormOptions } from "@/lib/document-category-utils";
 
 type HelpdeskDocumentEditPageProps = {
   params: {
@@ -15,13 +17,15 @@ type HelpdeskDocumentEditPageProps = {
 export default async function HelpdeskDocumentEditPage({
   params,
 }: HelpdeskDocumentEditPageProps) {
-  const [t, tListLabels, tCountries, tInquiryForm, locale] = await Promise.all([
-    getTranslations("helpdeskDocuments.form"),
-    getTranslations("helpdeskDocuments.list"),
-    getTranslations("inquiryForm.options.country"),
-    getTranslations("inquiryForm"),
-    getLocale(),
-  ]);
+  const [t, tListLabels, tCountries, tInquiryForm, locale, categories] =
+    await Promise.all([
+      getTranslations("helpdeskDocuments.form"),
+      getTranslations("helpdeskDocuments.list"),
+      getTranslations("inquiryForm.options.country"),
+      getTranslations("inquiryForm"),
+      getLocale(),
+      getAllDocumentCategories(),
+    ]);
 
   const backToListLink = (
     <BackLink href="/helpdesk/documents" label={t("backToList")} />
@@ -102,6 +106,12 @@ export default async function HelpdeskDocumentEditPage({
         formProps={{
           countryOptions,
           companyOptions,
+          categoryOptions: toDocumentCategoryFormOptions(categories),
+          categoryLabel: t("categoryLabel"),
+          categoryPlaceholderOption: t("categoryPlaceholderOption"),
+          subCategoryLabel: t("subCategoryLabel"),
+          subCategoryNoneOption: t("subCategoryNoneOption"),
+          categoryRequiredErrorMessage: t("validation.categoryRequired"),
           titleLabel: t("titleLabel"),
           titlePlaceholder: t("titlePlaceholder"),
           descriptionLabel: t("descriptionLabel"),

@@ -49,6 +49,8 @@ function toDocumentData(
       dataUrl: null,
       googleUrl: input.googleUrl,
       googleEmbedUrl: input.googleEmbedUrl,
+      categoryId: input.categoryId,
+      subCategoryId: input.subCategoryId,
       ...targetingColumns,
     };
   }
@@ -64,11 +66,21 @@ function toDocumentData(
     dataUrl: input.dataUrl,
     googleUrl: null,
     googleEmbedUrl: null,
+    categoryId: input.categoryId,
+    subCategoryId: input.subCategoryId,
     ...targetingColumns,
   };
 }
 
-function visibleToWhere(country: string, companyCode: string): Prisma.DocumentWhereInput {
+/**
+ * ドキュメントの可視性述語（公開済み ＋ 公開範囲が自社に及ぶ）。カテゴリサービス
+ * （`document-category-service.ts`）が「配下に自社可視の公開済みドキュメントが1件以上」
+ * （要件21.6）を判定する際にもこの述語をそのまま再利用し、同じ条件を2箇所に書かない。
+ */
+export function documentVisibleToWhere(
+  country: string,
+  companyCode: string
+): Prisma.DocumentWhereInput {
   return {
     status: "published",
     OR: [
@@ -106,7 +118,7 @@ export async function listDocumentsVisibleTo(
   locale: string = DEFAULT_DOCUMENT_LOCALE
 ): Promise<Document[]> {
   const records = await prisma.document.findMany({
-    where: visibleToWhere(country, companyCode),
+    where: documentVisibleToWhere(country, companyCode),
     orderBy: ORDER_BY_UPLOADED_AT_DESC,
     include: DOCUMENT_INCLUDE,
   });
@@ -128,7 +140,7 @@ export async function findDocumentVisibleTo(
   locale: string = DEFAULT_DOCUMENT_LOCALE
 ): Promise<Document | null> {
   const record = await prisma.document.findFirst({
-    where: { id, ...visibleToWhere(country, companyCode) },
+    where: { id, ...documentVisibleToWhere(country, companyCode) },
     include: DOCUMENT_INCLUDE,
   });
   if (!record) {
@@ -218,4 +230,27 @@ export async function deleteDocumentRecord(id: string): Promise<void> {
   } catch {
     throw new DocumentNotFoundError(id);
   }
+}
+
+/**
+ * 指定した大分類（`categoryId`）配下で、自社に可視なドキュメントのみをアップロード日の
+ * 降順で取得する。中分類が未設定のドキュメントも含む。`documents`spec側の大分類配下一覧が
+ * 利用する。既存`listDocumentsVisibleTo`のシグネチャは変更しないため、カテゴリ絞り込みは
+ * この別関数として追加する。
+ */
+export async function listVisibleDocumentsInCategory(
+  categoryId: string,
+  country: string,
+  companyCode: string,
+  locale: string = DEFAULT_DOCUMENT_LOCALE
+): Promise<Document[]> {
+  const records = await prisma.document.findMany({
+    where: { categoryId, ...documentVisibleToWhere(country, companyCode) },
+    orderBy: ORDER_BY_UPLOADED_AT_DESC,
+    include: DOCUMENT_INCLUDE,
+  });
+
+  return records
+    .map(mapDocument)
+    .map((item) => ({ ...item, ...resolveDocumentContent(item, locale) }));
 }

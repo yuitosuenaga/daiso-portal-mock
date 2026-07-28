@@ -6,7 +6,13 @@ import { Link } from "@/i18n/navigation";
 import { filterDocuments, targetingLabel } from "@/lib/document-utils";
 import type { TargetingLabelDictionary } from "@/lib/document-utils";
 import { formatFileSize } from "@/lib/attachment-utils";
-import { DOCUMENT_MANAGEMENT_PAGE_SIZE } from "@/lib/constants/document";
+import {
+  DOCUMENT_MANAGEMENT_CATEGORY_FILTER_ALL,
+  DOCUMENT_MANAGEMENT_CATEGORY_FILTER_UNASSIGNED,
+  DOCUMENT_MANAGEMENT_PAGE_SIZE,
+  DOCUMENT_MANAGEMENT_SUB_CATEGORY_FILTER_ALL,
+  parseCategoryFilterValue,
+} from "@/lib/constants/document";
 import { DeleteDocumentButton } from "@/components/features/helpdesk-documents/DeleteDocumentButton";
 import {
   DocumentManagementFilterBar,
@@ -19,6 +25,7 @@ import {
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { Document } from "@/types/document";
+import type { DocumentCategoryFormOption } from "@/components/features/helpdesk-documents/DocumentForm";
 
 export interface DocumentManagementListClientProps {
   /** アップロード日降順で整列済みの全ドキュメント */
@@ -31,12 +38,19 @@ export interface DocumentManagementListClientProps {
   statusDraftBadgeLabel: string;
   statusPublishedBadgeLabel: string;
   targetingLabels: TargetingLabelDictionary;
+  /** 大分類・中分類の絞り込み選択肢／行表示用の名称辞書（既定言語＝jaの名称）。 */
+  categories: DocumentCategoryFormOption[];
+  categoryLabel: string;
+  subCategoryLabel: string;
+  categoryUnassignedLabel: string;
 }
 
 const INITIAL_FILTERS: DocumentManagementFilters = {
   keyword: "",
   sourceType: "all",
   scope: "all",
+  category: DOCUMENT_MANAGEMENT_CATEGORY_FILTER_ALL,
+  subCategory: DOCUMENT_MANAGEMENT_SUB_CATEGORY_FILTER_ALL,
 };
 
 /**
@@ -54,14 +68,31 @@ export function DocumentManagementListClient({
   statusDraftBadgeLabel,
   statusPublishedBadgeLabel,
   targetingLabels,
+  categories,
+  categoryLabel,
+  subCategoryLabel,
+  categoryUnassignedLabel,
 }: DocumentManagementListClientProps) {
   const t = useTranslations("helpdeskDocuments.list.filter");
   const tList = useTranslations("helpdeskDocuments.list");
   const [filters, setFilters] = useState<DocumentManagementFilters>(INITIAL_FILTERS);
   const [page, setPage] = useState(1);
 
+  const categoryNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((category) => {
+      map.set(category.id, category.name);
+      category.subCategories.forEach((subCategory) => {
+        map.set(subCategory.id, subCategory.name);
+      });
+    });
+    return map;
+  }, [categories]);
+
   const filteredDocuments = useMemo(() => {
     const byKeyword = filterDocuments(documents, filters.keyword);
+    const categoryFilterId = parseCategoryFilterValue(filters.category);
+    const subCategoryFilterId = parseCategoryFilterValue(filters.subCategory);
     return byKeyword.filter((document) => {
       const matchesSourceType =
         filters.sourceType === "all" || document.sourceType === filters.sourceType;
@@ -72,7 +103,17 @@ export function DocumentManagementListClient({
           document.targeting.scope === "countries") ||
         (filters.scope === "companies" &&
           document.targeting.scope === "companies");
-      return matchesSourceType && matchesScope;
+      const matchesCategory =
+        filters.category === DOCUMENT_MANAGEMENT_CATEGORY_FILTER_ALL ||
+        (filters.category === DOCUMENT_MANAGEMENT_CATEGORY_FILTER_UNASSIGNED
+          ? document.categoryId === null
+          : document.categoryId === categoryFilterId);
+      const matchesSubCategory =
+        filters.subCategory === DOCUMENT_MANAGEMENT_SUB_CATEGORY_FILTER_ALL ||
+        document.subCategoryId === subCategoryFilterId;
+      return (
+        matchesSourceType && matchesScope && matchesCategory && matchesSubCategory
+      );
     });
   }, [documents, filters]);
 
@@ -102,6 +143,7 @@ export function DocumentManagementListClient({
         filters={filters}
         onChange={handleFiltersChange}
         onClear={handleClear}
+        categories={categories}
       />
       {filteredDocuments.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("noResults")}</p>
@@ -127,6 +169,20 @@ export function DocumentManagementListClient({
                       {document.sourceType === "upload" && (
                         <span>{formatFileSize(document.fileSize)}</span>
                       )}
+                      <span>
+                        {categoryLabel}:{" "}
+                        {document.categoryId
+                          ? categoryNameById.get(document.categoryId) ??
+                            categoryUnassignedLabel
+                          : categoryUnassignedLabel}
+                      </span>
+                      <span>
+                        {subCategoryLabel}:{" "}
+                        {document.subCategoryId
+                          ? categoryNameById.get(document.subCategoryId) ??
+                            categoryUnassignedLabel
+                          : categoryUnassignedLabel}
+                      </span>
                       <time dateTime={document.uploadedAt}>
                         {new Date(document.uploadedAt).toLocaleDateString(
                           locale,

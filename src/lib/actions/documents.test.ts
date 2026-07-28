@@ -8,6 +8,9 @@ vi.mock("@/lib/api/documents", () => ({
   updateDocument: vi.fn(),
   deleteDocument: vi.fn(),
 }));
+vi.mock("@/lib/server/document-category-service", () => ({
+  assertDocumentCategoryPair: vi.fn(),
+}));
 
 import { revalidatePath } from "next/cache";
 import {
@@ -35,6 +38,8 @@ function buildInput(overrides: Partial<CreateDocumentInput> = {}): CreateDocumen
     dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
     translations: [{ locale: "en", title: "New document via action" }],
+    categoryId: "category-1",
+    subCategoryId: null,
     ...overrides,
   } as CreateDocumentInput;
 }
@@ -50,6 +55,8 @@ function buildGoogleInput(
     googleEmbedUrl: "https://docs.google.com/document/d/should-be-ignored/preview",
     targeting: { scope: "all" },
     translations: [{ locale: "en", title: "New document via Google link" }],
+    categoryId: "category-1",
+    subCategoryId: null,
     ...overrides,
   } as CreateDocumentInput;
 }

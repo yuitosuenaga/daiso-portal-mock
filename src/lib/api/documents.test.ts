@@ -9,6 +9,7 @@ vi.mock("@/lib/server/document-service", () => ({
   findDocumentVisibleTo: vi.fn(),
   listAllDocuments: vi.fn(),
   listDocumentsVisibleTo: vi.fn(),
+  listVisibleDocumentsInCategory: vi.fn(),
   updateDocumentRecord: vi.fn(),
 }));
 
@@ -67,6 +68,8 @@ function document(overrides: Partial<Document> = {}): Document {
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00.000Z",
     translations: [],
+    categoryId: null,
+    subCategoryId: null,
     ...overrides,
   } as Document;
 }
@@ -195,6 +198,8 @@ describe("createDocument / updateDocument / deleteDocument", () => {
     dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
     translations: [],
+    categoryId: "category-1",
+    subCategoryId: null,
   };
 
   it("ヘルプデスクセッションでcreateDocumentRecordに委譲する", async () => {

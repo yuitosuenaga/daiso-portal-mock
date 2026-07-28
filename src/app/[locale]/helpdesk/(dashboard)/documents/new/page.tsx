@@ -3,12 +3,15 @@ import { BackLink } from "@/components/ui/back-link";
 import { DocumentForm } from "@/components/features/helpdesk-documents/DocumentForm";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
+import { getAllDocumentCategories } from "@/lib/api/document-categories";
+import { toDocumentCategoryFormOptions } from "@/lib/document-category-utils";
 
 export default async function HelpdeskDocumentNewPage() {
-  const [t, tCountries, tInquiryForm] = await Promise.all([
+  const [t, tCountries, tInquiryForm, categories] = await Promise.all([
     getTranslations("helpdeskDocuments.form"),
     getTranslations("inquiryForm.options.country"),
     getTranslations("inquiryForm"),
+    getAllDocumentCategories(),
   ]);
 
   const countryOptions = INQUIRY_COUNTRY_CODES.map((code) => ({
@@ -31,6 +34,12 @@ export default async function HelpdeskDocumentNewPage() {
         mode="create"
         countryOptions={countryOptions}
         companyOptions={companyOptions}
+        categoryOptions={toDocumentCategoryFormOptions(categories)}
+        categoryLabel={t("categoryLabel")}
+        categoryPlaceholderOption={t("categoryPlaceholderOption")}
+        subCategoryLabel={t("subCategoryLabel")}
+        subCategoryNoneOption={t("subCategoryNoneOption")}
+        categoryRequiredErrorMessage={t("validation.categoryRequired")}
         titleLabel={t("titleLabel")}
         titlePlaceholder={t("titlePlaceholder")}
         descriptionLabel={t("descriptionLabel")}

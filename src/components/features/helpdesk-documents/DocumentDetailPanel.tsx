@@ -60,6 +60,11 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
     translations: additionalTranslations,
   };
 
+  const categoryValues = {
+    categoryId: document.categoryId ?? "",
+    subCategoryId: document.subCategoryId ?? "",
+  };
+
   if (document.sourceType === "google") {
     return {
       sourceType: "google",
@@ -67,6 +72,7 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
       description: document.description ?? "",
       ...languageValues,
       status: document.status,
+      ...categoryValues,
       googleUrl: document.googleUrl,
       googleEmbedUrl: document.googleEmbedUrl,
       // `Document.targeting`はドメイン型として`string[]`だが、保存済みデータは常に
@@ -81,6 +87,7 @@ function toFormDefaultValues(document: Document): DocumentFormValues {
     description: document.description ?? "",
     ...languageValues,
     status: document.status,
+    ...categoryValues,
     fileName: document.fileName,
     fileType: document.fileType,
     fileSize: document.fileSize,
@@ -127,6 +134,13 @@ export function DocumentDetailPanel({
   formProps,
 }: DocumentDetailPanelProps) {
   const [mode, setMode] = useState<"view" | "edit">("edit");
+
+  const categoryOption = formProps.categoryOptions.find(
+    (option) => option.id === document.categoryId
+  );
+  const subCategoryOption = categoryOption?.subCategories.find(
+    (option) => option.id === document.subCategoryId
+  );
 
   const preview =
     document.sourceType === "google" ? (
@@ -203,6 +217,14 @@ export function DocumentDetailPanel({
                   {document.status === "draft"
                     ? statusDraftBadge
                     : statusPublishedBadge}
+                </span>
+                <span>
+                  {formProps.categoryLabel}:{" "}
+                  {categoryOption?.name ?? formProps.subCategoryNoneOption}
+                </span>
+                <span>
+                  {formProps.subCategoryLabel}:{" "}
+                  {subCategoryOption?.name ?? formProps.subCategoryNoneOption}
                 </span>
                 <span>
                   {targetingLabel(document.targeting, {

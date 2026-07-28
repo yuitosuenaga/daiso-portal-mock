@@ -24,6 +24,8 @@ function baseRecord(overrides: Record<string, unknown> = {}) {
     targetingCountries: [] as string[],
     targetingCompanyCodes: [] as string[],
     translations: [] as { locale: string; title: string; description: string | null }[],
+    categoryId: null as string | null,
+    subCategoryId: null as string | null,
     ...overrides,
   };
 }
@@ -127,6 +129,18 @@ describe("mapDocument", () => {
       { locale: "en", title: "English title", description: "English description" },
       { locale: "vi", title: "Vietnamese title", description: undefined },
     ]);
+  });
+
+  it("record.categoryId/subCategoryIdをDocument.categoryId/subCategoryIdへマッピングする", () => {
+    const withCategory = mapDocument(
+      baseRecord({ categoryId: "category-1", subCategoryId: "sub-1" }) as never
+    );
+    expect(withCategory.categoryId).toBe("category-1");
+    expect(withCategory.subCategoryId).toBe("sub-1");
+
+    const withoutCategory = mapDocument(baseRecord() as never);
+    expect(withoutCategory.categoryId).toBeNull();
+    expect(withoutCategory.subCategoryId).toBeNull();
   });
 });
 

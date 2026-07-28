@@ -534,3 +534,239 @@
   - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 17.3, 17.8, 17.14_
   - _Depends: 11.7, 11.8_
+
+---
+
+## 追加ラウンド（2026-07-28）: ドキュメントのカテゴリ管理（要件18〜22）
+
+> **着手順序（spec間依存）**: 本ラウンドは「documents一式」（`documents-management`＋`documents`）を担当する1エージェントが、**必ず本specのタスク12 → タスク13 → `documents`spec側のタスク14の順**に実装する。`documents`spec側（申請者側の大分類トップページ・大分類配下一覧・中分類絞り込み）は、本specが提供する型（`DocumentCategorySummary`・`DocumentCategoryDetail`・`DocumentSubCategoryOption`）と読み取り関数（`getVisibleDocumentCategories`・`getVisibleDocumentCategory`・`getDocumentsByCategory`）に読み取り専用で依存するため、本spec側のタスク12が完了するまで着手できない。
+> **参考実装（そのまま横展開する）**: `DocumentTranslation`（`prisma/schema.prisma`）と`document-mapper.ts`の`DOCUMENT_INCLUDE`/`resolveDocumentContent`（→カテゴリ翻訳・名称解決）、`DocumentTargeting`の3列表現と`DocumentForm`のtargeting入力UI（→カテゴリの公開範囲）、`DocumentForm`の言語タブUI（→カテゴリ名の言語タブ）、`helpdesk-shared/ManagementList.tsx`の`ManagementListCard`/`Rows`/`Row`/`MessageCard`/`Skeleton`（→カテゴリ管理一覧）、`ConfirmDialog`（→カテゴリ削除確認）、`DocumentManagementFilterBar`（→カテゴリ絞り込みの追加）。
+> **注意（運用）**: 本ラウンドのマイグレーションは新規2テーブル＋`Document`への2列追加を含む。本番反映には`prisma migrate deploy`の手動実行が別途必要。また既存の登録済みドキュメントは`categoryId`がNULLのままとなり、カテゴリ整備と再割当が完了するまで申請者側から到達できない（要件18.4の備考・design.mdのSecurity Considerations参照）。
+
+- [x] 12. ドキュメントカテゴリのデータモデル・サービス・API基盤を実装する（要件18〜21）
+
+- [x] 12.1 Prismaにカテゴリモデル・翻訳テーブル・ドキュメントへの参照列を追加しマイグレーションを生成する（要件18.1, 18.2, 18.3, 18.4, 20.1, 20.2, 21.1）
+  - `prisma/schema.prisma`に`model DocumentCategory`（`parentId String?`＋名前付き自己参照リレーション`DocumentCategoryHierarchy`（`onDelete: Restrict`）・`name`・`displayOrder Int @default(0)`・既存`DocumentTargetingScope`を再利用した`targetingScope`/`targetingCountries`/`targetingCompanyCodes`・`createdAt`/`updatedAt`・`@@index([parentId, displayOrder])`）を追加する（新規enumは追加しない）
+  - `model DocumentCategoryTranslation`（`categoryId`・`locale`・`name`・`@@unique([categoryId, locale])`・`@@index([categoryId])`・`onDelete: Cascade`）を`DocumentTranslation`と同型で追加する
+  - `Document`に`categoryId String?`・`subCategoryId String?`と2つの名前付きリレーション（`DocumentPrimaryCategory`・`DocumentSubCategory`、いずれも`onDelete: Restrict`）を追加する
+  - `prisma migrate dev`で`add_document_categories`マイグレーションを生成する（**既存`Document`行へのカテゴリ自動割当・データ移行は行わない**＝後方互換）
+  - 同一階層の名称一意性はDB制約で表現しない（PostgreSQLの一意制約はNULL同士を別値として扱い大分類同士に効かないため。判定はタスク12.6で実装する）
+  - _Requirements: 18.1, 18.2, 18.3, 18.4, 20.1, 20.2, 21.1_
+  - _Boundary: schema.prisma, migration_
+
+- [x] 12.2 カテゴリのドメイン型を定義する（要件18.1, 18.3, 20.1, 21.1）
+  - `src/types/document-category.ts`（新規）に`DocumentCategoryTranslationView`・`DocumentCategory`（`parentId`・`name`・`displayOrder`・`targeting`・`translations`）・`DocumentCategoryAdminView`（`documentCount`＋`children`）・`DocumentCategoryAdminChildView`・`CreateDocumentCategoryInput`・`UpdateDocumentCategoryInput`（`parentId`を含まない）・`DocumentCategoryMoveDirection`を定義する
+  - 申請者側向けの表示型`DocumentCategorySummary`（`id`・`name`・`documentCount`）・`DocumentCategoryDetail`（`id`・`name`・`subCategories`）・`DocumentSubCategoryOption`を定義する
+  - `targeting`は`types/document.ts`の既存`DocumentTargeting`を再利用し、公開範囲の型を二重定義しない
+  - 型チェックが通ることで完了とする
+  - _Requirements: 18.1, 18.3, 20.1, 21.1_
+  - _Boundary: types/document-category.ts_
+  - _Depends: 12.1_
+
+- [x] 12.3 (P) ドキュメント型にカテゴリ参照を追加する（要件18.3, 18.4）
+  - `src/types/document.ts`の`DocumentBase`に`categoryId: string | null`・`subCategoryId: string | null`を追加する（`CreateDocumentInput`にも自動で含まれる）
+  - カテゴリ名は`Document`に持たせない（画面側はカテゴリ一覧を辞書として受け取る方式のため、`DOCUMENT_INCLUDE`は変更しない）
+  - 型チェックが通ることで完了とする
+  - _Requirements: 18.3, 18.4_
+  - _Boundary: types/document.ts_
+  - _Depends: 12.1_
+
+- [x] 12.4 カテゴリのマッパーと名称の表示解決を実装する（要件20.1, 20.2, 20.8）
+  - `src/lib/server/document-category-mapper.ts`（新規）に`DOCUMENT_CATEGORY_INCLUDE = { translations: true }`・`mapDocumentCategory`・`resolveDocumentCategoryContent(category, locale)`（フォールバック順`locale`→`en`→`ja`。`resolveDocumentContent`と同一順序）を実装する
+  - 既定言語は`document-mapper.ts`の`DEFAULT_DOCUMENT_LOCALE`を再利用し、カテゴリ専用の定数を新設しない
+  - `document-mapper.ts`の`mapTargeting`の引数型を、`Document`レコード固定から3列（`targetingScope`/`targetingCountries`/`targetingCompanyCodes`）を持つ構造的な型へ緩め、カテゴリからも再利用できるようにする（既存呼び出しは構造的部分型のため無変更で通ること）
+  - _Requirements: 20.1, 20.2, 20.8_
+  - _Boundary: document-category-mapper, document-mapper_
+  - _Depends: 12.2_
+
+- [x] 12.5 ドキュメントのマッパー・サービスをカテゴリ対応にし可視性述語を共有可能にする（要件18.4, 18.13, 21.6）
+  - `document-mapper.ts`の`mapDocument`の`base`に`categoryId`・`subCategoryId`を追加する
+  - `document-service.ts`の`toDocumentData`の両`sourceType`分岐に`categoryId`・`subCategoryId`を追加する（`sourceType`・`targeting`・`status`・翻訳と独立して保存されること）
+  - `document-service.ts`のプライベート関数`visibleToWhere`を`documentVisibleToWhere`として**export**し、カテゴリサービスから再利用できるようにする（可視性述語を2箇所に書かない）。既存の`listDocumentsVisibleTo`/`findDocumentVisibleTo`は名称変更のみで挙動不変
+  - `listVisibleDocumentsInCategory(categoryId, country, companyCode, locale)`を追加する（`categoryId`一致＋`documentVisibleToWhere`、アップロード日降順、`resolveDocumentContent`で解決）。既存`listDocumentsVisibleTo`のシグネチャは変更しない
+  - _Requirements: 18.4, 18.13, 21.6_
+  - _Boundary: document-mapper, document-service_
+  - _Depends: 12.3, 12.4_
+
+- [x] 12.6 カテゴリのCRUDと階層・名称の整合検証を実装する（要件18.2, 19.3, 19.4, 19.5, 19.6, 20.6, 20.7, 21.5, 21.9）
+  - `src/lib/server/document-category-service.ts`（新規）に、ヘルプデスク側の`listDocumentCategoriesForHelpdesk`（大分類を`displayOrder`昇順・配下の中分類も`displayOrder`昇順・翻訳をinclude・各カテゴリの紐づくドキュメント件数を同梱。公開範囲で絞らない＝要件21.9）と`findDocumentCategoryForHelpdesk`を実装する
+  - `createDocumentCategoryRecord`を実装する: 親指定時は親の存在と「親自身が大分類であること」を検証し、違反は階層エラーとして拒否する（要件18.2）。同一階層（大分類同士／同一大分類配下の中分類同士）の既定言語名称の重複は名称衝突エラーとして拒否する（要件19.6）。翻訳行は`en`必須＋任意追加言語をネスト作成する（`ja`行は作らない）
+  - `updateDocumentCategoryRecord`を実装する: 名称・公開範囲・翻訳（全置換）を更新し、`parentId`・`displayOrder`は更新対象外とする（所属大分類の付け替えはスコープ外）。名称重複判定は自分自身を除外する
+  - カテゴリ操作用の例外型（未検出・名称衝突・階層違反・使用中）を定義し、Server Actions側が種別を判別できるようにする
+  - _Requirements: 18.2, 19.3, 19.4, 19.5, 19.6, 20.6, 20.7, 21.5, 21.9_
+  - _Boundary: document-category-service_
+  - _Depends: 12.4_
+
+- [x] 12.7 カテゴリの表示順の採番と並び替えを実装する（要件19.10, 19.11）
+  - 作成時の`displayOrder`を同一階層の最大値＋1（末尾追加）として採番する
+  - `moveDocumentCategoryRecord(id, direction)`で、同一階層（同一`parentId`）の`displayOrder`順に隣接する1件と`displayOrder`をトランザクションで入れ替える。先頭で「上へ」・末尾で「下へ」の場合は何も変更しない
+  - 同値の`displayOrder`が生じた場合でも順序が決定的になるよう、一覧取得の並び順に第2ソートキー（`createdAt`昇順）を併用する
+  - _Requirements: 19.10, 19.11_
+  - _Boundary: document-category-service_
+  - _Depends: 12.6_
+
+- [x] 12.8 カテゴリ削除の安全チェックを実装する（要件19.8, 19.9, 19.10, 19.12）
+  - `deleteDocumentCategoryRecord(id)`で、削除直前に「当該カテゴリに紐づくドキュメント件数」（大分類は大分類参照一致・中分類は中分類参照一致）と「配下の中分類件数」を再取得し、いずれかが1件以上なら**件数を保持した使用中エラー**を送出して削除しない（要件19.8・19.9・19.12）
+  - 両方0件のときのみ削除し、翻訳行が連鎖削除されることを確認する（要件19.10）
+  - UI表示用の件数はタスク12.6の一覧取得が返す値を用いる方針とし、削除ボタン押下時に追加の件数取得を行わない（実行時の再確認はサーバー側の本タスクが担う二層構成）
+  - _Requirements: 19.8, 19.9, 19.10, 19.12_
+  - _Boundary: document-category-service_
+  - _Depends: 12.6_
+
+- [x] 12.9 申請者向けの可視カテゴリ取得と表示解決を実装する（要件20.8, 21.6, 21.7, 21.8, 21.10）
+  - `listVisibleDocumentCategories(country, companyCode, locale)`を実装する: ①自社に可視な公開済みドキュメントを大分類参照でグルーピングして「大分類ID→可視件数」を得る（未分類＝参照NULLは除外＝要件20.10相当） ②カテゴリ自体の公開範囲が自社に及ぶ大分類を`displayOrder`昇順で取得し、①の件数が1件以上のものだけを残す（要件21.6のAND条件） ③`resolveDocumentCategoryContent`で名称を解決し件数を添えて返す
+  - `findVisibleDocumentCategory(id, country, companyCode, locale)`を実装する: 「大分類であり、かつカテゴリ自体が自社に可視」のときのみ返し、それ以外（非可視・不存在・中分類ID）は`null`を返す（要件21.8）。配下の中分類は**中分類自体の公開範囲のみ**で絞り込み（配下ドキュメント件数の条件は課さない＝要件21.7）、`displayOrder`昇順・名称解決済みで返す
+  - ドキュメント自体の可視性判定（公開範囲・公開状態）は変更しないことをコードレビューで確認する（要件21.10）
+  - _Requirements: 20.8, 21.6, 21.7, 21.8, 21.10_
+  - _Boundary: document-category-service_
+  - _Depends: 12.5, 12.6_
+
+- [x] 12.10 ドキュメントの大分類・中分類の親子整合検証を実装する（要件18.9, 18.10）
+  - `assertDocumentCategoryPair(categoryId, subCategoryId)`を実装する: 大分類の存在と「大分類であること」、中分類が非nullのときは「指定された大分類の配下であること」を検証し、違反は不整合エラーとして拒否する。中分類がnullのときは受理する
+  - zodスキーマでは他レコードを参照できないため、この検証だけはサービス層が担う方針を明記する
+  - _Requirements: 18.9, 18.10_
+  - _Boundary: document-category-service_
+  - _Depends: 12.6_
+
+- [x] 12.11 カテゴリのバリデーションを実装し、ドキュメント側にカテゴリ必須を追加する（要件18.6, 18.10, 19.5, 20.3, 20.4, 20.5, 20.11, 21.2, 21.3, 21.12）
+  - `src/lib/validation/document.ts`のtargetingサブスキーマを**export**し、公開範囲の検証定義を二重に持たないようにする（要件21.2・21.3）
+  - `src/lib/validation/document-category.ts`（新規）に`documentCategoryFormSchema`を実装する: `parentId`（nullable）・`name`（ja必須）・`nameEn`（実質必須）・`translations`（追加言語）・`targeting`。`superRefine`で`en`名称必須・言語コード重複禁止（`ja`/`en`/追加言語間）・追加言語件数上限（20、既存と同値）を検証し、`transform`で`nameEn`を翻訳行の`en`へ合成する（`documentFormSchema`のロジックをそのまま写経。再パース時の冪等性も踏襲）。入力/出力の2型をexportする
+  - `documentUploadSchema`・`documentGoogleSchema`の共通フィールドに大分類（必須＝要件18.6）・中分類（任意・既定null）を追加する。親子整合はスキーマでは検証せず、タスク12.10とフォームの選択肢制御に委ねる
+  - _Requirements: 18.6, 18.10, 19.5, 20.3, 20.4, 20.5, 20.11, 21.2, 21.3, 21.12_
+  - _Boundary: validation/document-category.ts, validation/document.ts_
+  - _Depends: 12.2_
+
+- [x] 12.12 カテゴリのAPI層とServer Actionsを実装し、ドキュメント側の再検証対象を拡張する（要件18.9, 18.10, 18.14, 19.12, 19.13, 21.9, 21.12）
+  - `src/lib/api/document-categories.ts`（新規）に、申請者向け（`getVisibleDocumentCategories`・`getVisibleDocumentCategory`）とヘルプデスク向け（`getAllDocumentCategories`・`getDocumentCategoryById`・`createDocumentCategory`・`updateDocumentCategory`・`deleteDocumentCategory`・`moveDocumentCategory`）を実装し、既存`api/documents.ts`と同じセッション境界（申請者／ヘルプデスクのセッション必須）をこの層で適用する
+  - `src/lib/api/documents.ts`に`getDocumentsByCategory(categoryId, options?: { locale?: string })`を追加する（申請者セッション必須）。既存`getDocuments`・`getDocumentById`のシグネチャは変更しない
+  - `src/lib/actions/document-categories.ts`（新規、`"use server"`）に作成・更新・削除・並び替えのServer Actionsを実装する。作成・更新は`documentCategoryFormSchema`でサーバー側再検証を行い（要件19.12・21.12）、スキーマで表現できない検証（名称重複・階層・使用中）はサービス層の例外をそのまま送出する
+  - カテゴリ変更時の再検証対象（要件19.13）に、カテゴリ管理画面・ドキュメント管理一覧・ドキュメントの新規作成/編集画面・申請者側トップページ・申請者側の大分類配下一覧を含める
+  - `src/lib/actions/documents.ts`の作成・更新アクションで、スキーマ検証後に大分類・中分類の親子整合検証（タスク12.10）を呼び出してから保存する（要件18.9・18.10）。既存の再検証対象に申請者側の大分類配下一覧を追加し、2026-07-09に撤廃済みの申請者側詳細パスの再検証を新パスへ置き換える（要件18.14）
+  - _Requirements: 18.9, 18.10, 18.14, 19.12, 19.13, 21.9, 21.12_
+  - _Boundary: api/document-categories.ts, api/documents.ts, actions/document-categories.ts, actions/documents.ts_
+  - _Depends: 12.6, 12.7, 12.8, 12.9, 12.10, 12.11_
+
+---
+
+- [x] 13. カテゴリ管理画面とドキュメント側UIをカテゴリ対応にする（要件18, 19, 20, 22）
+
+- [x] 13.1 (P) カテゴリ管理画面の翻訳キーを追加する（要件19.14, 20.12, 21.11）
+  - `messages/ja.json`・`messages/en.json`に新規名前空間`helpdeskDocumentCategories`を追加する（`list`: 見出し・説明・戻る導線・0件・エラー・大分類/中分類の追加・編集・上へ/下へ・件数表示・公開範囲ラベル、`list.delete`: 削除ボタン・確認見出し・確認本文（対象名埋め込み）・確認/キャンセル・エラー・**ドキュメント件数入りの削除拒否文言**・**中分類件数入りの削除拒否文言**、`form`: 追加/編集の見出し・名称・公開範囲・国/販社・送信/キャンセル・送信エラー、`form.language`: `helpdeskDocuments.form.language`と同一キー構成、`form.validation`: 必須・名称重複）
+  - 公開範囲の選択肢ラベル等、既存`helpdeskDocuments`で解決できるものは再利用し二重定義しない（要件21.11）
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していることで完了とする
+  - _Requirements: 19.14, 20.12, 21.11_
+  - _Boundary: i18n messages_
+
+- [x] 13.2 (P) ドキュメント側のカテゴリ関連翻訳キーを追加する（要件18.15, 22.10）
+  - `helpdeskDocuments.form`にカテゴリ選択のラベル・未選択/なしの選択肢・カテゴリ必須エラー・親子不整合エラーを追加する
+  - `helpdeskDocuments.list`に大分類/中分類のラベル・カテゴリ未設定表示・カテゴリ管理画面への導線ラベルを追加する
+  - `helpdeskDocuments.list.filter`に大分類/中分類の絞り込みラベルと選択肢ラベル（すべての大分類・すべての中分類・未設定）を追加する
+  - `ja.json`・`en.json`のキー構造が一致していることで完了とする
+  - _Requirements: 18.15, 22.10_
+  - _Boundary: i18n messages_
+
+- [x] 13.3 カテゴリ管理画面の階層一覧を実装する（要件19.1, 19.15, 19.16, 20.10, 21.5）
+  - `/helpdesk/documents/categories`のルートを追加し、既存の管理一覧ページと同じ`Suspense`＋スケルトン構成にする（静的セグメントのため既存の`[id]/edit`と競合しないことを確認する）
+  - サーバーコンポーネントでカテゴリ全件・国/販社ラベル辞書・公開範囲ラベルを解決し、ドキュメント管理一覧へ戻る導線と見出しを描画する。取得失敗時・0件時のメッセージ表示を含める（要件19.15）
+  - クライアントコンポーネントで大分類行＋配下の中分類行を階層が分かるインデント付きで描画し、各行に公開範囲（全体公開／対象国名／対象販社名）と紐づくドキュメント件数を表示する（要件19.1・21.5）。表示するカテゴリ名は既定言語（ja）とする（要件20.10）
+  - 追加（大分類／中分類）・編集・削除・並び替えの操作要素を配置し、ダイアログの開閉状態を保持する。UI文字列はクライアント側で解決する（ラベルpropsの過剰な増加を避ける既存方針を踏襲）
+  - 既存の共有一覧コンポーネント（`ManagementListCard`/`Rows`/`Row`/`MessageCard`/`Skeleton`）を利用し、`helpdesk-shared/ManagementList.tsx`自体は変更しない。「追加」がダイアログ起動のため`ManagementListHeading`は使わず、同等のマークアップを本画面側に用意する
+  - タブレット幅（768px以上）で横スクロールが発生しないことを確認する（要件19.16）
+  - _Requirements: 19.1, 19.15, 19.16, 20.10, 21.5_
+  - _Boundary: helpdesk-document-categories, app/helpdesk/documents/categories_
+  - _Depends: 12.12, 13.1_
+
+- [x] 13.4 カテゴリの追加・編集フォームをダイアログで実装する（要件19.3, 19.4, 19.5, 19.6, 20.3, 20.4, 20.5, 20.6, 20.7, 21.2, 21.3）
+  - 既存`Dialog`を用いて「大分類を追加」「中分類を追加（開いた行の大分類を親として固定＝親選択UIは持たない）」「編集」の3モードのフォームを実装する（要件19.3・19.4）
+  - 名称は`DocumentForm`と同型の言語タブUI（固定ja/enタブ＋任意の追加言語タブの動的追加/削除・新規タブ/エラータブへの自動切替）で入力し、ja/en必須・言語コード重複時はエラーのあるタブへ切り替えて保存をブロックする（要件20.3・20.4・20.5）。編集時は登録済みの各言語を初期値として復元する（要件20.7）
+  - 公開範囲は既存`DocumentForm`のtargeting入力と同型（種別Select＋国／販社の複数選択Select）とし、国選択肢・販社マスタを再利用する。国/販社を選ぶ種別で0件選択のまま保存しようとした場合は保存をブロックする（要件21.2・21.3）
+  - 公開範囲・所属大分類は言語に依存しない共通項目として言語タブの外側に配置する。表示順はフォームでは扱わず、作成時は末尾へ自動採番される（並び替えはタスク13.6）
+  - 保存はカテゴリのServer Actionsを呼び、成功時はダイアログを閉じて一覧を再取得する。名称重複・階層違反等のサーバー側エラーは対応するメッセージを表示する（要件19.5・19.6）
+  - _Requirements: 19.3, 19.4, 19.5, 19.6, 20.3, 20.4, 20.5, 20.6, 20.7, 21.2, 21.3_
+  - _Boundary: helpdesk-document-categories_
+  - _Depends: 13.3_
+
+- [x] 13.5 カテゴリの削除操作を実装する（要件19.7, 19.8, 19.9, 19.10）
+  - 削除可能（紐づくドキュメント0件かつ配下の中分類0件）な場合のみ、共通`ConfirmDialog`で確認を求め、確認本文に対象カテゴリ名を明示する（要件19.7）
+  - 紐づくドキュメントが1件以上ある場合は確認ダイアログを開かず、**件数を明示したエラーメッセージ**を表示し操作をブロックする（要件19.8）。配下に中分類が1件以上ある場合も同様に中分類の件数を明示してブロックする（要件19.9）
+  - 件数は一覧取得が返す値を用い、削除ボタン押下時の追加取得を行わない。確定時はサーバー側の削除処理（実行時の再確認を含む）を呼び出し、成功後に一覧・カテゴリ選択肢・絞り込み選択肢から除去されることを確認する（要件19.10）
+  - _Requirements: 19.7, 19.8, 19.9, 19.10_
+  - _Boundary: helpdesk-document-categories_
+  - _Depends: 13.3_
+
+- [x] 13.6 (P) カテゴリの並び替え操作を実装する（要件19.11）
+  - 各行に「上へ」「下へ」の操作を配置し、大分類同士・同一大分類配下の中分類同士の表示順を変更できるようにする
+  - 同一階層の先頭では「上へ」、末尾では「下へ」を無効化する。変更後は一覧を再取得して新しい順序が反映されることを確認する
+  - _Requirements: 19.11_
+  - _Boundary: helpdesk-document-categories_
+  - _Depends: 13.3_
+
+- [x] 13.7 ドキュメント管理一覧からカテゴリ管理画面への導線を追加する（要件19.2）
+  - ドキュメント管理一覧の見出し付近にカテゴリ管理画面へのリンクを追加する（既存の「新規作成」導線は変更しない）
+  - _Requirements: 19.2_
+  - _Boundary: DocumentManagementList_
+  - _Depends: 13.2, 13.3_
+
+- [x] 13.8 DocumentFormに大分類・中分類の選択を追加する（要件18.5, 18.6, 18.7, 18.8, 18.13, 20.10）
+  - 新規作成・編集ページでカテゴリ全件を取得し、既定言語（ja）の名称を持つ選択肢（大分類とその配下の中分類）としてフォームへ渡す（要件20.10）
+  - `DocumentForm`に大分類の選択（必須）と中分類の選択（任意・未選択を許容）を追加し、未選択のまま保存しようとした場合は保存をブロックして入力を促す（要件18.5・18.6）
+  - 中分類の選択肢を、選択中の大分類配下のものだけに限定する（要件18.7）。大分類が**実際に変更されたとき**のみ中分類選択をリセットし、編集時の初期値がマウント時に消えないようにする（要件18.8）
+  - カテゴリ選択欄は言語タブの外側、公開状態・公開範囲と並ぶ共通項目として配置する（要件18.13）
+  - _Requirements: 18.5, 18.6, 18.7, 18.8, 18.13, 20.10_
+  - _Boundary: DocumentForm, app/helpdesk/documents/new, app/helpdesk/documents/[id]/edit_
+  - _Depends: 12.11, 12.12, 13.2_
+
+- [x] 13.9 (P) 表示モードにカテゴリを表示する（要件18.11）
+  - `DocumentDetailPanel`の表示モードの読み取り専用情報に大分類・中分類名（未設定時はその旨）を追加する。名称はフォーム用に受け取っているカテゴリ選択肢から導出し、新規propsを増やさない
+  - _Requirements: 18.11_
+  - _Boundary: DocumentDetailPanel_
+  - _Depends: 13.8_
+
+- [x] 13.10 管理一覧にカテゴリ表示と大分類・中分類の絞り込みを追加する（要件18.11, 22.1〜22.11）
+  - ドキュメント管理一覧（サーバー側）でカテゴリ全件を取得し、クライアント側へ渡す。クライアント側でID→名称の辞書を作り、各行に大分類・中分類名（未設定時はその旨）を表示する（要件18.11）
+  - 絞り込みバーに大分類（すべて／各大分類／未設定）と中分類（すべて／選択中の大分類配下のみ）のセレクトを追加する。センチネル（すべて・未設定）とカテゴリIDを型安全に区別できる値表現とその変換ヘルパーを定数モジュールに定義する（要件22.1・22.2）
+  - 大分類を「すべて」または「未設定」に変更したとき、中分類の選択を「すべて」へリセットする（要件22.3）
+  - キーワード・登録方式・公開範囲種別・大分類・中分類のすべての条件を満たすものだけを表示する（AND条件、要件22.4）。即時反映・条件クリアへのカテゴリ条件の追加・条件変更時の先頭ページへのリセット・絞り込み後0件メッセージ・並び順と行表示項目/導線の維持を確認する（要件22.5〜22.9）
+  - 絞り込みバーのレイアウトを拡張し、タブレット幅（768px以上）で横スクロールが発生しないことを確認する（要件22.11）
+  - _Requirements: 18.11, 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7, 22.8, 22.9, 22.11_
+  - _Boundary: DocumentManagementList, DocumentManagementListClient, DocumentManagementFilterBar, constants/document.ts_
+  - _Depends: 12.12, 13.2_
+
+- [x] 13.11 (P) seedにカテゴリを投入し既存seedドキュメントへ割り当てる
+  - `prisma/seed.ts`・`prisma/seed.sql`に大分類3件程度＋いくつかの中分類（`en`翻訳行と公開範囲のバリエーションを含む）を投入し、既存のseedドキュメント5件に大分類（一部は中分類も）を割り当てる
+  - これはseedデータのみの整備であり、本番の既存レコードへの自動割当（要件18.4で禁止）とは別物であることをコメント等で明示する
+  - _Requirements: 18.4_
+  - _Boundary: prisma/seed_
+  - _Depends: 12.1_
+
+- [x]* 13.12 (P) データ層・サービス層の単体テストを追加する
+  - カテゴリのマッパーが翻訳・公開範囲・表示順・親子関係を正しくマッピングすること、名称の表示解決が`locale`→`en`→`ja`の順にフォールバックすることを検証する
+  - 作成が同一階層の末尾に表示順を採番すること、中分類の下に中分類を作ろうとすると拒否されること、同一階層の名称重複が拒否されること（更新時は自分自身を除外すること）を検証する
+  - 並び替えが隣接レコードと表示順を入れ替えること、先頭で「上へ」・末尾で「下へ」は何も変えないこと、他階層を巻き込まないことを検証する
+  - 削除が「紐づくドキュメント1件以上」「配下の中分類1件以上」のいずれでも正しい件数を伴って拒否されること、両方0件のときのみ削除され翻訳行が連鎖削除されることを検証する
+  - 親子整合検証が、存在しない大分類・大分類として指定された中分類・親が一致しない中分類を拒否し、中分類なしを受理することを検証する
+  - 大分類配下のドキュメント取得が当該大分類のみ（中分類未設定も含む）を返し、下書き・公開範囲外を除外することを検証する
+  - _Requirements: 18.2, 18.9, 19.5, 19.6, 19.8, 19.9, 19.10, 19.11, 20.8, 21.6_
+  - _Depends: 12.6, 12.7, 12.8, 12.9, 12.10_
+
+- [x]* 13.13 (P) 可視カテゴリ判定・バリデーション・UIの単体テストを追加・更新する
+  - 可視カテゴリ取得が「カテゴリ自体が可視」かつ「配下に自社可視の公開済みドキュメントが1件以上」の大分類のみを表示順で返すこと、件数が下書き・公開範囲外・未分類を計上しないことを検証する
+  - 単一取得が非可視カテゴリ・中分類ID・存在しないIDに対して`null`を返すこと、配下の中分類が可視のもののみ・表示順で返ることを検証する
+  - カテゴリのバリデーションが ja/en 名称未入力・言語コード重複・追加言語件数上限超過・公開範囲0件選択を拒否し、`en`名称が翻訳行へ合成されること（再パースが冪等であること）を検証する
+  - ドキュメントのバリデーションが大分類未指定を拒否し、中分類未指定を「なし」として受理すること（アップロード/Google両方式）を検証する
+  - カテゴリ管理一覧が階層と件数を描画すること、削除操作が件数>0のとき確認ダイアログを開かず件数入りメッセージを表示すること、フォームが言語タブと公開範囲を扱えることを検証する
+  - `DocumentForm`が大分類の変更時に中分類選択をリセットし、編集時の初期値はマウント時にリセットされないことを検証する
+  - 管理一覧のクライアント側絞り込みが5条件のAND条件で機能すること、「未設定」でカテゴリ未割当のみを抽出できること、大分類を「すべて」に戻すと中分類選択がリセットされることを検証する
+  - 既存の`DocumentForm`・`DocumentManagementList(Client)`・`document-service`・`document-mapper`・バリデーションの各テストを追従させ、全テストがパスすることで完了とする
+  - _Requirements: 18.6, 18.8, 19.8, 19.9, 20.4, 20.5, 21.2, 21.6, 21.7, 21.8, 22.1, 22.3, 22.4_
+  - _Depends: 13.4, 13.5, 13.8, 13.10_
+
+- [x]* 13.14 カテゴリ機能の統合確認と移行手順の確認を行う
+  - カテゴリを作成 → ドキュメントに割当 → 当該カテゴリの削除が件数付きで拒否される → ドキュメントのカテゴリを変更すると削除できる、という一連の流れを確認する
+  - 大分類の公開範囲を自社対象外に変更する／配下の全ドキュメントを下書きにすると、申請者側のトップページから当該大分類が消えること（`revalidatePath`反映）を確認する
+  - カテゴリ名の`en`翻訳を登録し、`en`ロケールでは`en`の名称、未登録ロケールでは`ja`の名称が表示されることを確認する。並び替え後に申請者側の大分類の順序が変わることも確認する
+  - 日本語・英語両ロケールでカテゴリ管理画面の追加・編集・削除・並び替えが機能し、タブレット幅（768px）でカテゴリ管理画面と拡張後の絞り込みバーが横スクロールを起こさないことを確認する
+  - 移行運用として、マイグレーション適用直後は既存ドキュメントがカテゴリ未設定であり申請者側から到達できないこと、管理一覧の「未設定」絞り込みで対象を抽出して割当できることを確認する
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - _Requirements: 18.4, 18.14, 19.13, 20.8, 21.6, 22.1_
+  - _Depends: 13.10, 13.11_

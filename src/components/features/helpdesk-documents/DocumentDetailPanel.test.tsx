@@ -34,6 +34,8 @@ const DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
+  categoryId: null,
+  subCategoryId: null,
 };
 
 const GOOGLE_DOCUMENT: Document = {
@@ -47,6 +49,8 @@ const GOOGLE_DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-02T09:00:00Z",
   translations: [{ locale: "en", title: "Google Document", description: "EN description" }],
+  categoryId: null,
+  subCategoryId: null,
 };
 
 const BASE_PROPS = {
@@ -82,6 +86,12 @@ const BASE_PROPS = {
   formProps: {
     countryOptions: [],
     companyOptions: [],
+    categoryOptions: [],
+    categoryLabel: "大分類",
+    categoryPlaceholderOption: "選択してください",
+    subCategoryLabel: "中分類",
+    subCategoryNoneOption: "なし",
+    categoryRequiredErrorMessage: "大分類を選択してください",
     titleLabel: "タイトル",
     titlePlaceholder: "",
     descriptionLabel: "説明",

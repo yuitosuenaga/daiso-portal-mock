@@ -8,7 +8,11 @@ import { DOCUMENT_COMPANY_CODES } from "@/lib/constants/document-company-options
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 
-const documentTargetingSchema = z.discriminatedUnion("scope", [
+/**
+ * ドキュメント・カテゴリ双方の公開範囲検証定義。`validation/document-category.ts`から
+ * 再利用するためexportし、選択肢定義を二重に持たない（要件21.2）。
+ */
+export const documentTargetingSchema = z.discriminatedUnion("scope", [
   z.object({ scope: z.literal("all") }),
   z.object({
     scope: z.literal("countries"),
@@ -47,6 +51,18 @@ const documentUploadSchema = z.object({
   fileSize: z.number().int().positive().max(DOCUMENT_MAX_FILE_SIZE_BYTES),
   dataUrl: z.string().trim().min(1).startsWith("data:application/pdf"),
   targeting: documentTargetingSchema,
+  // 大分類は必須（要件18.6）、中分類は任意（未選択は`null`。要件18.3）。
+  // 大分類・中分類の親子整合（要件18.9）はzodでは検証できないため、サービス層の
+  // `assertDocumentCategoryPair`とフォームの選択肢制御（要件18.7）で担保する。
+  categoryId: z.string().trim().min(1),
+  // フォーム側は未選択（「なし」）を空文字列で表現するため、`transform`で空文字列を`null`へ
+  // 正規化する（空文字列のまま`min(1)`等で検証すると未選択を表現できなくなるため）。
+  subCategoryId: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((value) => (value ? value : null)),
 });
 
 const documentGoogleSchema = z.object({
@@ -60,6 +76,15 @@ const documentGoogleSchema = z.object({
   googleUrl: z.string().trim().min(1),
   googleEmbedUrl: z.string().trim().min(1),
   targeting: documentTargetingSchema,
+  categoryId: z.string().trim().min(1),
+  // フォーム側は未選択（「なし」）を空文字列で表現するため、`transform`で空文字列を`null`へ
+  // 正規化する（空文字列のまま`min(1)`等で検証すると未選択を表現できなくなるため）。
+  subCategoryId: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((value) => (value ? value : null)),
 });
 
 /**

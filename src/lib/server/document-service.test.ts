@@ -22,6 +22,7 @@ import {
   findDocumentVisibleTo,
   listAllDocuments,
   listDocumentsVisibleTo,
+  listVisibleDocumentsInCategory,
   updateDocumentRecord,
 } from "@/lib/server/document-service";
 
@@ -43,6 +44,8 @@ function baseDocumentRecord(
     targetingCountries: string[];
     targetingCompanyCodes: string[];
     translations: { locale: string; title: string; description: string | null }[];
+    categoryId: string | null;
+    subCategoryId: string | null;
   }> = {}
 ) {
   return {
@@ -62,6 +65,8 @@ function baseDocumentRecord(
     targetingCountries: [] as string[],
     targetingCompanyCodes: [] as string[],
     translations: [] as { locale: string; title: string; description: string | null }[],
+    categoryId: null as string | null,
+    subCategoryId: null as string | null,
     ...overrides,
   };
 }
@@ -258,6 +263,8 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       dataUrl: "data:application/pdf;base64,AAAA",
       targeting: { scope: "companies", companyCodes: ["jp-daiso-japan-trading"] },
       translations: [],
+      categoryId: "category-1",
+      subCategoryId: null,
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -296,6 +303,8 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
       targeting: { scope: "all" },
       translations: [],
+      categoryId: "category-1",
+      subCategoryId: null,
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -334,6 +343,8 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       dataUrl: "data:application/pdf;base64,AAAA",
       targeting: { scope: "all" },
       translations: [],
+      categoryId: "category-1",
+      subCategoryId: null,
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -365,6 +376,8 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       dataUrl: "data:application/pdf;base64,AAAA",
       targeting: { scope: "all" },
       translations: [{ locale: "en", title: "Title" }],
+      categoryId: "category-1",
+      subCategoryId: null,
     });
 
     expect(prisma.document.create).toHaveBeenCalledWith(
@@ -395,6 +408,8 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
       dataUrl: "data:application/pdf;base64,AAAA",
       targeting: { scope: "all" },
       translations: [{ locale: "en", title: "Title" }],
+      categoryId: "category-1",
+      subCategoryId: null,
     });
 
     expect(prisma.document.update).toHaveBeenCalledWith(
@@ -425,6 +440,8 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
         dataUrl: "data:application/pdf;base64,AAAA",
         targeting: { scope: "all" },
         translations: [],
+        categoryId: "category-1",
+        subCategoryId: null,
       })
     ).rejects.toThrow(DocumentNotFoundError);
   });
@@ -445,5 +462,30 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     await deleteDocumentRecord("1");
 
     expect(prisma.document.delete).toHaveBeenCalledWith({ where: { id: "1" } });
+  });
+});
+
+describe("listVisibleDocumentsInCategory", () => {
+  it("指定した大分類配下（categoryId一致）かつ自社に可視なドキュメントのみをアップロード日降順で返す", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([
+      baseDocumentRecord({ id: "1", categoryId: "category-1" }),
+    ] as never);
+
+    const result = await listVisibleDocumentsInCategory(
+      "category-1",
+      "VN",
+      "vn-daiso-vietnam"
+    );
+
+    expect(result).toHaveLength(1);
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          categoryId: "category-1",
+          status: "published",
+        }),
+        orderBy: { uploadedAt: "desc" },
+      })
+    );
   });
 });
