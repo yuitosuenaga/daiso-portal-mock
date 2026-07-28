@@ -3,12 +3,35 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DocumentList } from "@/components/features/documents/DocumentList";
 import type { Document } from "@/types/document";
+import type { DocumentCategoryDetail } from "@/types/document-category";
 import messages from "../../../../messages/ja.json";
 
-const getDocumentsMock = vi.fn();
+const getDocumentsByCategoryMock = vi.fn();
+const getVisibleDocumentCategoryMock = vi.fn();
 
 vi.mock("@/lib/api/documents", () => ({
-  getDocuments: (...args: unknown[]) => getDocumentsMock(...args),
+  getDocumentsByCategory: (...args: unknown[]) =>
+    getDocumentsByCategoryMock(...args),
+}));
+
+vi.mock("@/lib/api/document-categories", () => ({
+  getVisibleDocumentCategory: (...args: unknown[]) =>
+    getVisibleDocumentCategoryMock(...args),
+}));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    ...rest
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 function resolveMessage(namespace: string, key: string): string {
@@ -34,6 +57,12 @@ vi.mock("next-intl", () => ({
     (key: string) => resolveMessage(namespace, key),
 }));
 
+const CATEGORY: DocumentCategoryDetail = {
+  id: "cat-1",
+  name: "規程・マニュアル",
+  subCategories: [],
+};
+
 const DOCUMENT: Document = {
   id: "1",
   title: "テストドキュメント",
@@ -46,39 +75,74 @@ const DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
+  categoryId: "cat-1",
+  subCategoryId: null,
 };
 
 describe("DocumentList", () => {
-  it("getDocumentsへ選択中のロケールを渡す", async () => {
-    getDocumentsMock.mockResolvedValueOnce([]);
+  it("getVisibleDocumentCategory・getDocumentsByCategoryへcategoryIdと選択中のロケールを渡す", async () => {
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([]);
 
-    await DocumentList();
+    await DocumentList({ categoryId: "cat-1" });
 
-    expect(getDocumentsMock).toHaveBeenCalledWith({ locale: "ja" });
+    expect(getVisibleDocumentCategoryMock).toHaveBeenCalledWith("cat-1", {
+      locale: "ja",
+    });
+    expect(getDocumentsByCategoryMock).toHaveBeenCalledWith("cat-1", {
+      locale: "ja",
+    });
+  });
+
+  it("カテゴリ名をh1に表示する", async () => {
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([DOCUMENT]);
+
+    const jsx = await DocumentList({ categoryId: "cat-1" });
+    render(jsx);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "規程・マニュアル" })
+    ).toBeTruthy();
+  });
+
+  it("getVisibleDocumentCategoryがnullのとき「見つからない」旨を表示する", async () => {
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(null);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await DocumentList({ categoryId: "unknown" });
+    render(jsx);
+
+    expect(
+      screen.getByText("ドキュメントが見つかりませんでした")
+    ).toBeTruthy();
   });
 
   it("ドキュメントが0件のとき空状態メッセージを表示する", async () => {
-    getDocumentsMock.mockResolvedValueOnce([]);
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([]);
 
-    const jsx = await DocumentList();
+    const jsx = await DocumentList({ categoryId: "cat-1" });
     render(jsx);
 
     expect(screen.getByText("ドキュメントはありません")).toBeTruthy();
   });
 
-  it("getDocumentsが例外をthrowしたときエラーメッセージを表示する", async () => {
-    getDocumentsMock.mockRejectedValueOnce(new Error("network error"));
+  it("取得が例外をthrowしたときエラーメッセージを表示する", async () => {
+    getVisibleDocumentCategoryMock.mockRejectedValueOnce(new Error("network error"));
+    getDocumentsByCategoryMock.mockResolvedValueOnce([]);
 
-    const jsx = await DocumentList();
+    const jsx = await DocumentList({ categoryId: "cat-1" });
     render(jsx);
 
     expect(screen.getByText("ドキュメントの取得に失敗しました")).toBeTruthy();
   });
 
   it("取得成功時にドキュメント一覧をクリック操作なしでプレビュー付きで表示する", async () => {
-    getDocumentsMock.mockResolvedValueOnce([DOCUMENT]);
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([DOCUMENT]);
 
-    const jsx = await DocumentList();
+    const jsx = await DocumentList({ categoryId: "cat-1" });
     render(jsx);
 
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
@@ -93,9 +157,10 @@ describe("DocumentList", () => {
       id: "2",
       title: "Onboarding Guide",
     };
-    getDocumentsMock.mockResolvedValueOnce([DOCUMENT, otherDocument]);
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([DOCUMENT, otherDocument]);
 
-    const jsx = await DocumentList();
+    const jsx = await DocumentList({ categoryId: "cat-1" });
     const { default: userEvent } = await import("@testing-library/user-event");
     const user = userEvent.setup();
     render(jsx);
@@ -128,10 +193,13 @@ describe("DocumentList", () => {
       targeting: { scope: "all" },
       uploadedAt: "2026-07-02T09:00:00Z",
       translations: [],
+      categoryId: "cat-1",
+      subCategoryId: null,
     };
-    getDocumentsMock.mockResolvedValueOnce([DOCUMENT, googleDocument]);
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([DOCUMENT, googleDocument]);
 
-    const jsx = await DocumentList();
+    const jsx = await DocumentList({ categoryId: "cat-1" });
     render(jsx);
 
     const uploadIframe = screen.getByTitle("テストドキュメント");
@@ -141,5 +209,21 @@ describe("DocumentList", () => {
     const googleIframe = screen.getByTitle("Google経由のドキュメント");
     expect(googleIframe.getAttribute("src")).toBe(googleDocument.googleEmbedUrl);
     expect(screen.getByText("元のドキュメントを開く")).toBeTruthy();
+  });
+
+  it("中分類の絞り込みセレクトへ解決済みの選択肢を渡す", async () => {
+    const categoryWithSubCategories: DocumentCategoryDetail = {
+      ...CATEGORY,
+      subCategories: [{ id: "sub-1", name: "利用規約" }],
+    };
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(
+      categoryWithSubCategories
+    );
+    getDocumentsByCategoryMock.mockResolvedValueOnce([DOCUMENT]);
+
+    const jsx = await DocumentList({ categoryId: "cat-1" });
+    render(jsx);
+
+    expect(screen.getByText("利用規約")).toBeTruthy();
   });
 });

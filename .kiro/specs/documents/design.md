@@ -420,3 +420,124 @@ interface DocumentsReadOnlyApi {
   - `documents-management`spec側で`en`翻訳を持つドキュメントを用意し、申請者側`/documents`を`en`ロケールで表示すると`en`のタイトル・説明が、`ja`ロケールでは`ja`の内容が表示されること、未登録ロケールでは`ja`にフォールバックすることを確認する（解決ロジックの主たる単体テストは`documents-management`spec の`document-mapper.test.ts`／`document-service.test.ts`が担う）。
 - **E2E/UI Tests**:
   - 日本語・英語ロケールで一覧カードのタイトル・説明が切り替わることを確認する。
+
+---
+
+## 追加ラウンド（2026-07-28）: 大分類トップページと大分類配下一覧（要件20〜22）
+
+### Overview（追加分）
+`documents-management`spec（要件18〜22）がドキュメントに**大分類（必須）・中分類（任意）の2階層のカテゴリ**を導入するのに合わせ、申請者側を単一階層から次の2階層構成へ変更する。
+
+1. **トップページ（`/documents`）**: 大分類のカード一覧のみを表示する。個別ドキュメントのカード・PDFプレビュー・キーワード検索欄は表示しない（要件20.1）。
+2. **大分類配下のドキュメント一覧（`/documents/categories/[categoryId]`、新規ルート）**: 当該大分類配下のドキュメントを、中分類の設定有無を問わず全件、**従来の一覧画面とまったく同じ表示形式**（要件10のプレビュー統合カード・要件11の2列グリッド・要件12のキーワード検索・要件13のGoogle埋め込み・要件14の遅延描画・要件15の改行保持・要件16の新着バッジ・要件17のフォールバック・要件18の下書き非表示・要件19のロケール別表示）で表示する（要件21.2）。中分類は3階層目のページではなく、この画面内の**絞り込み条件**として提供する（要件21.3）。
+
+本specは読み取り専用であり、カテゴリのデータモデル・可視性判定・名称の表示解決はすべて`documents-management`spec所有である。したがって本ラウンドの変更は「新しいトップページ（カテゴリカード一覧）の追加」「既存の一覧描画をカテゴリ配下ページへ移設」「中分類絞り込みの追加」の3点に限られ、`DocumentListItem`・`PdfViewer`は**変更しない**（既存のプレビュー・ダウンロード・新着バッジ・フォールバックの挙動をそのまま流用する）。
+
+### 前提（`documents-management`spec 所有）
+- `getVisibleDocumentCategories(options?: { locale?: string }): Promise<DocumentCategorySummary[]>` — 「カテゴリ自体が自社に公開」かつ「配下に自社可視の公開済みドキュメントが1件以上」の大分類のみを`displayOrder`昇順で返し、`name`は選択ロケールで解決済み、`documentCount`は自社可視・公開済みの件数（要件20.2・20.4・20.5、`documents-management`要件21.6）。
+- `getVisibleDocumentCategory(id, options?: { locale?: string }): Promise<DocumentCategoryDetail | null>` — 非可視・存在しない・中分類IDのときは`null`（要件21.11、`documents-management`要件21.8）。`subCategories`は自社に公開されている中分類のみ・`displayOrder`昇順・名称解決済み（要件21.5）。
+- `getDocumentsByCategory(categoryId, options?: { locale?: string }): Promise<Document[]>` — 当該大分類配下の自社可視・公開済みドキュメントをアップロード日降順で返す（要件21.1・21.12）。
+- `Document`に`categoryId: string | null`・`subCategoryId: string | null`が追加される（本specは`subCategoryId`を中分類絞り込みの判定にのみ用いる）。
+- 型: `DocumentCategorySummary`・`DocumentCategoryDetail`・`DocumentSubCategoryOption`（`src/types/document-category.ts`）。
+
+### Architecture Pattern & Boundary Map（追加分）
+
+```mermaid
+graph TB
+    TopPage[Applicant Documents Top Page]
+    CategoryPage[Applicant Category Documents Page]
+
+    TopPage --> DocumentCategoryList[Document Category List]
+    DocumentCategoryList --> DocumentCategoryCard[Document Category Card]
+    DocumentCategoryList --> CategoriesApi["getVisibleDocumentCategories (documents-management)"]
+
+    CategoryPage --> DocumentList[Document List]
+    DocumentList --> CategoryApi["getVisibleDocumentCategory (documents-management)"]
+    DocumentList --> DocumentsApi["getDocumentsByCategory (documents-management)"]
+    DocumentList --> DocumentListClient[Document List Client]
+    DocumentListClient --> DocumentSearchBar[Document Search Bar]
+    DocumentListClient --> DocumentListItem[Document List Item]
+    DocumentListItem --> PdfViewer[Pdf Viewer]
+```
+
+- 既存の規約を維持する: データ取得と`getTranslations`/`getLocale`によるラベル解決はServer Componentが行い、クライアントコンポーネントへは`*Label`等の文字列propsとして渡す（検索系の文字列のみクライアント側で`useTranslations("documents.search")`から解決する）。
+- `Sidebar`は**変更しない**。`resolveActiveHref`（`src/components/layout/nav-items.ts`）が「`item.href` + `/` で始まるか」の前方一致判定を行うため、`/documents/categories/[categoryId]`でも「ドキュメント」項目がアクティブのままになる。
+
+### Component Design（追加分）
+
+- **`DocumentCategoryList.tsx`（新規・Server・要件20）**: `getTranslations("documents.list")`・`getTranslations("documents.categories")`・`getLocale()`を`Promise.all`で解決し、`getVisibleDocumentCategories({ locale })`を`try/catch`で取得する。既存`DocumentList`と同一の`heading`（`<div className="mb-6">` + `h1.text-2xl.font-semibold` + `p.mt-1.text-sm.text-muted-foreground`、既存キー`documents.list.title`/`documents.list.description`）を全分岐で描画し（要件20.7）、エラー時は`documents.list.error`、0件時は`documents.list.empty`を`Card`で表示する（要件20.8・20.9）。成功時は`<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">`に`DocumentCategoryCard`を並べる（要件20.11の768pxブレークポイントに合わせ、既存`DocumentList`のグリッド（`md:grid-cols-2`）と同じ`md`ブレークポイントを採用する。ダッシュボードの`NavigationCard`グリッドは`sm`（640px）ブレークポイントのため、768px未満で1列を要求する本要件には流用しない：2026-07-28実装時に判明した訂正）。同ファイルから`DocumentCategoryListSkeleton`もexportする。
+- **`DocumentCategoryCard.tsx`（新規・Server・要件20.4/20.6）**: props `{ id: string; name: string; documentCount: number; href: string; documentCountLabel: string }`。カード全体を`Link`（`@/i18n/navigation`）で包み、`aria-label`を`` `${name}. ${documentCountLabel}` ``相当にする（既存`NavigationCard`と同じアクセシビリティ方針）。件数は`documents.categories.documentCount`（`{count}`）で解決した文字列をpropsで受け取る。
+  - ダッシュボードの`NavigationCard`の再利用は行わない: `icon`（`LucideIcon`）と`description`が必須で、カテゴリには対応する値が無いため。`dashboard-card-redesign`spec所有コンポーネントへの依存を増やさない意図もある（視覚的なグリッド構成のみ揃える）。
+- **`DocumentList.tsx`（変更・Server・要件21）**: 役割を「自社可視の全ドキュメント一覧」から「**指定された大分類配下のドキュメント一覧**」へ変更する。
+  - props追加: `{ categoryId: string }`。
+  - `getVisibleDocumentCategory(categoryId, { locale })`と`getDocumentsByCategory(categoryId, { locale })`を取得する。前者が`null`のときは「見つからない」旨（新規キー`documents.category.notFound`）を`Card`で表示して終了する（要件21.11）。
+  - `h1`には解決済みのカテゴリ名を表示し（要件21.10・22.1）、その直下の説明文は既存キー`documents.list.description`を流用する（要件9の`h1`＋説明文パターンを維持）。見出しの上に`BackLink`（`src/components/ui/back-link.tsx`）でトップページ（`/documents`）へ戻る導線を置く（要件21.10、新規キー`documents.category.backToCategories`）。
+  - `DocumentListClient`へ、既存の各ラベルpropsに加えて`subCategories`（`DocumentSubCategoryOption[]`）を渡す。
+  - 既存の`DocumentListSkeleton`はそのまま維持する（両ページの`Suspense` fallbackに使い分ける: トップページは`DocumentCategoryListSkeleton`、カテゴリページは`DocumentListSkeleton`）。
+- **`DocumentListClient.tsx`（変更・Client・要件21.3〜21.9）**: props追加`subCategories: DocumentSubCategoryOption[]`。状態を`keyword`に加えて`subCategoryId: string`（`""`＝すべて）で保持し、`useMemo`で`filterDocuments(documents, keyword)`の結果に`subCategoryId === "" || document.subCategoryId === subCategoryId`の述語を合成する（要件21.6・21.7）。`onClear`はキーワードと中分類の両方を初期状態へ戻す（要件21.8）。0件表示（`documents.search.noResults`）・2列グリッド（`grid grid-cols-1 gap-6 md:grid-cols-2`）・`DocumentListItem`への各propsの受け渡しは既存のまま維持する（要件21.12）。
+  - 中分類の絞り込みは`documents-management`側の管理一覧と同じく**クライアント側の即時フィルタ**とし、サーバー再取得は行わない（既存のキーワード検索と同一方式。要件21.8）。
+- **`DocumentSearchBar.tsx`（変更・Client・要件21.3/21.5/21.13）**: props追加`subCategories: DocumentSubCategoryOption[]`・`subCategoryId: string`・`onSubCategoryChange: (subCategoryId: string) => void`。既存の`flex flex-wrap items-end gap-4`レイアウトに、キーワード入力の隣へ`Select`（`@/components/ui/select`）を追加する。`subCategories.length === 0`のときはセレクトを描画しない（中分類が未整備の大分類で不要な操作子を出さない）。ラベル文字列は既存どおり`useTranslations("documents.search")`で自己解決し、新規キー`subCategoryLabel`・`subCategoryAll`を追加する。選択肢のラベル（中分類名）は`subCategories`（解決済み）から取る。
+- **`DocumentListItem.tsx` / `PdfViewer.tsx`（変更なし・要件21.2/22.2）**: `getDocumentsByCategory`が返す`Document`は`getDocuments`と同一の型・解決済み内容であるため、プレビュー・ダウンロード・新着バッジ・Googleフォールバックの描画は一切変更しない。
+- **ルート（新規・変更）**:
+  - `src/app/[locale]/(applicant)/documents/page.tsx`（変更）: `<Suspense fallback={<DocumentCategoryListSkeleton />}><DocumentCategoryList /></Suspense>`へ差し替える。
+  - `src/app/[locale]/(applicant)/documents/categories/[categoryId]/page.tsx`（新規）: `export default async function DocumentCategoryPage({ params }: { params: { locale: string; categoryId: string } })`で`<Suspense fallback={<DocumentListSkeleton />}><DocumentList categoryId={params.categoryId} /></Suspense>`を描画する。コンテナ幅は既存トップページ（2列グリッド前提の幅）と同一にする（要件21.14）。
+  - 要件21.15のとおり`/documents/[id]`（個別詳細）・中分類専用ページは新設しない。ルートは`/documents`と`/documents/categories/[categoryId]`の2つのみとする。
+
+### i18n（追加分）
+- `messages/ja.json` / `messages/en.json` の `documents` 名前空間へ追加する。
+  - `documents.categories.documentCount`（`{count}`件 / "{count} documents"）: 大分類カードの件数表示（要件20.4）
+  - `documents.category.notFound`（要件21.11）
+  - `documents.category.backToCategories`（要件21.10）
+  - `documents.search.subCategoryLabel`・`documents.search.subCategoryAll`（要件21.3・21.13）
+- 既存の`documents.list.title`・`documents.list.description`・`documents.list.empty`・`documents.list.error`はトップページで**そのまま流用**し、新規キーを作らない（要件20.7・20.9）。`documents.list.description`は大分類配下一覧の説明文にも流用する。
+- `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していること。
+
+### Modified / New Files（追加分）
+- `src/components/features/documents/DocumentCategoryList.tsx`（新規） — 大分類カード一覧＋見出し＋スケルトン
+- `src/components/features/documents/DocumentCategoryCard.tsx`（新規） — クリック可能な大分類カード（名称・件数）
+- `src/components/features/documents/DocumentList.tsx`（変更） — `categoryId` propsを受け取り、カテゴリ名の`h1`・戻る導線・`getDocumentsByCategory`取得・`subCategories`の受け渡しへ変更
+- `src/components/features/documents/DocumentListClient.tsx`（変更） — 中分類の絞り込み状態と述語の合成、条件クリアの拡張
+- `src/components/features/documents/DocumentSearchBar.tsx`（変更） — 中分類セレクトの追加
+- `src/app/[locale]/(applicant)/documents/page.tsx`（変更） — `DocumentCategoryList`へ差し替え
+- `src/app/[locale]/(applicant)/documents/categories/[categoryId]/page.tsx`（新規） — 大分類配下一覧のルート
+- `src/components/features/documents/DocumentList.test.tsx`（変更） — `categoryId`前提・カテゴリ名見出し・非可視カテゴリ時の「見つからない」表示へ更新
+- `messages/ja.json` / `messages/en.json`（変更） — 上記i18nキー追加
+- `src/components/features/documents/DocumentListItem.tsx` / `PdfViewer.tsx` — **変更なし**
+- `src/components/layout/Sidebar.tsx` / `nav-items.ts` — **変更なし**（前方一致でアクティブ判定される）
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 20.1 | トップページは大分類のみ（個別カード・プレビュー・検索を出さない） | DocumentCategoryList, documents/page.tsx |
+| 20.2〜20.3 | 可視条件（カテゴリ可視 AND 配下に可視な公開済みドキュメント1件以上）・非該当は非表示 | 依存: getVisibleDocumentCategories（documents-management要件21.6） |
+| 20.4 | カード名称（ロケール解決）と件数の表示 | DocumentCategoryCard, i18n（documents.categories.documentCount） |
+| 20.5 | 表示順（displayOrder昇順） | 依存: getVisibleDocumentCategories |
+| 20.6 | カードクリックで大分類配下一覧へ遷移 | DocumentCategoryCard, documents/categories/[categoryId]/page.tsx |
+| 20.7 | 既存キーによる`h1`＋説明文の維持 | DocumentCategoryList |
+| 20.8〜20.9 | スケルトン・エラー・0件メッセージ | DocumentCategoryList, DocumentCategoryListSkeleton |
+| 20.10 | 未分類ドキュメントは計上・到達不可 | 依存: getVisibleDocumentCategories（categoryId is null を除外） |
+| 20.11〜20.12 | レスポンシブ・i18n | DocumentCategoryList, DocumentCategoryCard, i18n messages |
+| 21.1〜21.2 | 大分類配下一覧の提供と既存表示形式の全面適用 | DocumentList, DocumentListClient, DocumentListItem, PdfViewer（後2者は変更なし） |
+| 21.3〜21.7 | 中分類絞り込み（既定すべて・可視な中分類のみ・キーワードとAND・未設定も含む） | DocumentSearchBar, DocumentListClient |
+| 21.8〜21.9 | 即時反映・条件クリア・0件メッセージ | DocumentListClient, DocumentSearchBar |
+| 21.10〜21.11 | カテゴリ名の`h1`・戻る導線・非可視/不存在時の「見つからない」 | DocumentList, BackLink |
+| 21.12〜21.14 | 並び順・2列グリッドの維持・i18n・レスポンシブ | DocumentList, DocumentListClient, i18n messages |
+| 21.15 | 個別詳細ページ・中分類専用ページを設けない | ルート構成（`/documents`と`/documents/categories/[categoryId]`のみ） |
+| 22.1〜22.3 | カテゴリ名のロケール別表示・解決の委譲・フォールバック | 依存: resolveDocumentCategoryContent（documents-management要件20.8） |
+| 22.4 | ドキュメントのタイトル・説明のロケール別表示（要件19）との同時適用 | DocumentList（`{ locale }`を両取得関数へ渡す） |
+
+### Testing Strategy（追加分）
+- **Unit Tests**:
+  - `DocumentCategoryList`が取得した大分類をグリッドに描画し、0件時に空状態メッセージ、取得失敗時にエラーメッセージを表示すること。いずれの分岐でも`h1`＋説明文が表示されること
+  - `DocumentCategoryCard`が名称・件数を表示し、`/documents/categories/{id}`へのリンクとアクセシブルな名前を持つこと
+  - `DocumentList`が`categoryId`に対応するカテゴリ名を`h1`に表示し、`getVisibleDocumentCategory`が`null`のとき「見つからない」旨を表示すること
+  - `DocumentListClient`が中分類の選択で該当ドキュメントのみに絞り込むこと、「すべての中分類」では中分類未設定のドキュメントも表示すること、キーワードとの組み合わせがAND条件になること、条件クリアで両方が初期化されること
+  - `DocumentSearchBar`が`subCategories`が空のときセレクトを描画しないこと
+- **Integration Tests**:
+  - `documents-management`spec側でカテゴリを整備した状態で、トップページに可視な大分類のみが表示され、カードから遷移した一覧に当該大分類配下のドキュメントのみ（中分類の有無を問わず）が表示されること
+  - カテゴリ未設定のドキュメントがトップページの件数にも一覧にも現れないこと
+  - 非可視の大分類IDへ直接アクセスすると「見つからない」旨が表示されること
+- **E2E/UI Tests**:
+  - 日本語・英語両ロケールで、トップページの大分類カード名と大分類配下一覧の`h1`・中分類セレクトのラベルが切り替わること
+  - タブレット幅（768px）未満で大分類カードが1列、以上で複数列になり、いずれも横スクロールが発生しないこと
+  - 大分類配下一覧で、既存のプレビュー・ダウンロード/元リンク・新着バッジ・検索が従来どおり機能すること

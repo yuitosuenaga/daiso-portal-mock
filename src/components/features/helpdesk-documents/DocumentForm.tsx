@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Controller, useFieldArray, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -27,12 +27,25 @@ import {
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type { CreateDocumentInput } from "@/types/document";
 
+/** カテゴリ選択肢1件（大分類＋配下の中分類）。名称は既定言語（ja）で解決済み（要件20.10）。 */
+export interface DocumentCategoryFormOption {
+  id: string;
+  name: string;
+  subCategories: { id: string; name: string }[];
+}
+
 export interface DocumentFormProps {
   mode: "create" | "edit";
   documentId?: string;
   defaultValues?: DocumentFormValues;
   countryOptions: SelectOption[];
   companyOptions: SelectOption[];
+  categoryOptions: DocumentCategoryFormOption[];
+  categoryLabel: string;
+  categoryPlaceholderOption: string;
+  subCategoryLabel: string;
+  subCategoryNoneOption: string;
+  categoryRequiredErrorMessage: string;
   titleLabel: string;
   titlePlaceholder: string;
   descriptionLabel: string;
@@ -100,6 +113,10 @@ interface DocumentFormFieldValues {
   googleUrl: string;
   googleEmbedUrl: string;
   targeting: UploadFormValues["targeting"];
+  /** 大分類ID。必須項目のため未選択時は空文字列（プレースホルダー選択状態） */
+  categoryId: string;
+  /** 中分類ID。未選択（「なし」）を空文字列で表現し、送信時に`null`へ正規化する */
+  subCategoryId: string;
 }
 
 const EMPTY_UPLOAD_VALUES = {
@@ -120,6 +137,10 @@ function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
     descriptionEn: values.descriptionEn,
     translations: values.translations ?? [],
   };
+  const categoryValues = {
+    categoryId: values.categoryId ?? "",
+    subCategoryId: values.subCategoryId ?? "",
+  };
 
   if (values.sourceType === "google") {
     return {
@@ -129,6 +150,7 @@ function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
       ...languageValues,
       status: values.status,
       targeting: values.targeting,
+      ...categoryValues,
       ...EMPTY_UPLOAD_VALUES,
       googleUrl: values.googleUrl,
       googleEmbedUrl: values.googleEmbedUrl,
@@ -142,6 +164,7 @@ function toFieldValues(values: DocumentFormValues): DocumentFormFieldValues {
     ...languageValues,
     status: values.status,
     targeting: values.targeting,
+    ...categoryValues,
     fileName: values.fileName,
     fileType: values.fileType,
     fileSize: values.fileSize,
@@ -161,6 +184,12 @@ export function DocumentForm({
   defaultValues,
   countryOptions,
   companyOptions,
+  categoryOptions,
+  categoryLabel,
+  categoryPlaceholderOption,
+  subCategoryLabel,
+  subCategoryNoneOption,
+  categoryRequiredErrorMessage,
   titleLabel,
   titlePlaceholder,
   descriptionLabel,
@@ -233,6 +262,8 @@ export function DocumentForm({
             translations: [],
             status: "draft",
             targeting: { scope: "all" },
+            categoryId: "",
+            subCategoryId: "",
             ...EMPTY_UPLOAD_VALUES,
             ...EMPTY_GOOGLE_VALUES,
           },
@@ -300,6 +331,22 @@ export function DocumentForm({
   ];
   const scope = watch("targeting.scope");
   const sourceType = watch("sourceType");
+  const categoryId = watch("categoryId");
+  const previousCategoryIdRef = useRef(categoryId);
+  const subCategoryOptions = useMemo(() => {
+    const selected = categoryOptions.find((option) => option.id === categoryId);
+    return selected?.subCategories ?? [];
+  }, [categoryOptions, categoryId]);
+
+  // 大分類が実際に変更されたときのみ中分類選択をリセットする（要件18.8）。
+  // マウント時（編集時の初期値復元）は`previousCategoryIdRef`の初期値が現在値と一致するため
+  // 発火しない（`previousTranslationCountRef`と同じ「実際の変更のみ検知する」手法）。
+  useEffect(() => {
+    if (previousCategoryIdRef.current !== categoryId) {
+      setValue("subCategoryId", "", { shouldValidate: true });
+    }
+    previousCategoryIdRef.current = categoryId;
+  }, [categoryId, setValue]);
   const [fileName, fileType, fileSize, dataUrl] = watch([
     "fileName",
     "fileType",
@@ -548,6 +595,41 @@ export function DocumentForm({
               }
             />
           )}
+        />
+      </FormField>
+
+      <FormField
+        label={categoryLabel}
+        required
+        requiredIndicator={requiredIndicator}
+        htmlFor="document-category"
+        error={errors.categoryId ? categoryRequiredErrorMessage : undefined}
+      >
+        <Select
+          id="document-category"
+          options={[
+            { value: "", label: categoryPlaceholderOption },
+            ...categoryOptions.map((option) => ({
+              value: option.id,
+              label: option.name,
+            })),
+          ]}
+          aria-invalid={errors.categoryId ? true : undefined}
+          {...register("categoryId")}
+        />
+      </FormField>
+
+      <FormField label={subCategoryLabel} htmlFor="document-sub-category">
+        <Select
+          id="document-sub-category"
+          options={[
+            { value: "", label: subCategoryNoneOption },
+            ...subCategoryOptions.map((option) => ({
+              value: option.id,
+              label: option.name,
+            })),
+          ]}
+          {...register("subCategoryId")}
         />
       </FormField>
 

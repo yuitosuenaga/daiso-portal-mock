@@ -353,6 +353,75 @@ const SAMPLE_PDF_DATA_URL =
   "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNjIgPj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiAyMCAxMDAgVGQgKFNhbXBsZSBEb2N1bWVudCBQREYpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjAKJSVFT0YK";
 
 /** 既存モック（`MOCK_DOCUMENTS`）と同内容のドキュメント5件。`titleEn`/`descriptionEn`はデモ用の`en`翻訳（要件17.11）。 */
+/**
+ * ドキュメントカテゴリのseed（大分類3件＋中分類1件）。既存seedドキュメント5件へ割り当てる
+ * ためのデモ用データであり、本番の既存レコードへの自動割当（要件18.4で禁止）とは別物。
+ * `nameEn`はデモ用の`en`翻訳（要件20.6・20.11）。
+ */
+const DOCUMENT_CATEGORY_SEEDS = [
+  {
+    id: "seed-document-category-001",
+    parentId: null as string | null,
+    name: "店舗運営マニュアル",
+    nameEn: "Store Operations Manuals",
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+    displayOrder: 0,
+  },
+  {
+    id: "seed-document-category-001-child-001",
+    parentId: "seed-document-category-001",
+    name: "レジ操作",
+    nameEn: "POS Operations",
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+    displayOrder: 0,
+  },
+  {
+    id: "seed-document-category-002",
+    parentId: null as string | null,
+    name: "商品陳列・什器",
+    nameEn: "Merchandising & Fixtures",
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+    displayOrder: 1,
+  },
+  {
+    id: "seed-document-category-003",
+    parentId: null as string | null,
+    name: "内部監査資料",
+    nameEn: "Internal Audit Materials",
+    targetingScope: "companies" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: ["jp-daiso-japan-trading"],
+    displayOrder: 2,
+  },
+];
+
+async function seedDocumentCategories(): Promise<void> {
+  for (const seed of DOCUMENT_CATEGORY_SEEDS) {
+    await prisma.documentCategory.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        parentId: seed.parentId,
+        name: seed.name,
+        displayOrder: seed.displayOrder,
+        targetingScope: seed.targetingScope,
+        targetingCountries: seed.targetingCountries,
+        targetingCompanyCodes: seed.targetingCompanyCodes,
+        translations: {
+          create: [{ locale: "en", name: seed.nameEn }],
+        },
+      },
+    });
+  }
+}
+
 const DOCUMENT_SEEDS = [
   {
     id: "seed-document-001",
@@ -367,6 +436,8 @@ const DOCUMENT_SEEDS = [
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     targetingCompanyCodes: [] as string[],
+    categoryId: "seed-document-category-001" as string | null,
+    subCategoryId: null as string | null,
   },
   {
     id: "seed-document-002",
@@ -381,6 +452,8 @@ const DOCUMENT_SEEDS = [
     targetingScope: "countries" as const,
     targetingCountries: ["VN", "TH", "ID"],
     targetingCompanyCodes: [] as string[],
+    categoryId: "seed-document-category-002" as string | null,
+    subCategoryId: null as string | null,
   },
   {
     id: "seed-document-003",
@@ -395,6 +468,8 @@ const DOCUMENT_SEEDS = [
     targetingScope: "companies" as const,
     targetingCountries: [] as string[],
     targetingCompanyCodes: ["vn-daiso-vietnam"],
+    categoryId: "seed-document-category-001" as string | null,
+    subCategoryId: "seed-document-category-001-child-001" as string | null,
   },
   {
     id: "seed-document-004",
@@ -408,6 +483,8 @@ const DOCUMENT_SEEDS = [
     targetingScope: "companies" as const,
     targetingCountries: [] as string[],
     targetingCompanyCodes: ["jp-daiso-japan-trading"],
+    categoryId: "seed-document-category-003" as string | null,
+    subCategoryId: null as string | null,
   },
   {
     id: "seed-document-005",
@@ -422,10 +499,15 @@ const DOCUMENT_SEEDS = [
     targetingScope: "countries" as const,
     targetingCountries: ["US"],
     targetingCompanyCodes: [] as string[],
+    categoryId: "seed-document-category-002" as string | null,
+    subCategoryId: null as string | null,
   },
 ];
 
 async function seedDocuments(): Promise<void> {
+  // ドキュメントがカテゴリを参照するため、先にカテゴリを投入する。
+  await seedDocumentCategories();
+
   for (const seed of DOCUMENT_SEEDS) {
     await prisma.document.upsert({
       where: { id: seed.id },
@@ -443,6 +525,8 @@ async function seedDocuments(): Promise<void> {
         fileSize: seed.fileSize,
         dataUrl: SAMPLE_PDF_DATA_URL,
         uploadedAt: new Date(seed.uploadedAt),
+        categoryId: seed.categoryId,
+        subCategoryId: seed.subCategoryId,
         targetingScope: seed.targetingScope,
         targetingCountries: seed.targetingCountries,
         targetingCompanyCodes: seed.targetingCompanyCodes,

@@ -17,9 +17,15 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const getAllDocumentsMock = vi.fn();
+const getAllDocumentCategoriesMock = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/lib/api/documents", () => ({
   getAllDocuments: (...args: unknown[]) => getAllDocumentsMock(...args),
+}));
+
+vi.mock("@/lib/api/document-categories", () => ({
+  getAllDocumentCategories: (...args: unknown[]) =>
+    getAllDocumentCategoriesMock(...args),
 }));
 
 vi.mock("@/lib/actions/documents", () => ({
@@ -74,6 +80,8 @@ const DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
+  categoryId: null,
+  subCategoryId: null,
 };
 
 const GOOGLE_DOCUMENT: Document = {
@@ -86,6 +94,8 @@ const GOOGLE_DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-02T09:00:00Z",
   translations: [],
+  categoryId: null,
+  subCategoryId: null,
 };
 
 describe("DocumentManagementList", () => {

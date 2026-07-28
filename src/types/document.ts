@@ -31,6 +31,10 @@ interface DocumentBase {
   uploadedAt: string;
   /** ja以外の言語別タイトル・説明（jaは親のtitle/descriptionが正）。 */
   translations: DocumentTranslationView[];
+  /** 大分類のID。カテゴリ未設定の既存ドキュメントはnull（要件18.4） */
+  categoryId: string | null;
+  /** 中分類のID。未設定を許容（要件18.3）。非nullのとき必ずcategoryIdの配下 */
+  subCategoryId: string | null;
 }
 
 export type Document =

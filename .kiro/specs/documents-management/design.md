@@ -779,3 +779,543 @@ export function resolveDocumentContent(
   - ヘルプデスク側で`en`・追加言語のタイトル/説明を入力して保存 → 申請者側を`en`ロケールで取得すると`en`の内容、未登録ロケールでは`ja`の内容にフォールバックすること（`revalidatePath`反映）
 - **E2E/UI Tests**:
   - 日本語・英語両ロケールで、新規作成/編集フォームに言語タブ（ja/en＋追加）が表示され、言語追加・削除・エラータブ自動切替が機能すること
+
+---
+
+## 追加ラウンド（2026-07-28）: ドキュメントのカテゴリ管理（要件18〜22）
+
+### Overview（追加分）
+ドキュメントに**大分類（必須）・中分類（任意）の2階層のカテゴリ**を導入する。本specは、カテゴリのデータモデル（Prisma・型・マッパー）・カテゴリのCRUD/並び替えサービス・Server Actions・バリデーション・カテゴリ管理画面（`/helpdesk/documents/categories`）・`DocumentForm`のカテゴリ選択・管理一覧のカテゴリ表示と絞り込み（要件22）・申請者側が使う「可視カテゴリ取得関数」を所有する。申請者側の画面構成（`/documents`を大分類カード一覧へ変更し、`/documents/categories/[categoryId]`で大分類配下のドキュメント一覧＋中分類絞り込みを表示する）は`documents`spec（要件20〜22）が所有する。
+
+設計方針は既存ラウンドと同様に「既存パターンの横展開」であり、新しい抽象化・依存ライブラリは追加しない。具体的には、公開範囲は既存の`DocumentTargeting`（判別可能ユニオン＋`targetingScope`/`targetingCountries`/`targetingCompanyCodes`の3列表現）を、名称の多言語化は`DocumentTranslation`＋`resolveDocumentContent`のパターンを、管理画面は`ManagementListCard`/`Rows`/`Row`＋Server Actions＋`ConfirmDialog`のパターンをそれぞれ再利用する。
+
+一方、本ラウンドは本リポジトリで初めて次の3つを導入するため、設計上の判断を明示する（詳細は`research.md`の Design Decisions）。
+1. 自己参照リレーション（親子階層）を持つモデル
+2. `displayOrder`による手動並び替え
+3. 「削除の可否が他エンティティの件数に依存する」削除の安全制御
+
+### Boundary Commitments（追加分）
+
+#### This Spec Owns（追加）
+- `/[locale]/helpdesk/documents/categories`（カテゴリ管理画面。新規ルート）
+- `DocumentCategory`/`DocumentCategoryTranslation`モデル・`src/types/document-category.ts`の全型
+- `Document.categoryId`・`Document.subCategoryId`（列・型・入力契約）
+- カテゴリのCRUD・並び替え・削除可否判定のサービス層（`src/lib/server/document-category-service.ts`）とServer Actions（`src/lib/actions/document-categories.ts`）
+- 申請者側が利用する可視カテゴリ取得関数（`getVisibleDocumentCategories`・`getVisibleDocumentCategory`）と大分類配下のドキュメント取得関数（`getDocumentsByCategory`）の**型契約と実装**
+- カテゴリ名の表示解決関数`resolveDocumentCategoryContent`
+
+#### Out of Boundary（追加）
+- 申請者側の大分類カード一覧・大分類配下一覧ページ・中分類絞り込みUIの実装（`documents`spec所有・要件20〜22）
+- `src/components/features/helpdesk-shared/ManagementList.tsx`の変更（所有specが明示されていない事実上の共有コンポーネントのため、本ラウンドでは**変更せず**、公開されている`ManagementListCard`/`ManagementListRows`/`ManagementListRow`/`ManagementListMessageCard`/`ManagementListSkeleton`を利用するのみとする。`ManagementListHeading`は`addHref`必須のためカテゴリ管理画面では使わない＝下記 Design Decision 5 参照）
+- リンク集（`links-page`spec）の`LinkCategory`との統合（既存のNon-Goalsを維持。本カテゴリは完全に独立した概念）
+
+#### Revalidation Triggers（追加）
+- `DocumentBase`への`categoryId`/`subCategoryId`追加（`documents`spec側の`DocumentListItem`等が参照する型形状の変更。ただし追加のみで既存フィールドは不変）
+- `getVisibleDocumentCategories`/`getVisibleDocumentCategory`/`getDocumentsByCategory`のシグネチャ変更（`documents`spec要件20・21の実装前提が変わる）
+- `resolveDocumentCategoryContent`のフォールバック順序の変更（`documents`spec要件22の期待値が変わる）
+
+### Architecture（追加分）
+
+```mermaid
+graph TB
+    CategoryPage[Helpdesk Document Categories Page]
+    DocListPage[Helpdesk Document List Page]
+    FormPages[Helpdesk Document New/Edit Pages]
+    ApplicantTop[Applicant Documents Top Page]
+    ApplicantCategory[Applicant Category Documents Page]
+
+    CategoryPage --> CategoryManagementList[Document Category Management List]
+    CategoryManagementList --> CategoryManagementListClient[Document Category Management List Client]
+    CategoryManagementListClient --> CategoryFormDialog[Document Category Form Dialog]
+    CategoryManagementListClient --> DeleteCategoryButton[Delete Document Category Button]
+    CategoryManagementListClient --> OrderButtons[Document Category Order Buttons]
+
+    CategoryFormDialog --> CategoryForm[Document Category Form]
+    CategoryForm --> CategoryActions[Document Category Server Actions]
+    DeleteCategoryButton --> CategoryActions
+    OrderButtons --> CategoryActions
+
+    CategoryActions --> CategoryValidation[documentCategoryFormSchema]
+    CategoryActions --> CategoryApi[Document Categories API]
+    CategoryApi --> CategoryService[Document Category Service]
+    CategoryService --> CategoryMapper[Document Category Mapper]
+    CategoryService --> DocumentVisibleWhere["documentVisibleToWhere (document-service)"]
+
+    DocListPage --> DocumentManagementList
+    DocumentManagementList --> CategoryApi
+    DocumentManagementList --> DocumentManagementListClient
+    DocumentManagementListClient --> DocumentManagementFilterBar
+
+    FormPages --> CategoryApi
+    FormPages --> DocumentForm
+    DocumentForm --> DocumentActions[Document Server Actions]
+    DocumentActions --> CategoryService
+
+    ApplicantTop --> CategoryApi
+    ApplicantCategory --> CategoryApi
+    ApplicantCategory --> DocumentsApi[Documents API getDocumentsByCategory]
+```
+
+**Architecture Integration**:
+- 依存方向: `types` → `mapper` → `service` → `api`（セッション境界） → `actions` → UI。既存のドキュメント側と同一の層構成を維持し、カテゴリ用に並列のモジュール群を追加する。
+- 可視性判定の置き場所: **データ取得層（サービス層）**に置く。カテゴリ自体の公開範囲と「配下に自社可視の公開済みドキュメントが1件以上」（要件21.6）はいずれもDBクエリで表現でき、コンポーネント層で判定すると全カテゴリ・全ドキュメントを取得してから捨てることになるため採らない。
+- 可視性述語の単一情報源: ドキュメントの可視性条件（`status: "published"` ＋ `targeting`のOR、既存の`visibleToWhere`）を**`document-service.ts`から`documentVisibleToWhere`としてexport**し、カテゴリサービスがこれを再利用する。同じ述語を2箇所に書かない。
+- 削除の安全制御: 「表示のための件数」と「実行時の拒否」を分離する。管理画面は`listDocumentCategoriesForHelpdesk`が返す件数で削除操作をブロックし件数入りメッセージを表示する（追加のラウンドトリップなし）。加えてサービス層の`deleteDocumentCategoryRecord`が保存直前に件数を再確認して例外を送出する（TOCTOU対策・要件19.12）。DB側にも`onDelete: Restrict`を設定して三重の防御とする。
+
+### Data Model（追加分）
+
+#### Prisma スキーマ（`prisma/schema.prisma`）
+既存の`DocumentTargetingScope` enumを再利用し、新規enumは追加しない。
+
+```prisma
+/**
+ * ドキュメントのカテゴリ。`parentId === null`が大分類、非nullが中分類（親は必ず大分類）。
+ * 3階層以上のネストはサービス層で禁止する（要件18.2）。
+ */
+model DocumentCategory {
+  id                    String                        @id @default(cuid())
+  parentId              String?
+  parent                DocumentCategory?             @relation("DocumentCategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children              DocumentCategory[]            @relation("DocumentCategoryHierarchy")
+  /** 既定言語（ja）の名称。他言語はtranslationsが持つ */
+  name                  String
+  /** 同一階層内の表示順（昇順）。要件19.11の並び替えで更新する */
+  displayOrder          Int                           @default(0)
+  targetingScope        DocumentTargetingScope        @default(all)
+  targetingCountries    String[]                      @default([])
+  targetingCompanyCodes String[]                      @default([])
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+  translations          DocumentCategoryTranslation[]
+  documents             Document[]                    @relation("DocumentPrimaryCategory")
+  subCategoryDocuments  Document[]                    @relation("DocumentSubCategory")
+
+  @@index([parentId, displayOrder])
+}
+
+/**
+ * カテゴリ名を`ja`以外の言語で保持する子テーブル（`DocumentTranslation`と同型）。
+ * `ja`は`DocumentCategory.name`が正であり、`locale === "ja"`の行は作らない。
+ */
+model DocumentCategoryTranslation {
+  id         String           @id @default(cuid())
+  categoryId String
+  category   DocumentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String
+  name       String
+
+  @@unique([categoryId, locale])
+  @@index([categoryId])
+}
+
+model Document {
+  // ...既存フィールド...
+  categoryId    String?
+  category      DocumentCategory? @relation("DocumentPrimaryCategory", fields: [categoryId], references: [id], onDelete: Restrict)
+  subCategoryId String?
+  subCategory   DocumentCategory? @relation("DocumentSubCategory", fields: [subCategoryId], references: [id], onDelete: Restrict)
+}
+```
+
+- `categoryId`/`subCategoryId`をいずれもNULL許容にする理由: 既存の登録済みドキュメントへ自動割当を行わない後方互換方針（要件18.4）。**書き込み経路では`categoryId`を必須にする**（`documentFormSchema`側で担保。要件18.6）ため、「列はnullable・入力は必須」という非対称を意図的に持つ。
+- `onDelete: Restrict`（`documents`/`subCategoryDocuments`/`parent`）: 要件19.8・19.9の拒否はサービス層で件数付きメッセージとともに行うが、経路を漏らした場合でもDBが最終防衛線として削除を拒否する。
+- **同一階層内の名称一意性（要件19.6）はDB制約で表現しない**: `@@unique([parentId, name])`はPostgresがNULLを互いに異なる値として扱うため、`parentId IS NULL`の大分類同士には効かない。片方だけDB制約が効く中途半端な状態を避け、判定はサービス層（`assertCategoryNameAvailable`）に一元化する（Design Decision 3）。
+- `@@index([parentId, displayOrder])`は階層ごとの表示順ソート・並び替え時の隣接レコード検索のためのインデックスであり、一意制約ではない。
+
+#### マイグレーション
+新規マイグレーション（例: `add_document_categories`）を`prisma migrate dev`で生成する。想定される操作は次の通り。
+
+```sql
+-- CreateTable: "DocumentCategory"（自己参照FK・targeting3列・displayOrder・createdAt/updatedAt）
+-- CreateTable: "DocumentCategoryTranslation"（unique(categoryId, locale) / index(categoryId) / FK ON DELETE CASCADE）
+-- AlterTable: "Document" ADD COLUMN "categoryId" TEXT, ADD COLUMN "subCategoryId" TEXT
+-- AddForeignKey: Document.categoryId / Document.subCategoryId → DocumentCategory(id) ON DELETE RESTRICT
+-- CreateIndex: "DocumentCategory_parentId_displayOrder_idx"
+```
+
+- 既存`Document`行への`UPDATE`（カテゴリの自動割当）は**行わない**（要件18.4）。新規列はNULLのまま追加されるため既存データは無変更。
+- 本番反映は`prisma migrate deploy`が別途必要（Cloud SQLへの反映は手動・都度）。design上はマイグレーションファイルの追加までを本specの範囲とする。
+
+#### 型（`src/types/document-category.ts`、新規）
+
+```typescript
+import type { DocumentTargeting } from "@/types/document";
+
+/** カテゴリ名の言語別（`ja`以外）の内容。`ja`は親の`name`が正。 */
+export interface DocumentCategoryTranslationView {
+  locale: string;
+  name: string;
+}
+
+/** カテゴリ1件。`parentId === null`が大分類、非nullが中分類。`name`は既定言語（ja）。 */
+export interface DocumentCategory {
+  id: string;
+  parentId: string | null;
+  name: string;
+  displayOrder: number;
+  targeting: DocumentTargeting;
+  translations: DocumentCategoryTranslationView[];
+}
+
+/** ヘルプデスク側カテゴリ管理画面用。削除可否の表示判定に必要な件数を同梱する。 */
+export interface DocumentCategoryAdminView extends DocumentCategory {
+  /** 当該カテゴリに直接紐づくドキュメント件数（下書きを含み、公開範囲で絞らない） */
+  documentCount: number;
+  /** 大分類のときのみ意味を持つ配下の中分類（displayOrder昇順） */
+  children: DocumentCategoryAdminChildView[];
+}
+
+export interface DocumentCategoryAdminChildView extends DocumentCategory {
+  documentCount: number;
+}
+
+/** カテゴリの作成入力。`displayOrder`はサービス層が同一階層の末尾へ自動採番する。 */
+export interface CreateDocumentCategoryInput {
+  /** null=大分類として作成、非null=当該大分類配下の中分類として作成 */
+  parentId: string | null;
+  /** 既定言語（ja）の名称 */
+  name: string;
+  targeting: DocumentTargeting;
+  /** `en`必須＋任意の追加言語。`ja`行は含まない */
+  translations: DocumentCategoryTranslationView[];
+}
+
+/** カテゴリの更新入力。所属大分類の付け替えは対象外のため`parentId`を含まない。 */
+export type UpdateDocumentCategoryInput = Omit<CreateDocumentCategoryInput, "parentId">;
+
+export type DocumentCategoryMoveDirection = "up" | "down";
+
+/** 申請者側トップページの大分類カード用（`name`はlocale解決済み）。 */
+export interface DocumentCategorySummary {
+  id: string;
+  name: string;
+  /** 自社に公開された公開済みドキュメントの件数（要件20.4） */
+  documentCount: number;
+}
+
+/** 申請者側の大分類配下一覧用（`name`はlocale解決済み）。 */
+export interface DocumentCategoryDetail {
+  id: string;
+  name: string;
+  /** 自社に公開されている中分類のみ（displayOrder昇順、要件21.5） */
+  subCategories: DocumentSubCategoryOption[];
+}
+
+export interface DocumentSubCategoryOption {
+  id: string;
+  name: string;
+}
+```
+
+#### 型（`src/types/document.ts`、変更）
+`DocumentBase`に2つのフィールドを追加する。`Document`は`sourceType`による判別可能ユニオンだが、カテゴリは両ブランチ共通のため`DocumentBase`に置く。`CreateDocumentInput`は`Omit<Document, "id" | "uploadedAt">`のため入力にも自動的に含まれる。
+
+```typescript
+interface DocumentBase {
+  // ...既存フィールド...
+  /** 大分類のID。カテゴリ未設定の既存ドキュメントはnull（要件18.4） */
+  categoryId: string | null;
+  /** 中分類のID。未設定を許容（要件18.3）。非nullのとき必ずcategoryIdの配下 */
+  subCategoryId: string | null;
+}
+```
+
+- **カテゴリ名は`Document`に持たせない**（`include: { category: true }`を行わない）。管理一覧の行表示（要件18.11）・フォームの選択肢（要件18.5）・絞り込み選択肢（要件22.1）はいずれも「カテゴリ一覧」を必要とするため、サーバーコンポーネントが`getAllDocumentCategories()`で取得した木構造をクライアントへ渡し、クライアント側でID→名称の辞書を作って表示する（既存の`countryLabels`/`companyLabels`辞書と同じ方式）。`mapDocument`の入力型・`DOCUMENT_INCLUDE`を変更せずに済む利点がある。
+
+#### マッパー（`src/lib/server/document-category-mapper.ts`、新規）
+
+```typescript
+export const DOCUMENT_CATEGORY_INCLUDE = { translations: true } as const satisfies Prisma.DocumentCategoryInclude;
+
+export type PrismaDocumentCategoryWithTranslations = Prisma.DocumentCategoryGetPayload<{
+  include: typeof DOCUMENT_CATEGORY_INCLUDE;
+}>;
+
+export function mapDocumentCategory(record: PrismaDocumentCategoryWithTranslations): DocumentCategory;
+
+/**
+ * `resolveDocumentContent`と同一のフォールバック順序（`locale`一致 → `en` → 既定言語`ja`）で
+ * カテゴリ名を解決する（要件20.8）。
+ */
+export function resolveDocumentCategoryContent(
+  category: Pick<DocumentCategory, "name" | "translations">,
+  locale: string
+): { name: string };
+```
+
+- 既定言語は`document-mapper.ts`の`DEFAULT_DOCUMENT_LOCALE`（`"ja"`）を**再利用**し、カテゴリ専用の定数を新設しない。
+- `targeting`の変換は既存の`mapTargeting`/`targetingToColumns`（`document-mapper.ts`）を再利用する。ただし現在の`mapTargeting(record: PrismaDocument)`は`Document`レコード型に固定されているため、**構造的な型へ緩める小リファクタ**を行う（`interface DocumentTargetingColumns { targetingScope: DocumentTargetingScope; targetingCountries: string[]; targetingCompanyCodes: string[] }`を受け取る形にする）。既存呼び出しは構造的部分型のためそのまま通る。
+
+### Component / Service Design（追加分）
+
+#### document-category-service.ts（新規・要件18.2/18.9/19.*/20.6〜20.9/21.6〜21.9）
+
+```typescript
+export class DocumentCategoryNotFoundError extends Error {}
+/** 同一階層で既定言語（ja）の名称が重複（要件19.6） */
+export class DocumentCategoryNameConflictError extends Error {}
+/** 配下にドキュメントまたは中分類が存在するため削除できない（要件19.8・19.9） */
+export class DocumentCategoryInUseError extends Error {
+  readonly documentCount: number;
+  readonly childCount: number;
+}
+/** 中分類の配下に中分類を作ろうとした（要件18.2） */
+export class DocumentCategoryDepthError extends Error {}
+/** 大分類と中分類の親子関係が不整合（要件18.9） */
+export class DocumentCategoryPairError extends Error {}
+
+// ---- ヘルプデスク側（公開範囲で絞らない。要件21.9）----
+export async function listDocumentCategoriesForHelpdesk(): Promise<DocumentCategoryAdminView[]>;
+export async function findDocumentCategoryForHelpdesk(id: string): Promise<DocumentCategory | null>;
+export async function createDocumentCategoryRecord(input: CreateDocumentCategoryInput): Promise<DocumentCategory>;
+export async function updateDocumentCategoryRecord(id: string, input: UpdateDocumentCategoryInput): Promise<DocumentCategory>;
+export async function deleteDocumentCategoryRecord(id: string): Promise<void>;
+export async function moveDocumentCategoryRecord(id: string, direction: DocumentCategoryMoveDirection): Promise<void>;
+/** ドキュメント保存時に大分類/中分類の親子整合を検証する（要件18.9） */
+export async function assertDocumentCategoryPair(categoryId: string, subCategoryId: string | null): Promise<void>;
+
+// ---- 申請者側（公開範囲で絞る。要件21.6〜21.8）----
+export async function listVisibleDocumentCategories(
+  country: string, companyCode: string, locale?: string
+): Promise<DocumentCategorySummary[]>;
+export async function findVisibleDocumentCategory(
+  id: string, country: string, companyCode: string, locale?: string
+): Promise<DocumentCategoryDetail | null>;
+```
+
+**Responsibilities & Constraints**
+- `listDocumentCategoriesForHelpdesk`: 大分類（`parentId: null`）を`displayOrder`昇順で取得し、`children`も`displayOrder`昇順でinclude、`translations`をinclude、各カテゴリの`documentCount`を取得する。件数は大分類＝`documents`（`categoryId`一致）、中分類＝`subCategoryDocuments`（`subCategoryId`一致）の関係件数（絞り込みなし）とする。`childCount`は`children.length`から導出するため専用フィールドを持たない。
+- `createDocumentCategoryRecord`: ①`parentId`が非nullのとき、親の存在と`parent.parentId === null`を確認し、違反なら`DocumentCategoryDepthError`（要件18.2）。②同一階層の名称重複を確認し、違反なら`DocumentCategoryNameConflictError`（要件19.6）。③`displayOrder`は同一階層の`max(displayOrder) + 1`（末尾追加）。④`translations`はネスト`create`（`en`必須＋追加言語。`ja`行は作らない）。
+- `updateDocumentCategoryRecord`: `name`・`targeting`・`translations`を更新する。`translations`は`{ deleteMany: {}, create: [...] }`の全置換（`document-service.ts`の`translationsToNestedWrite`と同型）。`parentId`・`displayOrder`は更新対象外（付け替えはスコープ外、並び替えは専用関数）。名称重複判定は自分自身を除外して行う。
+- `deleteDocumentCategoryRecord`: 削除直前に`documents`件数（大分類なら`categoryId`一致、中分類なら`subCategoryId`一致）と`children`件数を数え、いずれかが1件以上なら`DocumentCategoryInUseError`（件数を保持）を送出して削除しない（要件19.8〜19.10・19.12）。0件のときのみ削除する（翻訳行は`onDelete: Cascade`で連鎖削除）。
+- `moveDocumentCategoryRecord`: 同一階層（同一`parentId`）の`displayOrder`順で隣接するレコードを1件取得し、`prisma.$transaction`で両者の`displayOrder`を入れ替える。端（先頭で`up`／末尾で`down`）の場合は何もしない。
+- `assertDocumentCategoryPair`: `categoryId`の存在と`parentId === null`、`subCategoryId`が非nullのとき`parentId === categoryId`であることを確認し、違反なら`DocumentCategoryPairError`。zodでは他レコードを参照できないため、この検証だけはサービス層で行う。
+- `listVisibleDocumentCategories`: 次の2クエリで要件21.6（カテゴリ自体が可視 **かつ** 配下に自社可視の公開済みドキュメントが1件以上）と要件20.4（件数）を同時に満たす。
+  1. `prisma.document.groupBy({ by: ["categoryId"], where: { ...documentVisibleToWhere(country, companyCode), categoryId: { not: null } }, _count: { _all: true } })` → `categoryId → 可視件数`のMapを作る（`categoryId`がnullのドキュメント＝未分類は`where`で除外され、どの大分類にも計上されない。要件20.10）。
+  2. `prisma.documentCategory.findMany({ where: { parentId: null, ...categoryVisibleToWhere(country, companyCode) }, orderBy: { displayOrder: "asc" }, include: DOCUMENT_CATEGORY_INCLUDE })` → Mapに存在し件数>0の大分類のみを残し、`resolveDocumentCategoryContent`で`name`を解決して`DocumentCategorySummary[]`を返す。
+  - Prismaのフィルタ付き`_count`（`_count: { select: { documents: { where: ... } } }`）や`documents: { some: ... }`でも表現できるが、`groupBy`方式は「AND条件の判定」と「カード用件数」を1クエリで同時に得られ、Prismaのフィルタ付きリレーション件数機能への依存も無いため本設計の第一候補とする（代替案は`research.md`に記録）。
+- `findVisibleDocumentCategory`: 指定IDが「大分類（`parentId: null`）かつカテゴリ自体が可視」のときのみ返し、それ以外は`null`（要件21.8。`documents`spec要件21.11の「見つからない」表示につながる）。`children`は`categoryVisibleToWhere`で絞り、`displayOrder`昇順、`resolveDocumentCategoryContent`で名称解決して`subCategories`とする（要件21.7・要件21.5）。**配下ドキュメントの件数条件は課さない**（要件21.7は中分類自体の可視性のみを条件とする）。
+- `categoryVisibleToWhere(country, companyCode): Prisma.DocumentCategoryWhereInput`（本モジュール内のプライベート関数）: `OR: [{ targetingScope: "all" }, { targetingScope: "countries", targetingCountries: { has: country } }, { targetingScope: "companies", targetingCompanyCodes: { has: companyCode } }]`。ドキュメント側と異なり`status`条件を持たない（カテゴリに公開状態の概念はない＝要件のスコープ外）。
+
+#### document-service.ts（変更・要件21.6/要件`documents`spec 21.1）
+- 既存のプライベート関数`visibleToWhere`を`documentVisibleToWhere`として**export**し、カテゴリサービスから再利用できるようにする（可視性述語の二重定義を防ぐ）。既存の呼び出し箇所（`listDocumentsVisibleTo`・`findDocumentVisibleTo`）は名称変更のみで挙動は不変。
+- 新規: `listVisibleDocumentsInCategory(categoryId, country, companyCode, locale = DEFAULT_DOCUMENT_LOCALE): Promise<Document[]>` — `where: { categoryId, ...documentVisibleToWhere(...) }`、`orderBy`はアップロード日降順（既存の`ORDER_BY_UPLOADED_AT_DESC`）、`include: DOCUMENT_INCLUDE`、`resolveDocumentContent`で解決して返す。既存`listDocumentsVisibleTo`のシグネチャは変更しない（既存テスト・呼び出しへの波及を避けるため、カテゴリ絞り込みは別関数として追加する）。
+- `toDocumentData`（書き込み変換）に`categoryId: input.categoryId`・`subCategoryId: input.subCategoryId`を両`sourceType`分岐へ追加する。`mapDocument`（`document-mapper.ts`）の`base`にも`categoryId`・`subCategoryId`を追加する。
+
+#### api層（`src/lib/api/document-categories.ts`新規／`src/lib/api/documents.ts`変更）
+既存`api/documents.ts`と同じく、セッション境界（`requireApplicantSession`／`requireHelpdeskStaffSession`）をこの層で適用する。
+
+```typescript
+// src/lib/api/document-categories.ts（新規）
+export async function getVisibleDocumentCategories(options?: { locale?: string }): Promise<DocumentCategorySummary[]>;      // applicant
+export async function getVisibleDocumentCategory(id: string, options?: { locale?: string }): Promise<DocumentCategoryDetail | null>; // applicant
+export async function getAllDocumentCategories(): Promise<DocumentCategoryAdminView[]>;                                      // helpdesk
+export async function getDocumentCategoryById(id: string): Promise<DocumentCategory | null>;                                 // helpdesk
+export async function createDocumentCategory(input: CreateDocumentCategoryInput): Promise<DocumentCategory>;                  // helpdesk
+export async function updateDocumentCategory(id: string, input: UpdateDocumentCategoryInput): Promise<DocumentCategory>;      // helpdesk
+export async function deleteDocumentCategory(id: string): Promise<void>;                                                     // helpdesk
+export async function moveDocumentCategory(id: string, direction: DocumentCategoryMoveDirection): Promise<void>;              // helpdesk
+
+// src/lib/api/documents.ts（変更・追加）
+export async function getDocumentsByCategory(categoryId: string, options?: { locale?: string }): Promise<Document[]>;         // applicant
+```
+
+- `getDocuments`（自社可視の全ドキュメント）・`getDocumentById`は**シグネチャを変更しない**。`getDocumentById`は`announcements`spec の`AnnouncementDetail`が添付ドキュメント解決に使用しているため維持必須。`getDocuments`は本ラウンド後、申請者側一覧からは呼ばれなくなる（大分類配下一覧は`getDocumentsByCategory`を使う）ため、残置するか撤去するかは**レビュー判断ポイント**とする（既存テストと`documents`specの依存記述があるため、本設計では残置を前提とする）。
+
+#### Server Actions（`src/lib/actions/document-categories.ts`新規／`src/lib/actions/documents.ts`変更）
+
+```typescript
+// src/lib/actions/document-categories.ts（新規、"use server"）
+export async function createDocumentCategoryAction(input: CreateDocumentCategoryInput): Promise<DocumentCategory>;
+export async function updateDocumentCategoryAction(id: string, input: UpdateDocumentCategoryInput): Promise<DocumentCategory>;
+export async function deleteDocumentCategoryAction(id: string): Promise<void>;
+export async function moveDocumentCategoryAction(id: string, direction: DocumentCategoryMoveDirection): Promise<void>;
+```
+
+- `create`/`update`は`documentCategoryFormSchema.parse(input)`でサーバー側再検証を行う（要件20.11・21.12）。スキーマで表現できない検証（同一階層の名称重複・階層の深さ・親子整合）はサービス層の例外に委ね、Server Actionsは例外をそのまま送出する（既存`documents.ts`のactionsが`throw`するのと同じ規約）。
+- `revalidateDocumentCategoryRoutes()`（本モジュール内のプライベートヘルパー）で次を再検証する（要件19.13）:
+  `/[locale]/helpdesk/documents/categories`・`/[locale]/helpdesk/documents`・`/[locale]/helpdesk/documents/new`・`/[locale]/helpdesk/documents/[id]/edit`・`/[locale]/documents`・`/[locale]/documents/categories/[categoryId]`
+- 既存`revalidateDocumentRoutes()`（`actions/documents.ts`）に`/[locale]/documents/categories/[categoryId]`を追加する（要件18.14）。あわせて、2026-07-09に撤廃済みの申請者側詳細パス`/[locale]/documents/[id]`の再検証は無効化されているため、この機会に新パスへ置き換える。
+- `createDocumentAction`/`updateDocumentAction`（変更）: `documentFormSchema.parse`の後、`assertDocumentCategoryPair(parsed.categoryId, parsed.subCategoryId)`を呼び出してから保存する（要件18.9・18.10のサーバー側検証）。
+
+#### バリデーション（`src/lib/validation/document-category.ts`新規／`src/lib/validation/document.ts`変更）
+
+```typescript
+// src/lib/validation/document-category.ts（新規）
+const documentCategoryTranslationSchema = z.object({
+  locale: z.string().trim().min(2).max(10),
+  name: z.string().trim().min(1),
+});
+
+export const documentCategoryFormSchema = z
+  .object({
+    parentId: z.string().trim().min(1).nullable(),
+    name: z.string().trim().min(1),          // ja（要件19.5）
+    nameEn: z.string().trim().min(1).optional(), // en（superRefineで実質必須。要件20.4）
+    translations: z.array(documentCategoryTranslationSchema).default([]),
+    targeting: documentTargetingSchema,      // validation/document.ts から再利用（要件21.2）
+  })
+  .superRefine(/* en必須・言語コード重複禁止・追加言語件数上限 */)
+  .transform(/* nameEn を translations の en 行へ合成 */);
+
+export type DocumentCategoryFormValues = z.input<typeof documentCategoryFormSchema>;
+export type DocumentCategorySubmitValues = z.output<typeof documentCategoryFormSchema>;
+```
+
+- `superRefine`/`transform`のロジック（`en`必須判定・`new Set(["ja","en"])`を種にした重複検出・再パース時の冪等性を保つ`isSecondPass`判定・追加言語の上限）は既存`documentFormSchema`から**そのまま写経**する。上限定数は`DOCUMENT_CATEGORY_ADDITIONAL_TRANSLATIONS_MAX_COUNT = 20`として既存と同値にする。
+- `documentTargetingSchema`は現在`validation/document.ts`内でモジュールプライベートのため、**exportする**（公開範囲の選択肢定義を二重に持たない。要件21.2）。
+- `validation/document.ts`（変更）: `documentUploadSchema`・`documentGoogleSchema`の共通フィールドへ `categoryId: z.string().trim().min(1)`（必須。要件18.6）と `subCategoryId: z.string().trim().min(1).nullable().default(null)` を追加する。**親子整合（要件18.9）はzodでは検証できない**ためスキーマには含めず、`assertDocumentCategoryPair`（サービス層）とフォームの選択肢制御（要件18.7）で担保する。
+
+#### カテゴリ管理画面のコンポーネント構成（`src/components/features/helpdesk-document-categories/`、新規ディレクトリ）
+`helpdesk-documents`/`helpdesk-links`と同じ「1画面ファミリ＝1ディレクトリ」の慣習に従い、専用ディレクトリを新設する。
+
+| コンポーネント | 種別 | 責務 |
+|---|---|---|
+| `DocumentCategoryManagementList` | Server（async） | `getAllDocumentCategories()`取得、`getTranslations("helpdeskDocumentCategories.list")`/`getTranslations("inquiryForm.options.country")`/`getLocale()`、`countryLabels`/`companyLabels`辞書と`targetingLabels`（既存`TargetingLabelDictionary`）の生成、`BackLink`（`/helpdesk/documents`へ）と見出しの描画、エラー時・0件時の`ManagementListMessageCard`（要件19.15）。行の描画とインタラクションは下記クライアントへ委譲。同ファイルから`DocumentCategoryManagementListSkeleton`（`ManagementListSkeleton`のラッパ）もexportする |
+| `DocumentCategoryManagementListClient` | Client | 大分類行＋その配下の中分類行を階層が分かるインデント付きで`ManagementListCard`/`ManagementListRows`/`ManagementListRow`に描画（要件19.1）。ダイアログの開閉状態を保持し、追加/編集/削除/並び替えの各操作コンポーネントを配置する。自身のUI文字列は`useTranslations("helpdeskDocumentCategories")`で解決する（`DocumentManagementFilterBar`/`Pagination`と同じ方式。約25個のラベルpropsを避ける） |
+| `DocumentCategoryFormDialog` | Client | `Dialog`（既存`src/components/ui/dialog.tsx`）で`DocumentCategoryForm`をモーダル表示する。`mode`は「大分類を追加」「中分類を追加（`parentId`固定）」「編集」の3種 |
+| `DocumentCategoryForm` | Client | `useForm<DocumentCategoryFormValues, unknown, DocumentCategorySubmitValues>` + `zodResolver(documentCategoryFormSchema)`。名称は言語タブUI（ja/en＋追加言語）、公開範囲は`Select`＋複数選択`Select`（既存`DocumentForm`のtargeting UIと同型）。送信時に`createDocumentCategoryAction`/`updateDocumentCategoryAction`を呼び、成功時はダイアログを閉じて`router.refresh()` |
+| `DeleteDocumentCategoryButton` | Client | 削除可能（`documentCount === 0 && children.length === 0`）なら`ConfirmDialog`（対象カテゴリ名を本文に明示、要件19.7）。削除不可なら確認ダイアログを開かず、件数入りのエラーメッセージ（要件19.8・19.9）をインライン表示し、トリガーを`disabled`にする |
+| `DocumentCategoryOrderButtons` | Client | 「上へ」「下へ」ボタン。`moveDocumentCategoryAction(id, direction)`を呼び、`router.refresh()`。同一階層の先頭/末尾では該当ボタンを`disabled`にする（要件19.11） |
+
+- ルート: `src/app/[locale]/helpdesk/(dashboard)/documents/categories/page.tsx`。`Suspense` + `DocumentCategoryManagementListSkeleton`で`DocumentCategoryManagementList`を包む既存の一覧ページ構成を踏襲する。静的セグメント`categories`は同階層の動的セグメント`[id]`より優先されるため、既存`/helpdesk/documents/[id]/edit`と競合しない。
+- **`ManagementListHeading`を使わない理由**: 同コンポーネントは`addHref`（`Link`遷移）が必須で、本画面の「追加」はダイアログ起動のため合致しない。`helpdesk-shared`は所有specが明示されていない共有物であり本ラウンドでは変更しない方針のため、`ManagementListHeading`と同じマークアップ（`h1` + 説明文 + 右上のアクション）をカテゴリ管理画面側に用意する。`ManagementListHeading`へ任意の`action?: ReactNode`スロットを追加して共通化する案は、所有specとの調整が必要なため**レビュー判断ポイント**として残す。
+- **言語タブUIの4つ目の複製について**: 言語タブUI（固定ja/enタブ＋`useFieldArray`による追加言語タブ＋エラータブへの自動切替）は既に`AnnouncementForm`・`DocumentForm`・`FaqForm`に3つ複製されている。本ラウンドでも「既存パターンをそのまま横展開し新しい抽象化を導入しない」既存方針に従い、名称1フィールド版として`DocumentCategoryForm`に写経する。共通`LanguageTabs`コンポーネントへの抽出は別ラウンドの改善候補として`research.md`に記録する。
+
+#### ドキュメント側UIの変更（要件18.5〜18.11・要件22）
+
+- **`DocumentForm`（変更）**: props追加 `categoryOptions: DocumentCategoryFormOption[]`（`interface DocumentCategoryFormOption { id: string; name: string; subCategories: { id: string; name: string }[] }`）、ラベル系 `categoryLabel`・`categoryPlaceholderOption`・`subCategoryLabel`・`subCategoryNoneOption`・`categoryRequiredErrorMessage`。`DocumentFormFieldValues`に`categoryId: string`・`subCategoryId: string`を追加（`""`＝未選択／なし）し、送信時に`""`→`null`へ正規化する。中分類の選択肢は`watch("categoryId")`に一致する`categoryOptions`要素の`subCategories`から導出し（要件18.7）、大分類の変更時に`setValue("subCategoryId", "")`でリセットする（要件18.8。編集時の初期値をマウント時に消さないよう`previousCategoryIdRef`で「実際に変更されたときだけ」に限定する。既存`previousTranslationCountRef`と同じ手法）。カテゴリ選択欄は言語タブの外側、`status`/`targeting`と並ぶ共通項目として配置する（要件18.13）。
+- **`/helpdesk/documents/new`・`/helpdesk/documents/[id]/edit`（変更）**: `getAllDocumentCategories()`を呼び、`DocumentCategoryFormOption[]`（既定言語`ja`の名称、要件20.10）へ整形して`DocumentForm`へ渡す。カテゴリ関連の新規ラベルも`getTranslations("helpdeskDocuments.form")`から解決して渡す（既存の「ラベルは全てpropsで渡す」規約を維持）。
+- **`DocumentDetailPanel`（変更）**: 表示モードの読み取り専用情報に大分類・中分類名（未設定時はその旨）を追加する。名称はフォーム用に受け取っている`categoryOptions`と`document.categoryId`/`subCategoryId`から導出し、新規propsを増やさない。
+- **`DocumentManagementList`（Server・変更）**: `getAllDocumentCategories()`を追加取得し、`DocumentManagementListClient`へ`categories`として渡す。あわせて見出しの下にカテゴリ管理画面（`/helpdesk/documents/categories`）への導線リンクを追加する（要件19.2。新規キー`helpdeskDocuments.list.manageCategoriesLink`）。
+- **`DocumentManagementListClient`（変更）**: `categories: DocumentCategoryAdminView[]`（または軽量な`DocumentCategoryFormOption[]`）を受け取り、ID→名称のMapを構築して各行に大分類・中分類名（未設定表示を含む）を描画する（要件18.11）。`filters`に`category`・`subCategory`を追加し、既存の`keyword`（`filterDocuments`）・`sourceType`・`scope`の述語にカテゴリ述語を合成する（要件22.4）。`handleFiltersChange`が既に`setPage(1)`を行うため要件22.7は既存実装で満たされる。大分類が`"all"`/`"unassigned"`へ変わったときは`subCategory`を`"all"`へ戻す（要件22.3）。
+- **`DocumentManagementFilterBar`（変更）**: 現状の`{ filters, onChange, onClear }`にデータprops`categories`を追加する（選択肢ラベルはカテゴリ名＝データ由来のため翻訳キーでは解決できない）。固定文言（絞り込みラベル・「すべての大分類」「すべての中分類」「未設定」）は従来どおり`useTranslations("helpdeskDocuments.list.filter")`で自己解決する。中分類セレクトは大分類が特定のカテゴリのときのみ有効化する（要件22.2）。レイアウトのグリッドを`lg:grid-cols-4`から`xl:grid-cols-6`相当へ拡張し、タブレット幅で横スクロールが出ないようにする（要件22.11）。
+- **フィルタ値の型（`src/lib/constants/document.ts`、変更）**: セレクトの値はセンチネルとIDを1つの文字列で表すため、テンプレートリテラル型で型安全に区別する。
+
+```typescript
+export const DOCUMENT_MANAGEMENT_CATEGORY_FILTER_ALL = "all";
+export const DOCUMENT_MANAGEMENT_CATEGORY_FILTER_UNASSIGNED = "unassigned";
+/** "all" | "unassigned" | `id:<categoryId>` */
+export type DocumentManagementCategoryFilter = "all" | "unassigned" | `id:${string}`;
+/** "all" | `id:<subCategoryId>` */
+export type DocumentManagementSubCategoryFilter = "all" | `id:${string}`;
+export function toCategoryFilterValue(categoryId: string): `id:${string}`;
+export function parseCategoryFilterValue(value: string): string | null;
+```
+
+#### シードデータ（`prisma/seed.ts` / `prisma/seed.sql`、変更）
+デモが成立するよう、大分類3件程度＋いくつかの中分類を投入し、既存のseedドキュメント5件に大分類（一部は中分類も）を割り当てる。これは**seedデータのみの整備**であり、既存の本番データに対する自動割当（要件18.4で禁止）とは別物である。本番環境ではマイグレーション後もカテゴリ未設定のドキュメントが残り、手動での再設定が完了するまで申請者側の一覧に現れないため、運用手順として明示する（Security / 運用上の注意点を参照）。
+
+### Design Decisions（要点）
+1. **単一モデル＋自己参照 vs 大分類/中分類の2モデル** → 単一`DocumentCategory`＋自己参照を採用。翻訳テーブル・サービス・フォーム・Server Actionsを1組で済ませられる。代償として「3階層以上を作れない」保証がDB制約ではなくサービス層（`DocumentCategoryDepthError`）になる。
+2. **カテゴリの並び順は`displayOrder`（Int）＋隣接スワップ** → 本リポジトリ初の手動並び替え。作成時は同一階層の末尾（`max + 1`）、並び替えは隣接1件との入れ替えをトランザクションで行う。小規模データ前提のため、隙間を空ける採番（gap採番）やfractional indexingは導入しない。
+3. **同一階層の名称一意性はサービス層で判定** → Postgresの一意制約はNULLを互いに異なる値と扱うため`@@unique([parentId, name])`が大分類同士に効かない。DB制約と実装の二重管理を避け、判定をサービス層に一元化する。
+4. **削除の安全制御は「表示用の件数」と「実行時の再確認」の二層** → 管理一覧が保持する件数でUIをブロックし（追加のラウンドトリップなし・件数入りメッセージを即時表示）、サービス層でも削除直前に再確認して例外を送出する。DBの`onDelete: Restrict`が最終防衛線。
+5. **カテゴリ管理は1画面内のダイアログCRUD（`/new`・`/[id]/edit`ルートを作らない）** → 階層と並び順を俯瞰しながら操作する必要があるため。`links-management`/`faq-management`/ドキュメント本体が採る「一覧＋別ルートのフォーム」パターンからの意図的な逸脱であり、レビュー判断ポイントとする。
+6. **可視カテゴリ判定は`groupBy`＋`findMany`の2クエリ** → 「配下に自社可視の公開済みドキュメントが1件以上」というAND条件と、カード用の件数を同時に得られる。Prismaのフィルタ付きリレーション件数への依存も持たない。
+7. **`Document`にカテゴリ名を持たせない** → 管理一覧・フォーム・絞り込みはいずれもカテゴリ一覧そのものを必要とするため、既存の`countryLabels`/`companyLabels`と同じ「サーバーで辞書を作ってクライアントへ渡す」方式に揃え、`mapDocument`・`DOCUMENT_INCLUDE`を変更しない。
+8. **`categoryId`は列nullable・入力必須** → 既存データの後方互換（要件18.4）と、以後の登録で分類漏れを防ぐこと（要件18.6）を両立する。
+
+### i18n（追加分）
+- `messages/ja.json` / `messages/en.json` に新規名前空間 `helpdeskDocumentCategories` を追加する。
+  - `list`: `title`・`description`・`backToDocuments`・`empty`・`error`・`addParentButton`・`addChildButton`・`editButton`・`moveUpButton`・`moveDownButton`・`documentCountLabel`（`{count}`）・`subCategoryCountLabel`（`{count}`）・`targetingAllLabel`/`targetingCountriesLabel`/`targetingCompaniesLabel`（既存`helpdeskDocuments.list`の同名キーと同じ用途）
+  - `list.delete`: `buttonLabel`・`confirmTitle`・`confirmMessage`（`{name}`）・`confirmButtonLabel`・`cancelButtonLabel`・`errorMessage`・`blockedByDocuments`（`{name}`・`{count}`、要件19.8）・`blockedByChildren`（`{name}`・`{count}`、要件19.9）
+  - `form`: `createParentTitle`・`createChildTitle`・`editTitle`・`nameLabel`・`namePlaceholder`・`targetingLabel`・`targetingAllOption`/`targetingCountriesOption`/`targetingCompaniesOption`・`countriesLabel`・`companiesLabel`・`submitButton`・`cancelButton`・`submitError`
+  - `form.language`: `jaTab`・`enTab`・`addButton`・`removeButton`・`localeCodeLabel`・`localeCodePlaceholder`・`localeDuplicateError`（`helpdeskDocuments.form.language`と同一キー構成）
+  - `form.validation`: `required`・`nameConflict`（要件19.6）
+- `helpdeskDocuments.form` に `categoryLabel`・`categoryPlaceholderOption`・`subCategoryLabel`・`subCategoryNoneOption`・`validation.categoryRequired`・`validation.categoryPairInvalid` を追加する。
+- `helpdeskDocuments.list` に `categoryLabel`・`subCategoryLabel`・`categoryUnassigned`・`manageCategoriesLink` を追加する。
+- `helpdeskDocuments.list.filter` に `categoryLabel`・`categoryAll`・`categoryUnassigned`・`subCategoryLabel`・`subCategoryAll` を追加する。
+- `ja.json`で定義した新規キーが全て`en.json`にも存在し、キー構造が一致していること。
+
+### Modified / New Files（追加分）
+- `prisma/schema.prisma`（変更） — `model DocumentCategory`・`model DocumentCategoryTranslation`追加、`Document`に`categoryId`/`subCategoryId`＋2つの名前付きリレーション追加
+- `prisma/migrations/<timestamp>_add_document_categories/migration.sql`（新規） — 2テーブル作成＋`Document`への2列追加＋FK（`ON DELETE RESTRICT`）＋インデックス（既存行の移行なし）
+- `src/types/document-category.ts`（新規） — 上記「型」の全定義
+- `src/types/document.ts`（変更） — `DocumentBase`に`categoryId`・`subCategoryId`追加
+- `src/lib/server/document-category-mapper.ts`（新規） — `DOCUMENT_CATEGORY_INCLUDE`・`mapDocumentCategory`・`resolveDocumentCategoryContent`
+- `src/lib/server/document-mapper.ts`（変更） — `mapTargeting`の引数型を構造的な`DocumentTargetingColumns`へ緩和、`mapDocument`の`base`に`categoryId`・`subCategoryId`追加
+- `src/lib/server/document-category-service.ts`（新規） — カテゴリのCRUD・並び替え・削除可否判定・親子整合検証・可視カテゴリ取得
+- `src/lib/server/document-service.ts`（変更） — `visibleToWhere`を`documentVisibleToWhere`としてexport、`listVisibleDocumentsInCategory`追加、`toDocumentData`にカテゴリ2列追加
+- `src/lib/api/document-categories.ts`（新規） — セッション境界付きのカテゴリ読み書きAPI
+- `src/lib/api/documents.ts`（変更） — `getDocumentsByCategory`追加
+- `src/lib/actions/document-categories.ts`（新規） — カテゴリのServer Actions＋`revalidateDocumentCategoryRoutes`
+- `src/lib/actions/documents.ts`（変更） — `assertDocumentCategoryPair`呼び出し追加、`revalidateDocumentRoutes`の対象パス更新
+- `src/lib/validation/document-category.ts`（新規） — `documentCategoryFormSchema`・入力/出力2型
+- `src/lib/validation/document.ts`（変更） — `documentTargetingSchema`をexport、両ブランチに`categoryId`（必須）・`subCategoryId`追加
+- `src/lib/constants/document.ts`（変更） — カテゴリ絞り込みのセンチネル定数・型・変換ヘルパー追加
+- `src/app/[locale]/helpdesk/(dashboard)/documents/categories/page.tsx`（新規） — カテゴリ管理画面のルート
+- `src/components/features/helpdesk-document-categories/DocumentCategoryManagementList.tsx`（新規）
+- `src/components/features/helpdesk-document-categories/DocumentCategoryManagementListClient.tsx`（新規）
+- `src/components/features/helpdesk-document-categories/DocumentCategoryFormDialog.tsx`（新規）
+- `src/components/features/helpdesk-document-categories/DocumentCategoryForm.tsx`（新規）
+- `src/components/features/helpdesk-document-categories/DeleteDocumentCategoryButton.tsx`（新規）
+- `src/components/features/helpdesk-document-categories/DocumentCategoryOrderButtons.tsx`（新規）
+- `src/components/features/helpdesk-documents/DocumentForm.tsx`（変更） — 大分類/中分類の選択、選択肢の親子連動、リセット
+- `src/components/features/helpdesk-documents/DocumentManagementList.tsx`（変更） — カテゴリ取得・カテゴリ管理への導線
+- `src/components/features/helpdesk-documents/DocumentManagementListClient.tsx`（変更） — 行のカテゴリ表示、カテゴリ絞り込みの合成
+- `src/components/features/helpdesk-documents/DocumentManagementFilterBar.tsx`（変更） — 大分類/中分類セレクト追加
+- `src/components/features/helpdesk-documents/DocumentDetailPanel.tsx`（変更） — 表示モードにカテゴリ表示
+- `src/app/[locale]/helpdesk/(dashboard)/documents/new/page.tsx` / `[id]/edit/page.tsx`（変更） — `getAllDocumentCategories()`の取得とラベルの受け渡し
+- `prisma/seed.ts` / `prisma/seed.sql`（変更） — カテゴリのseedと既存seedドキュメントへの割当
+- `messages/ja.json` / `messages/en.json`（変更） — 上記i18nキー追加
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 18.1〜18.4 | カテゴリの階層データモデル・`Document`への参照追加・後方互換 | schema.prisma, migration, types/document-category.ts, types/document.ts, document-category-mapper |
+| 18.5〜18.10 | フォームでの大分類必須/中分類任意・選択肢の親子連動・親子整合の検証 | DocumentForm, documentFormSchema, assertDocumentCategoryPair, DocumentActions |
+| 18.11 | 管理一覧へのカテゴリ表示（未設定表示を含む） | DocumentManagementList, DocumentManagementListClient |
+| 18.12〜18.13 | ドキュメント削除でカテゴリを消さない・他属性と独立 | schema.prisma（FK方向）, documentFormSchema |
+| 18.14 | カテゴリ紐付け保存時の`revalidatePath` | DocumentActions（revalidateDocumentRoutes） |
+| 18.15 | カテゴリ選択欄のi18n | i18n messages（helpdeskDocuments.form/list） |
+| 19.1〜19.4 | カテゴリ管理画面の階層一覧・導線・追加・編集 | DocumentCategoryManagementList, DocumentCategoryManagementListClient, DocumentCategoryFormDialog, DocumentCategoryForm, DocumentManagementList（導線） |
+| 19.5〜19.6 | 名称必須・同一階層の名称重複禁止 | documentCategoryFormSchema, document-category-service（NameConflictError） |
+| 19.7〜19.10 | 削除確認モーダル・件数入りの削除拒否・0件時のみ削除 | DeleteDocumentCategoryButton, ConfirmDialog, document-category-service（InUseError）, schema.prisma（onDelete: Restrict） |
+| 19.11 | 表示順の並び替え | DocumentCategoryOrderButtons, moveDocumentCategoryRecord |
+| 19.12 | サーバー側での検証・削除可否判定 | DocumentCategoryActions, document-category-service |
+| 19.13 | カテゴリ変更時の`revalidatePath` | DocumentCategoryActions（revalidateDocumentCategoryRoutes） |
+| 19.14〜19.16 | 管理画面のi18n・0件メッセージ・レスポンシブ | i18n messages（helpdeskDocumentCategories）, ManagementListMessageCard, DocumentCategoryManagementListClient |
+| 20.1〜20.2 | 翻訳テーブル・`ja`は親列 | schema.prisma（DocumentCategoryTranslation）, migration |
+| 20.3〜20.7 | 言語タブUI・ja/en必須・重複禁止・言語別保存・編集時の復元 | DocumentCategoryForm, documentCategoryFormSchema, document-category-service |
+| 20.8〜20.9 | 表示解決（locale→en→ja）・ヘルプデスク側は未解決 | resolveDocumentCategoryContent, document-category-service |
+| 20.10 | ヘルプデスク側UIは既定言語（ja）表示 | DocumentCategoryManagementList, DocumentForm, DocumentManagementFilterBar |
+| 20.11〜20.12 | クライアント/サーバー両方の検証・言語タブUIのi18n | documentCategoryFormSchema, DocumentCategoryActions, i18n messages |
+| 21.1〜21.5 | カテゴリの公開範囲（型・フォーム・0件選択の拒否・独立設定・一覧表示） | schema.prisma, DocumentCategoryForm, documentTargetingSchema, DocumentCategoryManagementList |
+| 21.6〜21.8 | 可視カテゴリ取得（AND条件）・中分類の可視性・非可視IDはnull | listVisibleDocumentCategories, findVisibleDocumentCategory |
+| 21.9〜21.10 | ヘルプデスク側は全件・ドキュメント可視性は不変 | listDocumentCategoriesForHelpdesk, documentVisibleToWhere（変更なし） |
+| 21.11〜21.12 | 公開範囲UIのi18n再利用・両側の検証 | i18n messages, documentCategoryFormSchema, DocumentCategoryActions |
+| 22.1〜22.4 | 大分類/中分類の絞り込み・「未設定」抽出・選択肢の連動・AND条件 | DocumentManagementFilterBar, DocumentManagementListClient, constants/document.ts |
+| 22.5〜22.9 | 即時反映・条件クリア・ページリセット・0件・並び順と行表示の維持 | DocumentManagementListClient（既存実装で担保） |
+| 22.10〜22.11 | 絞り込みUIのi18n・レスポンシブ | i18n messages, DocumentManagementFilterBar |
+
+### Testing Strategy（追加分）
+- **Unit Tests**:
+  - `mapDocumentCategory`が`translations`・`targeting`・`displayOrder`・`parentId`を正しくマッピングすること
+  - `resolveDocumentCategoryContent`が`locale`一致 → `en` → `ja`の順にフォールバックすること
+  - `createDocumentCategoryRecord`が同一階層の末尾に`displayOrder`を採番すること、中分類の下に中分類を作ろうとすると`DocumentCategoryDepthError`を送出すること、同一階層の名称重複で`DocumentCategoryNameConflictError`を送出すること（自分自身は重複判定から除外されること）
+  - `deleteDocumentCategoryRecord`が、配下ドキュメント1件以上／配下中分類1件以上のいずれでも`DocumentCategoryInUseError`（正しい`documentCount`・`childCount`付き）を送出し削除しないこと。両方0件のときのみ削除し、翻訳行が連鎖削除されること
+  - `moveDocumentCategoryRecord`が隣接レコードと`displayOrder`を入れ替えること、先頭で`up`／末尾で`down`のとき何も変更しないこと、他階層のカテゴリを巻き込まないこと
+  - `assertDocumentCategoryPair`が、存在しない大分類・大分類として指定された中分類・親が一致しない中分類を拒否し、`subCategoryId === null`を受理すること
+  - `listVisibleDocumentCategories`が「カテゴリ自体が可視」かつ「配下に自社可視の公開済みドキュメントが1件以上」の大分類のみを返し、`documentCount`が下書き・公開範囲外・未分類を計上しないこと、`displayOrder`昇順であること
+  - `findVisibleDocumentCategory`が非可視カテゴリ・中分類ID・存在しないIDに対して`null`を返すこと、`subCategories`が可視の中分類のみ・`displayOrder`昇順であること
+  - `listVisibleDocumentsInCategory`が当該大分類配下のみを返し、中分類未設定のドキュメントも含むこと、下書き・公開範囲外を除外すること
+  - `documentCategoryFormSchema`が`ja`/`en`名称未入力・言語コード重複・追加言語件数上限超過・公開範囲0件選択を拒否し、transformが`nameEn`を`translations`の`en`行へ合成すること（再パースが冪等であること）
+  - `documentFormSchema`が`categoryId`未指定を拒否し、`subCategoryId`未指定を`null`として受理すること（upload/google両ブランチ）
+  - `DocumentForm`が大分類の変更時に中分類選択をリセットし、編集時の初期値はマウント時にリセットされないこと
+  - `DocumentManagementListClient`がキーワード・登録方式・公開範囲種別・大分類・中分類のAND条件で絞り込むこと、「未設定」でカテゴリ未割当のみを抽出すること、大分類を「すべて」に戻すと中分類選択がリセットされること
+  - `DeleteDocumentCategoryButton`が件数>0のとき確認ダイアログを開かず件数入りメッセージを表示すること
+- **Integration Tests**:
+  - カテゴリを作成 → ドキュメントに割当 → 当該カテゴリの削除が件数付きで拒否されること → ドキュメントのカテゴリを外すと削除できること
+  - 大分類の公開範囲を自社対象外に変更すると、申請者側のトップページから当該大分類が消えること（`revalidatePath`反映）
+  - 配下の全ドキュメントを下書きに変更すると、当該大分類が申請者側トップページから消えること（要件21.6のAND条件）
+  - カテゴリ名の`en`翻訳を登録し、`en`ロケールで取得すると`en`の名称、未登録ロケールでは`ja`の名称になること
+  - 並び替え後、申請者側トップページの大分類カードの順序が変わること
+- **E2E/UI Tests**:
+  - 日本語・英語両ロケールでカテゴリ管理画面が表示され、大分類/中分類の追加・編集・削除・並び替えが機能すること
+  - タブレット幅（768px）でカテゴリ管理画面・拡張後の絞り込みバーが横スクロールを起こさないこと
+
+### Security Considerations（追加分）
+- カテゴリの公開範囲は、ドキュメント自体の公開範囲・公開状態による可視性判定（要件2/5/16.8）を**置き換えない**（要件21.10）。カテゴリを可視にしても、その配下の個々のドキュメントは自身の`targeting`と`status`で判定される。逆に、カテゴリを非可視にすることでドキュメント本体のURL（Googleリンクや`dataUrl`）を保護できるわけでもないため、機密性の制御手段として用いない。
+- カテゴリのCRUD・並び替えのAPIはすべて`requireHelpdeskStaffSession()`を通す（既存`api/documents.ts`と同一の境界）。申請者側の`getVisibleDocumentCategories`/`getVisibleDocumentCategory`/`getDocumentsByCategory`は`requireApplicantSession()`を通し、セッションの`country`/`companyCode`のみを可視性判定の入力とする（クライアントから対象国・販社を渡せる経路を作らない）。
+- **運用上の注意点（移行）**: マイグレーション後、本番の既存ドキュメントは`categoryId`がNULLのままであり、申請者側の新しい導線（大分類カード → 大分類配下一覧）からは到達できない。カテゴリの整備と全ドキュメントへの再割当が完了するまで、申請者側のドキュメント一覧は実質的に空に見える。リリース手順として「カテゴリ作成 → 既存ドキュメントへの割当（管理一覧の『未設定』絞り込みで抽出）→ 公開」の順序を明示する必要がある。

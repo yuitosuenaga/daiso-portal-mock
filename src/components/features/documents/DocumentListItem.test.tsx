@@ -17,6 +17,8 @@ const DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
+  categoryId: null,
+  subCategoryId: null,
 };
 
 const GOOGLE_DOCUMENT: Document = {
@@ -30,6 +32,8 @@ const GOOGLE_DOCUMENT: Document = {
   targeting: { scope: "all" },
   uploadedAt: "2026-07-02T09:00:00Z",
   translations: [],
+  categoryId: null,
+  subCategoryId: null,
 };
 
 const DEFAULT_PROPS = {

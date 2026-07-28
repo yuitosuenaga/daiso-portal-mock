@@ -80,13 +80,22 @@
         "scopeCountries": "国単位",
         "scopeCompanies": "販社単位",
         "clearButton": "条件をクリア",
-        "noResults": "該当するドキュメントがありません"
+        "noResults": "該当するドキュメントがありません",
+        "categoryLabel": "大分類",
+        "categoryAll": "すべての大分類",
+        "categoryUnassigned": "未設定",
+        "subCategoryLabel": "中分類",
+        "subCategoryAll": "すべての中分類"
       },
       "pagination": {
         "previousLabel": "前へ",
         "nextLabel": "次へ",
         "pageStatus": "{current} / {total} ページ"
-      }
+      },
+      "categoryLabel": "大分類",
+      "subCategoryLabel": "中分類",
+      "categoryUnassigned": "未設定",
+      "manageCategoriesLink": "カテゴリ管理"
     },
     "form": {
       "createTitle": "ドキュメントの新規作成",
@@ -135,13 +144,19 @@
         "sizeExceeded": "ファイルサイズが上限（20MB）を超えています",
         "typeNotAllowed": "許可されていないファイル形式です（PDFのみ）",
         "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
-        "googleUrlInvalid": "Googleドキュメント/スプレッドシート/スライドの共有リンクを入力してください"
+        "googleUrlInvalid": "Googleドキュメント/スプレッドシート/スライドの共有リンクを入力してください",
+        "categoryRequired": "大分類を選択してください",
+        "categoryPairInvalid": "選択した中分類が大分類と一致していません"
       },
       "detailTitle": "ドキュメント詳細",
       "editButton": "編集",
       "cancelButton": "キャンセル",
       "downloadLink": "ダウンロード",
-      "openOriginalLink": "元のドキュメントを開く"
+      "openOriginalLink": "元のドキュメントを開く",
+      "categoryLabel": "大分類",
+      "categoryPlaceholderOption": "選択してください",
+      "subCategoryLabel": "中分類",
+      "subCategoryNoneOption": "なし"
     }
   },
   "helpdeskAnnouncements": {
@@ -782,7 +797,16 @@
       "keywordLabel": "キーワード検索",
       "keywordPlaceholder": "タイトルや説明に含まれる語句",
       "clearButton": "条件をクリア",
-      "noResults": "該当するドキュメントがありません"
+      "noResults": "該当するドキュメントがありません",
+      "subCategoryLabel": "中分類で絞り込み",
+      "subCategoryAll": "すべての中分類"
+    },
+    "categories": {
+      "documentCount": "{count}件"
+    },
+    "category": {
+      "notFound": "ドキュメントが見つかりませんでした",
+      "backToCategories": "大分類一覧へ戻る"
     }
   },
   "inquiryForm": {
@@ -1026,6 +1050,66 @@
       "keywordPlaceholder": "質問や回答に含まれる語句",
       "noResults": "該当するFAQがありません",
       "clearButton": "条件をクリア"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "ドキュメントカテゴリ管理",
+      "description": "ドキュメントの大分類・中分類を追加・編集・削除・並び替えできます。",
+      "backToDocuments": "ドキュメント管理へ戻る",
+      "empty": "カテゴリはありません",
+      "error": "カテゴリの取得に失敗しました",
+      "addParentButton": "大分類を追加",
+      "addChildButton": "中分類を追加",
+      "editButton": "編集",
+      "moveUpButton": "上へ",
+      "moveDownButton": "下へ",
+      "documentCountLabel": "ドキュメント数: {count}件",
+      "subCategoryCountLabel": "中分類数: {count}件",
+      "targetingAllLabel": "全体公開",
+      "targetingCountriesLabel": "対象国・地域",
+      "targetingCompaniesLabel": "対象販社",
+      "delete": {
+        "buttonLabel": "削除",
+        "confirmTitle": "カテゴリの削除",
+        "confirmMessage": "『{name}』を削除します。この操作は取り消せません。よろしいですか？",
+        "confirmButtonLabel": "削除する",
+        "cancelButtonLabel": "キャンセル",
+        "errorMessage": "削除に失敗しました。時間を置いて再度お試しください。",
+        "blockedByDocuments": "『{name}』には{count}件のドキュメントが紐づいているため削除できません。先に対象ドキュメントのカテゴリを変更してください。",
+        "blockedByChildren": "『{name}』には{count}件の中分類が存在するため削除できません。先に中分類を削除してください。"
+      }
+    },
+    "form": {
+      "createParentTitle": "大分類の追加",
+      "createChildTitle": "中分類の追加",
+      "editTitle": "カテゴリの編集",
+      "nameLabel": "名称",
+      "namePlaceholder": "カテゴリ名を入力してください",
+      "targetingLabel": "公開範囲",
+      "targetingAllOption": "全体公開",
+      "targetingCountriesOption": "特定の国・地域を指定",
+      "targetingCompaniesOption": "特定の販社を指定",
+      "countriesLabel": "国・地域（複数選択可）",
+      "companiesLabel": "販社（複数選択可）",
+      "submitButton": "保存する",
+      "cancelButton": "キャンセル",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "language": {
+        "jaTab": "日本語",
+        "enTab": "English",
+        "addButton": "言語を追加",
+        "removeButton": "この言語を削除",
+        "localeCodeLabel": "言語コード",
+        "localeCodePlaceholder": "例: th, vi, zh",
+        "localeDuplicateError": "他の言語と重複しない言語コードを入力してください"
+      },
+      "validation": {
+        "required": "この項目は必須です",
+        "nameConflict": "同じ階層に同名のカテゴリが既に存在します",
+        "countriesRequired": "1つ以上の国・地域を選択してください",
+        "companiesRequired": "1つ以上の販社を選択してください"
+      }
     }
   }
 }

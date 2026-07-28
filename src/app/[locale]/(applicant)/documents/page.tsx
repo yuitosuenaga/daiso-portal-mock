@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 import {
-  DocumentList,
-  DocumentListSkeleton,
-} from "@/components/features/documents/DocumentList";
+  DocumentCategoryList,
+  DocumentCategoryListSkeleton,
+} from "@/components/features/documents/DocumentCategoryList";
 
 export default function DocumentsPage() {
   return (
     <div className="w-full">
-      <Suspense fallback={<DocumentListSkeleton />}>
-        <DocumentList />
+      <Suspense fallback={<DocumentCategoryListSkeleton />}>
+        <DocumentCategoryList />
       </Suspense>
     </div>
   );

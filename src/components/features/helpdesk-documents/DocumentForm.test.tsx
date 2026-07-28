@@ -25,6 +25,15 @@ beforeEach(() => {
 const labels = {
   countryOptions: [{ value: "VN", label: "ベトナム" }],
   companyOptions: [{ value: "vn-daiso-vietnam", label: "Daiso Vietnam" }],
+  categoryOptions: [
+    { id: "category-1", name: "大分類1", subCategories: [{ id: "sub-1", name: "中分類1" }] },
+    { id: "category-2", name: "大分類2", subCategories: [{ id: "sub-2", name: "中分類2" }] },
+  ],
+  categoryLabel: "大分類",
+  categoryPlaceholderOption: "選択してください",
+  subCategoryLabel: "中分類",
+  subCategoryNoneOption: "なし",
+  categoryRequiredErrorMessage: "大分類を選択してください",
   titleLabel: "タイトル",
   titlePlaceholder: "タイトルを入力してください",
   descriptionLabel: "説明",
@@ -100,6 +109,9 @@ describe("DocumentForm", () => {
     fireEvent.change(screen.getByLabelText("公開状態"), {
       target: { value: "published" },
     });
+    fireEvent.change(screen.getByLabelText(/大分類/), {
+      target: { value: "category-1" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -145,6 +157,8 @@ describe("DocumentForm", () => {
           googleUrl: "https://docs.google.com/document/d/abc123/edit",
           googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
           targeting: { scope: "all" },
+          categoryId: "category-1",
+          subCategoryId: null,
         }}
         {...labels}
       />
@@ -171,6 +185,8 @@ describe("DocumentForm", () => {
           googleUrl: "https://docs.google.com/document/d/abc123/edit",
           googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
           targeting: { scope: "all" },
+          categoryId: "category-1",
+          subCategoryId: null,
         }}
         {...labels}
       />
@@ -280,6 +296,9 @@ describe("DocumentForm", () => {
         screen.getByLabelText("Googleドキュメントの共有リンク"),
         { target: { value: "https://docs.google.com/document/d/abc123/edit" } }
       );
+      fireEvent.change(screen.getByLabelText(/大分類/), {
+        target: { value: "category-1" },
+      });
 
       fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -349,6 +368,102 @@ describe("DocumentForm", () => {
       expect(
         screen.getByRole("tab", { name: "日本語" }).getAttribute("aria-selected")
       ).toBe("true");
+    });
+  });
+
+  describe("大分類・中分類の選択", () => {
+    it("中分類の選択肢は選択中の大分類配下のみに限定される", () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      fireEvent.change(screen.getByLabelText(/大分類/), {
+        target: { value: "category-1" },
+      });
+
+      const subCategorySelect = screen.getByLabelText("中分類") as HTMLSelectElement;
+      const optionLabels = Array.from(subCategorySelect.options).map(
+        (option) => option.textContent
+      );
+      expect(optionLabels).toContain("中分類1");
+      expect(optionLabels).not.toContain("中分類2");
+    });
+
+    it("大分類の選択を変更すると中分類の選択がリセットされる", () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      fireEvent.change(screen.getByLabelText(/大分類/), {
+        target: { value: "category-1" },
+      });
+      fireEvent.change(screen.getByLabelText("中分類"), {
+        target: { value: "sub-1" },
+      });
+      expect(
+        (screen.getByLabelText("中分類") as HTMLSelectElement).value
+      ).toBe("sub-1");
+
+      fireEvent.change(screen.getByLabelText(/大分類/), {
+        target: { value: "category-2" },
+      });
+
+      expect(
+        (screen.getByLabelText("中分類") as HTMLSelectElement).value
+      ).toBe("");
+    });
+
+    it("編集時の初期値（大分類・中分類）はマウント時にリセットされない", () => {
+      render(
+        <DocumentForm
+          mode="edit"
+          documentId="existing-id"
+          defaultValues={{
+            sourceType: "google",
+            title: "既存ドキュメント",
+            description: "",
+            titleEn: "Existing Document",
+            descriptionEn: "",
+            translations: [],
+            status: "published",
+            googleUrl: "https://docs.google.com/document/d/abc123/edit",
+            googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+            targeting: { scope: "all" },
+            categoryId: "category-1",
+            subCategoryId: "sub-1",
+          }}
+          {...labels}
+        />
+      );
+
+      expect(
+        (screen.getByLabelText(/大分類/) as HTMLSelectElement).value
+      ).toBe("category-1");
+      expect(
+        (screen.getByLabelText("中分類") as HTMLSelectElement).value
+      ).toBe("sub-1");
+    });
+
+    it("大分類が未選択のまま保存しようとすると送信がブロックされる", async () => {
+      render(<DocumentForm mode="create" {...labels} />);
+
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "新規ドキュメント" },
+      });
+      fireEvent.click(screen.getByRole("tab", { name: "English" }));
+      fireEvent.change(screen.getByLabelText(/タイトル/), {
+        target: { value: "New Document" },
+      });
+      fireEvent.change(screen.getByLabelText("登録方法"), {
+        target: { value: "google" },
+      });
+      fireEvent.change(
+        screen.getByLabelText("Googleドキュメントの共有リンク"),
+        { target: { value: "https://docs.google.com/document/d/abc123/edit" } }
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("大分類を選択してください")).toBeTruthy();
+      });
+      expect(createDocumentActionMock).not.toHaveBeenCalled();
     });
   });
 });

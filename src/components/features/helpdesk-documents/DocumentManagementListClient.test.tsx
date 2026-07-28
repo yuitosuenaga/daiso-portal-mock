@@ -34,6 +34,11 @@ const FILTER_MESSAGES: Record<string, string> = {
   scopeCompanies: "販社単位",
   clearButton: "条件をクリア",
   noResults: "該当するドキュメントがありません",
+  categoryLabel: "大分類",
+  categoryAll: "すべての大分類",
+  categoryUnassigned: "未設定",
+  subCategoryLabel: "中分類",
+  subCategoryAll: "すべての中分類",
 };
 
 const PAGINATION_MESSAGES: Record<string, string> = {
@@ -103,6 +108,10 @@ const DEFAULT_PROPS = {
     countryLabels: {},
     companyLabels: {},
   },
+  categories: [],
+  categoryLabel: "大分類",
+  subCategoryLabel: "中分類",
+  categoryUnassignedLabel: "未設定",
 };
 
 describe("DocumentManagementListClient", () => {
@@ -272,5 +281,123 @@ describe("DocumentManagementListClient", () => {
 
     expect(screen.getAllByText("下書き").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("公開").length).toBeGreaterThanOrEqual(1);
+  });
+
+  describe("大分類・中分類の絞り込み", () => {
+    const CATEGORIES = [
+      {
+        id: "category-1",
+        name: "大分類1",
+        subCategories: [{ id: "sub-1", name: "中分類1" }],
+      },
+      { id: "category-2", name: "大分類2", subCategories: [] },
+    ];
+
+    it("大分類で絞り込むと該当カテゴリのドキュメントのみ表示する", async () => {
+      const documents = [
+        buildDocument({ id: "1", title: "文書A", categoryId: "category-1" }),
+        buildDocument({ id: "2", title: "文書B", categoryId: "category-2" }),
+      ];
+      const user = userEvent.setup();
+      render(
+        <DocumentManagementListClient
+          documents={documents}
+          {...DEFAULT_PROPS}
+          categories={CATEGORIES}
+        />
+      );
+
+      await user.selectOptions(screen.getByLabelText("大分類"), "id:category-1");
+
+      expect(screen.getByText("文書A")).toBeTruthy();
+      expect(screen.queryByText("文書B")).toBeNull();
+    });
+
+    it("「未設定」でカテゴリ未割当のドキュメントのみを抽出する", async () => {
+      const documents = [
+        buildDocument({ id: "1", title: "未分類文書", categoryId: null }),
+        buildDocument({ id: "2", title: "分類済み文書", categoryId: "category-1" }),
+      ];
+      const user = userEvent.setup();
+      render(
+        <DocumentManagementListClient
+          documents={documents}
+          {...DEFAULT_PROPS}
+          categories={CATEGORIES}
+        />
+      );
+
+      await user.selectOptions(screen.getByLabelText("大分類"), "unassigned");
+
+      expect(screen.getByText("未分類文書")).toBeTruthy();
+      expect(screen.queryByText("分類済み文書")).toBeNull();
+    });
+
+    it("大分類を「すべて」に戻すと中分類の絞り込みもリセットされる", async () => {
+      const documents = [
+        buildDocument({
+          id: "1",
+          title: "文書A",
+          categoryId: "category-1",
+          subCategoryId: "sub-1",
+        }),
+        buildDocument({ id: "2", title: "文書B", categoryId: "category-2" }),
+      ];
+      const user = userEvent.setup();
+      render(
+        <DocumentManagementListClient
+          documents={documents}
+          {...DEFAULT_PROPS}
+          categories={CATEGORIES}
+        />
+      );
+
+      await user.selectOptions(screen.getByLabelText("大分類"), "id:category-1");
+      await user.selectOptions(screen.getByLabelText("中分類"), "id:sub-1");
+      expect(screen.getByText("文書A")).toBeTruthy();
+      expect(screen.queryByText("文書B")).toBeNull();
+
+      await user.selectOptions(screen.getByLabelText("大分類"), "all");
+
+      expect(
+        (screen.getByLabelText("中分類") as HTMLSelectElement).value
+      ).toBe("all");
+      expect(screen.getByText("文書A")).toBeTruthy();
+      expect(screen.getByText("文書B")).toBeTruthy();
+    });
+
+    it("キーワード・登録方式・公開範囲種別・大分類・中分類のAND条件で絞り込む", async () => {
+      const documents = [
+        buildDocument({
+          id: "1",
+          title: "共通マニュアル",
+          sourceType: "upload",
+          targeting: { scope: "all" },
+          categoryId: "category-1",
+          subCategoryId: "sub-1",
+        }),
+        buildDocument({
+          id: "2",
+          title: "共通マニュアル",
+          sourceType: "upload",
+          targeting: { scope: "all" },
+          categoryId: "category-2",
+        }),
+      ];
+      const user = userEvent.setup();
+      render(
+        <DocumentManagementListClient
+          documents={documents}
+          {...DEFAULT_PROPS}
+          categories={CATEGORIES}
+        />
+      );
+
+      await user.type(screen.getByLabelText("キーワード検索"), "共通マニュアル");
+      await user.selectOptions(screen.getByLabelText("大分類"), "id:category-1");
+      await user.selectOptions(screen.getByLabelText("中分類"), "id:sub-1");
+
+      expect(screen.getAllByText("共通マニュアル")).toHaveLength(1);
+    });
   });
 });

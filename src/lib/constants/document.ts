@@ -38,3 +38,43 @@ export const DOCUMENT_MANAGEMENT_SCOPE_FILTERS = [
 
 export type DocumentManagementScopeFilter =
   (typeof DOCUMENT_MANAGEMENT_SCOPE_FILTERS)[number];
+
+/** 管理一覧の大分類絞り込みの「すべて」センチネル値。 */
+export const DOCUMENT_MANAGEMENT_CATEGORY_FILTER_ALL = "all";
+/** 管理一覧の大分類絞り込みの「未設定（カテゴリ未割当）」センチネル値（要件22.1）。 */
+export const DOCUMENT_MANAGEMENT_CATEGORY_FILTER_UNASSIGNED = "unassigned";
+/** 管理一覧の中分類絞り込みの「すべて」センチネル値。 */
+export const DOCUMENT_MANAGEMENT_SUB_CATEGORY_FILTER_ALL = "all";
+
+const CATEGORY_FILTER_ID_PREFIX = "id:";
+
+/**
+ * 大分類絞り込みの値表現。センチネル（"all"・"unassigned"）とカテゴリIDを型安全に
+ * 区別するため、実際のIDは`id:`プレフィックス付きのテンプレートリテラル型で表す。
+ */
+export type DocumentManagementCategoryFilter =
+  | typeof DOCUMENT_MANAGEMENT_CATEGORY_FILTER_ALL
+  | typeof DOCUMENT_MANAGEMENT_CATEGORY_FILTER_UNASSIGNED
+  | `${typeof CATEGORY_FILTER_ID_PREFIX}${string}`;
+
+/** 中分類絞り込みの値表現。"all"（絞り込みなし）またはカテゴリID。 */
+export type DocumentManagementSubCategoryFilter =
+  | typeof DOCUMENT_MANAGEMENT_SUB_CATEGORY_FILTER_ALL
+  | `${typeof CATEGORY_FILTER_ID_PREFIX}${string}`;
+
+/** カテゴリIDを絞り込み値表現へ変換する。 */
+export function toCategoryFilterValue(
+  categoryId: string
+): `${typeof CATEGORY_FILTER_ID_PREFIX}${string}` {
+  return `${CATEGORY_FILTER_ID_PREFIX}${categoryId}`;
+}
+
+/**
+ * 絞り込み値表現からカテゴリIDを取り出す。センチネル値（"all"・"unassigned"）の場合は
+ * `null`を返す。
+ */
+export function parseCategoryFilterValue(value: string): string | null {
+  return value.startsWith(CATEGORY_FILTER_ID_PREFIX)
+    ? value.slice(CATEGORY_FILTER_ID_PREFIX.length)
+    : null;
+}

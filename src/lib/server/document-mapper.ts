@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma, Document as PrismaDocument } from "@prisma/client";
+import type { Prisma, DocumentTargetingScope } from "@prisma/client";
 
 import type { Document, DocumentTargeting } from "@/types/document";
 
@@ -13,7 +13,18 @@ export type PrismaDocumentWithTranslations = Prisma.DocumentGetPayload<{
   include: typeof DOCUMENT_INCLUDE;
 }>;
 
-export function mapTargeting(record: PrismaDocument): DocumentTargeting {
+/**
+ * 公開範囲3列（`targetingScope`/`targetingCountries`/`targetingCompanyCodes`）を持つ
+ * 構造的な型。`Document`・`DocumentCategory`のいずれのPrismaレコードも構造的部分型として
+ * そのまま渡せるため、`mapTargeting`/`targetingToColumns`をカテゴリからも再利用できる。
+ */
+export interface DocumentTargetingColumns {
+  targetingScope: DocumentTargetingScope;
+  targetingCountries: string[];
+  targetingCompanyCodes: string[];
+}
+
+export function mapTargeting(record: DocumentTargetingColumns): DocumentTargeting {
   if (record.targetingScope === "countries") {
     return { scope: "countries", countries: record.targetingCountries };
   }
@@ -73,6 +84,8 @@ export function mapDocument(record: PrismaDocumentWithTranslations): Document {
       title: translation.title,
       description: translation.description ?? undefined,
     })),
+    categoryId: record.categoryId,
+    subCategoryId: record.subCategoryId,
   };
 
   if (record.sourceType === "google") {

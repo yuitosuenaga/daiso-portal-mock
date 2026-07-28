@@ -1,30 +1,49 @@
 import { getTranslations, getLocale } from "next-intl/server";
-import { getDocuments } from "@/lib/api/documents";
+import { getDocumentsByCategory } from "@/lib/api/documents";
+import { getVisibleDocumentCategory } from "@/lib/api/document-categories";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackLink } from "@/components/ui/back-link";
 import { DocumentListClient } from "@/components/features/documents/DocumentListClient";
 import type { Document } from "@/types/document";
+import type { DocumentCategoryDetail } from "@/types/document-category";
 
-export async function DocumentList() {
-  const [t, locale] = await Promise.all([
+export interface DocumentListProps {
+  /** 表示対象の大分類ID（要件21.1） */
+  categoryId: string;
+}
+
+/**
+ * 指定された大分類配下のドキュメント一覧（要件21）。従来の「自社可視の全ドキュメント
+ * 一覧」から役割を変更し、大分類の可視性チェック・カテゴリ名の見出し・トップページへの
+ * 戻る導線を追加する。
+ */
+export async function DocumentList({ categoryId }: DocumentListProps) {
+  const [t, tCategory, locale] = await Promise.all([
     getTranslations("documents.list"),
+    getTranslations("documents.category"),
     getLocale(),
   ]);
 
-  const heading = (
-    <div className="mb-6">
-      <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
-    </div>
+  const backLink = (
+    <BackLink
+      href="/documents"
+      label={tCategory("backToCategories")}
+      className="mb-4 inline-flex"
+    />
   );
 
+  let category: DocumentCategoryDetail | null;
   let documents: Document[];
   try {
-    documents = await getDocuments({ locale });
+    [category, documents] = await Promise.all([
+      getVisibleDocumentCategory(categoryId, { locale }),
+      getDocumentsByCategory(categoryId, { locale }),
+    ]);
   } catch {
     return (
       <div>
-        {heading}
+        <div className="mb-6">{backLink}</div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">{t("error")}</p>
@@ -33,6 +52,31 @@ export async function DocumentList() {
       </div>
     );
   }
+
+  if (!category) {
+    return (
+      <div>
+        <div className="mb-6">{backLink}</div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              {tCategory("notFound")}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const heading = (
+    <div className="mb-6">
+      {backLink}
+      <h1 className="text-2xl font-semibold text-foreground">
+        {category.name}
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
+    </div>
+  );
 
   if (documents.length === 0) {
     return (
@@ -52,6 +96,7 @@ export async function DocumentList() {
       {heading}
       <DocumentListClient
         documents={documents}
+        subCategories={category.subCategories}
         locale={locale}
         downloadLinkLabel={t("downloadLink")}
         openOriginalLinkLabel={t("openOriginalLink")}

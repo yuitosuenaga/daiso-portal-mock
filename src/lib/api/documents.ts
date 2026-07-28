@@ -10,6 +10,7 @@ import {
   findDocumentVisibleTo,
   listAllDocuments as listAllDocumentsService,
   listDocumentsVisibleTo,
+  listVisibleDocumentsInCategory,
   updateDocumentRecord,
 } from "@/lib/server/document-service";
 
@@ -42,6 +43,24 @@ export async function getDocumentById(
   return options?.locale
     ? findDocumentVisibleTo(id, claims.country, claims.companyCode, options.locale)
     : findDocumentVisibleTo(id, claims.country, claims.companyCode);
+}
+
+/**
+ * 指定した大分類配下で、自社に公開範囲が及ぶドキュメントのみをアップロード日の降順で返す。
+ * `documents`spec側の大分類配下一覧が利用する。
+ */
+export async function getDocumentsByCategory(
+  categoryId: string,
+  options?: { locale?: string }
+): Promise<Document[]> {
+  const { claims } = await requireApplicantSession();
+
+  return listVisibleDocumentsInCategory(
+    categoryId,
+    claims.country,
+    claims.companyCode,
+    options?.locale
+  );
 }
 
 /**

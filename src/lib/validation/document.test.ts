@@ -16,6 +16,7 @@ function buildValidInput(overrides: Record<string, unknown> = {}) {
     fileSize: 1024,
     dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
+    categoryId: "category-1",
     ...overrides,
   };
 }
@@ -29,6 +30,7 @@ function buildValidGoogleInput(overrides: Record<string, unknown> = {}) {
     googleUrl: "https://docs.google.com/document/d/abc123/edit?usp=sharing",
     googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
     targeting: { scope: "all" },
+    categoryId: "category-1",
     ...overrides,
   };
 }
