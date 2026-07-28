@@ -88,7 +88,7 @@ export function DocumentCategoryManagementListClient({
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-start gap-2">
                       <DocumentCategoryOrderButtons
                         categoryId={category.id}
                         isFirst={categoryIndex === 0}
@@ -141,7 +141,7 @@ export function DocumentCategoryManagementListClient({
                               </span>
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-start gap-2">
                             <DocumentCategoryOrderButtons
                               categoryId={child.id}
                               isFirst={childIndex === 0}
