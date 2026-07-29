@@ -2,6 +2,7 @@
 description: Validate implementation against requirements, design, and tasks
 allowed-tools: Bash, Glob, Grep, Read, LS
 argument-hint: [feature-name] [task-numbers]
+model: opus
 ---
 
 # Implementation Validation

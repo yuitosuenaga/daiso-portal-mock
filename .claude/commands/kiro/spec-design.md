@@ -2,6 +2,7 @@
 description: Create comprehensive technical design for a specification
 allowed-tools: Bash, Glob, Grep, LS, Read, Write, Edit, MultiEdit, Update, WebSearch, WebFetch
 argument-hint: <feature-name> [-y]
+model: opus
 ---
 
 # Technical Design Generator

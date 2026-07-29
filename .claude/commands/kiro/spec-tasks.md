@@ -2,6 +2,7 @@
 description: Generate implementation tasks for a specification
 allowed-tools: Read, Write, Edit, MultiEdit, Glob, Grep
 argument-hint: <feature-name> [-y] [--sequential]
+model: opus
 ---
 
 # Implementation Tasks Generator

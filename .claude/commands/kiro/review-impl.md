@@ -2,6 +2,7 @@
 description: Review implemented feature files (static review + playwright-mcp live verification)
 allowed-tools: Bash, Glob, Grep, Read, LS, Agent, Edit, mcp__playwright__browser_navigate, mcp__playwright__browser_navigate_back, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_click, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_hover, mcp__playwright__browser_select_option, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_wait_for, mcp__playwright__browser_resize, mcp__playwright__browser_close
 argument-hint: [feature-name] [file-paths...]
+model: opus
 ---
 
 # Post-Implementation Review (Static + Playwright Live Verification)
