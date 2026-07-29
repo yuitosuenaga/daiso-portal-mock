@@ -1,6 +1,7 @@
 ---
 description: Manage .kiro/steering/ as persistent project knowledge
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS
+model: opus
 ---
 
 # Kiro Steering Management

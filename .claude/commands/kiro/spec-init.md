@@ -2,6 +2,7 @@
 description: Initialize a new specification with detailed project description
 allowed-tools: Bash, Read, Write, Glob
 argument-hint: <project-description>
+model: opus
 ---
 
 # Spec Initialization

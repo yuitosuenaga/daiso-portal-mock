@@ -2,6 +2,7 @@
 description: Interactive technical design quality review and validation
 allowed-tools: Read, Glob, Grep
 argument-hint: <feature-name>
+model: opus
 ---
 
 # Technical Design Validation

@@ -1,6 +1,7 @@
 ---
 description: Create custom steering documents for specialized project contexts
 allowed-tools: Bash, Read, Write, Edit, MultiEdit, Glob, Grep, LS
+model: opus
 ---
 
 # Kiro Custom Steering Creation
