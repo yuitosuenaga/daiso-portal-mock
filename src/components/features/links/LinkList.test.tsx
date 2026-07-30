@@ -7,9 +7,20 @@ import type { LinkWithTimestamp } from "@/types/link";
 import messages from "../../../../messages/ja.json";
 
 const getLinksMock = vi.fn();
+const getLinkCategoriesForApplicantMock = vi.fn().mockResolvedValue([
+  { id: "category-internal", name: "社内システム", displayOrder: 0, subCategories: [] },
+  { id: "category-external", name: "外部サイト", displayOrder: 1, subCategories: [] },
+  { id: "category-document", name: "資料・マニュアル", displayOrder: 2, subCategories: [] },
+  { id: "category-other", name: "その他", displayOrder: 3, subCategories: [] },
+]);
 
 vi.mock("@/lib/api/links", () => ({
   getLinks: (...args: unknown[]) => getLinksMock(...args),
+}));
+
+vi.mock("@/lib/api/link-categories", () => ({
+  getLinkCategoriesForApplicant: (...args: unknown[]) =>
+    getLinkCategoriesForApplicantMock(...args),
 }));
 
 function resolveMessage(
@@ -54,7 +65,8 @@ const INTERNAL_LINK: LinkWithTimestamp = {
   id: "1",
   title: "社内ポータル",
   url: "https://example.com/internal/portal",
-  category: "internal",
+  categoryId: "category-internal",
+  subCategoryId: null,
   description: "社内向けの説明\n複数行の補足",
   createdAt: new Date(NOW.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
 };
@@ -63,7 +75,8 @@ const OLD_LINK: LinkWithTimestamp = {
   id: "2",
   title: "古い外部サイト",
   url: "https://example.com/external/old",
-  category: "external",
+  categoryId: "category-external",
+  subCategoryId: null,
   createdAt: new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
 };
 
@@ -154,5 +167,39 @@ describe("LinkList", () => {
 
     expect(screen.getByText("社内ポータル")).toBeTruthy();
     expect(screen.getByText("古い外部サイト")).toBeTruthy();
+  });
+
+  it("中分類が設定されたリンクに中分類名を表示する", async () => {
+    getLinkCategoriesForApplicantMock.mockResolvedValueOnce([
+      {
+        id: "category-internal",
+        name: "社内システム",
+        displayOrder: 0,
+        subCategories: [{ id: "sub-hr", name: "人事", displayOrder: 0 }],
+      },
+    ]);
+    getLinksMock.mockResolvedValueOnce([
+      { ...INTERNAL_LINK, subCategoryId: "sub-hr" },
+    ]);
+
+    const jsx = await LinkList();
+    render(jsx);
+
+    expect(screen.getByText("人事")).toBeTruthy();
+  });
+
+  it("カテゴリ未設定のリンクを「未分類」グループにまとめて表示する", async () => {
+    getLinkCategoriesForApplicantMock.mockResolvedValueOnce([
+      { id: "category-internal", name: "社内システム", displayOrder: 0, subCategories: [] },
+    ]);
+    getLinksMock.mockResolvedValueOnce([
+      { ...INTERNAL_LINK, categoryId: null, subCategoryId: null },
+    ]);
+
+    const jsx = await LinkList();
+    render(jsx);
+
+    expect(screen.getByText("未分類")).toBeTruthy();
+    expect(screen.getByText("社内ポータル")).toBeTruthy();
   });
 });

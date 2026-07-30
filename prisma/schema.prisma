@@ -410,20 +410,54 @@ model FaqTranslation {
   @@index([faqId])
 }
 
-enum LinkCategory {
-  internal
-  external
-  document
-  other
+model Link {
+  id            String        @id @default(cuid())
+  title         String
+  url           String
+  categoryId    String?
+  category      LinkCategory? @relation("LinkPrimaryCategory", fields: [categoryId], references: [id], onDelete: Restrict)
+  subCategoryId String?
+  subCategory   LinkCategory? @relation("LinkSubCategory", fields: [subCategoryId], references: [id], onDelete: Restrict)
+  description   String?
+  createdAt     DateTime      @default(now())
 }
 
-model Link {
-  id          String       @id @default(cuid())
-  title       String
-  url         String
-  category    LinkCategory
-  description String?
-  createdAt   DateTime     @default(now())
+/**
+ * リンクのカテゴリ。`parentId === null`が大分類、非nullが中分類（親は必ず大分類）。
+ * 3階層以上のネストはサービス層で禁止する（要件12.2）。公開範囲は持たない
+ * （documents-managementのDocumentCategoryと異なる点）。
+ */
+model LinkCategory {
+  id               String                    @id @default(cuid())
+  parentId         String?
+  parent           LinkCategory?             @relation("LinkCategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children         LinkCategory[]            @relation("LinkCategoryHierarchy")
+  /** 既定言語（ja）の名称。他言語はtranslationsが持つ */
+  name             String
+  /** 同一階層内の表示順（昇順）。要件13.11の並び替えで更新する */
+  displayOrder     Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  translations     LinkCategoryTranslation[]
+  links            Link[]                    @relation("LinkPrimaryCategory")
+  subCategoryLinks Link[]                    @relation("LinkSubCategory")
+
+  @@index([parentId, displayOrder])
+}
+
+/**
+ * カテゴリ名を`ja`以外の言語で保持する子テーブル（`DocumentCategoryTranslation`と同型）。
+ * `ja`は`LinkCategory.name`が正であり、`locale === "ja"`の行は作らない。
+ */
+model LinkCategoryTranslation {
+  id         String       @id @default(cuid())
+  categoryId String
+  category   LinkCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String
+  name       String
+
+  @@unique([categoryId, locale])
+  @@index([categoryId])
 }
 
 model ReplyTemplate {

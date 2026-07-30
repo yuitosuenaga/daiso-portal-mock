@@ -4,7 +4,8 @@ import { BackLink } from "@/components/ui/back-link";
 import { LinkForm } from "@/components/features/helpdesk-links/LinkForm";
 import { DeleteLinkButton } from "@/components/features/helpdesk-links/DeleteLinkButton";
 import { getLinkByIdForHelpdesk } from "@/lib/api/links";
-import { LINK_CATEGORY_CODES } from "@/lib/constants/link-options";
+import { getAllLinkCategories } from "@/lib/api/link-categories";
+import { toLinkCategoryFormOptions } from "@/lib/link-category-utils";
 
 type HelpdeskLinkEditPageProps = {
   params: {
@@ -15,10 +16,9 @@ type HelpdeskLinkEditPageProps = {
 export default async function HelpdeskLinkEditPage({
   params,
 }: HelpdeskLinkEditPageProps) {
-  const [t, tListLabels, tCategories] = await Promise.all([
+  const [t, tListLabels] = await Promise.all([
     getTranslations("helpdeskLinks.form"),
     getTranslations("helpdeskLinks.list"),
-    getTranslations("links.categories"),
   ]);
 
   const link = await getLinkByIdForHelpdesk(params.id);
@@ -36,10 +36,8 @@ export default async function HelpdeskLinkEditPage({
     );
   }
 
-  const categoryOptions = LINK_CATEGORY_CODES.map((code) => ({
-    value: code,
-    label: tCategories(code),
-  }));
+  const categories = await getAllLinkCategories();
+  const categoryOptions = toLinkCategoryFormOptions(categories);
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -65,7 +63,8 @@ export default async function HelpdeskLinkEditPage({
         defaultValues={{
           title: link.title,
           url: link.url,
-          category: link.category,
+          categoryId: link.categoryId ?? "",
+          subCategoryId: link.subCategoryId ?? "",
           description: link.description ?? "",
         }}
         titleLabel={t("titleLabel")}
@@ -74,6 +73,9 @@ export default async function HelpdeskLinkEditPage({
         urlPlaceholder={t("urlPlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
+        subCategoryLabel={t("subCategoryLabel")}
+        subCategoryPlaceholder={t("subCategoryPlaceholder")}
+        subCategoryNoneOption={t("subCategoryNoneOption")}
         descriptionLabel={t("descriptionLabel")}
         descriptionPlaceholder={t("descriptionPlaceholder")}
         submitButtonLabel={t("submitButton")}

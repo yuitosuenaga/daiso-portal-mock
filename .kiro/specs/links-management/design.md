@@ -10,17 +10,20 @@
 
 ### Goals
 - ヘルプデスク担当者がリンクを作成・編集・削除できる
-- リンクごとにカテゴリ（既存の`LinkCategory`の4値）を指定できる
+- リンクごとにカテゴリを指定できる（2026-07-29改訂: 固定4値ではなく、ヘルプデスク担当者が管理画面から追加・編集できる大分類・中分類の階層カテゴリ、要件12〜14）
 - リンクのURLが妥当な形式であることをクライアント・サーバー双方で検証する
 - 変更操作の完了後、申請者側のリンク一覧表示に確実に反映される
 - 既存の`faq-management`・`documents-management`のパターンを踏襲し、新規の抽象化・依存ライブラリを追加しない
+- （2026-07-29追記）ヘルプデスク担当者が大分類・中分類を自ら追加・編集・削除・並び替えできる（要件13）
+- （2026-07-29追記）ヘルプデスク担当者が、登録した内容が海外販社・代理店側にどう見えるかを管理画面内で確認できる（要件16）
 
 ### Non-Goals
-- 申請者側のリンク一覧画面のレイアウト・カテゴリ別グループ表示実装自体（`links-page`spec所有）
+- 申請者側のリンク一覧画面のレイアウト・グループ表示実装自体（`links-page`spec所有。本specはデータ・表示解決関数を提供するのみ）
 - リンク先サイトのステータス監視（死活監視）
 - 認証・ロールベースアクセス制御（フェーズ3以降）
-- `Link`型/`LinkCategory`選択肢自体の変更（既存定義を流用する）
-- リンクへの公開範囲（配信対象）・公開状態（下書き/公開）・表示順の概念の追加（既存`Link`モデルに存在しないため対象外）
+- ~~`Link`型/`LinkCategory`選択肢自体の変更（既存定義を流用する）~~（2026-07-29撤回。要件12により変更する）
+- リンクへの公開範囲（配信対象）・公開状態（下書き/公開）・表示順の概念の追加（既存`Link`モデルに存在しないため対象外。カテゴリ自体の表示順は要件13で新設する別概念）
+- （2026-07-29追記）カテゴリ（`LinkCategory`）への公開範囲（配信対象の国・販社による絞り込み）の導入
 
 ## Boundary Commitments
 
@@ -33,17 +36,19 @@
 - `HelpdeskSidebar`の既存「リンク集」ナビゲーション項目（`translationKey: "links"`）が指す画面の実体（項目自体は変更しない）
 
 ### Out of Boundary
-- `links-page`spec所有の申請者側リンク一覧・カテゴリ別グループ表示の実装
-- `links-page`specが所有する`Link`型・`LinkCategory`の選択肢定義（読み取り専用で再利用する）
+- `links-page`spec所有の申請者側リンク一覧・グループ表示の実装
 - `helpdesk-portal-layout`が所有するルートセグメント構造・`HelpdeskAppShell`・`HelpdeskHeader`自体の変更
 - 認証・ロールベースアクセス制御の実装
+- （2026-07-29追記）カテゴリの公開範囲（配信対象の国・販社による絞り込み）の導入
+
+> 2026-07-29追記: 従来「`links-page`specが所有する`Link`型・`LinkCategory`の選択肢定義（読み取り専用で再利用する）」としていた記述は撤回する。要件12により`Link`型（`categoryId`/`subCategoryId`化）・`LinkCategory`（旧固定4値enumから階層モデルへ）の所有権は本spec（`links-management`）に移る。`links-page`specはこれらを読み取り専用で利用する側になる（This Spec Ownsを参照）。
 
 ### Allowed Dependencies
 - `faq-management`・`documents-management`が確立したServer Actions + サーバー側バリデーション + `revalidatePath`パターン
 - `backend-db-foundation`が導入したPrismaクライアント（`src/lib/db/prisma.ts`）・`Link`モデル
-- `links-page`spec所有の`Link`型・`LinkCategory`型（`src/types/link.ts`）の再利用
 - 既存のUIプリミティブ（`Card`, `Button`, `Select`, `Input`, `Textarea`, `Label`）
 - `HelpdeskSidebar`（既存項目の遷移先変更のみ、項目追加は行わない）
+- （2026-07-29追記）`documents-management`が確立した`DocumentCategory`の階層カテゴリ・言語タブUI・`ConfirmDialog`削除確認のパターン
 
 ### Revalidation Triggers
 - `Link`型・`LinkCategory`のフィールド・選択肢の変更（`links-page`specが再確認する必要がある）
@@ -386,3 +391,317 @@ helpdeskLinks.list.pagination.pageStatus      // 例(ja): "{current} / {total} �
 
 ### テスト
 - `DeleteLinkButton.test.tsx`を`window.confirm`モック前提から`ConfirmDialog`操作前提へ更新（トリガー→確認で削除、キャンセルで未実行、本文にタイトル表示）。
+
+---
+
+## 追加設計（追記日: 2026-07-29）: リンクカテゴリ（大分類・中分類）の階層管理とプレビュー機能（要件12〜16）
+
+### Overview（追加分）
+
+リンクの`category`（固定4値enum）を廃止し、`documents-management`spec（要件18〜20）が確立した大分類・中分類の2階層カテゴリパターンをPrisma上に導入する。あわせて、カテゴリ管理画面（`/helpdesk/links/categories`）と、管理画面内から申請者側`/links`の実表示を確認できるプレビュー機能を追加する。`documents-management`の`DocumentCategory`と異なり、`LinkCategory`は公開範囲（`targetingScope`等）を持たない（要件12の前提、既存要件のスコープ外方針を維持するため）。
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- `LinkCategory`/`LinkCategoryTranslation`モデル・`src/types/link-category.ts`（新規）の全型
+- `/[locale]/helpdesk/links/categories`配下の全ページ（一覧・追加・編集・削除・並び替えを1画面内のインタラクションで提供する。`documents-management`のカテゴリ管理と異なり専用の`new`/`edit`ルートは持たず、後述のUI設計に従う）
+- カテゴリのCRUD・並び替えサービス層（`src/lib/server/link-category-service.ts`、新規）とServer Actions（`src/lib/actions/link-categories.ts`、新規）
+- カテゴリ名の表示解決関数`resolveLinkCategoryContent`
+- 申請者側が利用する可視カテゴリ取得関数の型契約と実装（`getLinkCategoriesForApplicant`。ただし要件12・16はカテゴリの公開範囲を持たないため、`documents`の`getVisibleDocumentCategories`と異なり絞り込みは行わない全件取得関数となる）
+- 管理画面内プレビュー機能（`LinkPreviewPanel`、要件16）とその専用データ取得関数
+- `Link`（Prisma・`src/types/link.ts`）の`categoryId`/`subCategoryId`列・フィールドへの変更、既存`category`（enum）フィールド・`LinkCategory`型（固定4値union）・`LINK_CATEGORY_CODES`定数の廃止
+
+**Out of Boundary（追加）**
+- `links-page`spec所有の申請者側`/links`のグループ表示実装自体（本specは`resolveLinkCategoryContent`・可視カテゴリ取得関数の型契約を提供するのみ。表示コンポーネントの変更は`links-page`spec要件11が担う）
+- カテゴリ単位の公開範囲（配信対象の国・販社による絞り込み）の導入（スコープ外。要件12参照）
+
+**Revalidation Triggers（追加）**
+- `LinkCategory`のフィールド追加・変更、`resolveLinkCategoryContent`のシグネチャ変更（`links-page`specが再確認する必要がある）
+- `Link`型の`category`（enum）→`categoryId`/`subCategoryId`への変更（`links-page`specの表示ロジック前提が変わる。要件11がこれに対応する）
+
+### Data Model（Prismaスキーマ）
+
+```prisma
+/**
+ * リンクのカテゴリ。`parentId === null`が大分類、非nullが中分類（親は必ず大分類）。
+ * 3階層以上のネストはサービス層で禁止する（要件12.2）。公開範囲は持たない（documents-managementのDocumentCategoryと異なる点）。
+ */
+model LinkCategory {
+  id               String                    @id @default(cuid())
+  parentId         String?
+  parent           LinkCategory?             @relation("LinkCategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children         LinkCategory[]            @relation("LinkCategoryHierarchy")
+  /** 既定言語（ja）の名称。他言語はtranslationsが持つ */
+  name             String
+  /** 同一階層内の表示順（昇順）。要件13.11の並び替えで更新する */
+  displayOrder     Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  translations     LinkCategoryTranslation[]
+  links            Link[]                    @relation("LinkPrimaryCategory")
+  subCategoryLinks Link[]                    @relation("LinkSubCategory")
+
+  @@index([parentId, displayOrder])
+}
+
+/**
+ * カテゴリ名を`ja`以外の言語で保持する子テーブル（`DocumentCategoryTranslation`と同型）。
+ * `ja`は`LinkCategory.name`が正であり、`locale === "ja"`の行は作らない。
+ */
+model LinkCategoryTranslation {
+  id         String       @id @default(cuid())
+  categoryId String
+  category   LinkCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String
+  name       String
+
+  @@unique([categoryId, locale])
+  @@index([categoryId])
+}
+
+model Link {
+  id            String        @id @default(cuid())
+  title         String
+  url           String
+  // category（LinkCategory enum, 固定4値）は廃止。以下2列に置き換える（要件12.3）
+  categoryId    String?
+  category      LinkCategory? @relation("LinkPrimaryCategory", fields: [categoryId], references: [id], onDelete: Restrict)
+  subCategoryId String?
+  subCategory   LinkCategory? @relation("LinkSubCategory", fields: [subCategoryId], references: [id], onDelete: Restrict)
+  description   String?
+  createdAt     DateTime      @default(now())
+}
+```
+
+- 既存Prismaの`enum LinkCategory`（固定4値）は削除し、同名の`model LinkCategory`に置き換える。TypeScript側も同様に、`src/types/link.ts`の`export type LinkCategory = "internal" | ...`を削除し、新設`src/types/link-category.ts`で`interface LinkCategory`を定義する（`documents-management`の型再利用と同じく、名前の衝突を避けるため旧enum型は完全撤去する）。
+- `categoryId`/`subCategoryId`をNULL許容にする理由: 既存の登録済みリンクへ自動割当を行わない後方互換方針（要件12.4）。書き込み経路では`categoryId`を必須にする（`linkFormSchema`側で担保。要件12.6）。
+- `onDelete: Restrict`（`links`/`subCategoryLinks`/`parent`）: 要件13.8・13.9の拒否はサービス層で件数付きメッセージとともに行うが、経路を漏らした場合でもDBが最終防衛線として削除を拒否する。
+- 同一階層内の名称一意性（要件13.6）はDB制約で表現しない（`documents-management`の`DocumentCategory`と同じ理由。`parentId IS NULL`同士にはPostgresのユニーク制約が効かないため、判定はサービス層に一元化する）。
+
+#### マイグレーション
+
+新規マイグレーション（例: `add_link_categories`）で次を行う。
+```sql
+-- CreateTable: "LinkCategory"（自己参照FK・displayOrder・createdAt/updatedAt）
+-- CreateTable: "LinkCategoryTranslation"（unique(categoryId, locale) / index(categoryId) / FK ON DELETE CASCADE）
+-- AlterTable: "Link" ADD COLUMN "categoryId" TEXT, ADD COLUMN "subCategoryId" TEXT
+-- AlterTable: "Link" DROP COLUMN "category"（旧enum列を削除）
+-- DropEnum: "LinkCategory"（旧enum型を削除）
+-- AddForeignKey: Link.categoryId / Link.subCategoryId → LinkCategory(id) ON DELETE RESTRICT
+-- CreateIndex: "LinkCategory_parentId_displayOrder_idx"
+```
+既存`Link`行の`category`列の値（`internal`/`external`/`document`/`other`）は`categoryId`へ自動変換しない（要件12.4）。移行時はseedデータに合わせて大分類レコードを作成し、必要なら別途手動でリンクへ紐付け直す運用とする（本specはこの移行データ投入自体を実装対象に含めない。開発環境のseedスクリプト更新のみ行う）。
+
+### TypeScript型（`src/types/link-category.ts`、新規）
+
+```typescript
+export interface LinkCategoryTranslationView {
+  locale: string;
+  name: string;
+}
+
+/** カテゴリ1件。`parentId === null`が大分類、非nullが中分類。`name`は既定言語（ja）。 */
+export interface LinkCategory {
+  id: string;
+  parentId: string | null;
+  name: string;
+  displayOrder: number;
+  translations: LinkCategoryTranslationView[];
+}
+
+export interface LinkCategoryAdminView extends LinkCategory {
+  linkCount: number;
+  /** 大分類のときのみ意味を持つ配下の中分類（displayOrder昇順） */
+  children: LinkCategoryAdminChildView[];
+}
+
+export interface LinkCategoryAdminChildView extends LinkCategory {
+  linkCount: number;
+}
+
+export interface CreateLinkCategoryInput {
+  /** null=大分類として作成、非null=当該大分類配下の中分類として作成 */
+  parentId: string | null;
+  translations: LinkCategoryTranslationView[];
+}
+
+export type UpdateLinkCategoryInput = Omit<CreateLinkCategoryInput, "parentId">;
+
+export type LinkCategoryMoveDirection = "up" | "down";
+
+/**
+ * 申請者側`/links`のグループ表示・プレビュー用（`name`・配下`subCategories`の`name`はlocale解決済み）。
+ * 中分類名の解決を呼び出し側（`links-page`spec）で行わずに済むよう、大分類・中分類の名前をこの関数内で解決した状態で返す。
+ */
+export interface LinkCategorySummary {
+  id: string;
+  name: string;
+  displayOrder: number;
+  /** 配下の中分類（displayOrder昇順、name解決済み） */
+  subCategories: Array<{ id: string; name: string; displayOrder: number }>;
+}
+```
+
+`src/types/link.ts`は次のように変更する（既存の`Link`/`CreateLinkInput`/`LinkWithTimestamp`の形は維持しつつ`category`を置き換える）:
+```typescript
+export interface Link {
+  id: string;
+  title: string;
+  url: string;
+  /** 大分類ID。カテゴリ未設定の既存リンクはnull（要件12.4） */
+  categoryId: string | null;
+  /** 中分類ID。未設定を許容（要件12.7）。非nullのとき必ずcategoryIdの配下 */
+  subCategoryId: string | null;
+  description?: string;
+}
+```
+- `CreateLinkInput`（作成・更新入力）は書き込み経路で`categoryId`を必須とするため、`Omit<Link, "id" | "categoryId"> & { categoryId: string; subCategoryId?: string | null }`とする（要件12.6）。
+
+### Service Layer（`src/lib/server/link-category-service.ts`、新規）
+
+```typescript
+export class LinkCategoryNotFoundError extends Error {}
+export class LinkCategoryNameConflictError extends Error {}
+/** 配下にリンクまたは中分類が存在するため削除できない（要件13.8・13.9） */
+export class LinkCategoryInUseError extends Error {
+  constructor(public readonly count: number) { super(); }
+}
+/** 中分類の配下に中分類を作ろうとした（要件12.2） */
+export class LinkCategoryDepthError extends Error {}
+/** 大分類と中分類の親子関係が不整合（要件12.9） */
+export class LinkCategoryPairError extends Error {}
+
+export async function listLinkCategoriesForHelpdesk(): Promise<LinkCategoryAdminView[]>;
+export async function createLinkCategory(input: CreateLinkCategoryInput): Promise<LinkCategory>;
+export async function updateLinkCategory(id: string, input: UpdateLinkCategoryInput): Promise<LinkCategory>;
+export async function deleteLinkCategory(id: string): Promise<void>;
+export async function moveLinkCategory(id: string, direction: LinkCategoryMoveDirection): Promise<void>;
+/** リンク保存時に大分類/中分類の親子整合を検証する（要件12.9） */
+export async function assertLinkCategoryPair(categoryId: string, subCategoryId: string | null): Promise<void>;
+/** 申請者側プレビュー・`/links`表示の両方が使う全件取得（公開範囲を持たないため絞り込みなし）。大分類・中分類名を`locale`で解決済みの状態で返す */
+export async function getLinkCategoriesForApplicant(locale: string): Promise<LinkCategorySummary[]>;
+```
+
+**Responsibilities & Constraints**（`documents-management`の`document-category-service.ts`と同型。差分は公開範囲がない点のみ）
+- `listLinkCategoriesForHelpdesk`: 大分類（`parentId: null`）を`displayOrder`昇順で取得し、`children`も`displayOrder`昇順でinclude、`translations`をinclude、各カテゴリの`linkCount`（大分類は`links`関係、中分類は`subCategoryLinks`関係の件数）を取得する。
+- `createLinkCategory`: ①`parentId`が非nullのとき、親の存在と`parent.parentId === null`を確認し、違反なら`LinkCategoryDepthError`（要件12.2）。②同一階層の名称重複を確認し、違反なら`LinkCategoryNameConflictError`（要件13.6）。③`displayOrder`は同一階層の`max(displayOrder) + 1`。④`translations`はネスト`create`（`en`必須＋追加言語。`ja`行は作らない）。
+- `updateLinkCategory`: `name`・`translations`を更新する（`parentId`・`displayOrder`は更新対象外）。名称重複判定は自分自身を除外して行う。
+- `deleteLinkCategory`: 削除直前に`links`件数（大分類は`categoryId`一致、中分類は`subCategoryId`一致）と`children`件数を数え、いずれかが1件以上なら`LinkCategoryInUseError`を送出して削除しない（要件13.8・13.9）。0件のときのみ削除する（翻訳行は`onDelete: Cascade`で連鎖削除）。
+- `moveLinkCategory`: 同一階層（同一`parentId`）の`displayOrder`順で隣接するレコードを1件取得し、`prisma.$transaction`で両者の`displayOrder`を入れ替える。端の場合は何もしない。
+- `assertLinkCategoryPair`: `categoryId`の存在と`parentId === null`、`subCategoryId`が非nullのとき`parentId === categoryId`であることを確認し、違反なら`LinkCategoryPairError`。
+- `getLinkCategoriesForApplicant(locale)`: 大分類（`parentId: null`）を`displayOrder`昇順・`children`（中分類、`displayOrder`昇順）・`translations`をincludeで全件取得し、大分類名・各中分類名を`resolveLinkCategoryContent(_, locale)`でこの関数内で解決してから`LinkCategorySummary[]`として返す（呼び出し側の`links-page`spec・`LinkPreviewPanel`はlocale解決を意識しない）。
+
+### Utilities
+
+```typescript
+export function resolveLinkCategoryContent(
+  category: Pick<LinkCategory, "name" | "translations">,
+  locale: string
+): string;
+```
+`resolveDocumentCategoryContent`（`documents-management`要件20.8）と同一の解決順序（`locale`一致 → `en`翻訳 → 既定言語`ja`）を持つ純粋関数。`src/lib/link-category-utils.ts`（新規）に配置する。
+
+### Server Actions（`src/lib/actions/link-categories.ts`、新規）
+
+```typescript
+interface LinkCategoryActions {
+  createLinkCategoryAction(input: CreateLinkCategoryInput): Promise<LinkCategory>;
+  updateLinkCategoryAction(id: string, input: UpdateLinkCategoryInput): Promise<LinkCategory>;
+  deleteLinkCategoryAction(id: string): Promise<void>;
+  moveLinkCategoryAction(id: string, direction: LinkCategoryMoveDirection): Promise<void>;
+}
+```
+- 全て`"use server"`。サーバー側バリデーション（`linkCategoryFormSchema`）を経てから`link-category-service.ts`を呼ぶ。
+- 完了後、`revalidatePath`対象: `/[locale]/helpdesk/links/categories`, `/[locale]/helpdesk/links`, `/[locale]/helpdesk/links/new`, `/[locale]/helpdesk/links/[id]/edit`, `/[locale]/links`（要件13.13）。
+
+### File Structure Plan（追加分）
+
+```
+src/app/[locale]/helpdesk/(dashboard)/links/categories/
+└── page.tsx                              # 新規: カテゴリ管理画面（一覧+追加/編集/削除/並び替えを1画面で提供）
+
+src/components/features/helpdesk-links/
+├── LinkCategoryManagementList.tsx         # Server: 全件取得・階層一覧表示
+├── LinkCategoryManagementListClient.tsx   # Client: 追加/編集フォームの開閉・並び替え・削除確認の状態管理
+├── LinkCategoryForm.tsx                   # Client: 大分類/中分類共用の追加・編集フォーム（言語タブ含む）
+├── LinkCategoryLanguageTabs.tsx           # Client: DocumentForm言語タブ相当のリンクカテゴリ版
+├── LinkForm.tsx                           # 変更: category Select（4値）を大分類/中分類の2段Selectへ置き換え
+├── LinkManagementList.tsx                 # 変更: 各行に大分類名・中分類名を表示（要件12.11）、絞り込みを要件15へ拡張
+├── LinkManagementFilterBar.tsx            # 変更: カテゴリSelect（4値）を大分類Select+中分類Selectへ置き換え
+└── LinkPreviewPanel.tsx                   # 新規: 申請者側/linksの実表示を再現するプレビュー（要件16）
+
+src/lib/server/
+└── link-category-service.ts               # 新規（上記）
+
+src/lib/actions/
+└── link-categories.ts                     # 新規（上記）
+
+src/lib/validation/
+└── link-category.ts                       # 新規: linkCategoryFormSchema（zod、言語タブのdiscriminatedではなく配列検証）
+
+src/lib/link-category-utils.ts             # 新規: resolveLinkCategoryContent
+
+src/types/
+├── link-category.ts                       # 新規（上記）
+└── link.ts                                # 変更: category（enum）を categoryId/subCategoryId へ置き換え
+
+prisma/schema.prisma                       # 変更: LinkCategory/LinkCategoryTranslationモデル追加、Link.category enum削除
+
+messages/
+├── ja.json                                # 変更: helpdeskLinks.categories名前空間、helpdeskLinks.list.filterの拡張
+└── en.json                                # 同上
+```
+
+### Presentation Components（サマリーのみ）
+
+- **LinkCategoryManagementList / LinkCategoryManagementListClient**: `listLinkCategoriesForHelpdesk()`で取得した大分類→中分類の階層をインデント付きで表示し、各行に「編集」「削除」「上へ」「下へ」を配置する。大分類の行には「＋中分類を追加」導線を持つ。`DocumentCategory`管理一覧と同型のシンプルな入れ子リスト（ドラッグ&ドロップは行わない、要件13の「スコープ外」を維持）。
+- **LinkCategoryForm**: 所属大分類（中分類作成時のみ表示、変更不可）・`LinkCategoryLanguageTabs`（`ja`/`en`固定タブ＋動的追加言語タブ、各タブに名称`Input`）を持つ`react-hook-form`+`zod`フォーム。大分類・中分類の追加・編集で共用する。
+- **LinkForm（変更）**: カテゴリ`Select`（4値固定）を、大分類`Select`（`listLinkCategoriesForHelpdesk`の大分類一覧、必須）＋中分類`Select`（選択中の大分類の`children`のみ、任意、大分類変更時にリセット）の2段構成へ置き換える。
+- **LinkManagementList / LinkManagementFilterBar（変更）**: 行表示に大分類名・中分類名（`categoryId`/`subCategoryId`からのラベル辞書引き、未設定時は「未設定」表示）を追加。絞り込みSelectを「大分類（すべて/各大分類/未設定）」「中分類（大分類選択時のみ活性）」の2段に置き換える（要件15）。
+- **LinkPreviewPanel（新規）**: `getLinkCategoriesForApplicant()`・`listLinks()`（既存、`links-page`spec提供）から取得した実データを、`links-page`spec所有の表示コンポーネント（グループ見出し・リンク項目・中分類サブラベル、要件11）にそのまま渡して描画する。言語切り替えタブ（`ja`/`en`）をローカル状態で持ち、切り替え時に`resolveLinkCategoryContent`の`locale`引数を変更して再描画する（データ再取得は行わない、クライアント側での表示切り替えのみ）。カテゴリ管理画面・リンク管理一覧の両方から開けるモーダルまたは専用タブとして実装する。
+
+### プレビュー機能設計（要件16の詳細）
+
+- **配置**: `/helpdesk/links`（管理一覧）と`/helpdesk/links/categories`（カテゴリ管理画面）の両方に「プレビュー」ボタンを配置し、クリックで`LinkPreviewPanel`をモーダル表示する（新規ルートを追加しない。ページ遷移を伴わないことで要件16.5「別セッションの用意を必要としない」を満たす）。
+- **再利用方針**: `links-page`spec所有の表示コンポーネント（グループ見出し・リンクカード・中分類サブラベルを描画する部分。要件11実装後の実体）を`props`経由で呼び出す。`links-page`側のコンポーネントが「サーバーから直接データ取得する構成」であった場合、プレビュー用に「データを`props`で受け取れる表示専用コンポーネント」への分割が必要になる可能性がある（この分割は`links-page`spec側の設計判断とし、本specは`LinkPreviewPanel`からその表示専用コンポーネントを呼び出す側として実装する。詳細は`links-page`design.mdの追加設計を参照）。
+- **データ取得**: `getLinkCategoriesForApplicant()`と、`links-page`spec提供の`listLinks()`（既存、変更しない）を組み合わせ、`links-page`要件11のグループ化ロジック（大分類ごとにグループ化、未分類グループ、中分類サブラベル）をクライアント側で適用する。この「グループ化ロジック」自体は`links-page`spec側に純粋関数として実装させ（例: `groupLinksByCategory`）、本specの`LinkPreviewPanel`と申請者側`/links`ページの両方から呼び出す（二重実装を避ける、要件16.3）。
+- **エラー処理**: データ取得（Server Component側の初期データ取得、またはモーダルを開いた際の再取得）に失敗した場合、`LinkPreviewPanel`内にエラーメッセージを表示する（要件16.7）。
+
+### 絞り込み設計（要件15、既存設計の置き換え）
+
+2026-07-22追記の`LinkManagementFilterBar`・`LinkManagementListClient`（本ファイル上部）における「カテゴリ絞り込み（4値固定）」は、本ラウンドで「大分類絞り込み＋中分類絞り込み」に置き換える。
+- `LinkManagementListClient`の状態: `keyword`・`categoryFilter`（大分類ID or `"all"` or `"uncategorized"`）・`subCategoryFilter`（中分類ID or `"all"`）・`page`。
+- `categoryFilter`変更時に`subCategoryFilter`を`"all"`にリセットする（要件15.3）。
+- `subCategoryFilter`の選択肢は、`categoryFilter`が特定の大分類IDのとき、その`children`一覧に限定する（要件15.2）。
+- 絞り込み述語: キーワード（`filterLinks`再利用）∧ 大分類一致（`"all"`は無条件、`"uncategorized"`は`categoryId === null`）∧ 中分類一致（`"all"`は無条件）。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 12.1〜12.15 | リンクカテゴリの階層データモデルとリンクへの紐付け | LinkCategory (Prisma), Link (変更), LinkForm, link-category-service |
+| 13.1〜13.16 | カテゴリ管理画面（追加・編集・削除・並び替え） | LinkCategoryManagementList, LinkCategoryManagementListClient, LinkCategoryForm, link-category-service, LinkCategoryActions |
+| 14.1〜14.12 | カテゴリ名の多言語対応 | LinkCategoryLanguageTabs, LinkCategoryForm, resolveLinkCategoryContent |
+| 15.1〜15.10 | 管理一覧・フォームの大分類・中分類による絞り込み | LinkManagementFilterBar, LinkManagementListClient, LinkForm |
+| 16.1〜16.9 | 管理画面内での申請者側プレビュー機能 | LinkPreviewPanel, getLinkCategoriesForApplicant |
+
+### Testing Strategy（追加分）
+
+- **Unit Tests**:
+  - `createLinkCategory`が中分類配下への中分類作成を`LinkCategoryDepthError`で拒否すること（要件12.2）
+  - `createLinkCategory`/`updateLinkCategory`が同一階層の名称重複を`LinkCategoryNameConflictError`で拒否すること（要件13.6）
+  - `deleteLinkCategory`が紐づくリンク・配下中分類が1件以上あるとき`LinkCategoryInUseError`（件数付き）を送出し削除しないこと（要件13.8・13.9）
+  - `moveLinkCategory`が同一階層の隣接レコードとのみ`displayOrder`を入れ替え、端では何もしないこと
+  - `assertLinkCategoryPair`が大分類・中分類の親子不整合を`LinkCategoryPairError`で拒否すること（要件12.9）
+  - `resolveLinkCategoryContent`が`locale`一致→`en`→`ja`の順でフォールバックすること
+  - `linkFormSchema`が大分類未選択、大分類・中分類の親子不整合を拒否すること（要件12.6・12.9）
+- **Integration Tests**:
+  - カテゴリ作成後、リンク作成フォームの大分類選択肢に反映されること
+  - カテゴリ削除後、リンク管理一覧・絞り込み選択肢・プレビューから当該カテゴリが除去されること
+  - リンクのカテゴリ紐付け変更が申請者側`/links`・プレビューの両方に反映されること（`revalidatePath`）
+- **E2E/UI Tests**:
+  - カテゴリ管理画面で大分類・中分類を追加→リンクに紐付け→プレビューで表示確認、の一連の操作が日英両ロケールで行えること
+  - タブレット幅（768px）でカテゴリ管理画面・プレビューが横スクロールを起こさないこと
+
+### Security Considerations（追加分）
+プレビュー機能はヘルプデスク側の既存アクセス制御方針（フェーズ1は認証未実装、フェーズ3で追加予定）をそのまま継承する。プレビューは読み取り専用であり、モーダル内から書き込み操作（作成・編集・削除）は行えない。

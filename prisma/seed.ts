@@ -690,88 +690,140 @@ async function seedFaqs(): Promise<void> {
   }
 }
 
+/**
+ * リンクカテゴリのseed（大分類4件）。既存の固定4値カテゴリ（internal/external/document/other）を
+ * 大分類として引き継ぐ移行用データ。`nameEn`はデモ用の`en`翻訳（要件14.6・14.11）。
+ */
+const LINK_CATEGORY_SEEDS = [
+  {
+    id: "seed-link-category-internal",
+    name: "社内システム",
+    nameEn: "Internal Systems",
+    displayOrder: 0,
+  },
+  {
+    id: "seed-link-category-external",
+    name: "外部サイト",
+    nameEn: "External Sites",
+    displayOrder: 1,
+  },
+  {
+    id: "seed-link-category-document",
+    name: "資料・マニュアル",
+    nameEn: "Documents & Manuals",
+    displayOrder: 2,
+  },
+  {
+    id: "seed-link-category-other",
+    name: "その他",
+    nameEn: "Other",
+    displayOrder: 3,
+  },
+];
+
+async function seedLinkCategories(): Promise<void> {
+  for (const seed of LINK_CATEGORY_SEEDS) {
+    await prisma.linkCategory.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        parentId: null,
+        name: seed.name,
+        displayOrder: seed.displayOrder,
+        translations: {
+          create: [{ locale: "en", name: seed.nameEn }],
+        },
+      },
+    });
+  }
+}
+
 /** 既存モック（`MOCK_LINKS`）と同内容のリンク11件。 */
 const LINK_SEEDS = [
   {
     id: "seed-link-001",
     title: "社内ポータル（グループウェア）",
     url: "https://example.com/internal/groupware",
-    category: "internal" as const,
+    categoryId: "seed-link-category-internal",
     description: "スケジュール管理・社内連絡に使用する社内ポータルです。",
   },
   {
     id: "seed-link-002",
     title: "販売管理システム",
     url: "https://example.com/internal/sales-system",
-    category: "internal" as const,
+    categoryId: "seed-link-category-internal",
     description: "受発注状況・在庫状況を確認できる販売管理システムです。",
   },
   {
     id: "seed-link-003",
     title: "勤怠管理システム",
     url: "https://example.com/internal/attendance",
-    category: "internal" as const,
+    categoryId: "seed-link-category-internal",
     description: null,
   },
   {
     id: "seed-link-004",
     title: "Daiso公式サイト",
     url: "https://example.com/external/daiso-official",
-    category: "external" as const,
+    categoryId: "seed-link-category-external",
     description: "商品情報・店舗情報を掲載する公式サイトです。",
   },
   {
     id: "seed-link-005",
     title: "取引先向けサプライヤーポータル",
     url: "https://example.com/external/supplier-portal",
-    category: "external" as const,
+    categoryId: "seed-link-category-external",
     description: "取引先企業との連携に利用する外部ポータルです。",
   },
   {
     id: "seed-link-006",
     title: "為替レート情報サイト",
     url: "https://example.com/external/exchange-rate",
-    category: "external" as const,
+    categoryId: "seed-link-category-external",
     description: null,
   },
   {
     id: "seed-link-007",
     title: "販社担当者向け業務マニュアル",
     url: "https://example.com/document/operation-manual.pdf",
-    category: "document" as const,
+    categoryId: "seed-link-category-document",
     description: "日常業務の手順をまとめたマニュアルです。",
   },
   {
     id: "seed-link-008",
     title: "問い合わせ対応フローチャート",
     url: "https://example.com/document/inquiry-flowchart.pdf",
-    category: "document" as const,
+    categoryId: "seed-link-category-document",
     description: "問い合わせ受付から解決までの対応フローです。",
   },
   {
     id: "seed-link-009",
     title: "よくある質問集（FAQ）",
     url: "https://example.com/document/faq.pdf",
-    category: "document" as const,
+    categoryId: "seed-link-category-document",
     description: null,
   },
   {
     id: "seed-link-010",
     title: "本社連絡先一覧",
     url: "https://example.com/other/contact-list",
-    category: "other" as const,
+    categoryId: "seed-link-category-other",
     description: "各拠点の本社窓口の連絡先一覧です。",
   },
   {
     id: "seed-link-011",
     title: "システム利用規約",
     url: "https://example.com/other/terms-of-use",
-    category: "other" as const,
+    categoryId: "seed-link-category-other",
     description: null,
   },
 ];
 
 async function seedLinks(): Promise<void> {
+  // リンクがカテゴリを参照するため、先にカテゴリを投入する。
+  await seedLinkCategories();
+
   for (const seed of LINK_SEEDS) {
     await prisma.link.upsert({
       where: { id: seed.id },
@@ -780,7 +832,7 @@ async function seedLinks(): Promise<void> {
         id: seed.id,
         title: seed.title,
         url: seed.url,
-        category: seed.category,
+        categoryId: seed.categoryId,
         description: seed.description,
       },
     });

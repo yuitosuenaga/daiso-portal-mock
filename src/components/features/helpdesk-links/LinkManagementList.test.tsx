@@ -17,10 +17,38 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+function categoryOf(id: string, name: string) {
+  return {
+    id,
+    parentId: null,
+    name,
+    displayOrder: 0,
+    translations: [],
+    linkCount: 0,
+    children: [] as {
+      id: string;
+      parentId: string;
+      name: string;
+      displayOrder: number;
+      translations: never[];
+      linkCount: number;
+    }[],
+  };
+}
+
 const getLinksForHelpdeskMock = vi.fn();
+const getAllLinkCategoriesMock = vi.fn().mockResolvedValue([
+  categoryOf("category-internal", "社内システム"),
+  categoryOf("category-external", "外部サイト"),
+  categoryOf("category-other", "その他"),
+]);
 
 vi.mock("@/lib/api/links", () => ({
   getLinksForHelpdesk: (...args: unknown[]) => getLinksForHelpdeskMock(...args),
+}));
+
+vi.mock("@/lib/api/link-categories", () => ({
+  getAllLinkCategories: (...args: unknown[]) => getAllLinkCategoriesMock(...args),
 }));
 
 vi.mock("@/lib/actions/links", () => ({
@@ -67,7 +95,8 @@ function link(overrides: Partial<LinkWithTimestamp> & { id: string }): LinkWithT
   return {
     title: "テストリンク",
     url: "https://example.com",
-    category: "other",
+    categoryId: "category-other",
+    subCategoryId: null,
     createdAt: "2026-07-01T09:00:00Z",
     ...overrides,
   };
@@ -129,18 +158,103 @@ describe("LinkManagementList", () => {
   });
 
   it("カテゴリで絞り込める", async () => {
-    const internalLink = link({ id: "1", title: "社内リンク", category: "internal" });
-    const externalLink = link({ id: "2", title: "外部リンク", category: "external" });
+    const internalLink = link({
+      id: "1",
+      title: "社内リンク",
+      categoryId: "category-internal",
+    });
+    const externalLink = link({
+      id: "2",
+      title: "外部リンク",
+      categoryId: "category-external",
+    });
     getLinksForHelpdeskMock.mockResolvedValueOnce([internalLink, externalLink]);
 
     const jsx = await LinkManagementList();
     const user = userEvent.setup();
     render(jsx);
 
-    await user.selectOptions(screen.getByLabelText("カテゴリ"), "internal");
+    await user.selectOptions(screen.getByLabelText("大分類"), "category-internal");
 
     expect(screen.getByText("社内リンク")).toBeTruthy();
     expect(screen.queryByText("外部リンク")).toBeNull();
+  });
+
+  it("未設定でカテゴリ未割当のリンクのみ絞り込める", async () => {
+    const uncategorizedLink = link({
+      id: "1",
+      title: "未分類リンク",
+      categoryId: null,
+    });
+    const categorizedLink = link({
+      id: "2",
+      title: "分類済みリンク",
+      categoryId: "category-internal",
+    });
+    getLinksForHelpdeskMock.mockResolvedValueOnce([uncategorizedLink, categorizedLink]);
+
+    const jsx = await LinkManagementList();
+    const user = userEvent.setup();
+    render(jsx);
+
+    await user.selectOptions(
+      screen.getByLabelText("大分類"),
+      "uncategorized"
+    );
+
+    expect(screen.getByText("未分類リンク")).toBeTruthy();
+    expect(screen.queryByText("分類済みリンク")).toBeNull();
+  });
+
+  it("大分類配下の中分類でさらに絞り込める", async () => {
+    getAllLinkCategoriesMock.mockResolvedValueOnce([
+      {
+        ...categoryOf("category-internal", "社内システム"),
+        children: [
+          {
+            id: "sub-hr",
+            parentId: "category-internal",
+            name: "人事",
+            displayOrder: 0,
+            translations: [],
+            linkCount: 0,
+          },
+          {
+            id: "sub-finance",
+            parentId: "category-internal",
+            name: "経理",
+            displayOrder: 1,
+            translations: [],
+            linkCount: 0,
+          },
+        ],
+      },
+    ]);
+    const hrLink = link({
+      id: "1",
+      title: "人事リンク",
+      categoryId: "category-internal",
+      subCategoryId: "sub-hr",
+    });
+    const financeLink = link({
+      id: "2",
+      title: "経理リンク",
+      categoryId: "category-internal",
+      subCategoryId: "sub-finance",
+    });
+    getLinksForHelpdeskMock.mockResolvedValueOnce([hrLink, financeLink]);
+
+    const jsx = await LinkManagementList();
+    const user = userEvent.setup();
+    render(jsx);
+
+    expect(screen.getByText("人事")).toBeTruthy();
+
+    await user.selectOptions(screen.getByLabelText("大分類"), "category-internal");
+    await user.selectOptions(screen.getByLabelText("中分類"), "sub-hr");
+
+    expect(screen.getByText("人事リンク")).toBeTruthy();
+    expect(screen.queryByText("経理リンク")).toBeNull();
   });
 
   it("ページネーションで11件を超える一覧は10件ずつ表示される", async () => {

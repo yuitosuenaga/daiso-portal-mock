@@ -27,14 +27,18 @@ const labels = {
   titlePlaceholder: "タイトルを入力してください",
   urlLabel: "URL",
   urlPlaceholder: "https://example.com",
-  categoryLabel: "カテゴリ",
-  categoryPlaceholder: "カテゴリを選択してください",
+  categoryLabel: "大分類",
+  categoryPlaceholder: "大分類を選択してください",
+  subCategoryLabel: "中分類（任意）",
+  subCategoryPlaceholder: "中分類を選択してください",
+  subCategoryNoneOption: "中分類なし",
   descriptionLabel: "説明（任意）",
   descriptionPlaceholder: "補足説明を入力してください",
   submitButtonLabel: "保存する",
   requiredErrorMessage: "この項目は必須です",
   invalidUrlErrorMessage: "有効なURLを入力してください",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
+  categoryOptions: [{ id: "category-other", name: "その他", subCategories: [] }],
 };
 
 describe("LinkForm", () => {
@@ -58,8 +62,8 @@ describe("LinkForm", () => {
     fireEvent.change(screen.getByLabelText("URL"), {
       target: { value: "not-a-valid-url" },
     });
-    fireEvent.change(screen.getByLabelText("カテゴリ"), {
-      target: { value: "other" },
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-other" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -69,7 +73,7 @@ describe("LinkForm", () => {
     expect(createLinkActionMock).not.toHaveBeenCalled();
   });
 
-  it("入力済み（説明は未入力）で送信するとcreateLinkActionが呼ばれ一覧へ遷移する", async () => {
+  it("入力済み（説明・中分類は未入力）で送信するとcreateLinkActionが呼ばれ一覧へ遷移する", async () => {
     render(<LinkForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("タイトル"), {
@@ -78,8 +82,8 @@ describe("LinkForm", () => {
     fireEvent.change(screen.getByLabelText("URL"), {
       target: { value: "https://example.com" },
     });
-    fireEvent.change(screen.getByLabelText("カテゴリ"), {
-      target: { value: "other" },
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-other" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -87,7 +91,8 @@ describe("LinkForm", () => {
       expect(createLinkActionMock).toHaveBeenCalledWith({
         title: "新規リンク",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-other",
+        subCategoryId: null,
         description: "",
       });
     });
@@ -104,8 +109,8 @@ describe("LinkForm", () => {
     fireEvent.change(screen.getByLabelText("URL"), {
       target: { value: "https://example.com" },
     });
-    fireEvent.change(screen.getByLabelText("カテゴリ"), {
-      target: { value: "other" },
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-other" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
@@ -120,6 +125,89 @@ describe("LinkForm", () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
+  it("大分類配下の中分類を選択して送信すると中分類IDが送信される", async () => {
+    render(
+      <LinkForm
+        mode="create"
+        {...labels}
+        categoryOptions={[
+          {
+            id: "category-internal",
+            name: "社内システム",
+            subCategories: [{ id: "sub-hr", name: "人事" }],
+          },
+        ]}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("タイトル"), {
+      target: { value: "新規リンク" },
+    });
+    fireEvent.change(screen.getByLabelText("URL"), {
+      target: { value: "https://example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-internal" },
+    });
+    fireEvent.change(screen.getByLabelText("中分類（任意）"), {
+      target: { value: "sub-hr" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(createLinkActionMock).toHaveBeenCalledWith({
+        title: "新規リンク",
+        url: "https://example.com",
+        categoryId: "category-internal",
+        subCategoryId: "sub-hr",
+        description: "",
+      });
+    });
+  });
+
+  it("大分類を変更すると中分類の選択がリセットされる", async () => {
+    render(
+      <LinkForm
+        mode="edit"
+        linkId="existing-id"
+        defaultValues={{
+          title: "既存リンク",
+          url: "https://example.com",
+          categoryId: "category-internal",
+          subCategoryId: "sub-hr",
+          description: "",
+        }}
+        {...labels}
+        categoryOptions={[
+          {
+            id: "category-internal",
+            name: "社内システム",
+            subCategories: [{ id: "sub-hr", name: "人事" }],
+          },
+          {
+            id: "category-external",
+            name: "外部サイト",
+            subCategories: [],
+          },
+        ]}
+      />
+    );
+
+    expect(
+      (screen.getByLabelText("中分類（任意）") as HTMLSelectElement).value
+    ).toBe("sub-hr");
+
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-external" },
+    });
+
+    await waitFor(() => {
+      expect(
+        (screen.getByLabelText("中分類（任意）") as HTMLSelectElement).value
+      ).toBe("");
+    });
+  });
+
   it("編集モードでは既存の値が初期表示され、更新時にupdateLinkActionが呼ばれる", async () => {
     render(
       <LinkForm
@@ -128,10 +216,15 @@ describe("LinkForm", () => {
         defaultValues={{
           title: "編集前のリンク",
           url: "https://example.com/old",
-          category: "internal",
+          categoryId: "category-internal",
+          subCategoryId: "",
           description: "編集前の説明",
         }}
         {...labels}
+        categoryOptions={[
+          { id: "category-internal", name: "社内システム", subCategories: [] },
+          { id: "category-other", name: "その他", subCategories: [] },
+        ]}
       />
     );
 
@@ -151,7 +244,8 @@ describe("LinkForm", () => {
       expect(updateLinkActionMock).toHaveBeenCalledWith("existing-id", {
         title: "編集前のリンク",
         url: "https://example.com/new",
-        category: "internal",
+        categoryId: "category-internal",
+        subCategoryId: null,
         description: "編集前の説明",
       });
     });

@@ -3,21 +3,35 @@ import { describe, expect, it } from "vitest";
 import { linkFormSchema } from "@/lib/validation/link";
 
 describe("linkFormSchema", () => {
-  it("タイトル・URL・カテゴリが入力されていれば検証を通過する", () => {
+  it("タイトル・URL・大分類が入力されていれば検証を通過する", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "https://example.com",
-      category: "other",
+      categoryId: "category-1",
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("中分類（subCategoryId）が入力されていれば検証を通過する", () => {
+    const result = linkFormSchema.safeParse({
+      title: "テストリンク",
+      url: "https://example.com",
+      categoryId: "category-1",
+      subCategoryId: "sub-1",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subCategoryId).toBe("sub-1");
+    }
   });
 
   it("説明（description）が未入力でも検証を通過する", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "https://example.com",
-      category: "other",
+      categoryId: "category-1",
       description: "",
     });
 
@@ -28,7 +42,7 @@ describe("linkFormSchema", () => {
     const result = linkFormSchema.safeParse({
       title: "",
       url: "https://example.com",
-      category: "other",
+      categoryId: "category-1",
     });
 
     expect(result.success).toBe(false);
@@ -38,7 +52,7 @@ describe("linkFormSchema", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "",
-      category: "other",
+      categoryId: "category-1",
     });
 
     expect(result.success).toBe(false);
@@ -48,7 +62,7 @@ describe("linkFormSchema", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "not-a-valid-url",
-      category: "other",
+      categoryId: "category-1",
     });
 
     expect(result.success).toBe(false);
@@ -58,7 +72,7 @@ describe("linkFormSchema", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "javascript:alert(1)",
-      category: "other",
+      categoryId: "category-1",
     });
 
     expect(result.success).toBe(false);
@@ -68,19 +82,46 @@ describe("linkFormSchema", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "data:text/html,<script>alert(1)</script>",
-      category: "other",
+      categoryId: "category-1",
     });
 
     expect(result.success).toBe(false);
   });
 
-  it("カテゴリが未選択の場合はエラーになる", () => {
+  it("大分類（categoryId）が未入力の場合はエラーになる（要件12.6）", () => {
     const result = linkFormSchema.safeParse({
       title: "テストリンク",
       url: "https://example.com",
-      category: "",
+      categoryId: "",
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("中分類が空文字列（未選択）のときnullへ正規化される", () => {
+    const result = linkFormSchema.safeParse({
+      title: "テストリンク",
+      url: "https://example.com",
+      categoryId: "category-1",
+      subCategoryId: "",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subCategoryId).toBeNull();
+    }
+  });
+
+  it("中分類を省略したときnullへ正規化される", () => {
+    const result = linkFormSchema.safeParse({
+      title: "テストリンク",
+      url: "https://example.com",
+      categoryId: "category-1",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subCategoryId).toBeNull();
+    }
   });
 });

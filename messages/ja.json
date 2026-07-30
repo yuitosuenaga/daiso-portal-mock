@@ -457,11 +457,16 @@
       "deleteConfirmButton": "削除する",
       "deleteCancelButton": "キャンセル",
       "deleteError": "削除に失敗しました。時間を置いて再度お試しください。",
+      "categoryUnset": "未設定",
+      "manageCategoriesLink": "カテゴリ管理",
       "filter": {
         "keywordLabel": "キーワード検索",
         "keywordPlaceholder": "タイトル・URL・説明に含まれる語句",
-        "categoryLabel": "カテゴリ",
-        "categoryAll": "すべてのカテゴリ",
+        "categoryLabel": "大分類",
+        "categoryAll": "すべての大分類",
+        "categoryUnsetOption": "未設定（カテゴリ未割当）",
+        "subCategoryLabel": "中分類",
+        "subCategoryAll": "すべての中分類",
         "clearButton": "条件をクリア",
         "noResults": "該当するリンクがありません"
       },
@@ -479,8 +484,11 @@
       "titlePlaceholder": "タイトルを入力してください",
       "urlLabel": "URL",
       "urlPlaceholder": "https://example.com",
-      "categoryLabel": "カテゴリ",
-      "categoryPlaceholder": "カテゴリを選択してください",
+      "categoryLabel": "大分類",
+      "categoryPlaceholder": "大分類を選択してください",
+      "subCategoryLabel": "中分類（任意）",
+      "subCategoryPlaceholder": "中分類を選択してください",
+      "subCategoryNoneOption": "中分類なし",
       "descriptionLabel": "説明（任意）",
       "descriptionPlaceholder": "補足説明を入力してください",
       "submitButton": "保存する",
@@ -490,6 +498,62 @@
         "required": "この項目は必須です",
         "invalidUrl": "有効なURLを入力してください"
       }
+    },
+    "categories": {
+      "list": {
+        "title": "リンクカテゴリ管理",
+        "description": "リンクの大分類・中分類を追加・編集・削除・並び替えできます。",
+        "backToLinks": "リンク集管理へ戻る",
+        "empty": "カテゴリはありません",
+        "error": "カテゴリの取得に失敗しました",
+        "addParentButton": "大分類を追加",
+        "addChildButton": "中分類を追加",
+        "editButton": "編集",
+        "moveUpButton": "上へ",
+        "moveDownButton": "下へ",
+        "linkCountLabel": "リンク数: {count}件",
+        "subCategoryCountLabel": "中分類数: {count}件",
+        "delete": {
+          "buttonLabel": "削除",
+          "confirmTitle": "カテゴリの削除",
+          "confirmMessage": "『{name}』を削除します。この操作は取り消せません。よろしいですか？",
+          "confirmButtonLabel": "削除する",
+          "cancelButtonLabel": "キャンセル",
+          "errorMessage": "削除に失敗しました。時間を置いて再度お試しください。",
+          "blockedByLinks": "『{name}』には{count}件のリンクが紐づいているため削除できません。先に対象リンクのカテゴリを変更してください。",
+          "blockedByChildren": "『{name}』には{count}件の中分類が存在するため削除できません。先に中分類を削除してください。"
+        }
+      },
+      "form": {
+        "createParentTitle": "大分類の追加",
+        "createChildTitle": "中分類の追加",
+        "editTitle": "カテゴリの編集",
+        "nameLabel": "名称",
+        "namePlaceholder": "カテゴリ名を入力してください",
+        "submitButton": "保存する",
+        "cancelButton": "キャンセル",
+        "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+        "language": {
+          "jaTab": "日本語",
+          "enTab": "English",
+          "addButton": "言語を追加",
+          "removeButton": "この言語を削除",
+          "localeCodeLabel": "言語コード",
+          "localeCodePlaceholder": "例: th, vi, zh",
+          "localeDuplicateError": "他の言語と重複しない言語コードを入力してください"
+        },
+        "validation": {
+          "required": "この項目は必須です",
+          "nameConflict": "同じ階層に同名のカテゴリが既に存在します"
+        }
+      }
+    },
+    "preview": {
+      "triggerButton": "申請者側の表示を確認",
+      "dialogTitle": "プレビュー：申請者側のリンク一覧",
+      "localeTabJa": "日本語",
+      "localeTabEn": "English",
+      "error": "プレビューの取得に失敗しました"
     }
   },
   "helpdeskCompanies": {
@@ -1013,12 +1077,7 @@
       "empty": "リンクはありません",
       "error": "リンクの取得に失敗しました"
     },
-    "categories": {
-      "internal": "社内システム",
-      "external": "外部サイト",
-      "document": "資料・マニュアル",
-      "other": "その他"
-    },
+    "uncategorized": "未分類",
     "item": {
       "opensInNewTab": "（新しいタブで開きます）",
       "newBadge": "新着"

@@ -23,22 +23,24 @@
 
 ### This Spec Owns
 - リンク一覧ページ（`/links`）のUI
-- `Link`型・カテゴリコード定数の新規定義
 - リンク一覧取得のモック関数（`lib/api/links.ts`）
 - リンク一覧関連の翻訳キー（`messages/ja.json` / `en.json` の `links` 名前空間）
+- （2026-07-29追記）`groupLinksByCategory`（大分類・中分類ベースのグループ化ロジック、`links-management`spec の`LinkPreviewPanel`からも再利用される）
 
 ### Out of Boundary
 - グローバルレイアウト（Header/Sidebar/AppShell/LanguageSwitcher）の変更。本仕様はこれらを変更せず利用するのみ
-- リンクの作成・編集・削除、検索・並び替え、死活監視（Non-Goals参照）
+- リンクの作成・編集・削除、並び替え、死活監視（Non-Goals参照）
+- （2026-07-29追記）`Link`型・`LinkCategory`型の定義、カテゴリの階層データモデル・カテゴリ管理画面・多言語対応（`links-management`spec所有。当初本specが所有していた`Link`型・カテゴリコード定数の新規定義は、2026-07-29追記により所有権が`links-management`specへ移った）
 
 ### Allowed Dependencies
 - `dashboard` 仕様が提供する `AppShell` / ロケールレイアウト（`app/[locale]/layout.tsx`）
 - 既存のUI基盤コンポーネント（`card.tsx`・`badge.tsx`・`skeleton.tsx`）
 - 既存の `next-intl` 設定
+- （2026-07-29追記）`links-management`spec提供の`Link`型・`LinkCategory`型・`LinkCategorySummary`型・`getLinkCategoriesForApplicant`・`resolveLinkCategoryContent`
 
 ### Revalidation Triggers
-- 本仕様が新規に定義する`Link`型・`lib/api/links.ts`は他仕様に依存されていないため、変更時の外部影響は想定されない
-- カテゴリ（`category`）の選択肢がヒアリング結果を受けて変更された場合、`lib/constants/link-options.ts`と翻訳キーの同時更新が必要
+- 本仕様が新規に定義する`lib/api/links.ts`は他仕様に依存されていないため、変更時の外部影響は想定されない
+- （2026-07-29追記）`links-management`spec所有の`Link`型・`LinkCategorySummary`型・`getLinkCategoriesForApplicant`のシグネチャ変更（本仕様の`LinkList`・`groupLinksByCategory`が追随する必要がある）
 
 ## Architecture
 
@@ -290,3 +292,82 @@ links.search.noResults         // 例(ja): "該当するリンクがありませ
 - Unit: `isRecentlyCreated`（境界7日・未来日時）、`filterLinks`（空キーワードで全件・title/description/URL部分一致・大文字小文字非依存）、`getLinks`が`createdAt`を含むこと。
 - Integration: `LinkListClient`のキーワード入力で該当カテゴリのみ表示・0件メッセージ表示、`LinkItem`が改行を保持し新着バッジを条件表示すること。
 - E2E/UI（任意）: 日英で新着バッジ・検索欄ラベルが切り替わること、タブレット幅で横スクロールしないこと。
+
+---
+
+## 追加設計（追記日: 2026-07-29）: 大分類・中分類によるグループ表示への変更（要件11、要件2を上書き）
+
+> `links-management`spec（要件12〜16）が、リンクの`category`（固定4値enum）を大分類・中分類の階層カテゴリ（`LinkCategory`）へ置き換える。本追加設計は、これに伴う`/links`のグループ表示ロジックの変更を定義する。既存の「Server Componentが取得 → `LinkListClient`が絞り込み・グループ描画」という責務分担（2026-07-22追記）は維持し、グループ化の単位のみを差し替える。
+
+### 変更の要点
+
+- 固定配列`LINK_CATEGORY_CODES`（4値）を走査してグループ化していたロジックを廃止し、`links-management`spec提供の`getLinkCategoriesForApplicant()`（`LinkCategorySummary[]`、大分類のみ・`displayOrder`昇順）を走査してグループ化するロジックへ置き換える。
+- グループ化・中分類サブラベル解決のロジックは`groupLinksByCategory`という1つの純粋関数に集約し、本spec（申請者側`/links`）と`links-management`spec の`LinkPreviewPanel`（要件16.3）の両方から呼び出す（表示ロジックの二重実装を避ける、`links-management`design.md「プレビュー機能設計」参照）。
+
+### データ供給
+
+- `LinkList`（Server Component）は、既存の`getLinks()`に加えて`links-management`spec提供の`getLinkCategoriesForApplicant()`（`src/lib/server/link-category-service.ts`所有）を並行取得し、両方を`LinkListClient`へpropsで渡す。
+- `Link`型は`links-management`要件12.3により`category`（enum）を廃止し`categoryId`/`subCategoryId`（`string | null`）を持つ。`LinkWithTimestamp`（本spec所有、`src/types/link.ts`）もこの変更に追随する（`categoryId`/`subCategoryId`を含む形に変わる。`id`/`title`/`url`/`description`/`createdAt`は変更しない）。
+- カテゴリ名の解決には`links-management`spec提供の`resolveLinkCategoryContent(category, locale)`（`src/lib/link-category-utils.ts`）を`import`して利用する。本spec側での名称解決ロジックの独自実装は行わない。
+
+### グループ化ロジック（`groupLinksByCategory`、新規）
+
+`src/lib/link-utils.ts`に純粋関数として追加する。
+
+`links-management`spec提供の`LinkCategorySummary`（`getLinkCategoriesForApplicant(locale)`が返す型、大分類名・中分類名とも`locale`解決済み）を前提とする。
+
+```typescript
+export interface LinkCategoryGroupData {
+  /** 大分類のID。「未分類」グループのみ null */
+  categoryId: string | null;
+  /** 解決済みの大分類名（「未分類」グループは呼び出し側が用意した固定ラベルを充てる） */
+  categoryName: string;
+  links: Array<LinkWithTimestamp & { subCategoryName: string | null }>;
+}
+
+export function groupLinksByCategory(
+  links: LinkWithTimestamp[],
+  categories: LinkCategorySummary[],
+  uncategorizedLabel: string
+): LinkCategoryGroupData[];
+```
+
+- `categories`を`displayOrder`昇順に走査し、各大分類について`links.filter(l => l.categoryId === category.id)`が1件以上あるときのみグループを生成する（要件11.4）。
+- 各グループ内のリンクについて、`subCategoryId`が非nullのとき、`category.subCategories`から該当中分類を検索し、その解決済み`name`を`subCategoryName`とする。中分類未設定・該当なしなら`null`。
+- `categoryId`が`null`のリンクをまとめ、1件以上あれば末尾に「未分類」グループ（`categoryId: null`, `categoryName: uncategorizedLabel`）を追加する（要件11.6）。
+- キーワード絞り込み（`filterLinks`、既存）は本関数の**前段**で適用する（絞り込み後のリンク配列を本関数に渡す）。
+- 名前解決（`resolveLinkCategoryContent`によるlocaleフォールバック）は`getLinkCategoriesForApplicant(locale)`側で完了しているため、本関数はlocaleを引数に取らない。
+
+### コンポーネント変更
+
+- **`LinkListClient`（変更）**: propsに`categories: LinkCategorySummary[]`を追加。`useMemo`内で`filterLinks`→`groupLinksByCategory`の順に適用し、結果を`LinkCategoryGroup`へ1グループずつ渡す。該当リンクが0件のときの「該当するリンクがありません」表示は維持する（要件11.7で維持する要件10.4相当）。
+- **`LinkCategoryGroup`（変更）**: props`category: LinkCategory`（固定4値のenum値）を受け取り内部で翻訳キーを解決していた実装から、props`categoryName: string`（解決済み文字列）をそのまま見出しに表示する実装へ変更する（`resolveLinkCategoryContent`はServer側またはグループ化関数内で解決済みのため、本コンポーネントはロケール解決を行わない）。
+- **`LinkItem`（変更）**: props`subCategoryName: string | null`を追加。非nullのとき、タイトル行の近く（登録日・新着バッジと並ぶ位置）に小さなサブラベル（`Badge`のoutlineバリアント等）として表示する（要件11.3）。
+- **`LinkList`（変更）**: `getLinks()`・`getLinkCategoriesForApplicant(locale)`を並行取得（`Promise.all`）し、いずれかの失敗も既存のエラー表示分岐に含める。
+
+### 翻訳キー
+
+`messages/ja.json`・`messages/en.json`の`links`名前空間に追加する:
+```
+links.uncategorized   // 例(ja): "未分類" / (en): "Uncategorized"
+```
+既存の`links.categories.*`（固定4値のカテゴリ表示名キー、`links-page`spec既存所有）は、本変更によりカテゴリ名がDB管理の可変値になるため**使用しなくなる**。当該キー・関連コードは`links-management`要件12実装時に撤去する（`link-options.ts`の`LINK_CATEGORY_CODES`廃止と同時）。
+
+### 影響ファイル一覧（追加設計分）
+
+| 区分 | ファイル | 変更内容 |
+|---|---|---|
+| 変更 | `src/types/link.ts` | `Link`/`LinkWithTimestamp`を`categoryId`/`subCategoryId`ベースへ変更 |
+| 変更 | `src/lib/link-utils.ts` | `groupLinksByCategory`を追加（`LINK_CATEGORY_CODES`走査ロジックを置き換え） |
+| 変更 | `src/components/features/links/LinkList.tsx` | `getLinkCategoriesForApplicant(locale)`を追加取得し`LinkListClient`へ渡す |
+| 変更 | `src/components/features/links/LinkListClient.tsx` | `groupLinksByCategory`を用いたグループ化へ変更 |
+| 変更 | `src/components/features/links/LinkCategoryGroup.tsx` | props を固定カテゴリ値から解決済み`categoryName: string`へ変更 |
+| 変更 | `src/components/features/links/LinkItem.tsx` | `subCategoryName`表示を追加 |
+| 変更 | `src/lib/constants/link-options.ts` | `LINK_CATEGORY_CODES`・`LinkManagementCategoryFilter`を撤去（`links-management`要件15の大分類/中分類ベース絞り込みに置き換わるため） |
+| 変更 | `messages/ja.json` / `messages/en.json` | `links.uncategorized`を追加、`links.categories.*`を撤去 |
+
+### テスト方針（追加分）
+
+- Unit: `groupLinksByCategory`が「displayOrder順の大分類グループ生成」「0件大分類の非表示」「未分類グループの生成条件（0件なら非表示）」「中分類名の付与」を正しく行うこと。
+- Integration: カテゴリ管理（`links-management`側）でカテゴリを追加・並び替えたとき、`/links`のグループ順序が追随すること（`links-management`のプレビュー機能と同一の関数を経由するため、プレビューと実画面の表示が一致することを確認する）。
+- E2E/UI（任意）: 日英切り替えで大分類名・中分類名・「未分類」ラベルが切り替わること。

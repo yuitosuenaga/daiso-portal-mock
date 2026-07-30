@@ -12,18 +12,21 @@ export interface LinkItemProps {
   opensInNewTabLabel: string;
   /** 「新着」バッジの翻訳済みラベル */
   newBadgeLabel: string;
+  /** 中分類名（`links-management`spec提供の`resolveLinkCategoryContent`で解決済み）。未設定・解決不能なら`null` */
+  subCategoryName?: string | null;
 }
 
 /**
  * リンク一覧の1件分を表示するコンポーネント。
  * クリックすると新しいタブでリンク先を開く（タブナビング対策として rel="noopener noreferrer" を付与）。
- * 説明文は改行を保持して表示し、登録日と新着バッジ（登録から7日以内）を表示する。
+ * 説明文は改行を保持して表示し、登録日・新着バッジ（登録から7日以内）・中分類名（設定時のみ）を表示する。
  */
 export function LinkItem({
   link,
   locale,
   opensInNewTabLabel,
   newBadgeLabel,
+  subCategoryName,
 }: LinkItemProps) {
   const isNew = isRecentlyCreated(link.createdAt);
 
@@ -38,6 +41,7 @@ export function LinkItem({
         {link.title}
         <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="sr-only">{opensInNewTabLabel}</span>
+        {subCategoryName ? <Badge variant="muted">{subCategoryName}</Badge> : null}
         {isNew ? <Badge variant="default">{newBadgeLabel}</Badge> : null}
       </span>
       {link.description ? (

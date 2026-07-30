@@ -1,14 +1,7 @@
-// リンク集機能の選択肢コード一覧（フェーズ1の仮リスト。表示ラベルは翻訳キー側で管理する）。
-
-import type { Link } from "@/types/link";
-
-/** リンク種別（category）のコード一覧。ヒアリング後に変更される前提の仮値。 */
-export const LINK_CATEGORY_CODES = [
-  "internal",
-  "external",
-  "document",
-  "other",
-] as const satisfies readonly Link["category"][];
+// リンク集機能の定数。
+// カテゴリ選択肢（大分類・中分類）は固定コードではなくDB管理の`LinkCategory`階層モデルへ
+// 2026-07-29に移行した（旧`LINK_CATEGORY_CODES`・`LinkManagementCategoryFilter`は撤去）。
+// 大分類・中分類の絞り込み選択肢の型は`@/types/link-category`の`LinkCategoryAdminView`を参照する。
 
 /**
  * ヘルプデスク側リンク集管理一覧の1ページあたりの表示件数。
@@ -16,6 +9,3 @@ export const LINK_CATEGORY_CODES = [
  * `DOCUMENT_MANAGEMENT_PAGE_SIZE`と同一方針）。
  */
 export const LINK_MANAGEMENT_PAGE_SIZE = 10;
-
-/** 管理一覧のカテゴリ絞り込み選択肢。"all" は絞り込みなしを表す。 */
-export type LinkManagementCategoryFilter = Link["category"] | "all";

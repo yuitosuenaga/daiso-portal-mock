@@ -457,11 +457,16 @@
       "deleteConfirmButton": "Delete",
       "deleteCancelButton": "Cancel",
       "deleteError": "Failed to delete. Please try again later.",
+      "categoryUnset": "Unset",
+      "manageCategoriesLink": "Manage categories",
       "filter": {
         "keywordLabel": "Search keyword",
         "keywordPlaceholder": "Words in the title, URL, or description",
-        "categoryLabel": "Category",
-        "categoryAll": "All categories",
+        "categoryLabel": "Major category",
+        "categoryAll": "All major categories",
+        "categoryUnsetOption": "Unset (no category)",
+        "subCategoryLabel": "Subcategory",
+        "subCategoryAll": "All subcategories",
         "clearButton": "Clear filters",
         "noResults": "No matching links found"
       },
@@ -479,8 +484,11 @@
       "titlePlaceholder": "Enter the title",
       "urlLabel": "URL",
       "urlPlaceholder": "https://example.com",
-      "categoryLabel": "Category",
-      "categoryPlaceholder": "Select a category",
+      "categoryLabel": "Major category",
+      "categoryPlaceholder": "Select a major category",
+      "subCategoryLabel": "Subcategory (optional)",
+      "subCategoryPlaceholder": "Select a subcategory",
+      "subCategoryNoneOption": "No subcategory",
       "descriptionLabel": "Description (optional)",
       "descriptionPlaceholder": "Enter a description",
       "submitButton": "Save",
@@ -490,6 +498,62 @@
         "required": "This field is required",
         "invalidUrl": "Please enter a valid URL"
       }
+    },
+    "categories": {
+      "list": {
+        "title": "Link Category Management",
+        "description": "Add, edit, delete, and reorder major and subcategories for links.",
+        "backToLinks": "Back to link management",
+        "empty": "No categories",
+        "error": "Failed to load categories",
+        "addParentButton": "Add major category",
+        "addChildButton": "Add subcategory",
+        "editButton": "Edit",
+        "moveUpButton": "Move up",
+        "moveDownButton": "Move down",
+        "linkCountLabel": "{count} link(s)",
+        "subCategoryCountLabel": "{count} subcategory(ies)",
+        "delete": {
+          "buttonLabel": "Delete",
+          "confirmTitle": "Delete Category",
+          "confirmMessage": "This will delete \"{name}\". This action cannot be undone. Are you sure?",
+          "confirmButtonLabel": "Delete",
+          "cancelButtonLabel": "Cancel",
+          "errorMessage": "Failed to delete. Please try again later.",
+          "blockedByLinks": "\"{name}\" cannot be deleted because {count} link(s) are still assigned to it. Please reassign those links first.",
+          "blockedByChildren": "\"{name}\" cannot be deleted because it has {count} subcategory(ies). Please delete the subcategories first."
+        }
+      },
+      "form": {
+        "createParentTitle": "Add Major Category",
+        "createChildTitle": "Add Subcategory",
+        "editTitle": "Edit Category",
+        "nameLabel": "Name",
+        "namePlaceholder": "Enter the category name",
+        "submitButton": "Save",
+        "cancelButton": "Cancel",
+        "submitError": "Failed to save. Please try again later.",
+        "language": {
+          "jaTab": "Japanese",
+          "enTab": "English",
+          "addButton": "Add language",
+          "removeButton": "Remove this language",
+          "localeCodeLabel": "Language code",
+          "localeCodePlaceholder": "e.g. th, vi, zh",
+          "localeDuplicateError": "Enter a language code that is not used by another language"
+        },
+        "validation": {
+          "required": "This field is required",
+          "nameConflict": "A category with this name already exists at this level"
+        }
+      }
+    },
+    "preview": {
+      "triggerButton": "Preview applicant view",
+      "dialogTitle": "Preview: Applicant link list",
+      "localeTabJa": "日本語",
+      "localeTabEn": "English",
+      "error": "Failed to load the preview."
     }
   },
   "helpdeskCompanies": {
@@ -1013,12 +1077,7 @@
       "empty": "No links",
       "error": "Failed to load links"
     },
-    "categories": {
-      "internal": "Internal Systems",
-      "external": "External Sites",
-      "document": "Documents / Manuals",
-      "other": "Other"
-    },
+    "uncategorized": "Uncategorized",
     "item": {
       "opensInNewTab": "(opens in a new tab)",
       "newBadge": "New"

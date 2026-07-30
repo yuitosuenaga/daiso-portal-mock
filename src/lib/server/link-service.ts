@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { assertLinkCategoryPair } from "@/lib/server/link-category-service";
 import type { CreateLinkInput, Link, LinkWithTimestamp } from "@/types/link";
 
 export class LinkNotFoundError extends Error {
@@ -22,7 +23,8 @@ interface LinkRecord {
   id: string;
   title: string;
   url: string;
-  category: Link["category"];
+  categoryId: string | null;
+  subCategoryId: string | null;
   description: string | null;
   createdAt: Date;
 }
@@ -32,7 +34,8 @@ function mapLink(record: LinkRecord): Link {
     id: record.id,
     title: record.title,
     url: record.url,
-    category: record.category,
+    categoryId: record.categoryId,
+    subCategoryId: record.subCategoryId,
     description: record.description ?? undefined,
   };
 }
@@ -72,13 +75,21 @@ export async function findLinkById(id: string): Promise<Link | null> {
   return record ? mapLink(record) : null;
 }
 
-/** リンクを新規作成する。登録日時（`createdAt`）はDBの既定値に委ねる。 */
+/**
+ * リンクを新規作成する。登録日時（`createdAt`）はDBの既定値に委ねる。
+ * 保存前に大分類・中分類の親子整合を検証する（要件12.9・12.10）。不整合の場合は
+ * 保存せず`assertLinkCategoryPair`の例外をそのまま送出する。
+ */
 export async function createLinkRecord(input: CreateLinkInput): Promise<Link> {
+  const subCategoryId = input.subCategoryId ?? null;
+  await assertLinkCategoryPair(input.categoryId, subCategoryId);
+
   const record = await prisma.link.create({
     data: {
       title: input.title,
       url: input.url,
-      category: input.category,
+      categoryId: input.categoryId,
+      subCategoryId,
       description: input.description,
     },
   });
@@ -86,18 +97,25 @@ export async function createLinkRecord(input: CreateLinkInput): Promise<Link> {
   return mapLink(record);
 }
 
-/** 既存リンクの内容を更新する。存在しない場合は`LinkNotFoundError`を送出する。 */
+/**
+ * 既存リンクの内容を更新する。存在しない場合は`LinkNotFoundError`を送出する。
+ * 保存前に大分類・中分類の親子整合を検証する（要件12.9・12.10）。
+ */
 export async function updateLinkRecord(
   id: string,
   input: CreateLinkInput
 ): Promise<Link> {
+  const subCategoryId = input.subCategoryId ?? null;
+  await assertLinkCategoryPair(input.categoryId, subCategoryId);
+
   try {
     const record = await prisma.link.update({
       where: { id },
       data: {
         title: input.title,
         url: input.url,
-        category: input.category,
+        categoryId: input.categoryId,
+        subCategoryId,
         description: input.description,
       },
     });

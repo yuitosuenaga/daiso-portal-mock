@@ -1,8 +1,8 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getLinks } from "@/lib/api/links";
+import { getLinkCategoriesForApplicant } from "@/lib/api/link-categories";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LINK_CATEGORY_CODES } from "@/lib/constants/link-options";
 import { LinkListClient } from "@/components/features/links/LinkListClient";
 import type { LinkWithTimestamp } from "@/types/link";
 
@@ -11,6 +11,8 @@ export async function LinkList() {
     getTranslations("links"),
     getLocale(),
   ]);
+
+  const categories = await getLinkCategoriesForApplicant(locale);
 
   const heading = (
     <div className="mb-6">
@@ -53,9 +55,11 @@ export async function LinkList() {
       {heading}
       <LinkListClient
         links={links}
+        categories={categories}
         locale={locale}
         opensInNewTabLabel={t("item.opensInNewTab")}
         newBadgeLabel={t("item.newBadge")}
+        uncategorizedLabel={t("uncategorized")}
       />
     </div>
   );
@@ -64,8 +68,8 @@ export async function LinkList() {
 export function LinkListSkeleton() {
   return (
     <div className="space-y-6">
-      {LINK_CATEGORY_CODES.map((category) => (
-        <Card key={category}>
+      {Array.from({ length: 3 }, (_, index) => (
+        <Card key={index}>
           <CardHeader>
             <Skeleton className="h-5 w-32" />
           </CardHeader>
