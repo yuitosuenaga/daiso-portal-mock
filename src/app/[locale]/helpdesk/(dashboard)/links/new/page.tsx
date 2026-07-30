@@ -1,18 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { LinkForm } from "@/components/features/helpdesk-links/LinkForm";
-import { LINK_CATEGORY_CODES } from "@/lib/constants/link-options";
+import { getAllLinkCategories } from "@/lib/api/link-categories";
+import { toLinkCategoryFormOptions } from "@/lib/link-category-utils";
 
 export default async function HelpdeskLinkNewPage() {
-  const [t, tCategories] = await Promise.all([
-    getTranslations("helpdeskLinks.form"),
-    getTranslations("links.categories"),
-  ]);
+  const t = await getTranslations("helpdeskLinks.form");
 
-  const categoryOptions = LINK_CATEGORY_CODES.map((code) => ({
-    value: code,
-    label: tCategories(code),
-  }));
+  const categories = await getAllLinkCategories();
+  const categoryOptions = toLinkCategoryFormOptions(categories);
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -28,6 +24,9 @@ export default async function HelpdeskLinkNewPage() {
         urlPlaceholder={t("urlPlaceholder")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
+        subCategoryLabel={t("subCategoryLabel")}
+        subCategoryPlaceholder={t("subCategoryPlaceholder")}
+        subCategoryNoneOption={t("subCategoryNoneOption")}
         descriptionLabel={t("descriptionLabel")}
         descriptionPlaceholder={t("descriptionPlaceholder")}
         submitButtonLabel={t("submitButton")}

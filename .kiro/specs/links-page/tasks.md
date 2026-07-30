@@ -130,3 +130,63 @@
   - 日英で新着バッジ・検索欄ラベル・0件メッセージが切り替わること、タブレット幅で横スクロールが発生しないことを確認する
   - _Requirements: 9.4, 10.6, 10.7_
   - _Depends: 12_
+
+---
+
+## 追加タスク（追記日: 2026-07-29）: 大分類・中分類によるグループ表示への変更（要件11）
+
+> 対応要件: 要件11。設計は`design.md`「追加設計（追記日: 2026-07-29）」を参照。`links-management`spec（要件12〜16、`LinkCategory`階層データモデル・`getLinkCategoriesForApplicant`・`resolveLinkCategoryContent`）の実装完了が前提となる。既存タスク1〜13は保持し、以下を積み増す。
+
+- [x] 14. `Link`型を`categoryId`/`subCategoryId`ベースへ追随させる
+  - `src/types/link.ts`の`Link`・`LinkWithTimestamp`を、`links-management`spec（タスク23）が変更した`categoryId`/`subCategoryId`ベースの定義に追随させる
+  - `npx tsc --noEmit`が通ることで完了とする（既存の`category`参照箇所のコンパイルエラーは以降のタスクで解消する）
+  - _Requirements: 11.1_
+  - _Depends: links-management タスク23_
+
+- [x] 15. `groupLinksByCategory`を実装する
+  - `src/lib/link-utils.ts`に`groupLinksByCategory(links, categories, uncategorizedLabel)`（design.md参照）を実装する。`categories`（`links-management`提供の`LinkCategorySummary[]`）を`displayOrder`昇順に走査し、該当リンクが1件以上ある大分類のみグループ化、各リンクの中分類名を解決、末尾に「未分類」グループ（該当リンクが1件以上あるときのみ）を追加する
+  - 単体テストで、displayOrder順のグループ生成、0件大分類の非表示、未分類グループの生成条件、中分類名の付与を検証し、通ることで完了とする
+  - _Requirements: 11.1, 11.4, 11.5, 11.6_
+  - _Boundary: groupLinksByCategory_
+  - _Depends: 14, links-management タスク25_
+
+- [x] 16. `LinkList`が`getLinkCategoriesForApplicant`を取得するよう変更する
+  - `src/components/features/links/LinkList.tsx`が既存の`getLinks()`に加え、`links-management`spec提供の`getLinkCategoriesForApplicant(locale)`を`Promise.all`で並行取得し、`LinkListClient`へpropsで渡すよう変更する
+  - いずれかの取得失敗も既存のエラー表示分岐に含める
+  - _Requirements: 11.1_
+  - _Boundary: LinkList_
+  - _Depends: 15_
+
+- [x] 17. `LinkListClient`のグループ化ロジックを`groupLinksByCategory`ベースへ変更する
+  - `src/components/features/links/LinkListClient.tsx`の`LINK_CATEGORY_CODES`固定順走査を、`filterLinks`→`groupLinksByCategory`の順で適用するロジックへ変更する
+  - 既存の要件8（改行保持）・要件9（新着表示）・要件10（キーワード検索）の挙動を変更しないことを確認する
+  - 単体/統合テストで、大分類グループ化・中分類サブラベル・未分類グループの表示を検証し、通ることで完了とする
+  - _Requirements: 11.1, 11.2, 11.7_
+  - _Boundary: LinkListClient_
+  - _Depends: 16_
+
+- [x] 18. `LinkCategoryGroup`・`LinkItem`をカテゴリ表示の変更に対応させる
+  - `LinkCategoryGroup`のpropsを固定カテゴリ値から解決済み`categoryName: string`を受け取る形へ変更する
+  - `LinkItem`に`subCategoryName: string | null`propsを追加し、非nullのとき登録日・新着バッジと並ぶ位置にサブラベルとして表示する
+  - _Requirements: 11.2, 11.3_
+  - _Boundary: LinkCategoryGroup, LinkItem_
+  - _Depends: 17_
+
+- [x] 19. 翻訳キーを追加し、不要になったキー・定数を撤去する
+  - `messages/ja.json`・`messages/en.json`の`links`名前空間に`uncategorized`を追加する
+  - `links.categories.*`（固定4値のカテゴリ表示名キー）を撤去する
+  - `src/lib/constants/link-options.ts`の`LINK_CATEGORY_CODES`・`LinkManagementCategoryFilter`を撤去する（`links-management`要件15の大分類/中分類絞り込みへの置き換えと整合させる）
+  - `ja.json`で定義した新規キーが全て`en.json`にも存在することで完了とする
+  - _Requirements: 11.8_
+  - _Depends: 18, links-management タスク35_
+
+- [x] 20. 検証
+  - `npx tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する（確認済み。165ファイル1472件通過、ビルド成功）
+  - カテゴリ管理（`links-management`側）でカテゴリを追加・並び替えたとき、`/links`のグループ順序が追随することをブラウザで確認する（`groupLinksByCategory`が`categories`のdisplayOrder順をそのまま反映する設計のためロジック上は保証されているが、実機でのブラウザ確認は未実施。次フェーズの実機検証で確認する）
+  - _Requirements: 11.1〜11.8_
+  - _Depends: 19_
+
+- [ ]* 21. 多言語表示のE2E確認を行う
+  - 日英切り替えで大分類名・中分類名・「未分類」ラベルが正しく切り替わることを確認する
+  - _Requirements: 11.8_
+  - _Depends: 20_

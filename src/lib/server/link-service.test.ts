@@ -20,7 +20,12 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/server/link-category-service", () => ({
+  assertLinkCategoryPair: vi.fn(),
+}));
+
 import { prisma } from "@/lib/db/prisma";
+import { assertLinkCategoryPair } from "@/lib/server/link-category-service";
 import {
   createLinkRecord,
   deleteLinkRecord,
@@ -36,7 +41,8 @@ function baseLinkRecord(
     id: string;
     title: string;
     url: string;
-    category: "internal" | "external" | "document" | "other";
+    categoryId: string | null;
+    subCategoryId: string | null;
     description: string | null;
     createdAt: Date;
   }> = {}
@@ -45,7 +51,8 @@ function baseLinkRecord(
     id: "link-1",
     title: "リンク",
     url: "https://example.com",
-    category: "other" as const,
+    categoryId: "category-1",
+    subCategoryId: null,
     description: null,
     createdAt: new Date("2026-07-01T00:00:00.000Z"),
     ...overrides,
@@ -54,6 +61,7 @@ function baseLinkRecord(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(assertLinkCategoryPair).mockResolvedValue(undefined);
 });
 
 describe("listLinks", () => {
@@ -63,7 +71,8 @@ describe("listLinks", () => {
         id: "1",
         title: "リンク1",
         url: "https://example.com/1",
-        category: "internal",
+        categoryId: "category-1",
+        subCategoryId: null,
         description: "説明1",
         createdAt: new Date("2026-07-02T00:00:00.000Z"),
       },
@@ -71,7 +80,8 @@ describe("listLinks", () => {
         id: "2",
         title: "リンク2",
         url: "https://example.com/2",
-        category: "other",
+        categoryId: null,
+        subCategoryId: null,
         description: null,
         createdAt: new Date("2026-07-01T00:00:00.000Z"),
       },
@@ -87,7 +97,8 @@ describe("listLinks", () => {
         id: "1",
         title: "リンク1",
         url: "https://example.com/1",
-        category: "internal",
+        categoryId: "category-1",
+        subCategoryId: null,
         description: "説明1",
         createdAt: "2026-07-02T00:00:00.000Z",
       },
@@ -95,7 +106,8 @@ describe("listLinks", () => {
         id: "2",
         title: "リンク2",
         url: "https://example.com/2",
-        category: "other",
+        categoryId: null,
+        subCategoryId: null,
         description: undefined,
         createdAt: "2026-07-01T00:00:00.000Z",
       },
@@ -128,7 +140,8 @@ describe("listLinksForHelpdesk", () => {
         id: "1",
         title: "リンク",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-1",
+        subCategoryId: null,
         description: undefined,
         createdAt: "2026-07-02T00:00:00.000Z",
       },
@@ -136,7 +149,8 @@ describe("listLinksForHelpdesk", () => {
         id: "2",
         title: "リンク",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-1",
+        subCategoryId: null,
         description: undefined,
         createdAt: "2026-07-01T00:00:00.000Z",
       },
@@ -165,7 +179,7 @@ describe("findLinkById", () => {
 });
 
 describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
-  it("入力内容でリンクを作成する", async () => {
+  it("入力内容でリンクを作成する（大分類・中分類の親子整合を検証してから作成する）", async () => {
     vi.mocked(prisma.link.create).mockResolvedValue(
       baseLinkRecord({ id: "1", title: "新規リンク" }) as never
     );
@@ -173,22 +187,39 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
     const result = await createLinkRecord({
       title: "新規リンク",
       url: "https://example.com",
-      category: "other",
+      categoryId: "category-1",
+      subCategoryId: null,
       description: "説明",
     });
 
+    expect(assertLinkCategoryPair).toHaveBeenCalledWith("category-1", null);
     expect(prisma.link.create).toHaveBeenCalledWith({
       data: {
         title: "新規リンク",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-1",
+        subCategoryId: null,
         description: "説明",
       },
     });
     expect(result.id).toBe("1");
   });
 
-  it("既存リンクを更新する", async () => {
+  it("大分類・中分類の親子整合が不正なときは作成せず例外を送出する", async () => {
+    vi.mocked(assertLinkCategoryPair).mockRejectedValue(new Error("invalid pair"));
+
+    await expect(
+      createLinkRecord({
+        title: "新規リンク",
+        url: "https://example.com",
+        categoryId: "category-1",
+        subCategoryId: "unrelated-sub",
+      })
+    ).rejects.toThrow("invalid pair");
+    expect(prisma.link.create).not.toHaveBeenCalled();
+  });
+
+  it("既存リンクを更新する（大分類・中分類の親子整合を検証してから更新する）", async () => {
     vi.mocked(prisma.link.update).mockResolvedValue(
       baseLinkRecord({ id: "1", title: "更新後" }) as never
     );
@@ -196,16 +227,19 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
     const result = await updateLinkRecord("1", {
       title: "更新後",
       url: "https://example.com",
-      category: "other",
+      categoryId: "category-1",
+      subCategoryId: undefined,
       description: undefined,
     });
 
+    expect(assertLinkCategoryPair).toHaveBeenCalledWith("category-1", null);
     expect(prisma.link.update).toHaveBeenCalledWith({
       where: { id: "1" },
       data: {
         title: "更新後",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-1",
+        subCategoryId: null,
         description: undefined,
       },
     });
@@ -219,7 +253,7 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
       updateLinkRecord("missing", {
         title: "t",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-1",
       })
     ).rejects.toThrow(LinkNotFoundError);
   });
@@ -231,7 +265,7 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
       updateLinkRecord("1", {
         title: "t",
         url: "https://example.com",
-        category: "other",
+        categoryId: "category-1",
       })
     ).rejects.toThrow("connection lost");
   });

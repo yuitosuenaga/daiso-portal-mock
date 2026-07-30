@@ -17,6 +17,7 @@ import {
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { LinkWithTimestamp } from "@/types/link";
+import type { LinkCategoryAdminView } from "@/types/link-category";
 
 export interface LinkManagementListClientProps {
   /** 登録日降順で整列済みの全リンク */
@@ -24,9 +25,18 @@ export interface LinkManagementListClientProps {
   locale: string;
   listTitle: string;
   editLinkLabel: string;
+  /** 大分類の絞り込み選択肢の元データ（`getAllLinkCategories()`の大分類一覧、中分類を含む） */
+  categories: LinkCategoryAdminView[];
+  /** 大分類・中分類の両方のID→表示名の辞書（未設定時のラベルは`unsetCategoryLabel`） */
+  categoryLabels: Record<string, string>;
+  unsetCategoryLabel: string;
 }
 
-const INITIAL_FILTERS: LinkManagementFilters = { keyword: "", category: "all" };
+const INITIAL_FILTERS: LinkManagementFilters = {
+  keyword: "",
+  categoryId: "all",
+  subCategoryId: "all",
+};
 
 /**
  * リンク管理一覧のキーワード・カテゴリ絞り込み状態とページネーション状態を保持し、
@@ -38,18 +48,28 @@ export function LinkManagementListClient({
   locale,
   listTitle,
   editLinkLabel,
+  categories,
+  categoryLabels,
+  unsetCategoryLabel,
 }: LinkManagementListClientProps) {
   const t = useTranslations("helpdeskLinks.list.filter");
   const tList = useTranslations("helpdeskLinks.list");
-  const tCategories = useTranslations("links.categories");
   const [filters, setFilters] = useState<LinkManagementFilters>(INITIAL_FILTERS);
   const [page, setPage] = useState(1);
 
   const filteredLinks = useMemo(() => {
     const byKeyword = filterLinks(links, filters.keyword);
-    return byKeyword.filter(
-      (link) => filters.category === "all" || link.category === filters.category
-    );
+    return byKeyword.filter((link) => {
+      const matchesCategory =
+        filters.categoryId === "all" ||
+        (filters.categoryId === "uncategorized"
+          ? link.categoryId === null
+          : link.categoryId === filters.categoryId);
+      const matchesSubCategory =
+        filters.subCategoryId === "all" ||
+        link.subCategoryId === filters.subCategoryId;
+      return matchesCategory && matchesSubCategory;
+    });
   }, [links, filters]);
 
   const totalPages = Math.max(
@@ -76,6 +96,7 @@ export function LinkManagementListClient({
     <div className="space-y-4">
       <LinkManagementFilterBar
         filters={filters}
+        categories={categories}
         onChange={handleFiltersChange}
         onClear={handleClear}
       />
@@ -91,7 +112,14 @@ export function LinkManagementListClient({
                     <p className="text-sm font-medium">{link.title}</p>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="truncate">{link.url}</span>
-                      <span>{tCategories(link.category)}</span>
+                      <span>
+                        {link.categoryId
+                          ? (categoryLabels[link.categoryId] ?? unsetCategoryLabel)
+                          : unsetCategoryLabel}
+                      </span>
+                      {link.subCategoryId && categoryLabels[link.subCategoryId] && (
+                        <span>{categoryLabels[link.subCategoryId]}</span>
+                      )}
                       <time dateTime={link.createdAt}>
                         {new Date(link.createdAt).toLocaleDateString(locale, {
                           year: "numeric",

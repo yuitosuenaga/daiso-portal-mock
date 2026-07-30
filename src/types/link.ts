@@ -1,23 +1,30 @@
-// リンク集機能のドメイン型定義（フェーズ1の仮定義）。
-// category の選択肢はヘルプデスク担当者へのヒアリング後に変更される前提。
-
-/** リンクの種別（category）。ヒアリング後に選択肢が変更される前提の仮値。 */
-export type LinkCategory = "internal" | "external" | "document" | "other";
+// リンク集機能のドメイン型定義。
+// カテゴリ（大分類・中分類）は`@/types/link-category`が所有する`LinkCategory`階層モデルを参照する
+// （2026-07-29改訂: 固定4値enumから、ヘルプデスク担当者が管理画面で追加・編集できる
+// 階層カテゴリへ変更した。旧`LinkCategory`型（固定4値union）は撤去した）。
 
 export interface Link {
   id: string;
   title: string;
   url: string;
-  category: LinkCategory;
+  /** 大分類ID。カテゴリ未設定の既存リンクはnull（要件12.4） */
+  categoryId: string | null;
+  /** 中分類ID。未設定を許容（要件12.7）。非nullのとき必ずcategoryIdの配下 */
+  subCategoryId: string | null;
   /** 補足説明（フェーズ1は任意項目） */
   description?: string;
 }
 
 /**
  * リンク新規作成・編集時のAPI入力契約。
- * `Link`から`id`（API側で生成）を除いたサブセット。
+ * `Link`から`id`（API側で生成）を除いたサブセット。書き込み経路では大分類（`categoryId`）を
+ * 必須とする（要件12.6。`Link`本体は既存リンクとの後方互換のためnull許容のまま）。
+ * `subCategoryId`は未指定（`undefined`）＝中分類なしを許容する（zodスキーマの出力と揃えるため）。
  */
-export type CreateLinkInput = Omit<Link, "id">;
+export type CreateLinkInput = Omit<Link, "id" | "categoryId" | "subCategoryId"> & {
+  categoryId: string;
+  subCategoryId?: string | null;
+};
 
 /**
  * 登録日（`createdAt`）を含む表示用のリンク型。

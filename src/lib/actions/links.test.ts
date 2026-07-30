@@ -22,7 +22,7 @@ function buildInput(overrides: Partial<CreateLinkInput> = {}): CreateLinkInput {
   return {
     title: "社内ポータル",
     url: "https://example.com/portal",
-    category: "internal",
+    categoryId: "category-internal",
     ...overrides,
   };
 }
@@ -32,7 +32,8 @@ function link(overrides: Partial<Link> = {}): Link {
     id: "link-1",
     title: "タイトル",
     url: "https://example.com",
-    category: "internal",
+    categoryId: "category-internal",
+    subCategoryId: null,
     ...overrides,
   };
 }

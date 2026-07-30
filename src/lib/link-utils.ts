@@ -63,3 +63,68 @@ export function filterLinks<T extends FilterableLink>(
     );
   });
 }
+
+interface GroupableLink {
+  categoryId: string | null;
+  subCategoryId: string | null;
+}
+
+export interface LinkCategoryGroupData<T extends GroupableLink> {
+  /** 大分類のID。「未分類」グループのみ null */
+  categoryId: string | null;
+  /** 解決済みの大分類名（「未分類」グループは呼び出し側が用意した固定ラベルを充てる） */
+  categoryName: string;
+  links: Array<T & { subCategoryName: string | null }>;
+}
+
+/**
+ * リンクを大分類（`links-management`spec提供の`LinkCategorySummary[]`、`displayOrder`昇順）で
+ * グループ化する。`links-page`の申請者側一覧・`links-management`のプレビュー機能
+ * （`LinkPreviewPanel`）の両方から呼び出される共通ロジック（表示ロジックの二重実装を避ける）。
+ *
+ * - 大分類は`categories`の順序（displayOrder昇順）で走査し、該当リンクが1件以上あるものだけを返す
+ * - 各リンクの`subCategoryId`を大分類の`subCategories`から検索し、解決済みの`subCategoryName`を付与する
+ * - `categoryId`が`null`のリンクは「未分類」グループとしてまとめ、末尾に追加する（1件以上のときのみ）
+ */
+export function groupLinksByCategory<T extends GroupableLink>(
+  links: T[],
+  categories: LinkCategorySummaryLike[],
+  uncategorizedLabel: string
+): LinkCategoryGroupData<T>[] {
+  const groups: LinkCategoryGroupData<T>[] = [];
+
+  for (const category of categories) {
+    const categoryLinks = links.filter((link) => link.categoryId === category.id);
+    if (categoryLinks.length === 0) {
+      continue;
+    }
+
+    groups.push({
+      categoryId: category.id,
+      categoryName: category.name,
+      links: categoryLinks.map((link) => ({
+        ...link,
+        subCategoryName:
+          category.subCategories.find((sub) => sub.id === link.subCategoryId)?.name ??
+          null,
+      })),
+    });
+  }
+
+  const uncategorizedLinks = links.filter((link) => link.categoryId === null);
+  if (uncategorizedLinks.length > 0) {
+    groups.push({
+      categoryId: null,
+      categoryName: uncategorizedLabel,
+      links: uncategorizedLinks.map((link) => ({ ...link, subCategoryName: null })),
+    });
+  }
+
+  return groups;
+}
+
+interface LinkCategorySummaryLike {
+  id: string;
+  name: string;
+  subCategories: Array<{ id: string; name: string }>;
+}
