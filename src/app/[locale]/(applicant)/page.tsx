@@ -1,5 +1,13 @@
 import { Suspense } from "react";
-import { FilePlus, FolderOpen, HelpCircle, Link2 } from "lucide-react";
+import {
+  BookOpen,
+  FilePlus,
+  FolderOpen,
+  HelpCircle,
+  Link2,
+  Tags,
+  Video,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
@@ -23,6 +31,25 @@ export default async function DashboardPage() {
         <AnnouncementsPreviewPanel viewAllHref="/announcements" />
       </Suspense>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Suspense fallback={<NavigationCardSkeleton />}>
+          <AnnouncementsCard
+            href="/announcements"
+            titleKey="dashboard.announcements.title"
+            descriptionKey="dashboard.announcements.description"
+          />
+        </Suspense>
+        <NavigationCard
+          title={t("documents.title")}
+          description={t("documents.description")}
+          href="/documents"
+          icon={FolderOpen}
+        />
+        <NavigationCard
+          title={t("salesFloorMeeting.title")}
+          description={t("salesFloorMeeting.description")}
+          href="/documents"
+          icon={Video}
+        />
         <NavigationCard
           title={t("inquiryForm.title")}
           description={t("inquiryForm.description")}
@@ -37,18 +64,17 @@ export default async function DashboardPage() {
             descriptionKey="dashboard.inquiryList.description"
           />
         </Suspense>
-        <Suspense fallback={<NavigationCardSkeleton />}>
-          <AnnouncementsCard
-            href="/announcements"
-            titleKey="dashboard.announcements.title"
-            descriptionKey="dashboard.announcements.description"
-          />
-        </Suspense>
         <NavigationCard
-          title={t("documents.title")}
-          description={t("documents.description")}
+          title={t("manuals.title")}
+          description={t("manuals.description")}
           href="/documents"
-          icon={FolderOpen}
+          icon={BookOpen}
+        />
+        <NavigationCard
+          title={t("pop.title")}
+          description={t("pop.description")}
+          href="/documents"
+          icon={Tags}
         />
         <NavigationCard
           title={t("links.title")}

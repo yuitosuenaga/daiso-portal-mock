@@ -590,3 +590,91 @@ export interface ConfirmDialogProps {
 
 ### 利用側への影響
 - 各利用側spec（`announcements-management`・`faq-management`・`links-management`・`documents-management`・`helpdesk-account-management`）は、それぞれの削除/無効化ボタンで`window.confirm()`を`ConfirmDialog`へ置き換える。対象名の埋め込み・翻訳キーの追加は各利用側specの責務とする。
+
+## 申請者側サイドバー・モバイルドロワーの撤去（2026-09-06 追記）
+
+Requirement 19 に対応する。申請者側（`(applicant)`ルートグループ）の遷移導線を「ダッシュボードのブロック（カード）」に一本化する方針転換に伴い、申請者側の左サイドバーとモバイルドロワーを撤去する。ヘルプデスク側のレイアウト・ナビゲーションは一切変更しない。
+
+### 撤去の設計判断: 「非表示化」ではなく「削除」
+
+条件分岐やCSSでの非表示化ではなく、申請者側専用資産（`Sidebar.tsx`・`APPLICANT_NAV_ITEMS`・`nav`翻訳名前空間）そのものを削除する。理由:
+- `AppShell`は`(applicant)`ルートグループ専用シェルであり、申請者側でのみ描画される。「条件付き非表示」は実質「常に非表示」と同義になり、死蔵コードと分岐だけが残る（Requirement 17で切り替えリンクを撤去したときと同じ判断）。
+- Requirement 19.6 が、未使用となる翻訳名前空間・ナビゲーション項目定義を残さないことを明示的に要求している。
+
+### 共有資産と申請者側専用資産の切り分け（回帰防止の要）
+
+2026-07-22追記（Requirement 15）で新設した`nav-items.ts`・`MobileNav.tsx`は申請者側とヘルプデスク側の**共有資産**である。本ラウンドで削除してよいのは申請者側専用の部分のみで、共有部分はヘルプデスク側のために残す。
+
+| 資産 | 区分 | 本ラウンドでの扱い |
+|------|------|--------------------|
+| `Sidebar.tsx` / `Sidebar.test.tsx` | 申請者側専用 | **削除** |
+| `nav-items.ts`の`APPLICANT_NAV_ITEMS` | 申請者側専用 | **削除** |
+| `nav-items.ts`の`HELPDESK_NAV_ITEMS`・`NavItem`・`resolveActiveHref` | 共有 / ヘルプデスク側 | **維持**（`HelpdeskSidebar`・ヘルプデスク側`MobileNav`が継続利用） |
+| `MobileNav.tsx` | 共有 | **維持**。ただし`namespace` propの型を`"nav" \| "helpdeskNav"`から`"helpdeskNav"`へ狭め、申請者側での誤用を型で防ぐ |
+| `messages/*.json`の`nav`名前空間 | 申請者側専用 | **削除**（`helpdeskNav`は維持） |
+| `HelpdeskAppShell` / `HelpdeskSidebar` / `HelpdeskHeader` / `HELPDESK_NAV_ITEMS` | ヘルプデスク側 | **一切変更しない** |
+
+### 対象ファイルと変更内容
+
+- `src/components/layout/Sidebar.tsx`（削除）、`src/components/layout/Sidebar.test.tsx`（削除）
+- `src/components/layout/AppShell.tsx`:
+  - `Sidebar`のimportと`<div className="hidden md:block"><Sidebar .../></div>`を削除する。
+  - タブレット幅の折りたたみトグルボタン（`hidden md:flex lg:hidden`のボタン）を削除する（Requirement 19.4）。これに伴い`useState`（`isSidebarCollapsed`）・`ChevronLeft`/`ChevronRight`のimportも削除する。
+  - `<main>`の`className`から`md:pl-16`・`md:pl-60`・`lg:pl-60`・`pl-0`・`transition-all duration-200`を除去し、`"pt-16 min-h-screen"`のみとする（Requirement 19.3）。
+  - 状態を持たなくなるため`"use client"`ディレクティブを削除し、サーバーコンポーネント化する（`Header`は自身が`"use client"`のクライアントコンポーネントであり、サーバーコンポーネントから問題なく描画できる）。
+  - 副次効果として、トグルボタンに残っていた`aria-label`の日本語ハードコード（`"サイドバーを展開"`/`"サイドバーを折りたたむ"`。2026-07-13追記のRequirement 14でヘルプデスク側のみ是正しスコープ外としていた箇所）が解消される。
+- `src/components/layout/Header.tsx`:
+  - `MobileNav`・`APPLICANT_NAV_ITEMS`のimportと`<MobileNav items={APPLICANT_NAV_ITEMS} namespace="nav" rootHref="/" />`を削除する（Requirement 19.2）。
+  - ロゴ／タイトルのダッシュボードリンク（Requirement 12）・`LanguageSwitcher`・ログアウト（Requirement 13）・副題の省略回避（Requirement 16）は変更しない。ロゴリンクは撤去後、申請者側で唯一の恒常的なトップページ導線となる（Requirement 19.5）。
+- `src/components/layout/nav-items.ts`:
+  - `APPLICANT_NAV_ITEMS`を削除する。未使用となるアイコンimport（`LayoutDashboard`等のうちヘルプデスク側で使われないもの）を整理する。
+  - `resolveActiveHref`のJSDocから申請者側（`rootHref="/"`）の記述を、ヘルプデスク側のみを対象とする記述へ更新する。
+- `src/components/layout/MobileNav.tsx`:
+  - `MobileNavProps.namespace`の型を`"helpdeskNav"`に狭め、JSDoc・コメントから申請者側の記述を削除する。
+- `messages/ja.json` / `messages/en.json`:
+  - `nav`名前空間（`sidebarLabel`・`openMenu`・`closeMenu`・`dashboard`・`inquiryForm`・`inquiryList`・`announcements`・`links`・`faq`・`documents`）を丸ごと削除する（Requirement 19.6）。`helpdeskNav`は変更しない。
+- テスト:
+  - `src/components/layout/nav-items.test.ts`: `APPLICANT_NAV_ITEMS`を用いる`describe("申請者側（rootHref: /）")`ブロックを削除する。`resolveActiveHref`のロジック自体のカバレッジはヘルプデスク側（`rootHref="/helpdesk"`）のケースで維持する。
+  - `src/components/layout/MobileNav.test.tsx`: `APPLICANT_NAV_ITEMS`／`namespace="nav"`／`rootHref="/"`／`messages.nav.*`参照を、`HELPDESK_NAV_ITEMS`／`"helpdeskNav"`／`"/helpdesk"`／`messages.helpdeskNav.*`へ差し替える。共有コンポーネントである`MobileNav`のテストカバレッジ（開閉・遷移・アクティブ判定・Esc/Overlay）は落とさない。
+  - `src/components/layout/Header.test.tsx`: ハンバーガーが存在しないことの検証を追加してよい。ロゴ・言語切替・ログアウトの既存アサーションは維持する。
+  - `src/app/[locale]/(applicant)/layout.test.tsx`: `@/i18n/navigation`のモックは`Header`（クライアントコンポーネント）経由で引き続き必要なため維持する。テスト内容の変更は不要の見込みだが、実装後に通ることを確認する。
+
+### コンテンツ領域の最大幅
+
+サイドバー撤去によりコンテンツが全幅に広がるため、`AppShell`内側の`<div className="p-4">`に`mx-auto max-w-screen-2xl`を付与し、超広幅ディスプレイ（1536px超）で本文が横に伸びきることを防ぐ。1536px以下では従来と同じく利用可能な幅を使い切るため、Requirement 19.3（サイドバー幅ぶんの左パディングを持たない・利用可能な幅を使用する）と矛盾しない。
+
+### 他要件との整合
+
+- **Requirement 11（申請者側サイドバーのアクティブ判定）**: サイドバー自体の撤去により申請者側の適用対象が消滅する。判定関数`resolveActiveHref`はヘルプデスク側で引き続き使用するため削除しない。
+- **Requirement 15（モバイルドロワー）**: 申請者側分のみ撤回。ヘルプデスク側のドロワー（`HelpdeskHeader`→`MobileNav`）は仕様・実装とも従来どおり維持する。
+- **Requirement 12（ヘッダーロゴのダッシュボード導線）**: 撤去後、申請者側で唯一の恒常的なナビゲーション要素となるため、変更せず維持することが必須。
+- **Requirement 16（ヘッダー副題の省略回避）**: ハンバーガー撤去によりヘッダー左側の要素が1つ減り、タイトル領域の残余幅が広がる方向に作用する。矛盾しない。
+- **Requirement 6（既存の申請者側機能の非破壊）**: 本ラウンドはナビゲーション手段の意図的な変更であり、Requirement 19により上書きされる。各申請者側ページ本体のレイアウト・操作性自体は変更しない。
+- **`dashboard-card-redesign`spec（2026-09-06追記）**: 撤去後の到達可能性は同specのブロック構成（お知らせ・資料共有・売場検討会（動画）・問合せ・問合せ一覧・マニュアル・POP＋リンク・よくある質問）が担保する。実装順序は「ダッシュボードのブロック構成 → サイドバー撤去」とし、中間状態で到達不能なルートを作らない。
+
+### Testing Strategy（2026-09-06 追記分）
+
+- **Unit / Component**:
+  - `nav-items.test.ts`がヘルプデスク側ケースのみで通り、`resolveActiveHref`の完全一致・前方一致・最長一致優先の分岐カバレッジが維持されること。
+  - `MobileNav.test.tsx`がヘルプデスク構成へ差し替え後も全ケース通ること。
+  - `Header.test.tsx`・`(applicant)/layout.test.tsx`・`HelpdeskAppShell.test.tsx`・`HelpdeskSidebar.test.tsx`が無変更または最小変更で通ること（ヘルプデスク側の回帰なし）。
+  - `npm run lint` / 型チェックで未使用import・未参照翻訳キーが残っていないこと（Requirement 19.6・19.8）。
+- **E2E/UI（playwright, 日英両ロケール）**:
+  - 申請者側の全画面（`/`・`/inquiry`・`/inquiry/new`・`/announcements`・`/documents`・`/links`・`/faq`）で左サイドバーが表示されないこと、コンテンツが左端から始まること（Requirement 19.1・19.3）。
+  - 幅375px（モバイル）の申請者側ヘッダーにハンバーガーが表示されないこと（Requirement 19.2）。
+  - 幅834px（タブレット）の申請者側でサイドバー折りたたみトグルが表示されないこと、横スクロールが発生しないこと（Requirement 19.4）。
+  - ヘッダーロゴから`/`へ遷移できること（Requirement 19.5・Requirement 12の維持）。
+  - **ヘルプデスク側（`/helpdesk`配下）の回帰確認（最重要）**: サイドバー表示・タブレット折りたたみトグル・モバイルハンバーガー＋ドロワー（開閉・項目遷移・アクティブ表示）が従来どおり動作すること（Requirement 19.7）。
+
+### Requirements Traceability（2026-09-06 追記分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 19.1 | 申請者側全画面で左サイドバー非表示 | AppShell, Sidebar（削除） | — | — |
+| 19.2 | 申請者側ヘッダーのハンバーガー非表示 | Header, MobileNav（申請者側利用の除去） | — | — |
+| 19.3 | コンテンツ領域の左パディング撤去 | AppShell | — | — |
+| 19.4 | タブレット折りたたみトグル撤去 | AppShell | — | — |
+| 19.5 | 導線をロゴ・各画面の戻り導線・ダッシュボードブロックに限定 | Header（ロゴリンク維持）, `dashboard-card-redesign`spec | — | ロゴ→`/`→ブロック選択→各画面 |
+| 19.6 | `nav`名前空間・`APPLICANT_NAV_ITEMS`の削除 | nav-items.ts, messages/ja.json, messages/en.json | i18n keys | — |
+| 19.7 | ヘルプデスク側に回帰を生じさせない | HelpdeskAppShell, HelpdeskSidebar, HelpdeskHeader, MobileNav, resolveActiveHref（すべて維持） | — | — |
+| 19.8 | Lint・型チェック・既存テストが通る | nav-items.test.ts, MobileNav.test.tsx, Header.test.tsx | — | — |

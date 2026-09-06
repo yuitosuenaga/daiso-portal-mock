@@ -35,8 +35,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "home": "Dashboard",
-    "inquiryForm": "Application",
-    "inquiries": "Application Management",
+    "inquiryForm": "Inquiry",
+    "inquiries": "Inquiry Management",
     "templates": "Template Management",
     "links": "Links",
     "faq": "FAQ",
@@ -284,11 +284,11 @@
   },
   "helpdeskInquiries": {
     "list": {
-      "title": "Application Management",
-      "description": "View applications from all companies, sorted by status and urgency.",
-      "empty": "No applications",
-      "error": "Failed to load applications",
-      "noResults": "No applications match the selected filters",
+      "title": "Inquiry Management",
+      "description": "View inquiries from all companies, sorted by status and urgency.",
+      "empty": "No inquiries",
+      "error": "Failed to load inquiries",
+      "noResults": "No inquiries match the selected filters",
       "untitled": "(No title)"
     },
     "detail": {
@@ -700,34 +700,34 @@
       "errorMessage": "Bulk deactivation failed. Please try again later."
     }
   },
-  "nav": {
-    "sidebarLabel": "Main Navigation",
-    "openMenu": "Open menu",
-    "closeMenu": "Close menu",
-    "dashboard": "Dashboard",
-    "inquiryForm": "New Inquiry",
-    "inquiryList": "My Applications",
-    "announcements": "Announcements",
-    "links": "Links",
-    "faq": "FAQ",
-    "documents": "Documents"
-  },
   "dashboard": {
     "inquiryForm": {
-      "title": "New Inquiry",
-      "description": "Submit a new inquiry or request."
+      "title": "Inquiry",
+      "description": "Submit a new inquiry."
     },
     "inquiryList": {
-      "title": "My Applications",
-      "description": "Check the status of applications your company has submitted."
+      "title": "My Inquiries",
+      "description": "Check the status of inquiries your company has submitted."
     },
     "announcements": {
       "title": "Announcements",
       "description": "View announcements from head office."
     },
     "documents": {
-      "title": "Documents",
+      "title": "Document Sharing",
       "description": "View business documents published by head office."
+    },
+    "salesFloorMeeting": {
+      "title": "Sales Floor Review (Video)",
+      "description": "View sales floor review video materials."
+    },
+    "manuals": {
+      "title": "Manuals",
+      "description": "View operational manuals."
+    },
+    "pop": {
+      "title": "POP",
+      "description": "View in-store POP materials."
     },
     "links": {
       "title": "Links",
@@ -747,10 +747,10 @@
       "title": "Reminders from Japan"
     },
     "priorityInquiriesPreview": {
-      "title": "Applications Needing Attention",
-      "empty": "There are no applications needing attention.",
-      "error": "Failed to load applications.",
-      "viewAll": "View all applications"
+      "title": "Inquiries Needing Attention",
+      "empty": "There are no inquiries needing attention.",
+      "error": "Failed to load inquiries.",
+      "viewAll": "View all inquiries"
     }
   },
   "helpdeskDashboard": {
@@ -763,15 +763,15 @@
       "unresolvedLabel": "Total unresolved (all companies)",
       "todayLabel": "Unresolved received today",
       "none": "No unresolved items",
-      "viewAll": "View all applications",
+      "viewAll": "View all inquiries",
       "error": "Failed to load the unresolved count"
     },
     "companies": {
       "description": "View registered overseas distributors and manage their applicant accounts."
     },
     "inquiries": {
-      "title": "Application List",
-      "description": "View in-progress applications submitted by all companies."
+      "title": "Inquiry List",
+      "description": "View in-progress inquiries submitted by all companies."
     },
     "templates": {
       "title": "Template Management",
@@ -786,8 +786,8 @@
       "description": "View, create, edit, and delete documents."
     },
     "inquiryForm": {
-      "title": "Application",
-      "description": "Create a new inquiry or request."
+      "title": "Inquiry",
+      "description": "Create a new inquiry."
     },
     "links": {
       "title": "Links",
@@ -874,8 +874,8 @@
     }
   },
   "inquiryForm": {
-    "title": "Inquiry / Request Form",
-    "description": "Fill in the selection fields and free text, then submit your inquiry or request.",
+    "title": "Inquiry Form",
+    "description": "Fill in the selection fields and free text, then submit your inquiry.",
     "requiredMark": "Required",
     "backToList": "Back to list",
     "loadError": "Failed to load the information required to display this form. Please try again later.",
@@ -898,7 +898,7 @@
       },
       "originalText": {
         "label": "Inquiry Details (free text)",
-        "placeholder": "Enter the details of your inquiry or request",
+        "placeholder": "Enter the details of your inquiry",
         "remainingCharacters": "{count} characters remaining"
       },
       "originalLanguage": {
@@ -994,18 +994,18 @@
       "button": "Submit",
       "submitting": "Submitting...",
       "successTitle": "Submission complete",
-      "successDescription": "Your inquiry or request has been received.",
+      "successDescription": "Your inquiry has been received.",
       "errorTitle": "Submission failed",
       "errorDescription": "Please try again later.",
-      "viewInquiryListLink": "View my applications"
+      "viewInquiryListLink": "View my inquiries"
     }
   },
   "inquiryList": {
     "list": {
-      "title": "Application List",
-      "description": "View the list of inquiries and requests your company has submitted, along with their status.",
-      "empty": "No applications",
-      "error": "Failed to load applications",
+      "title": "Inquiry List",
+      "description": "View the list of inquiries your company has submitted, along with their status.",
+      "empty": "No inquiries",
+      "error": "Failed to load inquiries",
       "untitled": "(No title)",
       "newBadge": "New"
     },

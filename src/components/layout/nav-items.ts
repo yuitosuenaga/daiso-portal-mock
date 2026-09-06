@@ -17,17 +17,6 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-/** 申請者側サイドバー・モバイルドロワーで共有するナビゲーション項目定義。 */
-export const APPLICANT_NAV_ITEMS: NavItem[] = [
-  { translationKey: "dashboard", href: "/", icon: LayoutDashboard },
-  { translationKey: "inquiryForm", href: "/inquiry/new", icon: FilePlus },
-  { translationKey: "inquiryList", href: "/inquiry", icon: List },
-  { translationKey: "announcements", href: "/announcements", icon: Bell },
-  { translationKey: "documents", href: "/documents", icon: FolderOpen },
-  { translationKey: "links", href: "/links", icon: Link2 },
-  { translationKey: "faq", href: "/faq", icon: HelpCircle },
-];
-
 /** ヘルプデスク側サイドバー・モバイルドロワーで共有するナビゲーション項目定義。 */
 export const HELPDESK_NAV_ITEMS: NavItem[] = [
   { translationKey: "home", href: "/helpdesk", icon: LayoutDashboard },

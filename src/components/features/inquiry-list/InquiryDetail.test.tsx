@@ -57,7 +57,7 @@ describe("InquiryDetail", () => {
     const jsx = await InquiryDetail({ id: "not-exist" });
     render(jsx);
 
-    expect(screen.getByText("問い合わせが見つかりません")).toBeTruthy();
+    expect(screen.getByText("問合せが見つかりません")).toBeTruthy();
   });
 
   it("getInquiryByIdが例外をthrowしたときエラーメッセージを表示する", async () => {
@@ -66,21 +66,21 @@ describe("InquiryDetail", () => {
     const jsx = await InquiryDetail({ id: "inquiry-001" });
     render(jsx);
 
-    expect(screen.getByText("問い合わせの取得に失敗しました")).toBeTruthy();
+    expect(screen.getByText("問合せの取得に失敗しました")).toBeTruthy();
   });
 
   it("見つからない状態とエラー状態は異なるメッセージで表示される", async () => {
     getInquiryByIdMock.mockResolvedValueOnce(null);
     const { unmount } = render(await InquiryDetail({ id: "not-exist" }));
     const notFoundText = screen.getByText(
-      "問い合わせが見つかりません"
+      "問合せが見つかりません"
     ).textContent;
     unmount();
 
     getInquiryByIdMock.mockRejectedValueOnce(new Error("network error"));
     render(await InquiryDetail({ id: "inquiry-001" }));
     const errorText = screen.getByText(
-      "問い合わせの取得に失敗しました"
+      "問合せの取得に失敗しました"
     ).textContent;
 
     expect(notFoundText).not.toBe(errorText);

@@ -724,3 +724,50 @@
 - [x] 41.2 `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
   - _Requirements: 18.1〜18.5, 19.1〜19.7_
   - _Depends: 39.3, 40.4, 41.1_
+
+---
+
+## 追加（2026-09-06）: 表示文言の「申請管理」→「問合せ管理」統一（Requirement 20）
+
+- [x] 42. ヘルプデスク側の表示文言を「問合せ」表記へ統一する
+- [x] 42.1 `messages/ja.json`のヘルプデスク側文言を「問合せ」表記に変更する
+  - `helpdeskNav.inquiryForm`: 「申請」→「問合せ」
+  - `helpdeskNav.inquiries`: 「申請管理」→「問合せ管理」
+  - `helpdeskInquiries.list.title`: 「申請管理」→「問合せ管理」
+  - `helpdeskInquiries.list.description`: 「全社分の申請を対応状況・緊急度順に確認できます。」→「全社分の問合せを対応状況・緊急度順に確認できます。」
+  - `helpdeskInquiries.list.empty`: 「申請はありません」→「問合せはありません」
+  - `helpdeskInquiries.list.error`: 「申請の取得に失敗しました」→「問合せの取得に失敗しました」
+  - `helpdeskInquiries.list.noResults`: 「条件に合致する申請はありません」→「条件に合致する問合せはありません」
+  - 表記ゆれ併行是正: `helpdeskInquiries.detail.notFound`「問い合わせが見つかりません」→「問合せが見つかりません」、`helpdeskInquiries.detail.error`「問い合わせの取得に失敗しました」→「問合せの取得に失敗しました」
+  - **据え置き（変更しないこと）**: `helpdeskInquiries.history.types.requester_message`（「申請者からのメッセージ」）
+  - **キー名は一切変更しない**（値のみ変更）
+  - _Requirements: 20.1, 20.2, 20.3, 20.5_
+  - _Boundary: messages/ja.json_
+
+- [x] 42.2 (P) `messages/en.json`のヘルプデスク側文言をInquiry系表記に変更する
+  - `helpdeskNav.inquiryForm`: "Application" → "New Inquiry"
+  - `helpdeskNav.inquiries`: "Application Management" → "Inquiry Management"
+  - `helpdeskInquiries.list.title`: "Application Management" → "Inquiry Management"
+  - `helpdeskInquiries.list.description`: "View applications from all companies, sorted by status and urgency." → "View inquiries from all companies, sorted by status and urgency."
+  - `helpdeskInquiries.list.empty`: "No applications" → "No inquiries"
+  - `helpdeskInquiries.list.error`: "Failed to load applications" → "Failed to load inquiries"
+  - `helpdeskInquiries.list.noResults`: "No applications match the selected filters" → "No inquiries match the selected filters"
+  - `helpdeskInquiries.detail.*`は既にInquiry系のため変更不要
+  - ja/enのキー集合が完全一致していることを確認する
+  - _Requirements: 20.4, 20.5_
+  - _Boundary: messages/en.json_
+
+- [x] 42.3 (P) テスト名の文言を新しい表示文言へ追随させる
+  - `src/components/layout/HelpdeskSidebar.test.tsx` L50「申請管理・テンプレート管理へのナビゲーション項目を表示する」→「問合せ管理・テンプレート管理へのナビゲーション項目を表示する」
+  - `src/components/layout/HelpdeskSidebar.test.tsx` L105「問い合わせ詳細ページ表示中は申請管理項目がアクティブになる」→「問い合わせ詳細ページ表示中は問合せ管理項目がアクティブになる」
+  - `src/components/layout/nav-items.test.ts`（申請者側サイドバー撤去に伴い`helpdesk-portal-layout`側の追記でdescribeブロック自体が整理される）「問い合わせ詳細ページ表示中は申請管理項目がアクティブになる」→「問い合わせ詳細ページ表示中は問合せ管理項目がアクティブになる」
+  - **アサーション自体は変更しない**（既存の`messages.helpdeskNav.*`キー参照のまま。文言リテラルへの置き換えは行わない）
+  - _Requirements: 20.5_
+  - _Boundary: HelpdeskSidebar.test.tsx, nav-items.test.ts_
+
+- [x] 43. 検証（表示文言の「問合せ」統一）
+  - `tsc --noEmit`・`npm run lint`・`npm test`・`npm run build`が全て通ることを確認する
+  - `helpdeskInquiries.history.types.requester_message`が「申請者からのメッセージ」のまま据え置かれていることを確認する
+  - ヘルプデスク側の一覧・詳細・サイドバーの描画に回帰がないことを確認する
+  - _Requirements: 20.1〜20.5_
+  - _Depends: 42.1, 42.2, 42.3_

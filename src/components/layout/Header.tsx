@@ -6,8 +6,6 @@ import { signOut } from "next-auth/react";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
-import { MobileNav } from "./MobileNav";
-import { APPLICANT_NAV_ITEMS } from "./nav-items";
 
 export function Header() {
   const t = useTranslations("header");
@@ -16,7 +14,6 @@ export function Header() {
   return (
     <header className="h-16 fixed top-0 left-0 right-0 z-30 flex items-center justify-between gap-3 px-4 bg-white border-b border-border shadow-sm">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <MobileNav items={APPLICANT_NAV_ITEMS} namespace="nav" rootHref="/" />
         <Link href="/" className="flex min-w-0 flex-1 items-center gap-3">
           <Logo />
           <span className="hidden sm:inline whitespace-nowrap text-lg font-semibold text-foreground">

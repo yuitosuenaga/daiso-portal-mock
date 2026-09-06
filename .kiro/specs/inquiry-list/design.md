@@ -662,3 +662,46 @@ sequenceDiagram
 ### Testing Strategy（追加分）
 - `inquiry-service.test.ts`（`helpdesk-inquiry-management`spec 要件18で更新）に、`listInquiriesForCompany`が添付なしinclude、`findInquiryForCompany`が添付ありincludeで`prisma`を呼ぶことの検証を含める。
 - 申請者詳細画面で添付ファイル表示（要件10）が維持されることを、既存の`InquiryDetail.test.tsx`の変更なし全件成功で確認する。
+
+## 追加（2026-09-06）: 表示文言の「申請」→「問合せ」統一（2026-07-15追記の差し戻し）
+
+### Overview（追加分）
+要件17は、2026-07-15追記（別ブランチ`chore/rename-inquiry-to-application-labels`による「問い合わせ一覧」→「申請一覧」への変更）を差し戻し、本spec所有画面の表示文言を「問合せ」表記へ統一するUI文言のみの変更である。コンポーネント構成・データフロー・データモデル・取得ロジック・型（`Inquiry`・`InquiryHistoryEntry`）への設計変更は一切発生しない。翻訳キー名は変更せず、値のみを更新する（要件17.5）。
+
+あわせて、`helpdesk-portal-layout`spec 要件19による申請者側サイドバー撤去に伴い、要件1 AC1の導線記述を「サイドバーの『申請一覧』ナビゲーション項目」から「ダッシュボードの『問合せ一覧』ブロック」へ更新する（要件17.1）。`/inquiry`ルート・`InquiryList`の構造・ページ自体のUIは変更しない。
+
+### 表記の正規化方針（追加分）
+本ラウンドの統一対象は「申請」表記の置換に留まらない。`dashboard-card-redesign`・`inquiry-form`・`helpdesk-inquiry-management`各specと横断で「問合せ」表記に正規化する方針のため、本spec所有の`inquiryList`名前空間に残る「問い合わせ」表記も同時に「問合せ」へ揃える（同一画面内で「問合せ一覧」と「問い合わせが見つかりません」が混在する状態を避ける）。
+
+| 翻訳キー | 変更前（ja） | 変更後（ja） | 変更前（en） | 変更後（en） | 根拠 |
+|---|---|---|---|---|---|
+| `inquiryList.list.title` | 申請一覧 | 問合せ一覧 | Application List | Inquiry List | 17.2 / 17.4 |
+| `inquiryList.list.description` | 自社が送信した問い合わせ・申請の一覧と対応状況を確認できます。 | 自社が送信した問合せの一覧と対応状況を確認できます。 | View the list of inquiries and requests your company has submitted, along with their status. | View the list of inquiries your company has submitted, along with their status. | 17.2 / 17.4 |
+| `inquiryList.list.empty` | 申請はありません | 問合せはありません | No applications | No inquiries | 17.2 / 17.4 |
+| `inquiryList.list.error` | 申請の取得に失敗しました | 問合せの取得に失敗しました | Failed to load applications | Failed to load inquiries | 17.2 / 17.4 |
+| `inquiryList.detail.notFound` | 問い合わせが見つかりません | 問合せが見つかりません | Inquiry not found | （変更なし） | 表記正規化 |
+| `inquiryList.detail.error` | 問い合わせの取得に失敗しました | 問合せの取得に失敗しました | Failed to load the inquiry | （変更なし） | 表記正規化 |
+| `inquiryList.filter.noResults` | 該当する問い合わせがありません | 該当する問合せがありません | No matching inquiries | （変更なし） | 表記正規化 |
+| `inquiryList.detail.submittedByLabel` | 申請者情報 | （据え置き） | Submitter Information | （据え置き） | 17.3（送信者を指すロール語のため対象外） |
+
+英語側は`detail.*`・`filter.*`が既にInquiry系表記のため変更不要であり、`list.*`のApplication系表記のみを差し替える。
+
+### Modified Files（追加分）
+- `messages/ja.json` / `messages/en.json` — 上表のとおり`inquiryList`名前空間の値のみを更新（キー名・キー構造は不変）
+- `src/components/features/inquiry-list/InquiryList.test.tsx` — 文言リテラルを直接アサーションしている5箇所（`申請はありません`×2・`申請の取得に失敗しました`×2・`申請一覧`×1）を新しい表示文言へ追随更新する
+
+### Requirements Traceability（追加分）
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 17.1 | 要件1 AC1の導線記述をダッシュボードの「問合せ一覧」ブロック経由へ更新 | requirements.md（記述のみ・実装変更なし） |
+| 17.2, 17.4 | 一覧の見出し・説明・空状態・エラーの「問合せ」統一（ja/en） | i18n messages（`inquiryList.list.*`） |
+| 17.3 | `submittedByLabel`は据え置き | i18n messages（変更対象外） |
+| 17.5 | キー名不変・値のみ変更、テストのリテラル追随 | i18n messages, InquiryList.test.tsx |
+
+### Testing Strategy（追加分）
+- `InquiryList.test.tsx`の文言リテラル5箇所を更新し、既存の他アサーション（翻訳キー参照・要素構造）は変更しない
+- `InquiryDetail.test.tsx`・`InquiryHistoryList.test.tsx`等は翻訳キー参照でアサーションしているため無変更で成功することを確認する
+- `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する
+
+### Security Considerations（追加分）
+表示文言のみの変更であり、データアクセス範囲・Server Action・認可判定に影響しない。

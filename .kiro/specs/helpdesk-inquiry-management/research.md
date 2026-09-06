@@ -168,3 +168,41 @@
 - **Rationale**: `HistoryTimeline`の設計は元々「ラベル文字列 + actorName + detail + attachments」という共通フォーマットで全種別を表示する汎用設計であり、`requester_message`もこのフォーマットに自然に収まる。既存コンポーネントへの変更を避けられる
 - **Trade-offs**: なし
 - **Follow-up**: なし
+
+## 追加ラウンド（2026-09-06）: 表示文言の「申請管理」→「問合せ管理」統一（Requirement 20）
+
+- **Discovery Scope**: Light（既存実装のExtension。UI表示文言＝翻訳値のみの変更であり、アーキテクチャ調査・外部依存の検証は不要と判断した）
+- **Key Findings**:
+  - 本specが所有する翻訳キーのうち「申請」「問い合わせ」を含むものを機械的に列挙した結果、対象は10件のみ（`helpdeskNav.inquiryForm`・`helpdeskNav.inquiries`・`helpdeskInquiries.list.title/.description/.empty/.error/.noResults`・`helpdeskInquiries.detail.notFound/.error`・`helpdeskInquiries.history.types.requester_message`）。このうち`requester_message`は据え置き（Requirement 20.3）、残り9件が変更対象
+  - ヘルプデスク側のコンポーネント（`HelpdeskSidebar.tsx`・`HelpdeskInquiryList.tsx`・`HelpdeskInquiryDetail.tsx`）はすべて`next-intl`のキー経由で文言を解決しており、日本語文言のハードコードは存在しない。したがって`messages/*.json`の値変更のみで表示に反映され、コンポーネントの変更は不要
+  - 既存テストのアサーションはすべて`messages.helpdeskNav.*` / `messages.helpdeskInquiries.*` のキー参照方式であり、**キー名を変更しない限り値変更で壊れない**。文言リテラルを直接アサーションしている箇所はヘルプデスク側には存在せず、影響は`HelpdeskSidebar.test.tsx`（2件）・`nav-items.test.ts`（1件）のテスト**名**の可読性のみ
+  - `messages/en.json`側の`helpdeskInquiries.detail.notFound`は既に "Inquiry not found" とInquiry系表記であり、変更不要。en側でApplication系表記が残るのは`helpdeskNav`2件＋`helpdeskInquiries.list`5件の計7件
+
+### Requirement-to-Asset Map
+| 要件 | 既存アセット | ギャップ区分 | 内容 |
+|---|---|---|---|
+| 要件20 表示名の「申請管理」→「問合せ管理」統一 | `messages/ja.json`・`messages/en.json`（翻訳値） | Modify（値のみ） | 対象9キー（ja）・7キー（en）の値を差し替える。キー名・コンポーネント・型・データ取得ロジックは不変 |
+
+### Design Decisions
+
+#### Decision: 翻訳キー名を変更せず値のみを差し替える
+- **Context**: 「申請」系の語をやめる以上、キー名（`inquiryForm`・`inquiries`）も見直すべきかを検討した
+- **Alternatives Considered**: 1) キー名も含めてリネームする、2) キー名は据え置き値のみ変更する
+- **Selected Approach**: 2
+- **Rationale**: キー名は既に`inquiry`系（Application系ではない）であり、意味的な不整合がない。またキー名を変更すると`titleKey`等を文字列で参照する多数の既存テスト・コンポーネントが壊れ、文言変更に見合わない改修コストが発生する
+- **Trade-offs**: なし（キー名は元々inquiry系のため、表記統一後もむしろ整合する）
+- **Follow-up**: なし
+
+#### Decision: `helpdeskInquiries.detail.notFound`/`.error`の「問い合わせ」も同ラウンドで「問合せ」に正規化する
+- **Context**: Requirement 20 AC2は`list.*`のみを明示していたが、同じ画面群で「問合せ管理」と「問い合わせが見つかりません」が混在する
+- **Alternatives Considered**: 1) Requirement 20の明示範囲（`list.*`）のみ変更する、2) 本spec所有の`detail.*`も併せて「問合せ」に正規化する
+- **Selected Approach**: 2
+- **Rationale**: プロジェクト全体の「問合せ」表記統一方針（2026-09-06ユーザー確定）に沿う。対象キーは本specの所有範囲内であり、他specの境界を侵さない
+- **Trade-offs**: 変更キーが2件増えるが、いずれも値のみの差し替えでリスクは同等
+- **Follow-up**: なし
+
+### Risks & Mitigations
+| リスク | 影響 | 対策 |
+|---|---|---|
+| ja/enでキー集合がずれる | i18nフォールバックで意図しない言語表示が発生 | 値のみの変更に徹し、変更前後でJSONのキー集合が完全一致することを検証タスク（43）で確認する |
+| `requester_message`を誤って一括置換で変更してしまう | ロール語（申請者）の意味が壊れる | 一括置換を用いず対象キーを個別に変更し、検証タスク（43）で据え置きを明示確認する |

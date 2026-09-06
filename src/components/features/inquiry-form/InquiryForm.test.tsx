@@ -40,7 +40,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText(/緊急度/), "high");
   await user.type(screen.getByLabelText(/店舗・地域/), "Tokyo");
   await user.type(
-    screen.getByLabelText(/問い合わせ内容/),
+    screen.getByLabelText(/問合せ内容/),
     "テストの問い合わせ内容です。"
   );
   await user.selectOptions(screen.getByLabelText(/原文言語/), "ja");

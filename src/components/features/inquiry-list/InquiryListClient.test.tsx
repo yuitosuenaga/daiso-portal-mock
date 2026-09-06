@@ -129,6 +129,6 @@ describe("InquiryListClient", () => {
 
     await user.type(screen.getByLabelText("キーワード検索"), "存在しない語句");
 
-    expect(screen.getByText("該当する問い合わせがありません")).toBeTruthy();
+    expect(screen.getByText("該当する問合せがありません")).toBeTruthy();
   });
 });

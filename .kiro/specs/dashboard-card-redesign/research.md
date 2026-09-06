@@ -114,3 +114,59 @@
 ## References
 - `.kiro/specs/announcements-management/design.md` — ヘルプデスク側お知らせ管理のルート・ナビゲーション変更範囲の確認
 - `.kiro/steering/product.md` — フェーズ方針（認証未実装の制約）
+
+---
+
+## 追加ラウンド（2026-09-06）: ブロック構成刷新と「申請」→「問合せ」表記の再統一
+
+### Summary（追加分）
+- **調査範囲**: Light discovery（既存実装の拡張）。申請者側ダッシュボードページの現行カード構成、`dashboard`/`helpdeskDashboard`翻訳名前空間の「申請」表記の分布、ダッシュボードページの既存テストの有無を確認した
+- **主な発見**:
+  1. 申請者側ダッシュボードのカードグリッドは`page.tsx`内に静的に並んだ6要素（申請／申請一覧／お知らせ／ドキュメント／リンク／FAQ）で構成されており、並び替え・追加はこの1ファイルの編集のみで完結する
+  2. `src/app/[locale]/(applicant)/page.tsx` に対する単体テストが存在しない（`layout.test.tsx`のみ）。ブロック表示順は今回の要件の中核であるため、回帰を守る新規テストが必要
+  3. 文言変更は既存の翻訳キーの**値**のみで完結する。キー名を変更しなければ、キー参照でアサーションしている既存テスト（`AnnouncementsCard.test.tsx`・`InquiryListCard.test.tsx`・`PriorityInquiriesPreviewPanel.test.tsx`等）は無変更で通る
+
+### Research Log（追加分）
+
+#### 新規3ブロックの遷移先の作り分け可否
+- **調査内容**: 売場検討会（動画）・マニュアル・POPを`/documents`のカテゴリ別ビューへ振り分けられるか、`documents`spec側の現行実装を確認
+- **結果**: 要望として「中身は現状のドキュメント共有と同じものにする」ことが確定しており、カテゴリ別フィルタの作り分けは行わない方針で確定済み。3カードとも同一の`/documents`をhrefとする
+- **Implication**: 実装は静的`NavigationCard`3枚の追加のみ。将来`/documents`にカテゴリ別ルート・クエリが実装された場合にhrefを差し替えられるよう、Revalidation Triggerとしてdesign.mdに記録した
+
+#### 「リンク」「よくある質問」カードの扱い
+- **調査内容**: サイドバー撤去後、指定6ブロックに含まれない`/links`・`/faq`への到達手段が残るかを確認
+- **結果**: サイドバー撤去後はダッシュボードのカードが唯一の導線となるため、両カードを削除すると`/links`・`/faq`はURL直打ち以外で到達不能になる。`links-page`・`faq`は独立specとして実装済みであり、ダッシュボード側の判断でそれらを孤児ルート化するのはspec境界を越える
+- **Implication**: 指定6ブロックの後段に据え置く方針を要件15.6として明文化した
+
+#### 「申請」表記の分布と対象/対象外の切り分け
+- **調査内容**: `messages/ja.json`内の「申請」の出現箇所を、本spec所有の名前空間（`dashboard.*`・`helpdeskDashboard.*`）とその他specの所有分に切り分け
+- **結果**: 本specが値を変更するのは`dashboard.inquiryForm.*`・`dashboard.inquiryList.*`・`dashboard.priorityInquiriesPreview.*`・`dashboard.documents.title`・`helpdeskDashboard.inquiryForm.*`・`helpdeskDashboard.inquiries.*`・`helpdeskDashboard.kpi.viewAll`。`helpdeskCompanies.*`等の「申請者アカウント」（会社側ユーザーアカウントを指すロール語）は対象外
+- **Implication**: 名前空間単位で所有specが明確に分かれるため、他spec（`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`）の追記要件と作業が競合しない
+
+### Design Decisions（追加分）
+
+#### Decision: 「問合せ」を1ブロックではなく隣接2カードとして表現する
+- **Context**: 要望のブロックリストでは「問合せ」は1項目だが、現行実装は「申請」（新規作成、`/inquiry/new`）と「申請一覧」（未対応件数バッジ付き、`/inquiry`）の2カードに分かれている
+- **Alternatives Considered**:
+  1. 「問合せ」＋「問合せ一覧」を隣接2カードとして指定順の位置に置く
+  2. `/inquiry`への1枚に統合し、新規作成は一覧内から導線を張る
+  3. 「問合せ」1枚を指定順の位置に置き、「問合せ一覧」はリンク／FAQと同様に後段へ移す
+- **Selected Approach**: 1を採用
+- **Rationale**: 指定された表示順を保ちながら、未対応件数バッジ（`InquiryListCard`が持つ運用上重要なシグナル）と新規作成へのワンクリック導線の双方を失わずに済む
+- **Trade-offs**: グリッド上のカード枚数が指定リストの6を超える（9枚）が、視認性はグリッドレイアウトで担保される
+- **Follow-up**: なし
+
+#### Decision: 翻訳キー名を変更せず値のみを差し替える
+- **Context**: 「申請」→「問合せ」の統一にあたり、`inquiryForm`・`inquiryList`等のキー名自体をリネームするか
+- **Alternatives Considered**:
+  1. キー名は維持し、翻訳値のみ変更する
+  2. 表記に合わせてキー名もリネームする
+- **Selected Approach**: 1を採用
+- **Rationale**: キー名は内部識別子であり、UI表記と一致させる必然性がない。リネームすると`titleKey`/`descriptionKey`を文字列で受け渡している`InquiryListCard`・`AnnouncementsCard`とその既存テストが広範に壊れる
+- **Trade-offs**: キー名（`inquiryForm`等）と表示文言（「問合せ」）が一致しない状態が残るが、`Inquiry`という内部ドメイン語とは整合している
+- **Follow-up**: なし
+
+### Risks & Mitigations（追加分）
+- 遷移先が同一（`/documents`）のカードが4枚並ぶため、利用者が「押しても同じページ」と受け取る可能性がある — 要望として確定済みの仕様。将来のカテゴリ別フィルタ実装時に解消できるよう設計上の差し替えポイントを明記した
+- ダッシュボードページに既存テストがなく、ブロック順の回帰を検知できない — 表示順と`href`を検証する新規テストを追加する（Testing Strategy参照）
+- `helpdeskDashboard.*`の文言変更はヘルプデスク側画面に影響するため、`helpdesk-inquiry-management`spec側の追記要件（Requirement 20）と表記を揃える必要がある — 両specの追記で「問合せ」表記に統一する方針を明記済み

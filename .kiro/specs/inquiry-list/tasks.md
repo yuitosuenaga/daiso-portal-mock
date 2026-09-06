@@ -485,3 +485,32 @@
   - 既存の`InquiryDetail.test.tsx`が変更なしで全件成功し、詳細画面の添付表示（要件10）が保たれることを確認する
   - _Requirements: 16.2, 16.3_
   - _Depends: 34.1_
+
+## 追加（2026-09-06）: 表示文言の「申請」→「問合せ」統一
+
+- [x] 35. 翻訳値の「問合せ」統一とテストの追随
+- [x] 35.1 (P) `messages/ja.json`の`inquiryList`名前空間の表示文言を「問合せ」に統一する
+  - `list.title`を「問合せ一覧」、`list.description`を「自社が送信した問合せの一覧と対応状況を確認できます。」、`list.empty`を「問合せはありません」、`list.error`を「問合せの取得に失敗しました」に更新する
+  - 表記正規化として`detail.notFound`を「問合せが見つかりません」、`detail.error`を「問合せの取得に失敗しました」、`filter.noResults`を「該当する問合せがありません」に更新する
+  - `detail.submittedByLabel`（「申請者情報」）は据え置き、キー名・キー構造は一切変更しない
+  - _Requirements: 17.2, 17.3, 17.5_
+- [x] 35.2 (P) `messages/en.json`の`inquiryList.list.*`をInquiry系表記に統一する
+  - `list.title`を「Inquiry List」、`list.description`を「View the list of inquiries your company has submitted, along with their status.」、`list.empty`を「No inquiries」、`list.error`を「Failed to load inquiries」に更新する
+  - `detail.*`・`filter.*`は既にInquiry系表記のため変更しない。`detail.submittedByLabel`（Submitter Information）は据え置く
+  - _Requirements: 17.3, 17.4, 17.5_
+- [x] 35.3 `InquiryList.test.tsx`の文言リテラルを新しい表示文言へ追随させる
+  - 「申請はありません」（2箇所）・「申請の取得に失敗しました」（2箇所）・「申請一覧」（1箇所）の計5箇所を、それぞれ「問合せはありません」「問合せの取得に失敗しました」「問合せ一覧」へ更新する
+  - 表記正規化に伴い、`InquiryDetail.test.tsx`の「問い合わせが見つかりません」（2箇所）・「問い合わせの取得に失敗しました」（2箇所）、および`InquiryListClient.test.tsx`の「該当する問い合わせがありません」（1箇所）も、それぞれ「問合せが見つかりません」「問合せの取得に失敗しました」「該当する問合せがありません」へ更新する
+  - 翻訳キー参照でアサーションしている既存の他ケースは変更しない
+  - _Requirements: 17.5_
+  - _Depends: 35.1_
+
+- [x] 36. 検証（表示文言の統一）
+- [ ] 36.1 一覧・詳細の既存テストが全件成功することを確認する
+  - `InquiryList.test.tsx`・`InquiryDetail.test.tsx`・`InquiryHistoryList.test.tsx`・`InquiryListItem.test.tsx`が全件成功し、翻訳キー参照のアサーションが無変更で通ることを確認する
+  - _Requirements: 17.2, 17.5_
+  - _Depends: 35.1, 35.2, 35.3_
+- [ ] 36.2 `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する
+  - ja/enの翻訳キー構造が一致していること（キーの過不足がないこと）もあわせて確認する
+  - _Requirements: 17.4, 17.5_
+  - _Depends: 36.1_

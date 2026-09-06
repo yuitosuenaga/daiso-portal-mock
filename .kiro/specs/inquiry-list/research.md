@@ -290,3 +290,46 @@
 - **Rationale**: 追加メッセージのやり取りは双方がリアルタイムに近い形で確認できることが要件の趣旨（何度も往復できる）に合致する。ヘルプデスク側が対応履歴タブを開いたままにしている場面を想定すると、両方を再検証しておく方がUXとして自然
 - **Trade-offs**: 既存の`helpdesk-inquiry-management`側のServer Actionとの非対称性が生じる（既存側は申請者側ルートを再検証していない）が、これは既存の設計判断であり本ラウンドで変更する対象ではない
 - **Follow-up**: 将来的に`helpdesk-inquiry-management`側のServer Actionも申請者側ルートを再検証するよう統一するかは、別途検討課題とする
+
+---
+
+## 追加ラウンド（2026-09-06）: 表示文言の「申請」→「問合せ」統一
+
+### Summary
+- **Discovery Type**: light（既存実装のExtension。UI表示文言のみの変更であり、アーキテクチャ・データモデルへの影響なし）
+- **調査範囲**: `messages/ja.json`・`messages/en.json`の`inquiryList`名前空間、`src/components/features/inquiry-list/`配下のテストにおける文言リテラル依存、`helpdesk-portal-layout`spec 要件19（サイドバー撤去）との導線整合
+- **主要な発見**:
+  1. `inquiryList`名前空間で「申請」を含むのは`list.title`・`list.description`・`list.empty`・`list.error`・`detail.submittedByLabel`の5キー。このうち`detail.submittedByLabel`（「申請者情報」）は問い合わせ送信者を指すロール語であり、要件17.3で据え置きと明記済み
+  2. 同名前空間には「問い合わせ」表記が3キー（`detail.notFound`・`detail.error`・`filter.noResults`）残存する。「申請」のみを「問合せ」に置換すると同一画面内で「問合せ一覧」と「問い合わせが見つかりません」が混在するため、横断方針（全spec共通で「問合せ」に正規化）に従い同時に揃える
+  3. 文言リテラルを直接アサーションしているテストは`InquiryList.test.tsx`の5箇所のみ（60・69・100・189・195行）。他のテストは翻訳キー参照のため無変更で通る
+  4. 英語側は`detail.*`・`filter.*`が既にInquiry系表記のため、変更が必要なのは`list.*`のApplication系表記のみ
+
+### Requirement-to-Asset Map
+| Requirement | 既存資産 | 変更種別 |
+|---|---|---|
+| 17.1 | requirements.md 要件1 AC1（2026-07-15追記で更新済み） | 記述更新のみ（実装変更なし） |
+| 17.2, 17.4 | `messages/ja.json`・`messages/en.json`の`inquiryList.list.*` | 値の変更 |
+| 17.3 | `inquiryList.detail.submittedByLabel` | 変更なし（据え置き） |
+| 17.5 | `InquiryList.test.tsx` | 文言リテラルの追随更新 |
+
+### Design Decisions
+
+#### Decision: 翻訳キー名は変更せず値のみを差し替える
+- **Context**: 「申請」→「問合せ」の統一にあたり、`inquiryList`というキー名自体を変更する選択肢もあった
+- **Alternatives Considered**: 1) キー名も含めてリネームする、2) キー名は維持し値のみ変更する
+- **Selected Approach**: 2
+- **Rationale**: キー名を変更すると`InquiryListCard`等の`titleKey`文字列参照を含む多数のテスト・呼び出し元が壊れる。表示文言の統一という目的に対してキー名変更は不要なコストとリスクを生む
+- **Trade-offs**: キー名（`inquiryList`）と表示文言（問合せ一覧）の字面が完全一致しない状態が残るが、内部識別子と表示文言は本来独立してよい
+- **Follow-up**: なし
+
+#### Decision: 「問い合わせ」表記も同時に「問合せ」へ正規化する
+- **Context**: 要件17.2が明示するのは`list.*`の「申請」表記の置換だが、同名前空間には「問い合わせ」表記が残る
+- **Alternatives Considered**: 1) 要件が明示する`list.*`のみ変更する、2) `inquiryList`名前空間内の「問い合わせ」表記も同時に「問合せ」へ揃える
+- **Selected Approach**: 2
+- **Rationale**: 1を選ぶと同一画面内で「問合せ一覧」と「問い合わせが見つかりません」が併存し、表記ゆれが残る。横断で「問合せ」に正規化する全体方針とも整合しない
+- **Trade-offs**: 要件17の明示範囲をわずかに超えるが、いずれも本spec所有の翻訳キーであり、spec境界は越えない
+- **Follow-up**: なし
+
+### Effort & Risk
+- **Effort**: 小（翻訳値8キー＋テストリテラル5箇所）
+- **Risk**: 低。データ層・Server Action・型に変更がなく、回帰範囲は表示文言に限定される

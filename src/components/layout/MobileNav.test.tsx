@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MobileNav } from "@/components/layout/MobileNav";
-import { APPLICANT_NAV_ITEMS } from "@/components/layout/nav-items";
+import { HELPDESK_NAV_ITEMS } from "@/components/layout/nav-items";
 import messages from "../../../messages/ja.json";
 
 const pathnameMock = vi.fn(() => "/");
@@ -33,7 +33,11 @@ vi.mock("@/i18n/navigation", () => ({
 function renderMobileNav() {
   return render(
     <NextIntlClientProvider locale="ja" messages={messages}>
-      <MobileNav items={APPLICANT_NAV_ITEMS} namespace="nav" rootHref="/" />
+      <MobileNav
+        items={HELPDESK_NAV_ITEMS}
+        namespace="helpdeskNav"
+        rootHref="/helpdesk"
+      />
     </NextIntlClientProvider>
   );
 }
@@ -42,46 +46,60 @@ describe("MobileNav", () => {
   it("初期状態ではドロワーの中身は表示されない", () => {
     renderMobileNav();
     expect(
-      screen.queryByRole("link", { name: messages.nav.dashboard })
+      screen.queryByRole("link", { name: messages.helpdeskNav.home })
     ).toBeNull();
   });
 
   it("トグルを押すとドロワーが開き、全ナビゲーション項目が表示される", () => {
     renderMobileNav();
-    fireEvent.click(screen.getByRole("button", { name: messages.nav.openMenu }));
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.helpdeskNav.openMenu })
+    );
 
     expect(
-      screen.getByRole("link", { name: messages.nav.dashboard })
+      screen.getByRole("link", { name: messages.helpdeskNav.home })
     ).toBeTruthy();
-    expect(screen.getByRole("link", { name: messages.nav.faq })).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: messages.helpdeskNav.faq })
+    ).toBeTruthy();
   });
 
   it("現在のパスに対応する項目がアクティブ表示される", () => {
-    pathnameMock.mockReturnValue("/inquiry/new");
+    pathnameMock.mockReturnValue("/helpdesk/inquiry/new");
     renderMobileNav();
-    fireEvent.click(screen.getByRole("button", { name: messages.nav.openMenu }));
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.helpdeskNav.openMenu })
+    );
 
-    const formLink = screen.getByRole("link", { name: messages.nav.inquiryForm });
+    const formLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.inquiryForm,
+    });
     expect(formLink.className).toContain("bg-primary");
   });
 
   it("項目をクリックするとドロワーが閉じる", () => {
     renderMobileNav();
-    fireEvent.click(screen.getByRole("button", { name: messages.nav.openMenu }));
-    fireEvent.click(screen.getByRole("link", { name: messages.nav.dashboard }));
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.helpdeskNav.openMenu })
+    );
+    fireEvent.click(screen.getByRole("link", { name: messages.helpdeskNav.home }));
 
     expect(
-      screen.queryByRole("link", { name: messages.nav.dashboard })
+      screen.queryByRole("link", { name: messages.helpdeskNav.home })
     ).toBeNull();
   });
 
   it("閉じるボタンでドロワーが閉じる", () => {
     renderMobileNav();
-    fireEvent.click(screen.getByRole("button", { name: messages.nav.openMenu }));
-    fireEvent.click(screen.getByRole("button", { name: messages.nav.closeMenu }));
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.helpdeskNav.openMenu })
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.helpdeskNav.closeMenu })
+    );
 
     expect(
-      screen.queryByRole("link", { name: messages.nav.dashboard })
+      screen.queryByRole("link", { name: messages.helpdeskNav.home })
     ).toBeNull();
   });
 });
