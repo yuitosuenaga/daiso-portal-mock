@@ -699,3 +699,143 @@ graph TB
 - 変更対象: `src/app/[locale]/helpdesk/(dashboard)/page.tsx`の「対応業務（support）」セクションに`NavigationCard`を1枚追加。`title={nav("companies")}`（`helpdeskNav.companies`）、`icon={Building2}`（`lucide-react`）、`href="/helpdesk/companies"`、`description={t("companies.description")}`。
 - i18n: `helpdeskDashboard.companies.description`をja/enに追加。
 - 既存カード・順序・KPI・プレビューパネルには影響を与えない。
+
+---
+
+## 追加ラウンド（2026-09-06）: 申請者側トップページのブロック構成刷新と「申請」→「問合せ」表記の再統一（要件15・16）
+
+### Overview（追加分）
+
+`helpdesk-portal-layout`spec側の追記（Requirement 19）による申請者側サイドバー撤去に伴い、申請者側の画面遷移導線はダッシュボードのブロック（ナビゲーションカード）のみとなる。これを受けて、申請者側トップページ（`src/app/[locale]/(applicant)/page.tsx`）のカードグリッドを、指定された6ブロック（お知らせ・資料共有・売場検討会（動画）・問合せ・マニュアル・POP）を軸とした構成へ並び替え・拡張する。あわせて、要件7（2026-07-07追記）で「問い合わせ申請」→「申請」としたカード名称、および要件11（2026-07-15追記）で「問い合わせ」→「申請」としたプレビューパネル文言を、いずれも「問合せ」表記へ再統一する。
+
+**Purpose**: サイドバーなしでも必要な機能へダッシュボードから到達できるようにし、あわせてポータル全体の「申請／問い合わせ」表記ゆれを「問合せ」へ収束させる。
+
+**Impact**: 変更は申請者側ダッシュボードページ1ファイルのカード並び順・カード3枚の追加と、`messages/ja.json`・`messages/en.json`の翻訳値のみ。新規コンポーネント・新規データ取得関数・レイアウト構造（`space-y-6` + `grid`）の変更は伴わない。ヘルプデスク側ダッシュボードのブロック構成・カード名称は変更しない（`helpdeskDashboard.*`の文言のみ、要件16.5に基づき「問合せ」表記へ追随する）。
+
+### Goals（追加分）
+- 申請者側トップページの「お知らせ」ブロックより下を、資料共有 → 売場検討会（動画） → 問合せ（＋問合せ一覧） → マニュアル → POP の順で表示する
+- 「リンク」「よくある質問」カードを削除せず、上記ブロックの後段に残して`/links`・`/faq`への到達性を維持する
+- 「申請」表記を「問合せ」表記に再統一し、英語ラベルもApplication系からInquiry系へ揃える
+
+### Non-Goals（追加分）
+- `/documents`側のカテゴリ実装・カテゴリ別フィルタリング（新規3ブロックは同一の`/documents`への導線とする。将来のカテゴリ別出し分けは別ラウンド）
+- ヘルプデスク側トップページのブロック構成・カード追加削除・表示順の変更（文言追随のみ）
+- サイドバー・モバイルドロワーの撤去自体（`helpdesk-portal-layout`spec 要件19が所有）
+- 翻訳キー名自体のリネーム（値のみ変更。`dashboard.inquiryForm`・`dashboard.inquiryList`等のキー構造は維持）
+
+### Boundary Commitments（追加分）
+
+**This Spec Owns（追加）**
+- 申請者側トップページ（`src/app/[locale]/(applicant)/page.tsx`）のカードグリッドの構成・表示順・カード枚数
+- 新規カード3枚（売場検討会（動画）・マニュアル・POP）の翻訳キー（`dashboard.salesFloorMeeting.*`・`dashboard.manuals.*`・`dashboard.pop.*`）の追加
+- ダッシュボード関連翻訳キー（`dashboard.*`・`helpdeskDashboard.*`）の「申請」→「問合せ」への値変更
+
+**Out of Boundary（追加）**
+- 申請者側サイドバー・モバイルドロワー・`APPLICANT_NAV_ITEMS`・`nav`翻訳名前空間の撤去（`helpdesk-portal-layout`spec 要件19所有）
+- `inquiryForm.*`・`inquiryList.*`・`helpdeskNav.*`・`helpdeskInquiries.*`名前空間の文言変更（それぞれ`inquiry-form`・`inquiry-list`・`helpdesk-inquiry-management`spec所有）
+- `/documents`・`/links`・`/faq`各ページ本体の実装（`documents`・`links-page`・`faq`spec所有）
+
+**Allowed Dependencies（追加）**
+- 既存の`NavigationCard`（新規3カードは追加のpropsなしでそのまま利用）
+- 既存の`lucide-react`アイコン（`Video`・`BookOpen`・`Tags`。追加インストール不要）
+- 既存の`AnnouncementsCard`（お知らせ）・`InquiryListCard`（問合せ一覧）
+
+**Revalidation Triggers（追加）**
+- `helpdesk-portal-layout`spec 要件19が「リンク」「よくある質問」への代替導線（ヘッダーナビ等）を追加した場合、要件15.6（両カードをダッシュボードに残す）の必要性を再評価する
+- `/documents`にカテゴリ別フィルタのルート・クエリが追加された場合、新規3カードの遷移先（現状は同一`/documents`）を再評価する
+
+### Architecture（追加分）
+
+新規フロー・新規コンポーネントなし。既存の`ApplicantDashboardPage`内の`<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">`の子要素の並び順を変更し、静的`NavigationCard`を3枚追加する。プレビューパネル（`ReminderAnnouncementsPanel`・`AnnouncementsPreviewPanel`）はグリッドの外側・上部に置かれており、本ラウンドでは位置・内容とも変更しない（要件15.8）。
+
+#### カードグリッドの構成（変更後）
+
+| 表示順 | ブロック | コンポーネント | href | アイコン | バッジ | 備考 |
+|--------|----------|----------------|------|----------|--------|------|
+| 1 | お知らせ | `AnnouncementsCard` | `/announcements` | `Bell` | 新着件数 | 既存（グリッド内での位置を先頭へ移動） |
+| 2 | 資料共有 | `NavigationCard`（静的） | `/documents` | `FolderOpen` | — | 既存「ドキュメント」カードの表示名変更のみ |
+| 3 | 売場検討会（動画） | `NavigationCard`（静的） | `/documents` | `Video` | — | **新規** |
+| 4 | 問合せ | `NavigationCard`（静的） | `/inquiry/new` | `FilePlus` | — | 既存「申請」カードの表示名変更のみ |
+| 5 | 問合せ一覧 | `InquiryListCard`（scope=own） | `/inquiry` | `List` | 未対応件数 | 既存「申請一覧」カード。要件15.4により「問合せ」の直後に隣接配置 |
+| 6 | マニュアル | `NavigationCard`（静的） | `/documents` | `BookOpen` | — | **新規** |
+| 7 | POP | `NavigationCard`（静的） | `/documents` | `Tags` | — | **新規** |
+| 8 | リンク | `NavigationCard`（静的） | `/links` | `Link2` | — | 既存（要件15.6により後段へ据え置き） |
+| 9 | よくある質問 | `NavigationCard`（静的） | `/faq` | `HelpCircle` | — | 既存（要件15.6により後段へ据え置き） |
+
+> 「お知らせ」ブロックはグリッド内の`AnnouncementsCard`を指す。グリッド上部の`AnnouncementsPreviewPanel`（最新のお知らせプレビュー）は本ラウンドの並び替え対象ではなく、従来どおりグリッドの上に配置し続ける（要件15.8）。
+
+#### 新規カードの遷移先に関する設計判断
+
+売場検討会（動画）・マニュアル・POPの3カードは、いずれも遷移先を`/documents`とする（要件15.3）。実装上は`href="/documents"`を持つ静的`NavigationCard`が3枚並ぶ形となり、カテゴリ別のクエリパラメータ・専用ルートは設けない。表示名・説明文・アイコンのみが異なる。これは「中身は現状のドキュメント共有と同じものにする」という要望に忠実な最小実装であり、将来`/documents`側にカテゴリ別フィルタが実装された時点で、各カードのhrefをカテゴリ指定付きに差し替えられる構造となっている（Revalidation Triggers参照）。
+
+### File Structure Plan（追加分）
+
+新規ファイルなし。
+
+### Modified Files（追加分）
+
+- `src/app/[locale]/(applicant)/page.tsx` — カードグリッド内の並び順を上表のとおりに変更し、静的`NavigationCard`を3枚追加。`lucide-react`から`Video`・`BookOpen`・`Tags`を追加インポート
+- `messages/ja.json` — `dashboard.salesFloorMeeting`・`dashboard.manuals`・`dashboard.pop`を新規追加。`dashboard.documents.title`を「資料共有」へ、`dashboard.inquiryForm.title`を「問合せ」へ、`dashboard.inquiryList.title`を「問合せ一覧」へ、`dashboard.priorityInquiriesPreview.*`を「問合せ」表記へ変更。`helpdeskDashboard.inquiryForm.*`・`helpdeskDashboard.kpi.viewAll`・`helpdeskDashboard.inquiries.*`を「問合せ」表記へ変更（要件16.5）
+- `messages/en.json` — 同上のキーを追加し、Application系表記をInquiry系表記へ変更（要件16.4）
+
+### i18n キー変更表（追加分）
+
+**新規追加キー**
+
+| キー | ja | en |
+|------|-----|-----|
+| `dashboard.salesFloorMeeting.title` | 売場検討会（動画） | Sales Floor Review (Video) |
+| `dashboard.salesFloorMeeting.description` | 売場検討会の動画資料を確認できます。 | View sales floor review video materials. |
+| `dashboard.manuals.title` | マニュアル | Manuals |
+| `dashboard.manuals.description` | 業務マニュアルを確認できます。 | View operational manuals. |
+| `dashboard.pop.title` | POP | POP |
+| `dashboard.pop.description` | 店頭POPの資料を確認できます。 | View in-store POP materials. |
+
+**値を変更する既存キー（キー名は変更しない）**
+
+| キー | 変更前（ja） | 変更後（ja） | 変更後（en） | 要件 |
+|------|--------------|--------------|--------------|------|
+| `dashboard.documents.title` | ドキュメント | 資料共有 | Document Sharing | 15.2 |
+| `dashboard.inquiryForm.title` | 申請 | 問合せ | New Inquiry | 16.1 |
+| `dashboard.inquiryForm.description` | 新しい問い合わせ・申請を送信します。 | 新しい問合せを送信します。 | Submit a new inquiry. | 16.1 |
+| `dashboard.inquiryList.title` | 申請一覧 | 問合せ一覧 | My Inquiries | 16.3 |
+| `dashboard.inquiryList.description` | 自社が送信した申請の状況を確認できます。 | 自社が送信した問合せの状況を確認できます。 | Check the status of inquiries submitted by your company. | 16.3 |
+| `dashboard.priorityInquiriesPreview.title` | 対応が必要な申請 | 対応が必要な問合せ | Inquiries Needing Attention | 16.2 |
+| `dashboard.priorityInquiriesPreview.empty` | 対応が必要な申請はありません。 | 対応が必要な問合せはありません。 | No inquiries need attention. | 16.2 |
+| `dashboard.priorityInquiriesPreview.error` | 申請の取得に失敗しました。 | 問合せの取得に失敗しました。 | Failed to load inquiries. | 16.2 |
+| `dashboard.priorityInquiriesPreview.viewAll` | 申請一覧を見る | 問合せ一覧を見る | View all inquiries | 16.2 |
+| `helpdeskDashboard.inquiryForm.title` | 申請 | 問合せ | New Inquiry | 16.5 |
+| `helpdeskDashboard.inquiryForm.description` | 問い合わせ・申請を新規作成できます。 | 問合せを新規作成できます。 | Create a new inquiry. | 16.5 |
+| `helpdeskDashboard.inquiries.title` | 申請一覧 | 問合せ一覧 | Inquiry List | 16.5 |
+| `helpdeskDashboard.inquiries.description` | 全社から寄せられた、現状対応中の申請を確認できます。 | 全社から寄せられた、現状対応中の問合せを確認できます。 | Review in-progress inquiries from all companies. | 16.5 |
+| `helpdeskDashboard.kpi.viewAll` | 申請一覧を見る | 問合せ一覧を見る | View all inquiries | 16.5 |
+
+> 「問い合わせ」→「問合せ」の表記正規化は本specの対象キー（`dashboard.*`・`helpdeskDashboard.*`）についても適用する。他名前空間（`inquiryForm.*`・`inquiryList.*`・`helpdeskInquiries.*`）の正規化は各所有specの追記要件に従う。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 15.1 | お知らせ以下のブロック表示順の刷新 | ApplicantDashboardPage | — | — |
+| 15.2 | 「ドキュメント」→「資料共有」への表示名変更（遷移先・アイコンは不変） | messages/ja.json, messages/en.json | — | — |
+| 15.3 | 売場検討会（動画）・マニュアル・POPの新規追加（いずれも`/documents`） | ApplicantDashboardPage, NavigationCard | — | — |
+| 15.4 | 「問合せ」＋「問合せ一覧」の隣接配置 | ApplicantDashboardPage, NavigationCard, InquiryListCard | — | — |
+| 15.5 | 既存カードコンポーネント・グリッドの流用 | NavigationCard, AnnouncementsCard, InquiryListCard | — | — |
+| 15.6 | 「リンク」「よくある質問」カードの後段据え置き | ApplicantDashboardPage | — | — |
+| 15.7 | 全ブロック文言のi18n対応（ja/enキー構造の一致） | messages/ja.json, messages/en.json | — | — |
+| 15.8 | プレビューパネル・リマインドセクションの非変更 | ApplicantDashboardPage | — | — |
+| 16.1, 16.2, 16.3 | 申請者側ダッシュボードの「申請」→「問合せ」表記変更 | messages/ja.json, messages/en.json | — | — |
+| 16.4 | 英語ラベルのInquiry系統一 | messages/en.json | — | — |
+| 16.5 | ヘルプデスク側ダッシュボード文言の追随 | messages/ja.json, messages/en.json | — | — |
+| 16.6 | 翻訳キー名の非変更（値のみ変更） | messages/ja.json, messages/en.json | — | — |
+
+### Testing Strategy（追加分）
+
+- **Unit/Integration Tests**:
+  - `src/app/[locale]/(applicant)/page.tsx` に対する新規テストを追加し、カードの表示順（お知らせ → 資料共有 → 売場検討会（動画） → 問合せ → 問合せ一覧 → マニュアル → POP → リンク → よくある質問）と各カードの`href`を検証する。現状このページには単体テストが存在しないため、要件15.1・15.4・15.6の回帰を守る新規テストとして設ける
+  - 既存の`NavigationCard.test.tsx`が文言リテラル（`title="申請一覧"`等）をpropsとして直書きしている箇所は、新しい表示文言に追随して更新する（アサーション自体はprops値の描画確認であり、実害はないが表記を揃える）
+  - 既存の`AnnouncementsCard.test.tsx`・`InquiryListCard.test.tsx`・`PriorityInquiriesPreviewPanel.test.tsx`は翻訳キー参照でアサーションしているため、キー名を変更しない限り無変更で通ることを確認する
+- **E2E/UI Tests**:
+  - 申請者側トップページ（`/ja`・`/en`）でブロックが指定順に表示され、9枚すべてのカードが正しい遷移先を持つこと
+  - 売場検討会（動画）・マニュアル・POPの3カードがいずれも`/documents`へ遷移すること
+  - 日本語・英語の双方で「申請」表記が残っていないこと（`dashboard.*`・`helpdeskDashboard.*`の範囲）

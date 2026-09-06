@@ -232,3 +232,44 @@
 3. The Portal shall 当該カードの説明文を`helpdeskDashboard`名前空間の新規翻訳キー（例: `helpdeskDashboard.companies.description`）で提供し、`messages/ja.json`・`messages/en.json`で管理する。
 4. The Portal shall 当該カードを既存のカードセクション構成（対応業務＝support／参照情報＝reference）のうち「対応業務（support）」セクションに配置する（販社・アカウントの運用管理は対応業務系のため）。
 5. The Portal shall 本カード追加により、既存の他カード・プレビューパネル・表示順・KPI（要件13）の挙動を変更しない。
+
+---
+
+### 追記（2026-09-06）: 申請者側トップページのブロック構成刷新と「申請」→「問合せ」表記の再統一
+
+**背景:** 申請者側トップページのナビゲーションカード群について、以下の方針転換を行う。
+1. 左サイドバー撤去（`helpdesk-portal-layout`側の追記要件）に伴い、申請者側の画面遷移導線はダッシュボードのブロックのみとなる。これに合わせ、「お知らせ」ブロックより下のブロック構成・表示順を、お知らせ／資料共有／売場検討会（動画）／問合せ／マニュアル／POPの6ブロックを軸とした構成に刷新する。
+2. Requirement 7（2026-07-07追記）でカード名を「問い合わせ申請」→「申請」に変更していたが、今回改めて「申請」→「問合せ」表記へ統一する（Requirement 11＝2026-07-15追記の「問い合わせ→申請」表記変更も同様に差し戻す）。今回は日本語だけでなく英語ラベル（Application系）も Inquiry 系表記に統一する。
+
+**スコープ外**:
+- ヘルプデスク側トップページ（`/helpdesk`）のブロック構成・カード名称は本追記の対象外。既存のまま変更しない（Requirement 2・6・7 AC2・13・14はヘルプデスク側分について現状維持）
+- `/documents`・`/links`・`/faq`ページ自体の内部実装（一覧・詳細・カテゴリフィルタ等）の変更（`documents`/`links-page`/`faq`各specの範囲）
+- サイドバー・モバイルドロワーの撤去自体（`helpdesk-portal-layout`側の追記要件が担う。本specはダッシュボードのブロック構成のみを扱う）
+
+### Requirement 15: 申請者側トップページのブロック構成・表示順の刷新
+
+**Objective:** As a 海外販社担当者（申請者）, I want トップページの「お知らせ」ブロックの下に、資料共有・売場検討会（動画）・問合せ・マニュアル・POPが決まった順番で並んでいること, so that サイドバーがなくても必要な機能へダッシュボードから迷わず到達できる
+
+#### Acceptance Criteria
+
+1. The Dashboard Service shall 申請者側トップページの「お知らせ」ブロックより下に、次の順でブロックを表示する: 資料共有 → 売場検討会（動画） → 問合せ（＋問合せ一覧） → マニュアル → POP。
+2. The Dashboard Service shall 「資料共有」ブロックを、既存の「ドキュメント」カード（Requirement 8）の表示名を変更したものとし、遷移先（`/documents`）・アイコン・データ取得ロジックは変更しない。
+3. The Dashboard Service shall 「売場検討会（動画）」「マニュアル」「POP」の3ブロックを新規に追加し、いずれも遷移先を`/documents`とする（カテゴリ別フィルタ等の作り分けは行わず、表示名・説明文のみが異なる同種のカードとする）。
+4. The Dashboard Service shall 「問合せ」ブロックを、既存の「申請」カード（`/inquiry/new`への遷移カード）の表示名を変更したものとし、その直後に隣接して「問合せ一覧」ブロック（既存の「申請一覧」カード、未対応件数バッジを含む）を配置する。
+5. The Dashboard Service shall 上記6ブロック（お知らせ・資料共有・売場検討会（動画）・問合せ・問合せ一覧・マニュアル・POP）を全て既存の`NavigationCard`（および「お知らせ」は既存の`AnnouncementsCard`、「問合せ一覧」は既存の`InquiryListCard`）で実装し、既存のカードデザイン・グリッドレイアウト（Requirement 4）を維持する。
+6. The Dashboard Service shall 上記構成変更後も、既存の「リンク」「よくある質問」カードを削除せず、指定の6ブロックに続けて表示する（サイドバー撤去後もこれらのページへ到達できる唯一の導線であるため）。
+7. The Dashboard Service shall 全ブロックの表示名・説明文をnext-intlの翻訳キー経由で提供し、日本語・英語のキー構造を一致させる。
+8. The Dashboard Service shall 本要件による構成変更で、リマインド強調表示セクション（Requirement 9）・「最新のお知らせ」プレビューパネル（Requirement 5・10・12）の位置・内容・挙動を変更しない。
+
+### Requirement 16: ダッシュボードカードの「申請」→「問合せ」表記の再統一
+
+**Objective:** As a 海外販社担当者（申請者）, I want ダッシュボードのカード・プレビューパネルで「問合せ」という一貫した言葉が使われていること, so that 「申請」という言葉との表記ゆれに戸惑わない
+
+#### Acceptance Criteria
+
+1. The Dashboard Service shall Requirement 7 AC1で「申請」とした申請者側ダッシュボードのカードタイトルを「問合せ」に変更する（`dashboard.inquiryForm.title`）。
+2. The Dashboard Service shall Requirement 11 AC1・AC2で「対応が必要な申請」「申請一覧を見る」とした申請者側ダッシュボードのプレビューパネル文言（`dashboard.priorityInquiriesPreview.*`）を、それぞれ「対応が必要な問合せ」「問合せ一覧を見る」に変更する。
+3. The Dashboard Service shall 「問合せ一覧」カード（Requirement 15 AC4）の表示名（`dashboard.inquiryList.title`）を「問合せ一覧」とする。
+4. The Dashboard Service shall Requirement 7 AC4で「英語ラベルは変更しない」としていた方針を撤回し、英語ラベルについてもApplication系表記（例: "New Inquiry"の一部、"Applications Needing Attention"等）をInquiry系表記に統一する。
+5. The Dashboard Service shall ヘルプデスク側ダッシュボードのカード・KPI・プレビューパネルの表記（Requirement 2 AC2「問い合わせ申請フォーム」、Requirement 7 AC2「申請フォーム」、Requirement 13等）については、本要件の対象外とせず、`helpdesk-inquiry-management`spec側の追記要件に合わせて「問合せ」表記へ統一する（該当翻訳キーは`helpdeskDashboard.inquiryForm.*`・`helpdeskDashboard.kpi.viewAll`・`helpdeskDashboard.inquiries.*`）。
+6. The Dashboard Service shall 本要件による文言変更を、翻訳キー名自体（`dashboard.inquiryForm`・`dashboard.inquiryList`・`dashboard.priorityInquiriesPreview`・`helpdeskDashboard.*`等）は変更せず、値のみを変更する形で行う（既存テストのキー参照を壊さない）。

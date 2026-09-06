@@ -421,3 +421,26 @@ Requirement 13.4を次の内容に置き換える（他のAcceptance Criteria 13
 4. If 問い合わせの`originalLanguage`が`ja`以外であり、かつ`translatedText`が設定されているとき、the Portal shall 当該注記を表示せず、従来どおり日本語訳（メイン）＋原文（参照）を表示する（Requirement 13.1・13.2を維持する）。
 5. The Portal shall 当該注記のUI文字列を`next-intl`の翻訳キー経由で提供し、`messages/ja.json`・`messages/en.json`で管理する。
 6. The Portal shall 本要件の対応において、虚偽の翻訳文言の生成・実際の翻訳API連携・`translatedText`の自動生成ロジックを追加しない。
+
+---
+
+### 追加要望（2026-09-06）: 表示名の「申請管理」→「問合せ管理」統一（2026-07-15追記の差し戻し）
+
+**背景:** 別ブランチ（`chore/rename-inquiry-to-application-labels`）での作業により、ヘルプデスク側サイドバー・問い合わせ管理画面の表示文言（`helpdeskNav.inquiryForm`・`helpdeskNav.inquiries`・`helpdeskInquiries.list.*`）が「問い合わせ」から「申請」表記へ変更されていた。申請者側の表記統一（`dashboard-card-redesign`・`inquiry-form`・`inquiry-list`各spec側の追記）に合わせ、ヘルプデスク側についても今回改めて「申請」→「問合せ」表記へ統一する。
+
+**スコープ外**:
+- 問い合わせ管理・テンプレート管理画面自体の機能・データ取得ロジック・型の変更（本追記は表示文言のみを対象とする）
+- 翻訳キー名自体の変更（`helpdeskNav.*`・`helpdeskInquiries.*`のキー構造は維持し、値のみ変更する）
+- Requirement 14の対応履歴表示ラベル「申請者からのメッセージ」（`requester_message`種別のラベル）は、問い合わせ送信者を指すロール的な語として据え置き、本要件の対象外とする
+
+### Requirement 20: 表示名の「申請管理」→「問合せ管理」統一（2026-07-15追記の差し戻し）
+
+**Objective:** As a ヘルプデスク担当者, I want サイドバー・問い合わせ管理画面で「問合せ」という一貫した言葉が使われていること, so that 「申請」という言葉との表記ゆれに戸惑わない
+
+#### Acceptance Criteria
+
+1. The Portal shall Requirement 9が導線を提供するヘルプデスクサイドバーのナビゲーション項目ラベル（`helpdeskNav.inquiryForm`＝「申請」、`helpdeskNav.inquiries`＝「申請管理」）を、それぞれ「問合せ」「問合せ管理」に変更する。
+2. The Portal shall 問い合わせ管理画面の見出し・説明文・空状態・エラーメッセージ・0件時メッセージ（`helpdeskInquiries.list.title`・`.description`・`.empty`・`.error`・`.noResults`）の「申請管理」「申請はありません」「申請の取得に失敗しました」「条件に合致する申請はありません」等の表記を、「問合せ管理」「問合せはありません」「問合せの取得に失敗しました」「条件に合致する問合せはありません」等の「問合せ」表記に統一する。
+3. The Portal shall 対応履歴の申請者メッセージラベル（`helpdeskInquiries.history.types.requester_message`＝「申請者からのメッセージ」）を、問い合わせ送信者を指すロール的な語として据え置き、本要件による変更対象としない。
+4. The Portal shall 英語表記（`messages/en.json`）についても、Application系表記（"Application Management"等）をInquiry系表記（"Inquiry Management"等）に統一する。
+5. The Portal shall 本要件による文言変更を、翻訳キー名自体を変更せず、値のみを変更する形で行う（既存テストのキー参照を壊さない）。ただし`HelpdeskSidebar.test.tsx`等のテスト名に「申請管理」という文言が含まれる場合は、新しい表示文言に追随してテスト名を更新する（アサーション自体は既存の翻訳キー参照のままでよい）。

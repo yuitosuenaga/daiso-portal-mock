@@ -10,16 +10,15 @@ import { resolveActiveHref, type NavItem } from "./nav-items";
 
 export interface MobileNavProps {
   items: NavItem[];
-  /** 翻訳名前空間: "nav"（申請者側）または "helpdeskNav"（ヘルプデスク側） */
-  namespace: "nav" | "helpdeskNav";
-  /** アクティブ判定のルート: "/"（申請者側）または "/helpdesk"（ヘルプデスク側） */
+  /** 翻訳名前空間（ヘルプデスク側専用） */
+  namespace: "helpdeskNav";
+  /** アクティブ判定のルート（ヘルプデスク側は "/helpdesk"） */
   rootHref: string;
 }
 
 /**
  * モバイル幅（`md`未満）でのみ表示するハンバーガートグル＋ドロワー型ナビゲーション。
- * 申請者側・ヘルプデスク側の両ヘッダーから、それぞれのナビゲーション項目・翻訳名前空間・
- * ホーム遷移先を渡して共通利用する。
+ * ヘルプデスク側ヘッダーから、ナビゲーション項目・翻訳名前空間・ホーム遷移先を渡して利用する。
  */
 export function MobileNav({ items, namespace, rootHref }: MobileNavProps) {
   const t = useTranslations(namespace);

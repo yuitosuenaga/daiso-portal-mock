@@ -165,3 +165,42 @@
 - **Rationale**: 添付ファイルの制約（上限・許可形式）はアプリ全体で一貫しているべきであり、UIの見た目（選択・プレビュー・削除操作）も申請側・ヘルプデスク側で統一されている方がユーザー体験上望ましい
 - **Trade-offs**: `helpdesk-inquiry-management`は`inquiry-form`が所有するモジュールに依存することになる。将来`inquiry-form`側でこれらのモジュールを破壊的変更する場合は、依存する側への影響確認が必要（Revalidation Triggersに明記）
 - **Follow-up**: `helpdesk-inquiry-management`spec着手時に、`AttachmentField`の翻訳文言をpropsとして受け取る設計（`FormField`と同じ、翻訳解決は呼び出し側の責務とする規約）になっていることを確認する
+
+## 追加ラウンド（2026-09-06）: 表示名の「申請」→「問合せ」統一（要件14）
+
+### Summary
+- **Discovery Type**: Light（既存実装の Extension。表示文言のみの変更でアーキテクチャ変更を伴わない）
+- **調査範囲**: 対象翻訳キーの現行値（ja/en）、`inquiryForm`名前空間の利用箇所、文言リテラルに依存するテストの有無
+- **結論**: コード変更は `messages/ja.json`・`messages/en.json` の5キーの値のみ。コンポーネント・型・バリデーション・Server Action の変更は不要。既存テストの修正も不要
+
+### Research Log
+
+#### Topic: `inquiryForm`名前空間の利用箇所（値変更の影響範囲）
+- **Findings**: `inquiryForm`名前空間は本specのフォーム画面（`/inquiry/new`）だけでなく、ヘルプデスク側の代理登録画面（`/helpdesk/inquiry/new`、`InquiryForm mode="helpdeskProxy"`、要件12）からも共有利用されている。さらに `announcements/new`・`documents/new`・`DocumentCategoryForm`・`LinkCategoryLanguageTabs` も同名前空間を参照するが、これらが使うのは `requiredMark`・`options.country` のみで、本ラウンドの対象5キーは使用していない。
+- **Implications**: 対象5キーの値変更は、申請者側フォームとヘルプデスク側代理登録画面の**両方**に反映される。ヘルプデスク側も `helpdesk-inquiry-management`spec 要件20で「問合せ」表記へ統一されるため、方針は整合する（矛盾なし）。`submit.viewInquiryListLink`（「問合せ一覧を見る」）は代理登録画面では `/helpdesk/inquiries` への導線として表示されるが、文言としては両画面で成立する。
+
+#### Topic: 文言リテラルに依存するテストの有無
+- **Findings**: `src/components/features/inquiry-form/InquiryForm.test.tsx` は `messages/ja.json` を直接importして`NextIntlClientProvider`へ渡す方式であり、対象5キーの**値**を直接アサーションしている箇所はない。テスト中の `title: "商品破損についての問い合わせ"` はフォーム入力値のテストデータであり本要件と無関係。`src/lib/actions/faqs.test.ts:25` の「ダッシュボードの「問い合わせ・申請」から行えます。」はFAQ本文のフィクスチャで、`faq`spec所有のため本ラウンド対象外。
+- **Implications**: 要件14.7（キー名を変えず値のみ変更）を守る限り、テスト修正は発生しない。
+
+#### Topic: 「問合せ」表記の既存有無
+- **Findings**: `messages/ja.json` 内に「問合せ」表記は現時点で0件（すべて「問い合わせ」または「申請」）。
+- **Implications**: 本specの5キーのみを変更すると、同一画面内に「問合せ」と「問い合わせ」が混在しうる。全画面横断の表記正規化（「問い合わせ」→「問合せ」）はユーザー合意済みの方針であり、`dashboard-card-redesign`ほか各spec側の追記と歩調を合わせて一括で行う。
+
+### Design Decisions
+
+#### Decision: 翻訳キー名は変更せず、`messages/*.json` の値のみを差し替える
+- **Context**: 「申請」→「問合せ」への表記統一。キー名（`inquiryForm.title`等）を意味に合わせて改名する案もありうる
+- **Alternatives Considered**: 1) キー名も含めてリネームする、2) 値のみ変更する
+- **Selected Approach**: 2) 値のみ変更する
+- **Rationale**: キー名は `inquiry`（問い合わせ）ベースで既に意味的に正しく、改名は `InquiryForm.tsx`・代理登録画面・テストを含む広範囲の参照更新を招く。表示文言の統一という要件の目的は値変更のみで達成できる
+- **Trade-offs**: なし（キー名と表示文言の乖離は生じない）
+- **Follow-up**: なし
+
+#### Decision: 要件1の導線記述の更新はドキュメント上の反映に留め、コード変更を伴わせない
+- **Context**: 左サイドバー撤去（`helpdesk-portal-layout`spec 要件19）により、要件1 AC1が前提とした「サイドバーの『問い合わせ申請』ナビゲーション項目」からの導線が消滅する
+- **Alternatives Considered**: 1) 本specでフォーム画面に代替導線（戻るリンク等）を追加する、2) 導線記述の更新のみ行う
+- **Selected Approach**: 2)
+- **Rationale**: 代替導線はダッシュボードの「問合せ」ブロック（`dashboard-card-redesign`spec 要件15所有）が担うため、本specでのUI追加は責務外かつ重複になる。フォーム画面自体のUI・ルート（`/inquiry/new`）は不変
+- **Trade-offs**: なし
+- **Follow-up**: なし

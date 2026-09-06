@@ -1041,3 +1041,66 @@ setErrorKind(null);
 - `HelpdeskInquiryDetail.test.tsx`の既存ケース「外国語原文だが日本語訳が未設定の場合、日本語訳セクションを表示せず原文のみを表示する」（現行 L300〜329 付近）を、**翻訳未対応の注記（`messages.helpdeskInquiries.detail.translationUnavailable`）が表示され、かつ`translatedTextLabel`は表示されないこと**を検証する内容に更新する。
 - 既存ケース「外国語原文かつ日本語訳が設定されている場合」（L236〜267）・「原文が日本語の場合」（L269〜298）は、注記が表示されないことを併せて確認する（`queryByText(...translationUnavailable)` が `null`）。
 - `ja.json`/`en.json`に`translationUnavailable`キーが存在し、両言語で値を持つこと（i18nキー網羅のスナップショット/整合テストがある場合はそれに追随）。
+
+---
+
+## 追加（2026-09-06）: 表示文言の「申請管理」→「問合せ管理」統一（Requirement 20）
+
+### Overview（追加分）
+
+Requirement 20 への対応。2026-07-15追記（別ブランチ `chore/rename-inquiry-to-application-labels`）で「問い合わせ管理」→「申請管理」に変更した表示文言を、プロジェクト全体の「問合せ」表記統一方針に合わせて再度変更する。**UI表示文言（翻訳値）のみの変更であり、コンポーネント構成・データフロー・データモデル・型・Server Action・取得ロジックへの設計変更は一切発生しない。** 翻訳キー名も変更しないため、キー参照で書かれた既存テストのアサーションは無変更で通る。
+
+本ラウンドは申請者側の同種の追記（`dashboard-card-redesign` Requirement 16、`inquiry-form` 要件14、`inquiry-list` 要件17）と同時に実施され、ポータル全体で「問合せ」表記に揃える。
+
+### Boundary Commitments（追加分）
+
+- **This Spec Owns（本ラウンドで変更するキー）**: `helpdeskNav.inquiryForm`・`helpdeskNav.inquiries`・`helpdeskInquiries.list.*`・`helpdeskInquiries.detail.notFound`・`helpdeskInquiries.detail.error`
+- **Out of Boundary**: 申請者側の翻訳キー（`nav.*`・`dashboard.*`・`inquiryForm.*`・`inquiryList.*`）は各所有specが担当する。`helpdeskNav`配下の他項目（`templates`・`announcements`・`documents`・`companies`・`links`・`faq`・`home`）は変更しない
+- **据え置き（意図的な非変更）**: `helpdeskInquiries.history.types.requester_message`（「申請者からのメッセージ」）は、問い合わせ送信者を指すロール的な語であり、英語側も既に "Message from requester" と Application 系ではないため変更しない（Requirement 20.3）
+
+### i18n 変更マッピング（`messages/ja.json` / `messages/en.json`）
+
+Requirement 20.1・20.2・20.4 に対応する変更（値のみ、キー名は不変）:
+
+| キー | ja（現行） | ja（変更後） | en（現行） | en（変更後） |
+|---|---|---|---|---|
+| `helpdeskNav.inquiryForm` | 申請 | 問合せ | Application | New Inquiry |
+| `helpdeskNav.inquiries` | 申請管理 | 問合せ管理 | Application Management | Inquiry Management |
+| `helpdeskInquiries.list.title` | 申請管理 | 問合せ管理 | Application Management | Inquiry Management |
+| `helpdeskInquiries.list.description` | 全社分の申請を対応状況・緊急度順に確認できます。 | 全社分の問合せを対応状況・緊急度順に確認できます。 | View applications from all companies, sorted by status and urgency. | View inquiries from all companies, sorted by status and urgency. |
+| `helpdeskInquiries.list.empty` | 申請はありません | 問合せはありません | No applications | No inquiries |
+| `helpdeskInquiries.list.error` | 申請の取得に失敗しました | 問合せの取得に失敗しました | Failed to load applications | Failed to load inquiries |
+| `helpdeskInquiries.list.noResults` | 条件に合致する申請はありません | 条件に合致する問合せはありません | No applications match the selected filters | No inquiries match the selected filters |
+
+**表記ゆれの併行是正（プロジェクト全体の「問合せ」正規化方針・2026-09-06ユーザー確定）**: 上記の変更により、同一画面内で新しい「問合せ」表記と既存の「問い合わせ」表記が混在する。本specが所有する残りの該当キーについても、同ラウンドで「問合せ」に正規化する（英語側は既に Inquiry 系のため変更不要）:
+
+| キー | ja（現行） | ja（変更後） | en |
+|---|---|---|---|
+| `helpdeskInquiries.detail.notFound` | 問い合わせが見つかりません | 問合せが見つかりません | Inquiry not found（変更なし） |
+| `helpdeskInquiries.detail.error` | 問い合わせの取得に失敗しました | 問合せの取得に失敗しました | Failed to load the inquiry（変更なし） |
+
+### Modified Files（追加分）
+
+- `messages/ja.json` — 上記9キーの値変更（`helpdeskNav` 2件、`helpdeskInquiries.list` 5件、`helpdeskInquiries.detail` 2件）
+- `messages/en.json` — 上記7キーの値変更（`helpdeskNav` 2件、`helpdeskInquiries.list` 5件）
+- `src/components/layout/HelpdeskSidebar.test.tsx` — テスト**名**の文言更新のみ（L50「申請管理・テンプレート管理へのナビゲーション項目を表示する」、L105「問い合わせ詳細ページ表示中は申請管理項目がアクティブになる」）。アサーションは既存の `messages.helpdeskNav.*` 参照のままで変更不要
+- `src/components/layout/nav-items.test.ts` — テスト**名**の文言更新のみ（L57「問い合わせ詳細ページ表示中は申請管理項目がアクティブになる」）
+
+**変更しないファイル**: `HelpdeskInquiryList.tsx`・`HelpdeskInquiryDetail.tsx`・`HelpdeskSidebar.tsx`・`inquiry-service.ts`・`inquiries.ts`・各Server Action・型定義（いずれも翻訳キー経由で文言を解決しており、値の変更のみで表示に反映されるため）。
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components |
+|-------------|---------|------------|
+| 20.1 | サイドバーナビ項目ラベルの「問合せ」統一 | messages/ja.json, messages/en.json（`helpdeskNav.*`） |
+| 20.2 | 問い合わせ管理画面の見出し・空状態・エラー文言の「問合せ」統一 | messages/ja.json, messages/en.json（`helpdeskInquiries.list.*`） |
+| 20.3 | `requester_message` ラベルの据え置き | （変更なし・回帰確認のみ） |
+| 20.4 | 英語表記の Inquiry 系統一 | messages/en.json |
+| 20.5 | キー名不変・テスト名の追随 | HelpdeskSidebar.test.tsx, nav-items.test.ts |
+
+### Testing Strategy（追加分）
+
+- 既存の `HelpdeskSidebar.test.tsx`・`nav-items.test.ts`・`HelpdeskInquiryList.test.tsx` 等は、いずれも `messages.helpdeskNav.*` / `messages.helpdeskInquiries.*` のキー参照でアサーションしているため、**値の変更によって壊れない**（キー名を変更しないことが前提条件）。
+- テスト名に含まれる「申請管理」の文言は、可読性維持のため新しい表示文言に追随して更新する（挙動検証には影響しない）。
+- `ja.json`/`en.json` の JSON 構造（キー集合）が変更前後で完全一致すること（値のみの差分であること）を確認する。
+- ヘルプデスク側の一覧・詳細・サイドバーが従来どおり描画されること（表示文言のみの差分であり、レイアウト・遷移に回帰がないこと）を確認する。

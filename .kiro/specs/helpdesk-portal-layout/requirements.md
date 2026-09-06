@@ -283,3 +283,29 @@
 7. The `ConfirmDialog` shall 表示する全ての文言を利用側からprops経由で受け取り（コンポーネント内に固定の表示文言を持たない）、i18nは各利用側specが`next-intl`で解決した文字列を渡す形とする。
 8. The Portal shall 本コンポーネントを、`window.confirm()`をアプリ内モーダルへ置き換える対象（`announcements-management`・`faq-management`・`links-management`・`documents-management`・`helpdesk-account-management`の各削除/無効化操作）に共通利用させることを前提とし、各利用側specが独自の確認モーダルUIを重複実装しないようにする。
 9. The Portal shall 本コンポーネントの追加により、既存のレイアウト・ナビゲーション・ルーティングの挙動を変更しない（純粋な新規UIプリミティブの追加とする）。
+
+---
+
+### 追記（2026-09-06）: 申請者側サイドバー・モバイルドロワーの撤去
+
+**背景:** 申請者側トップページ（ダッシュボード）を、お知らせ・資料共有・売場検討会（動画）・問合せ・マニュアル・POPの6ブロックによる単一の遷移導線として再構成する方針転換（`dashboard-card-redesign`側の追記要件）に伴い、申請者側の左サイドバー（`Sidebar.tsx`）およびモバイルドロワーは廃止し、ダッシュボードのブロックのみを申請者側の画面遷移導線とする。これは本specが「This Spec Owns」で所有を明記している`AppShell`・Sidebar・ナビゲーション基盤の構造変更であるため、新規specを作らず本specへ追記する。
+
+**スコープ外（重要・回帰防止）**:
+- ヘルプデスク側（`HelpdeskAppShell.tsx`・`HelpdeskSidebar.tsx`・`HelpdeskHeader.tsx`・`HELPDESK_NAV_ITEMS`）は本追記の対象外であり、一切変更しない
+- `MobileNav.tsx`コンポーネント自体は削除しない。ヘルプデスク側は本追記後もモバイルドロワー（Requirement 15）を継続利用するため、`MobileNav.tsx`・`resolveActiveHref`は共有資産としてそのまま残す
+- Requirement 11（申請者側サイドバーのアクティブ判定の子ルート対応）・Requirement 15（モバイルドロワー）は、**申請者側部分のみ**本追記により撤回する。ヘルプデスク側に関する記述・実装は撤回されず、従来通り維持する
+
+### Requirement 19: 申請者側サイドバー・モバイルドロワーの撤去
+
+**Objective:** As a 海外販社担当者（申請者）, I want 左サイドバーに煩わされずダッシュボードのブロックのみで画面遷移できること, so that 画面幅を有効に使いつつ、遷移導線がダッシュボード上に一本化されて分かりやすい
+
+#### Acceptance Criteria
+
+1. The Portal shall 申請者側ルートグループ（`(applicant)`配下の全画面）において、左サイドバー（`Sidebar.tsx`）を表示しない。
+2. The Portal shall 申請者側ヘッダーにおいて、モバイル幅のハンバーガーメニュー（モバイルドロワーのトリガー）を表示しない。
+3. The Portal shall 申請者側の`AppShell`のコンテンツ領域について、サイドバー幅ぶんの左パディング（`md:pl-16`・`lg:pl-60`等）を持たせず、利用可能な幅を使用するレイアウトとする。
+4. The Portal shall 申請者側`AppShell`のタブレット幅サイドバー折りたたみ切り替えボタンを撤去する。
+5. The Portal shall 本要件による撤去後、申請者側の画面遷移導線を、ヘッダーロゴ（`/`への遷移、Requirement 12により提供済み）と、各画面が個別に持つ戻り導線、およびダッシュボードのブロックのみとする。
+6. The Portal shall 本要件の実装に伴い、申請者側で未使用となる翻訳名前空間（`nav`）およびナビゲーション項目定義（`APPLICANT_NAV_ITEMS`）を削除し、参照されない状態のまま残さない。
+7. The Portal shall 本要件による変更で、ヘルプデスク側のレイアウト・サイドバー・モバイルドロワーの表示・挙動に一切の回帰を生じさせない。
+8. The Portal shall 本要件の実装後、Lint・型チェック・既存テストがエラーなく通る状態を維持する。

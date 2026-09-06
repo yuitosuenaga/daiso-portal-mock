@@ -359,3 +359,28 @@
   - `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する
   - _Requirements: 13.1, 13.2, 13.3, 13.4_
   - _Depends: 18_
+
+## 追加タスク（2026-09-06）: 表示名の「申請」→「問合せ」統一（要件14）
+
+> 要件14.5（要件1の導線記述を「サイドバーの『問い合わせ申請』項目」から「ダッシュボードの『問合せ』ブロック」へ更新）は、`requirements.md`・`design.md`上の前提更新のみで完結し、本specのコード変更を伴わないため実装タスクを設けない。代替導線の実装は`dashboard-card-redesign`spec 要件15が所有する。
+
+- [x] 21. フォーム画面の日本語表示文言を「問合せ」表記に統一する
+  - 対象: `messages/ja.json`（`inquiryForm`名前空間）
+  - 次の6キーの**値のみ**を差し替える（キー名・キー構造は変更しない）: `inquiryForm.title`「問い合わせ・申請フォーム」→「問合せフォーム」、`inquiryForm.description`「選択式項目と自由記述を入力し、問い合わせ・申請を送信してください。」→「選択式項目と自由記述を入力し、問合せを送信してください。」、`inquiryForm.fields.originalText.label`「問い合わせ内容（自由記述）」→「問合せ内容（自由記述）」、`inquiryForm.fields.originalText.placeholder`「問い合わせ・申請内容を入力してください」→「問合せ内容を入力してください」、`inquiryForm.submit.successDescription`「問い合わせ・申請を受け付けました。」→「問合せを受け付けました。」、`inquiryForm.submit.viewInquiryListLink`「申請一覧を見る」→「問合せ一覧を見る」（`label`は要件14の明示対象外だが、ユーザー確定の「問い合わせ」表記全体正規化方針に基づき同時に統一。`InquiryForm.test.tsx`のラベル参照も追随済み）
+  - `InquiryForm.tsx`・`InquiryDescriptionSection.tsx`は翻訳キー経由で文言を取得しているため、コンポーネント側の変更は行わない
+  - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.7_
+  - _Boundary: messages/ja.json (inquiryForm namespace)_
+
+- [x] 22. (P) フォーム画面の英語表示文言をInquiry系表記に統一する
+  - 対象: `messages/en.json`（`inquiryForm`名前空間）
+  - タスク21と同じ5キーの値を差し替える: `title`「Inquiry / Request Form」→「Inquiry Form」、`description`「...submit your inquiry or request.」→「...submit your inquiry.」、`fields.originalText.placeholder`「Enter the details of your inquiry or request」→「Enter the details of your inquiry」、`submit.successDescription`「Your inquiry or request has been received.」→「Your inquiry has been received.」、`submit.viewInquiryListLink`「View my applications」→「View my inquiries」
+  - ja/en のキー構造が一致した状態を維持する
+  - _Requirements: 14.6, 14.7_
+  - _Boundary: messages/en.json (inquiryForm namespace)_
+
+- [x] 23. 検証（表示名の「申請」→「問合せ」統一）
+  - `tsc --noEmit`・`npm run lint`・`npm test`が全て通ることを確認する。対象5キーの値を直接アサーションしている既存テストは存在しないため、テストコードの修正は発生しない見込み（発生した場合のみ新文言に追随させる）
+  - 画面確認: `/ja/inquiry/new`・`/en/inquiry/new`で見出し・説明文・自由記述プレースホルダー・送信完了メッセージ・一覧遷移リンクが新文言で表示されること
+  - 回帰確認: `InquiryForm`を共有するヘルプデスク側代理登録画面（`/ja/helpdesk/inquiry/new`）でも新文言が表示され、レイアウト崩れ・未翻訳キー表示が発生しないこと
+  - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.6, 14.7_
+  - _Depends: 21, 22_

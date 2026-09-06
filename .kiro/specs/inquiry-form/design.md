@@ -274,6 +274,8 @@ sequenceDiagram
 | 10.1–10.9 | 添付ファイルの追加 | AttachmentField, InquiryForm | AttachmentUtils, InquiryAttachmentType | 添付ファイル選択フロー |
 | 11.1–11.5 | 問い合わせタイトル（追加） | InquiryDescriptionSection, InquiryForm | InquiryFormSchema, CreateInquiry Service Interface | 送信フロー |
 | 12.1–12.9 | ヘルプデスク代理登録対応（追加） | InquiryForm, ProxyCompanySelect | CreateInquiry Service Interface | 代理登録フロー |
+| 13.1–13.4 | 投稿時に`translatedText`を書き込まないことの保証（追加） | createInquiry, createInquiryRecord | CreateInquiryInput | 送信フロー |
+| 14.1–14.7 | 表示名の「申請」→「問合せ」統一（追加） | messages/inquiryForm（値のみ）, InquiryForm, InquiryDescriptionSection（変更なし） | messages/ja.json, messages/en.json | - |
 
 ## Components and Interfaces
 
@@ -594,3 +596,45 @@ sequenceDiagram
 ### Testing Strategy（追加分・2026-07-22）
 - `src/lib/server/inquiry-service.test.ts`に、`createInquiryRecord`を呼び出した結果の`Inquiry`（またはmapに渡るPrismaレコード）で`translatedText`が未設定（`undefined`/`null`）であることを検証するケースを追加する。`prisma.inquiry.create`に渡る`data`に`translatedText`が含まれないことをアサートする形でもよい（既存テストのモック方針に合わせる）。
 - 型レベルの保証: `CreateInquiryInput`が`translatedText`を含まないことは既存の`Omit<Inquiry, "id" | "translatedText">`で担保済み。型定義は変更しない。
+
+## 追加設計（2026-09-06）: 表示名の「申請」→「問合せ」統一（要件14）
+
+### 背景と方針
+申請者側トップページのブロック名変更（`dashboard-card-redesign`spec 要件15・16）および左サイドバー撤去（`helpdesk-portal-layout`spec 要件19）に伴い、本spec所有のフォーム画面（`/inquiry/new`）の表示文言からも「問い合わせ・申請」という併記表現を廃し、「問合せ」表記へ一本化する。**本ラウンドは表示文言のみの変更であり、コンポーネント構造・型・バリデーション・Server Action・データ永続化には一切手を入れない。**変更対象は `messages/ja.json`・`messages/en.json` の値のみで、翻訳キー名は維持する（要件14.7）。
+
+### Boundary Commitments（追加分・2026-09-06）
+- **This Spec Owns**: `inquiryForm`名前空間のうち、フォーム画面の見出し・説明文・自由記述プレースホルダー・送信結果メッセージ・一覧遷移リンクの表示文言（ja/en）。
+- **Out of Boundary**:
+  - ダッシュボードの「問合せ」ブロックのラベル・配置（`dashboard-card-redesign`spec 要件15・16所有）
+  - 問い合わせ一覧ページの見出し・空状態・エラー文言（`inquiry-list`spec 要件17所有）
+  - ヘルプデスク側サイドバー・問い合わせ管理画面の文言（`helpdesk-inquiry-management`spec 要件20所有）
+  - 左サイドバー・モバイルドロワーの撤去そのもの（`helpdesk-portal-layout`spec 要件19所有）
+  - フォームの入力項目・バリデーションルール・`Inquiry`/`CreateInquiryInput`型・`createInquiry`/`createInquiryRecord`（本ラウンドでは不変）
+
+### 変更対象キーと新旧文言（要件14.1〜14.4, 14.6）
+
+| 翻訳キー | 現行 ja | 変更後 ja | 現行 en | 変更後 en | Req |
+|---|---|---|---|---|---|
+| `inquiryForm.title` | 問い合わせ・申請フォーム | 問合せフォーム | Inquiry / Request Form | Inquiry Form | 14.1 |
+| `inquiryForm.description` | 選択式項目と自由記述を入力し、問い合わせ・申請を送信してください。 | 選択式項目と自由記述を入力し、問合せを送信してください。 | Fill in the selection fields and free text, then submit your inquiry or request. | Fill in the selection fields and free text, then submit your inquiry. | 14.1 |
+| `inquiryForm.fields.originalText.placeholder` | 問い合わせ・申請内容を入力してください | 問合せ内容を入力してください | Enter the details of your inquiry or request | Enter the details of your inquiry | 14.2 |
+| `inquiryForm.submit.successDescription` | 問い合わせ・申請を受け付けました。 | 問合せを受け付けました。 | Your inquiry or request has been received. | Your inquiry has been received. | 14.3 |
+| `inquiryForm.submit.viewInquiryListLink` | 申請一覧を見る | 問合せ一覧を見る | View my applications | View my inquiries | 14.4 |
+
+### 影響範囲（Cross-Screen Impact）
+`InquiryForm`コンポーネントは、申請者側フォーム（`/inquiry/new`）とヘルプデスク側の代理登録画面（`/helpdesk/inquiry/new`、`mode="helpdeskProxy"`、要件12）の**両方**から共有利用されている。したがって上表の値変更は両画面に同時に反映される。ヘルプデスク側も `helpdesk-inquiry-management`spec 要件20で「問合せ」表記へ統一されるため方針は整合しており、追加の分岐（画面ごとの文言出し分け）は行わない。
+
+`inquiryForm`名前空間を参照する他画面（`announcements/new`・`documents/new`・`DocumentCategoryForm`・`LinkCategoryLanguageTabs`）が使用するのは `requiredMark`・`options.country` のみであり、本ラウンドの対象キーは含まれないため影響しない（詳細は`research.md`「追加ラウンド（2026-09-06）」参照）。
+
+### 要件1の導線記述の更新（要件14.5）
+要件1 AC1が前提としていた「サイドバーの『問い合わせ申請』ナビゲーション項目」からの導線は、`helpdesk-portal-layout`spec 要件19による左サイドバー撤去で失効する。以後の導線は**ダッシュボードの「問合せ」ブロック**（`dashboard-card-redesign`spec 要件15所有）のみとなる。これはドキュメント上の前提更新であり、**本specのコード変更（フォーム画面のUI・ルート`/inquiry/new`）は発生しない**。
+
+### 実装方針（コード変更）
+- `messages/ja.json`・`messages/en.json` の上表5キーの値のみを差し替える。キー名・キー構造・他キーの値は変更しない。
+- `InquiryForm.tsx`・`InquiryDescriptionSection.tsx` は翻訳キー経由で文言を取得しているため（`t("title")`・`t("description")`・`t("submit.successDescription")`・`t("submit.viewInquiryListLink")`・`t("fields.originalText.placeholder")`）、**コンポーネント側の変更は不要**。
+- ソースコード内の日本語コメント（`src/types/inquiry.ts`・`src/lib/validation/inquiry.ts`等の「問い合わせ・申請」表記）はUI表示文言ではないため、本ラウンドの対象外とする。
+
+### Testing Strategy（追加分・2026-09-06）
+- `src/components/features/inquiry-form/InquiryForm.test.tsx` は `messages/ja.json` を直接importして`NextIntlClientProvider`へ渡す方式であり、対象5キーの値を直接アサーションしていないため、**既存テストの修正は不要**（要件14.7を満たす）。
+- ja/en 両ファイルのキー構造が一致していること（キーの過不足がないこと）を、既存のi18n整合性チェック（`npm run test`・`npm run lint`・`npm run build`）で確認する。
+- 手動確認: `/ja/inquiry/new`・`/en/inquiry/new` および `/ja/helpdesk/inquiry/new` で、見出し・説明文・プレースホルダー・送信完了メッセージ・一覧遷移リンクが新文言で表示されること。

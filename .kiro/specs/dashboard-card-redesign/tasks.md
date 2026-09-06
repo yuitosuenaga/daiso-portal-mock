@@ -228,3 +228,55 @@
   - 既存カード・順序・KPI・プレビューパネルに影響を与えないことを確認する
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
   - _Depends: なし_
+
+---
+
+## 追加ラウンド（2026-09-06）: 申請者側トップページのブロック構成刷新と「申請」→「問合せ」表記の再統一（要件15・16）
+
+- [x] 21. 基盤: ダッシュボード関連の翻訳キーの追加と「問合せ」表記への統一
+
+- [x] 21.1 新規3ブロック（売場検討会（動画）・マニュアル・POP）の翻訳キーを追加する
+  - `dashboard.salesFloorMeeting`・`dashboard.manuals`・`dashboard.pop`の各`title`・`description`を`messages/ja.json`・`messages/en.json`の両方へ追加する
+  - 日本語は「売場検討会（動画）」「マニュアル」「POP」、英語は "Sales Floor Review (Video)"・"Manuals"・"POP" とし、説明文はいずれも資料共有と同じドキュメントを参照する旨の文面で揃える
+  - ja/enでキー構造が完全に一致していること（片方だけにキーが存在しない状態がないこと）を確認する
+  - 完了状態: 3ブロック分の6キーがja/en両方に存在し、`npm run build`が翻訳キー欠落の警告なく通る
+  - _Requirements: 15.3, 15.7_
+  - _Boundary: messages/ja.json, messages/en.json_
+
+- [x] 21.2 ダッシュボード関連の既存翻訳値を「問合せ」表記へ変更する
+  - 申請者側: `dashboard.documents.title`を「資料共有」へ、`dashboard.inquiryForm.*`を「問合せ」系へ、`dashboard.inquiryList.*`を「問合せ一覧」系へ、`dashboard.priorityInquiriesPreview.*`（title・empty・error・viewAll）を「問合せ」系へ変更する
+  - ヘルプデスク側: `helpdeskDashboard.inquiryForm.*`・`helpdeskDashboard.inquiries.*`・`helpdeskDashboard.kpi.viewAll`を「問合せ」系へ変更する
+  - 英語側は "Application" 系表記を "Inquiry" 系表記へ揃える。日本語側は「問い合わせ」表記も「問合せ」へ正規化する
+  - 翻訳キー名は一切変更せず、値のみを差し替える（`titleKey`/`descriptionKey`を文字列で受け渡している既存コンポーネントを壊さないため）
+  - 完了状態: `dashboard`・`helpdeskDashboard`名前空間に「申請」表記が残っておらず、既存の単体テストが全て通る
+  - _Requirements: 15.2, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
+  - _Boundary: messages/ja.json, messages/en.json_
+
+- [x] 22. 申請者側トップページのカードグリッドを指定順へ刷新する
+  - カードグリッド内の並び順を、お知らせ → 資料共有 → 売場検討会（動画） → 問合せ → 問合せ一覧 → マニュアル → POP → リンク → よくある質問 に変更する
+  - 売場検討会（動画）・マニュアル・POPの静的`NavigationCard`を3枚追加し、いずれも遷移先を`/documents`とする（アイコンはそれぞれ`Video`・`BookOpen`・`Tags`）
+  - 「問合せ」（`/inquiry/new`）と「問合せ一覧」（`InquiryListCard`、未対応件数バッジ付き）を隣接させて配置する
+  - 既存の「リンク」「よくある質問」カードは削除せず、指定ブロックの後段に残す
+  - グリッド上部のリマインド強調表示セクション・「最新のお知らせ」プレビューパネルの位置・内容・`Suspense`境界は変更しない
+  - 完了状態: 申請者側トップページを開くと9枚のカードが指定順で表示され、各カードが正しい遷移先へ遷移する
+  - _Requirements: 15.1, 15.4, 15.5, 15.6, 15.8_
+  - _Depends: 21.1, 21.2_
+  - _Boundary: ApplicantDashboardPage_
+
+- [x] 23. 検証: ブロック表示順の回帰テストと既存テストの追随
+
+- [x] 23.1 申請者側ダッシュボードのブロック表示順・遷移先を検証する単体テストを追加する
+  - 現状このページには単体テストが存在しないため、新規テストファイルを作成する
+  - 9枚のカードが指定順で描画されること、および各カードの`href`（特に売場検討会（動画）・マニュアル・POPがいずれも`/documents`であること、問合せが`/inquiry/new`・問合せ一覧が`/inquiry`であること）を検証する
+  - 完了状態: 並び順を入れ替えると失敗する回帰テストが追加され、`npm run test`が通る
+  - _Requirements: 15.1, 15.3, 15.4, 15.6_
+  - _Depends: 22_
+  - _Boundary: ApplicantDashboardPage_
+
+- [x]* 23.2 (P) 文言リテラルに依存する既存テストを新表記へ追随させる
+  - `NavigationCard.test.tsx`がpropsとして直書きしている「申請一覧」等の文言リテラルを新表記へ更新する
+  - 翻訳キー参照でアサーションしている既存テスト（`AnnouncementsCard.test.tsx`・`InquiryListCard.test.tsx`・`PriorityInquiriesPreviewPanel.test.tsx`）が無変更で通ることを確認する
+  - 完了状態: `npm run test`が全て通り、テストコード中に旧表記（「申請」）が残っていない
+  - _Requirements: 16.6_
+  - _Depends: 21.2_
+  - _Boundary: dashboard コンポーネントのテスト_
