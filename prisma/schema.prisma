@@ -467,3 +467,46 @@ model ReplyTemplate {
   body      String
   createdAt DateTime        @default(now())
 }
+
+enum MonthlyMaterialCategory {
+  salesFloorMeeting
+  pop
+}
+
+enum MonthlyMaterialSourceType {
+  upload
+  google
+}
+
+enum MonthlyMaterialTargetingScope {
+  all
+  countries
+  companies
+}
+
+/**
+ * 月次資料ギャラリー（売場検討会資料・POP資料）。`documents`/`documents-management`specの
+ * `Document`とはデータ・型ともに独立させる（`monthly-document-gallery`spec所有）。
+ * タイトル・説明・多言語翻訳は持たず、見出しは`year`/`month`から画面側で動的生成する。
+ */
+model MonthlyMaterial {
+  id                    String                        @id @default(cuid())
+  category              MonthlyMaterialCategory
+  year                  Int
+  month                 Int
+  sourceType            MonthlyMaterialSourceType     @default(upload)
+  fileName              String?
+  fileType              String?
+  fileSize              Int?
+  dataUrl               String?
+  googleUrl             String?
+  googleEmbedUrl        String?
+  targetingScope        MonthlyMaterialTargetingScope @default(all)
+  targetingCountries    String[]                      @default([])
+  targetingCompanyCodes String[]                      @default([])
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+
+  @@unique([category, year, month])
+  @@index([category])
+}

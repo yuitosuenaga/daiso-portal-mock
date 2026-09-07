@@ -32,5 +32,21 @@ describe("resolveActiveHref", () => {
         )
       ).toBe("/helpdesk/inquiries");
     });
+
+    it("売場検討会資料管理ページ表示中は売場検討会項目がアクティブになる", () => {
+      expect(
+        resolveActiveHref(
+          "/helpdesk/sales-floor-meeting",
+          HELPDESK_NAV_ITEMS,
+          "/helpdesk"
+        )
+      ).toBe("/helpdesk/sales-floor-meeting");
+    });
+
+    it("POP資料管理ページ表示中はPOP項目がアクティブになる", () => {
+      expect(resolveActiveHref("/helpdesk/pop", HELPDESK_NAV_ITEMS, "/helpdesk")).toBe(
+        "/helpdesk/pop"
+      );
+    });
   });
 });

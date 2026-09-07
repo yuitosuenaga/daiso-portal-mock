@@ -47,7 +47,7 @@ export default async function DashboardPage() {
         <NavigationCard
           title={t("salesFloorMeeting.title")}
           description={t("salesFloorMeeting.description")}
-          href="/documents"
+          href="/sales-floor-meeting"
           icon={Video}
         />
         <NavigationCard
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
         <NavigationCard
           title={t("pop.title")}
           description={t("pop.description")}
-          href="/documents"
+          href="/pop"
           icon={Tags}
         />
         <NavigationCard

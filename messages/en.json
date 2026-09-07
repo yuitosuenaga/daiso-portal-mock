@@ -42,7 +42,9 @@
     "faq": "FAQ",
     "announcements": "Announcement Management",
     "documents": "Document Management",
-    "companies": "Company Management"
+    "companies": "Company Management",
+    "salesFloorMeeting": "Sales Floor Meeting (Video)",
+    "pop": "POP"
   },
   "helpdeskDocuments": {
     "list": {
@@ -871,6 +873,66 @@
     "category": {
       "notFound": "The requested documents could not be found",
       "backToCategories": "Back to categories"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "Sales Floor Meeting (Video)",
+      "pageDescription": "View monthly sales floor meeting materials."
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "View monthly POP materials."
+    },
+    "list": {
+      "error": "Failed to load materials",
+      "empty": "No materials",
+      "downloadLink": "Download",
+      "openOriginalLink": "Open the original document",
+      "googlePreviewError": "Unable to display the preview",
+      "googlePreviewHint": "If the preview does not display, please open the original document",
+      "addButton": "Add new",
+      "editButton": "Edit"
+    },
+    "delete": {
+      "buttonLabel": "Delete",
+      "confirmTitle": "Delete material",
+      "confirmMessage": "This will delete the material for \"{heading}\". This action cannot be undone. Are you sure?",
+      "confirmButton": "Delete",
+      "cancelButton": "Cancel",
+      "errorMessage": "Failed to delete. Please try again later."
+    },
+    "form": {
+      "yearLabel": "Year",
+      "monthLabel": "Month",
+      "sourceTypeLabel": "Registration method",
+      "sourceTypeUploadOption": "Upload a file",
+      "sourceTypeGoogleOption": "Register a Google document share link",
+      "fileLabel": "File",
+      "fileHint": "Select a PDF file (up to 20MB)",
+      "removeFileButtonLabel": "Remove",
+      "googleUrlLabel": "Share link URL",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "Paste a Google Docs/Sheets/Slides share link",
+      "targetingLabel": "Visibility",
+      "targetingAllOption": "All companies",
+      "targetingCountriesOption": "Specific countries/regions",
+      "targetingCompaniesOption": "Specific companies",
+      "countriesLabel": "Target countries/regions",
+      "companiesLabel": "Target companies",
+      "submitButton": "Save",
+      "cancelButton": "Cancel",
+      "requiredError": "This field is required",
+      "countriesRequiredError": "Select at least one",
+      "companiesRequiredError": "Select at least one",
+      "fileRequiredError": "Please select a file",
+      "sizeExceeded": "File size exceeds the limit (20MB)",
+      "typeNotAllowed": "Only PDF files can be registered",
+      "readFailed": "Failed to read the file",
+      "googleUrlInvalid": "Enter a valid Google Docs/Sheets/Slides share link",
+      "duplicateYearMonthError": "A material is already registered for this year and month",
+      "requiredIndicator": "Required",
+      "submitError": "Failed to save. Please try again later."
     }
   },
   "inquiryForm": {

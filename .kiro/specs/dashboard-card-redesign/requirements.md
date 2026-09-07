@@ -273,3 +273,22 @@
 4. The Dashboard Service shall Requirement 7 AC4で「英語ラベルは変更しない」としていた方針を撤回し、英語ラベルについてもApplication系表記（例: "New Inquiry"の一部、"Applications Needing Attention"等）をInquiry系表記に統一する。
 5. The Dashboard Service shall ヘルプデスク側ダッシュボードのカード・KPI・プレビューパネルの表記（Requirement 2 AC2「問い合わせ申請フォーム」、Requirement 7 AC2「申請フォーム」、Requirement 13等）については、本要件の対象外とせず、`helpdesk-inquiry-management`spec側の追記要件に合わせて「問合せ」表記へ統一する（該当翻訳キーは`helpdeskDashboard.inquiryForm.*`・`helpdeskDashboard.kpi.viewAll`・`helpdeskDashboard.inquiries.*`）。
 6. The Dashboard Service shall 本要件による文言変更を、翻訳キー名自体（`dashboard.inquiryForm`・`dashboard.inquiryList`・`dashboard.priorityInquiriesPreview`・`helpdeskDashboard.*`等）は変更せず、値のみを変更する形で行う（既存テストのキー参照を壊さない）。
+
+---
+
+### 追記（2026-09-07）: 「売場検討会（動画）」「POP」カードの遷移先を月次資料ギャラリーへ変更
+
+**背景:** `monthly-document-gallery`specにより、「売場検討会（動画）」「POP」向けの独立した月次資料閲覧画面（海外側: `/sales-floor-meeting`, `/pop`）が新設される。これに伴い、Requirement 15 AC3で定めていた「売場検討会（動画）」「POP」の遷移先（`/documents`）を、新設ルートへ変更する。「マニュアル」ブロックの遷移先（`/documents`）は本追記の対象外とし、変更しない。
+
+**スコープ外**: `/sales-floor-meeting`・`/pop`画面自体の内部実装（`monthly-document-gallery`specの範囲）、ヘルプデスク側ダッシュボード・サイドバーの変更（`monthly-document-gallery`spec側で扱う）
+
+### Requirement 17: 「売場検討会（動画）」「POP」カードの遷移先変更（Requirement 15 AC3の部分上書き）
+
+**Objective:** As a 海外販社担当者（申請者）, I want ダッシュボードの「売場検討会（動画）」「POP」カードから月次資料ギャラリー専用画面へ直接遷移したい, so that 既存のドキュメント一覧に紛れずに目的の月次資料へすぐたどり着ける
+
+#### Acceptance Criteria
+
+1. The Dashboard Service shall 「売場検討会（動画）」ブロックの遷移先を`/documents`から`/sales-floor-meeting`へ変更する（Requirement 15 AC3の一部を上書き）。
+2. The Dashboard Service shall 「POP」ブロックの遷移先を`/documents`から`/pop`へ変更する（Requirement 15 AC3の一部を上書き）。
+3. The Dashboard Service shall 「マニュアル」ブロックの遷移先（`/documents`）については変更せず、Requirement 15 AC3を維持する。
+4. The Dashboard Service shall 本要件による遷移先変更以外の、Requirement 15（表示順・アイコン・データ取得ロジック・翻訳キー構造）の内容を変更しない。

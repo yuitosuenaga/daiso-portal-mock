@@ -280,3 +280,12 @@
   - _Requirements: 16.6_
   - _Depends: 21.2_
   - _Boundary: dashboard コンポーネントのテスト_
+
+- [x] 24. 「売場検討会（動画）」「POP」カードの遷移先を月次資料ギャラリーへ変更する（2026-09-07追記）
+  - `monthly-document-gallery`specが新設した海外側ルート（`/sales-floor-meeting`, `/pop`）へ、対応するカードの`href`を張り替える
+  - 「マニュアル」カードの遷移先（`/documents`）は変更しない
+  - 回帰テスト（Requirement 23.1）の期待`href`を新ルートへ更新する
+  - 完了状態: 申請者側トップページで「売場検討会（動画）」「POP」カードをクリックすると、それぞれ`/sales-floor-meeting`・`/pop`へ遷移する
+  - _Requirements: 17.1, 17.2, 17.3, 17.4_
+  - _Depends: 22, 23.1_
+  - _Boundary: ApplicantDashboardPage_
