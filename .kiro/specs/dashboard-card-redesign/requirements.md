@@ -292,3 +292,55 @@
 2. The Dashboard Service shall 「POP」ブロックの遷移先を`/documents`から`/pop`へ変更する（Requirement 15 AC3の一部を上書き）。
 3. The Dashboard Service shall 「マニュアル」ブロックの遷移先（`/documents`）については変更せず、Requirement 15 AC3を維持する。
 4. The Dashboard Service shall 本要件による遷移先変更以外の、Requirement 15（表示順・アイコン・データ取得ロジック・翻訳キー構造）の内容を変更しない。
+
+---
+
+### 追記（2026-09-07）: ヘルプデスク側トップページへの「売場検討会管理」「POP管理」カード追加、サイドバー撤去後の導線網羅
+
+**背景:** `helpdesk-portal-layout`側の追記要件（Requirement 20）により、ヘルプデスク側も申請者側と同様に左サイドバー・モバイルドロワーを撤去し、ダッシュボードのブロックのみを画面遷移導線とする方針へ転換する。従来この追記(2026-09-07、Requirement 17の背景)は「ヘルプデスク側ダッシュボード・サイドバーの変更は`monthly-document-gallery`spec側で扱う」としていたが、`monthly-document-gallery`のdesign.mdは逆に「ダッシュボードカードのレイアウト・表示順自体は本spec(`dashboard-card-redesign`)所有」としており、両spec間でどちらが担当するか矛盾したまま実装が進み、結果としてヘルプデスク側トップページに「売場検討会（動画）管理」「POP管理」への導線カードが追加されないまま`monthly-document-gallery`の実装が完了してしまっていた。本追記でこの矛盾を解消し、ヘルプデスク側ダッシュボードのブロック構成の変更は本spec（`dashboard-card-redesign`）が担当することを明確にする。
+
+**スコープ外**:
+- サイドバー・モバイルドロワーの撤去自体（`helpdesk-portal-layout`側のRequirement 20が担う。本specはダッシュボードのブロック構成のみを扱う）
+- `/sales-floor-meeting`（ヘルプデスク側は`/helpdesk/sales-floor-meeting`）・`/pop`（同`/helpdesk/pop`）画面自体の内部実装（`monthly-document-gallery`specの範囲。本追記は当該画面への導線カードの追加のみを扱う）
+- 申請者側トップページのブロック構成（Requirement 15・17で対応済みのため変更しない）
+
+### Requirement 18: ヘルプデスク側トップページへの「売場検討会管理」「POP管理」カード追加
+
+**Objective:** As a ヘルプデスク担当者（日本大創側）, I want トップページのブロックから「売場検討会（動画）管理」「POP管理」画面へ直接遷移したい, so that サイドバー撤去後もこれらの機能へダッシュボードから迷わず到達できる
+
+#### Acceptance Criteria
+
+1. The Dashboard Service shall ヘルプデスク側トップページ（`/helpdesk`）の「対応業務」セクション（Requirement 2 AC2が定めるナビゲーションカード群）に、「売場検討会（動画）管理」カード（href `/helpdesk/sales-floor-meeting`）・「POP管理」カード（href `/helpdesk/pop`）を追加する。
+2. The Dashboard Service shall 両カードのタイトルを、ヘルプデスク側サイドバーが従来保持していた項目と同一の翻訳キー（`helpdeskNav.salesFloorMeeting`・`helpdeskNav.pop`）から取得する。
+3. The Dashboard Service shall 両カードについて、他の静的ナビゲーションカード（ドキュメント管理・リンク・FAQ等）と同一のカードデザイン（`NavigationCard`）を使用し、アイコンはサイドバーの対応する項目と同一のものを使用する。
+4. The Dashboard Service shall 本要件による追加後、ヘルプデスク側サイドバー（`HelpdeskSidebar.tsx`）が撤去前に提供していた全てのナビゲーション項目（問合せ・問合せ管理・テンプレート管理・お知らせ管理・ドキュメント管理・売場検討会（動画）管理・POP管理・リンク集・よくある質問・販社管理）について、いずれかのトップページのブロックから同等に到達できる状態にする（`helpdesk-portal-layout`Requirement 20 AC8の前提を満たす）。
+5. The Dashboard Service shall 本要件による追加で、既存のカード（Requirement 2・6・7・13・14が定めるもの）の表示順・内容・デザインを変更しない。新規2カードは既存カード群の末尾に追加する。
+6. The Dashboard Service shall 両カードの表示名・説明文をnext-intlの翻訳キー経由で提供し、日本語・英語のキー構造を一致させる。
+
+---
+
+### 追記（2026-09-07 その2）: プレビューパネルと重複するナビゲーションカードの削除
+
+**背景:** 両ポータルのトップページには、一覧へのリンクを既に内包するプレビューパネルと、同じ遷移先を持つナビゲーションカードが並存しており、同一機能への遷移経路が2つ存在する状態になっている。
+- ヘルプデスク側: `UnresolvedInquiriesKpiPanel`（viewAllHref `/helpdesk/inquiries`）・`PriorityInquiriesPreviewPanel`（viewAllHref `/helpdesk/inquiries`）が既に問い合わせ一覧への導線を持つのに、「対応業務」セクションに同じ遷移先（`/helpdesk/inquiries`）の「問い合わせ一覧」カード（`InquiryListCard`）が重複して存在する。
+- 申請者側: `AnnouncementsPreviewPanel`（viewAllHref `/announcements`）が既にお知らせ一覧への導線を持つのに、ナビゲーションカード群に同じ遷移先（`/announcements`）の「お知らせ」カード（`AnnouncementsCard`）が重複して存在する。
+
+いずれもプレビューパネル側に一覧への遷移導線（ヘッダーの「もっと見る」相当のリンク）が既にあるため、ナビゲーションカード側を削除し、遷移経路を一本化する。
+
+**スコープ外**:
+- プレビューパネル自体（`UnresolvedInquiriesKpiPanel`・`PriorityInquiriesPreviewPanel`・`AnnouncementsPreviewPanel`）の内容・挙動・viewAllリンクの変更（本追記はナビゲーションカード側の削除のみを扱う）
+- 申請者側の「問合せ一覧」カード（`InquiryListCard`、scope `own`、href `/inquiry`）の削除。申請者側トップページには問合せ一覧専用のプレビューパネルが存在せず重複していないため対象外とする
+- ヘルプデスク側の「お知らせ管理」カード（href `/helpdesk/announcements`）の削除。ヘルプデスク側にはお知らせのプレビューパネルが存在せず重複していないため対象外とする
+
+### Requirement 19: プレビューパネルと重複するナビゲーションカードの削除
+
+**Objective:** As a ポータル利用者（申請者・ヘルプデスク双方）, I want 同じ機能への遷移経路がトップページに重複して存在しないこと, so that どちらから遷移すべきか迷わない
+
+#### Acceptance Criteria
+
+1. The Dashboard Service shall ヘルプデスク側トップページ（`/helpdesk`）の「対応業務」セクションから、「問い合わせ一覧」カード（`InquiryListCard`、href `/helpdesk/inquiries`）を削除する。
+2. The Dashboard Service shall 申請者側トップページ（`/`）のナビゲーションカード群から、「お知らせ」カード（`AnnouncementsCard`、href `/announcements`）を削除する。
+3. The Dashboard Service shall 本要件による削除後も、`UnresolvedInquiriesKpiPanel`・`PriorityInquiriesPreviewPanel`・`AnnouncementsPreviewPanel`の表示位置・内容・viewAllリンクを変更しない（削除対象のカードのみを取り除く）。
+4. The Dashboard Service shall 本要件による削除に伴い、`InquiryListCard`（ヘルプデスク側呼び出し分）・`AnnouncementsCard`のコンポーネント自体は削除しない（申請者側`InquiryListCard`（scope `own`）は本要件の対象外として引き続き使用されるため）。
+5. The Dashboard Service shall 本要件による削除で、削除対象カードが参照していた翻訳キー（`helpdeskNav.inquiries`・`helpdeskDashboard.inquiries.description`・`dashboard.announcements.title`・`dashboard.announcements.description`）について、他の箇所（サイドバー・見出し等）で引き続き使用されている場合は削除せず残す。
+6. The Dashboard Service shall 本要件の実装後、Lint・型チェック・既存テストがエラーなく通る状態を維持する。

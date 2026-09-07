@@ -26,10 +26,6 @@
     "screenName": "日本大創側画面",
     "logout": "ログアウト"
   },
-  "helpdeskAppShell": {
-    "expandSidebar": "サイドバーを展開",
-    "collapseSidebar": "サイドバーを折りたたむ"
-  },
   "helpdeskNav": {
     "sidebarLabel": "ヘルプデスクナビゲーション",
     "openMenu": "メニューを開く",
@@ -711,10 +707,6 @@
       "title": "問合せ一覧",
       "description": "自社が送信した問合せの状況を確認できます。"
     },
-    "announcements": {
-      "title": "お知らせ",
-      "description": "本社からの周知事項を確認できます。"
-    },
     "documents": {
       "title": "資料共有",
       "description": "本社が公開している業務ドキュメントを確認できます。"
@@ -771,9 +763,11 @@
     "companies": {
       "description": "登録済みの海外販社の一覧・申請者アカウントを管理できます。"
     },
-    "inquiries": {
-      "title": "問合せ一覧",
-      "description": "全社から寄せられた、現状対応中の問合せを確認できます。"
+    "salesFloorMeeting": {
+      "description": "月ごとの売場検討会資料を管理できます。"
+    },
+    "pop": {
+      "description": "月ごとのPOP資料を管理できます。"
     },
     "templates": {
       "title": "テンプレート管理",

@@ -289,3 +289,34 @@
   - _Requirements: 17.1, 17.2, 17.3, 17.4_
   - _Depends: 22, 23.1_
   - _Boundary: ApplicantDashboardPage_
+
+- [x] 25.1 ヘルプデスク側トップページに「売場検討会管理」「POP管理」カードを追加する
+  - 「対応業務」セクションの末尾（販社管理の直前）に、`helpdeskNav.salesFloorMeeting`・`helpdeskNav.pop`翻訳キーをタイトルとする静的`NavigationCard`を2枚追加する（アイコンはそれぞれ`Video`・`Tags`、遷移先は`/helpdesk/sales-floor-meeting`・`/helpdesk/pop`）
+  - 新規カードの説明文翻訳キー（`helpdeskDashboard.salesFloorMeeting.description`・`helpdeskDashboard.pop.description`）を日本語・英語の両メッセージファイルに追加する
+  - 完了状態: ヘルプデスク側トップページを開くと「対応業務」セクションに両カードが表示され、クリックするとそれぞれ年月管理画面へ遷移する
+  - _Requirements: 18.1, 18.2, 18.3, 18.5, 18.6_
+  - _Boundary: HelpdeskHomePage, messages/ja.json, messages/en.json_
+
+- [x] 25.2 ヘルプデスク側「問い合わせ一覧」カード・申請者側「お知らせ」カードを削除する
+  - ヘルプデスク側トップページから`InquiryListCard`（href `/helpdesk/inquiries`）の呼び出しを削除する（`UnresolvedInquiriesKpiPanel`・`PriorityInquiriesPreviewPanel`と遷移先が重複するため）。未使用となった`NavigationCardSkeleton`のimportも削除する
+  - 申請者側トップページから`AnnouncementsCard`（href `/announcements`）の呼び出しを削除する（`AnnouncementsPreviewPanel`と遷移先が重複するため）
+  - 削除対象カードが専用で参照していた翻訳キー（`helpdeskDashboard.inquiries.*`・`dashboard.announcements.*`）を削除する。他箇所で使用中のキーは残す
+  - 完了状態: 両トップページで、プレビューパネルの遷移先と同一のナビゲーションカードが存在しない
+  - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
+  - _Depends: 25.1_
+  - _Boundary: HelpdeskHomePage, ApplicantDashboardPage, messages/ja.json, messages/en.json_
+
+- [x] 25.3 検証: ヘルプデスク側ダッシュボードの回帰テスト追加と申請者側テストの更新
+  - ヘルプデスク側トップページに新規単体テストを追加し、「対応業務」セクションのカード枚数・表示順・各`href`（テンプレート管理・お知らせ管理・ドキュメント管理・問合せ・売場検討会管理・POP管理・販社管理の7枚、`InquiryListCard`が含まれないこと）を検証する
+  - 申請者側`page.test.tsx`の既存回帰テストを、「お知らせ」カードを含まない8枚構成の期待値へ更新する
+  - 完了状態: `npm run test`が全て通り、両ダッシュボードで重複導線カードが復活していないことを検証する回帰テストが存在する
+  - _Requirements: 18.4, 19.1, 19.2, 19.6_
+  - _Depends: 25.1, 25.2_
+  - _Boundary: HelpdeskHomePage, ApplicantDashboardPage のテスト_
+
+- [x] 25.4 実機確認: ヘルプデスク側サイドバー撤去後の導線とプレビューパネル重複解消
+  - `helpdesk-portal-layout`spec Requirement 20（サイドバー撤去）実装後、ヘルプデスク側でサイドバーが従来提供していた全項目にダッシュボードのブロックから到達できることをplaywrightで確認する
+  - 両ロケール（日本語・英語）でヘルプデスク側「対応業務」セクションの7カード・申請者側の8カードが正しい遷移先を持つことを確認する
+  - 完了状態: サイドバー撤去後もヘルプデスク側の全機能にダッシュボードから到達でき、両トップページに重複導線が存在しないことを実機で確認できる
+  - _Requirements: 18.4, 19.1, 19.2_
+  - _Depends: 25.1, 25.2, 25.3_

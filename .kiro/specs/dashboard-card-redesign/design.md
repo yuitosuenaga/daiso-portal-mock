@@ -839,3 +839,83 @@ graph TB
   - 申請者側トップページ（`/ja`・`/en`）でブロックが指定順に表示され、9枚すべてのカードが正しい遷移先を持つこと
   - 売場検討会（動画）・マニュアル・POPの3カードがいずれも`/documents`へ遷移すること
   - 日本語・英語の双方で「申請」表記が残っていないこと（`dashboard.*`・`helpdeskDashboard.*`の範囲）
+
+## 追加ラウンド（2026-09-07）: 「売場検討会（動画）」「POP」カードの遷移先変更（要件17）
+
+`monthly-document-gallery`specにより新設された月次資料ギャラリー専用画面（海外側: `/sales-floor-meeting`, `/pop`）へ、申請者側ダッシュボードの「売場検討会（動画）」「POP」カード（本design.md「カードグリッドの構成」表の3・7行目）の`href`を`/documents`から変更する。「マニュアル」カードの`href`（`/documents`）は変更しない。
+
+### Modified Files（要件17分）
+
+- `src/app/[locale]/(applicant)/page.tsx` — 「売場検討会（動画）」カードの`href`を`/sales-floor-meeting`へ、「POP」カードの`href`を`/pop`へ変更（表示名・アイコン・翻訳キーは変更しない）
+
+### Requirements Traceability（要件17分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 17.1 | 「売場検討会（動画）」カードの遷移先を`/sales-floor-meeting`へ | ApplicantDashboardPage | — | — |
+| 17.2 | 「POP」カードの遷移先を`/pop`へ | ApplicantDashboardPage | — | — |
+| 17.3 | 「マニュアル」カードの遷移先は不変 | ApplicantDashboardPage | — | — |
+| 17.4 | 表示順・アイコン・翻訳キー構造は不変 | ApplicantDashboardPage | — | — |
+
+## 追加ラウンド（2026-09-07 その2）: ヘルプデスク側トップページへの「売場検討会管理」「POP管理」カード追加、重複導線カードの削除（要件18・19）
+
+### Overview（追加分）
+
+`helpdesk-portal-layout`spec Requirement 20（ヘルプデスク側サイドバー撤去）に伴い、ヘルプデスク側の画面遷移導線をダッシュボードのブロックのみに一本化する。これまで`dashboard-card-redesign`と`monthly-document-gallery`の両specが「ヘルプデスク側ダッシュボードカード追加は相手specの担当」としていた矛盾を解消し、本specがヘルプデスク側ダッシュボードのブロック構成変更を担当することを明確にした上で、次の2点を行う。
+1. ヘルプデスク側トップページの「対応業務」セクションに「売場検討会（動画）管理」「POP管理」カードを追加する（要件18）。
+2. 両ポータルのトップページから、プレビューパネルと同じ遷移先を持つ重複したナビゲーションカードを削除する（要件19）。
+
+### Architecture（追加分）
+
+新規フロー・新規コンポーネントなし。既存の`HelpdeskHomePage`（`src/app/[locale]/helpdesk/(dashboard)/page.tsx`）の「対応業務」セクションに静的`NavigationCard`を2枚追加し、同ページから`InquiryListCard`（href `/helpdesk/inquiries`）を削除する。申請者側`DashboardPage`（`src/app/[locale]/(applicant)/page.tsx`）からは`AnnouncementsCard`（href `/announcements`）を削除する。
+
+#### ヘルプデスク側ダッシュボードカードグリッドの構成（変更後・「対応業務」セクション）
+
+| 表示順 | ブロック | コンポーネント | href | アイコン | 備考 |
+|--------|----------|----------------|------|----------|------|
+| 1 | テンプレート管理 | `NavigationCard` | `/helpdesk/templates` | `FileText` | 既存 |
+| 2 | お知らせ管理 | `NavigationCard` | `/helpdesk/announcements` | `Bell` | 既存 |
+| 3 | ドキュメント管理 | `NavigationCard` | `/helpdesk/documents` | `FolderOpen` | 既存 |
+| 4 | 問合せ | `NavigationCard` | `/helpdesk/inquiry/new` | `FilePlus` | 既存 |
+| 5 | 売場検討会（動画）管理 | `NavigationCard` | `/helpdesk/sales-floor-meeting` | `Video` | **新規（要件18）** |
+| 6 | POP管理 | `NavigationCard` | `/helpdesk/pop` | `Tags` | **新規（要件18）** |
+| 7 | 販社管理 | `NavigationCard` | `/helpdesk/companies` | `Building2` | 既存 |
+
+> 「問い合わせ一覧」カード（`InquiryListCard`、href `/helpdesk/inquiries`）は`UnresolvedInquiriesKpiPanel`・`PriorityInquiriesPreviewPanel`（いずれもグリッド上部・viewAllHref `/helpdesk/inquiries`）と遷移先が重複するため削除する（要件19.1）。
+
+#### 申請者側ダッシュボードカードグリッドの変更（重複削除）
+
+「お知らせ」カード（`AnnouncementsCard`、href `/announcements`）は`AnnouncementsPreviewPanel`（グリッド上部・viewAllHref `/announcements`）と遷移先が重複するため削除する（要件19.2）。要件15で定めたグリッド構成（本design.md「カードグリッドの構成」表）から1行目の「お知らせ」を除いた8枚構成になる。
+
+### Modified Files（追加分）
+
+- `src/app/[locale]/helpdesk/(dashboard)/page.tsx` — `InquiryListCard`の呼び出しと`NavigationCardSkeleton`のimportを削除。「売場検討会（動画）管理」「POP管理」の`NavigationCard`を「対応業務」セクション末尾（販社管理の直前）に追加。`lucide-react`から`Video`・`Tags`を追加インポート
+- `src/app/[locale]/(applicant)/page.tsx` — `AnnouncementsCard`の呼び出しとimportを削除
+- `messages/ja.json` / `messages/en.json` — `helpdeskDashboard.salesFloorMeeting.description`・`helpdeskDashboard.pop.description`を新規追加。`helpdeskDashboard.inquiries.*`・`dashboard.announcements.*`（削除対象カード専用のキーで他に参照がないもの）を削除
+
+### Requirements Traceability（追加分）
+
+| Requirement | Summary | Components | Interfaces | Flows |
+|-------------|---------|------------|------------|-------|
+| 18.1 | ヘルプデスク側「対応業務」への2カード追加 | HelpdeskHomePage, NavigationCard | — | — |
+| 18.2 | 既存の`helpdeskNav`翻訳キーからタイトル取得 | HelpdeskHomePage | i18n keys | — |
+| 18.3 | 既存カードと同一デザイン・アイコン | NavigationCard | — | — |
+| 18.4 | サイドバー撤去後も全項目にダッシュボードから到達可能 | HelpdeskHomePage | — | — |
+| 18.5 | 既存カードの表示順・内容は不変（新規2枚は末尾に追加） | HelpdeskHomePage | — | — |
+| 18.6 | 新規カードのi18n対応（ja/enキー構造の一致） | messages/ja.json, messages/en.json | — | — |
+| 19.1 | ヘルプデスク側「問い合わせ一覧」カードの削除 | HelpdeskHomePage, InquiryListCard（呼び出しの除去） | — | — |
+| 19.2 | 申請者側「お知らせ」カードの削除 | DashboardPage, AnnouncementsCard（呼び出しの除去） | — | — |
+| 19.3 | プレビューパネルの表示・挙動は不変 | UnresolvedInquiriesKpiPanel, PriorityInquiriesPreviewPanel, AnnouncementsPreviewPanel | — | — |
+| 19.4 | カードコンポーネント自体は削除しない | InquiryListCard, AnnouncementsCard（コンポーネント本体は維持） | — | — |
+| 19.5 | 他箇所で使用中の翻訳キーは残す | messages/ja.json, messages/en.json | — | — |
+| 19.6 | Lint・型チェック・既存テストが通る | 該当テストファイル一式 | — | — |
+
+### Testing Strategy（追加分）
+
+- **Unit/Integration Tests**:
+  - ヘルプデスク側トップページに新規テストを追加し、「対応業務」セクションのカード枚数・表示順・各`href`（テンプレート管理・お知らせ管理・ドキュメント管理・問合せ・売場検討会管理・POP管理・販社管理の7枚、`InquiryListCard`が含まれないこと）を検証する
+  - 申請者側`page.test.tsx`の既存テストを、「お知らせ」カードが含まれない8枚構成に更新する
+- **E2E/UI Tests**:
+  - ヘルプデスク側トップページ（`/ja/helpdesk`・`/en/helpdesk`）で「売場検討会（動画）管理」「POP管理」カードから対応する年月管理画面へ遷移できること
+  - ヘルプデスク側トップページに「問い合わせ一覧」という同一遷移先のカードが2つ存在しないこと（KPIパネル・プレビューパネルのリンクのみが`/helpdesk/inquiries`への導線であること）
+  - 申請者側トップページに「お知らせ」という同一遷移先のカードが2つ存在しないこと（プレビューパネルのリンクのみが`/announcements`への導線であること）

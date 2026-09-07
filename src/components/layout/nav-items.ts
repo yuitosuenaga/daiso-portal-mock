@@ -19,7 +19,12 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-/** ヘルプデスク側サイドバー・モバイルドロワーで共有するナビゲーション項目定義。 */
+/**
+ * ヘルプデスク側サイドバー・モバイルドロワーで共有していたナビゲーション項目定義。
+ * サイドバー・モバイルドロワー自体は撤去済み（`helpdesk-portal-layout`spec Requirement 20）
+ * のため、現時点で実運用から呼び出す箇所はない。`MobileNav.tsx`とともに、UIプリミティブ
+ * として再利用可能な状態で残置している（削除しない設計判断の詳細は同specのdesign.md参照）。
+ */
 export const HELPDESK_NAV_ITEMS: NavItem[] = [
   { translationKey: "home", href: "/helpdesk", icon: LayoutDashboard },
   { translationKey: "inquiryForm", href: "/helpdesk/inquiry/new", icon: FilePlus },

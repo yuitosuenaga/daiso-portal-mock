@@ -18,7 +18,12 @@ export interface MobileNavProps {
 
 /**
  * モバイル幅（`md`未満）でのみ表示するハンバーガートグル＋ドロワー型ナビゲーション。
- * ヘルプデスク側ヘッダーから、ナビゲーション項目・翻訳名前空間・ホーム遷移先を渡して利用する。
+ *
+ * `helpdesk-portal-layout`spec Requirement 20（ヘルプデスク側サイドバー撤去）により、
+ * 現時点で本コンポーネントを呼び出す箇所はない（`HelpdeskHeader.tsx`から呼び出しを撤去済み）。
+ * 削除せず残しているのは、`HELPDESK_NAV_ITEMS`・`resolveActiveHref`とともに
+ * 再利用可能なUIプリミティブとして、将来ヘルプデスク側に別形態のモバイルナビゲーションが
+ * 必要になった場合の実装コストを避けるため（設計判断の詳細は同specのdesign.md参照）。
  */
 export function MobileNav({ items, namespace, rootHref }: MobileNavProps) {
   const t = useTranslations(namespace);

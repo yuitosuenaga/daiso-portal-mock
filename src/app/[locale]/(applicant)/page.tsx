@@ -12,7 +12,6 @@ import { getTranslations } from "next-intl/server";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
 import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
-import { AnnouncementsCard } from "@/components/features/dashboard/AnnouncementsCard";
 import {
   AnnouncementsPreviewPanel,
   AnnouncementsPreviewPanelSkeleton,
@@ -31,13 +30,6 @@ export default async function DashboardPage() {
         <AnnouncementsPreviewPanel viewAllHref="/announcements" />
       </Suspense>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Suspense fallback={<NavigationCardSkeleton />}>
-          <AnnouncementsCard
-            href="/announcements"
-            titleKey="dashboard.announcements.title"
-            descriptionKey="dashboard.announcements.description"
-          />
-        </Suspense>
         <NavigationCard
           title={t("documents.title")}
           description={t("documents.description")}

@@ -7,12 +7,12 @@ import {
   FolderOpen,
   HelpCircle,
   Link2,
+  Tags,
+  Video,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
-import { NavigationCardSkeleton } from "@/components/features/dashboard/NavigationCardSkeleton";
 import {
   PriorityInquiriesPreviewPanel,
   PriorityInquiriesPreviewPanelSkeleton,
@@ -44,14 +44,6 @@ export default async function HelpdeskHomePage() {
           {t("sections.support")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Suspense fallback={<NavigationCardSkeleton />}>
-            <InquiryListCard
-              scope="all"
-              href="/helpdesk/inquiries"
-              titleKey="helpdeskNav.inquiries"
-              descriptionKey="helpdeskDashboard.inquiries.description"
-            />
-          </Suspense>
           <NavigationCard
             title={nav("templates")}
             description={t("templates.description")}
@@ -75,6 +67,18 @@ export default async function HelpdeskHomePage() {
             description={t("inquiryForm.description")}
             href="/helpdesk/inquiry/new"
             icon={FilePlus}
+          />
+          <NavigationCard
+            title={nav("salesFloorMeeting")}
+            description={t("salesFloorMeeting.description")}
+            href="/helpdesk/sales-floor-meeting"
+            icon={Video}
+          />
+          <NavigationCard
+            title={nav("pop")}
+            description={t("pop.description")}
+            href="/helpdesk/pop"
+            icon={Tags}
           />
           <NavigationCard
             title={nav("companies")}
