@@ -39,19 +39,18 @@ vi.mock("@/lib/api/inquiries", () => ({
 }));
 
 import DashboardPage from "@/app/[locale]/(applicant)/page";
-import { AnnouncementsCard } from "@/components/features/dashboard/AnnouncementsCard";
 import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 
 interface CardIdentity {
   href: string;
-  /** `NavigationCard`は解決済みの`title`文字列、`AnnouncementsCard`/`InquiryListCard`は`titleKey`をそのまま用いる */
+  /** `NavigationCard`は解決済みの`title`文字列、`InquiryListCard`は`titleKey`をそのまま用いる */
   label: string;
 }
 
 /**
  * ダッシュボードのグリッド子要素は`NavigationCard`または`Suspense`でラップされた
- * `AnnouncementsCard`/`InquiryListCard`のいずれか。実際のデータ取得・レンダリングを
+ * `InquiryListCard`のいずれか。実際のデータ取得・レンダリングを
  * 行わず、React要素ツリー（`.type`/`.props`）のみを検査して表示順・遷移先を検証する。
  * `href`だけでは「資料共有」「売場検討会（動画）」「マニュアル」「POP」の4枚が全て
  * `/documents`で重複するため、`label`も併せて検証し入れ替わりを検知できるようにする。
@@ -61,7 +60,7 @@ function unwrapCard(node: ReactElement): CardIdentity {
     const props = node.props as { href: string; title: string };
     return { href: props.href, label: props.title };
   }
-  if (node.type === AnnouncementsCard || node.type === InquiryListCard) {
+  if (node.type === InquiryListCard) {
     const props = node.props as { href: string; titleKey: string };
     return { href: props.href, label: props.titleKey };
   }
@@ -73,7 +72,7 @@ function unwrapCard(node: ReactElement): CardIdentity {
 }
 
 describe("DashboardPage", () => {
-  it("お知らせブロックの下に、資料共有→売場検討会（動画）→問合せ（＋問合せ一覧）→マニュアル→POP→リンク→よくある質問の順でブロックを表示する", async () => {
+  it("お知らせブロックの下に、資料共有→売場検討会（動画）→問合せ（＋問合せ一覧）→マニュアル→POP→リンク→よくある質問の順でブロックを表示する（お知らせカードはプレビューパネルと重複するため表示しない）", async () => {
     const page = (await DashboardPage()) as ReactElement;
     const rootChildren = (page.props as { children: ReactElement[] }).children;
     const gridDiv = rootChildren[2];
@@ -83,7 +82,6 @@ describe("DashboardPage", () => {
     const cards = gridChildren.map(unwrapCard);
 
     expect(cards).toEqual([
-      { href: "/announcements", label: "dashboard.announcements.title" },
       { href: "/documents", label: "documents.title" },
       { href: "/sales-floor-meeting", label: "salesFloorMeeting.title" },
       { href: "/inquiry/new", label: "inquiryForm.title" },
