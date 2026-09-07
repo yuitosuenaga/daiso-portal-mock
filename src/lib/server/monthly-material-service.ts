@@ -4,8 +4,10 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
 import {
+  MonthlyMaterialDataIntegrityError,
   mapMonthlyMaterial,
   targetingToColumns,
+  type PrismaMonthlyMaterial,
 } from "@/lib/server/monthly-material-mapper";
 import type {
   CreateMonthlyMaterialInput,
@@ -93,6 +95,27 @@ export function monthlyMaterialVisibleToWhere(
 }
 
 /**
+ * `mapMonthlyMaterial`が`MonthlyMaterialDataIntegrityError`を送出したレコードのみを
+ * スキップし、残りは正常に返す。1件のデータ不整合が原因でカテゴリ全体の一覧取得が
+ * 丸ごと失敗しないようにするための措置。
+ */
+function mapMonthlyMaterialsSkippingCorrupted(
+  records: PrismaMonthlyMaterial[]
+): MonthlyMaterial[] {
+  return records.flatMap((record) => {
+    try {
+      return [mapMonthlyMaterial(record)];
+    } catch (error) {
+      if (error instanceof MonthlyMaterialDataIntegrityError) {
+        console.error(`[monthly-material-service] Skipping corrupted record: ${error.message}`);
+        return [];
+      }
+      throw error;
+    }
+  });
+}
+
+/**
  * 指定カテゴリについて、公開範囲が自社に及ぶ資料のみを年月の降順で取得する。
  * 他カテゴリの資料が結果に混入しないよう、`category`を必ず絞り込み条件に含める。
  */
@@ -106,7 +129,7 @@ export async function listMonthlyMaterialsVisibleTo(
     orderBy: ORDER_BY_YEAR_MONTH_DESC,
   });
 
-  return records.map(mapMonthlyMaterial);
+  return mapMonthlyMaterialsSkippingCorrupted(records);
 }
 
 /**
@@ -121,7 +144,7 @@ export async function listAllMonthlyMaterials(
     orderBy: ORDER_BY_YEAR_MONTH_DESC,
   });
 
-  return records.map(mapMonthlyMaterial);
+  return mapMonthlyMaterialsSkippingCorrupted(records);
 }
 
 /**

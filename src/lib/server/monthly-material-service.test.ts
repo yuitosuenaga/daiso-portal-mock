@@ -122,6 +122,22 @@ describe("listMonthlyMaterialsVisibleTo", () => {
       expect.objectContaining({ where: expect.objectContaining({ category: "pop" }) })
     );
   });
+
+  it("データ不整合レコードが混入していても、そのレコードのみスキップし残りは返す", async () => {
+    vi.mocked(prisma.monthlyMaterial.findMany).mockResolvedValue([
+      baseRecord({ id: "corrupted", sourceType: "google", googleUrl: null, googleEmbedUrl: null }),
+      baseRecord({ id: "ok" }),
+    ] as never);
+
+    const result = await listMonthlyMaterialsVisibleTo(
+      "salesFloorMeeting",
+      "VN",
+      "vn-daiso-vietnam"
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("ok");
+  });
 });
 
 describe("listAllMonthlyMaterials", () => {
@@ -138,6 +154,18 @@ describe("listAllMonthlyMaterials", () => {
       where: { category: "salesFloorMeeting" },
       orderBy: [{ year: "desc" }, { month: "desc" }],
     });
+  });
+
+  it("データ不整合レコードが混入していても、そのレコードのみスキップし残りは返す", async () => {
+    vi.mocked(prisma.monthlyMaterial.findMany).mockResolvedValue([
+      baseRecord({ id: "ok" }),
+      baseRecord({ id: "corrupted", fileName: null, fileType: null, fileSize: null, dataUrl: null }),
+    ] as never);
+
+    const result = await listAllMonthlyMaterials("salesFloorMeeting");
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("ok");
   });
 });
 
