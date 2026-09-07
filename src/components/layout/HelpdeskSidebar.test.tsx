@@ -91,6 +91,20 @@ describe("HelpdeskSidebar", () => {
     expect(companiesLink.getAttribute("href")).toBe("/helpdesk/companies");
   });
 
+  it("売場検討会・POPへのナビゲーション項目を表示する", () => {
+    renderHelpdeskSidebar();
+
+    const salesFloorMeetingLink = screen.getByRole("link", {
+      name: messages.helpdeskNav.salesFloorMeeting,
+    });
+    expect(salesFloorMeetingLink.getAttribute("href")).toBe(
+      "/helpdesk/sales-floor-meeting"
+    );
+
+    const popLink = screen.getByRole("link", { name: messages.helpdeskNav.pop });
+    expect(popLink.getAttribute("href")).toBe("/helpdesk/pop");
+  });
+
   it("会社詳細ページ表示中は販社管理項目がアクティブになる", () => {
     vi.mocked(usePathname).mockReturnValue("/helpdesk/companies/company-001");
 

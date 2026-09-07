@@ -85,11 +85,11 @@ describe("DashboardPage", () => {
     expect(cards).toEqual([
       { href: "/announcements", label: "dashboard.announcements.title" },
       { href: "/documents", label: "documents.title" },
-      { href: "/documents", label: "salesFloorMeeting.title" },
+      { href: "/sales-floor-meeting", label: "salesFloorMeeting.title" },
       { href: "/inquiry/new", label: "inquiryForm.title" },
       { href: "/inquiry", label: "dashboard.inquiryList.title" },
       { href: "/documents", label: "manuals.title" },
-      { href: "/documents", label: "pop.title" },
+      { href: "/pop", label: "pop.title" },
       { href: "/links", label: "links.title" },
       { href: "/faq", label: "faq.title" },
     ]);

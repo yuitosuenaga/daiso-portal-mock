@@ -540,6 +540,50 @@ async function seedDocuments(): Promise<void> {
   }
 }
 
+/**
+ * 月次資料ギャラリー（売場検討会資料・POP資料）のデモデータ。各カテゴリ2026年9月分を1件ずつ、
+ * 既存の`SAMPLE_PDF_DATA_URL`を使って投入する（`monthly-document-gallery`spec要件2.1）。
+ */
+const MONTHLY_MATERIAL_SEEDS = [
+  {
+    id: "seed-monthly-material-sales-floor-meeting-202609",
+    category: "salesFloorMeeting" as const,
+    year: 2026,
+    month: 9,
+    fileName: "sales-floor-meeting-202609.pdf",
+    fileSize: 1234,
+  },
+  {
+    id: "seed-monthly-material-pop-202609",
+    category: "pop" as const,
+    year: 2026,
+    month: 9,
+    fileName: "pop-202609.pdf",
+    fileSize: 1234,
+  },
+];
+
+async function seedMonthlyMaterials(): Promise<void> {
+  for (const seed of MONTHLY_MATERIAL_SEEDS) {
+    await prisma.monthlyMaterial.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        category: seed.category,
+        year: seed.year,
+        month: seed.month,
+        sourceType: "upload",
+        fileName: seed.fileName,
+        fileType: "application/pdf",
+        fileSize: seed.fileSize,
+        dataUrl: SAMPLE_PDF_DATA_URL,
+        targetingScope: "all",
+      },
+    });
+  }
+}
+
 /** 既存モック（`MOCK_FAQS`）と同内容のFAQ12件。`en`は要件12（多言語対応）のデモ用翻訳。 */
 const FAQ_SEEDS = [
   {
@@ -1118,6 +1162,7 @@ async function main() {
   await seedAnnouncementRecipientStatuses();
   await seedAnnouncementReadReceipts(applicantUser.id);
   await seedDocuments();
+  await seedMonthlyMaterials();
   await seedFaqs();
   await seedLinks();
   await seedReplyTemplates();
@@ -1130,6 +1175,7 @@ async function main() {
     additionalInquiries: ADDITIONAL_INQUIRY_SEEDS.length,
     announcements: ANNOUNCEMENT_SEEDS.length,
     documents: DOCUMENT_SEEDS.length,
+    monthlyMaterials: MONTHLY_MATERIAL_SEEDS.length,
     faqs: FAQ_SEEDS.length,
     links: LINK_SEEDS.length,
     replyTemplates: REPLY_TEMPLATE_SEEDS.length,

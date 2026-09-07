@@ -42,7 +42,9 @@
     "faq": "よくある質問",
     "announcements": "お知らせ管理",
     "documents": "ドキュメント管理",
-    "companies": "販社管理"
+    "companies": "販社管理",
+    "salesFloorMeeting": "売場検討会（動画）",
+    "pop": "POP"
   },
   "helpdeskDocuments": {
     "list": {
@@ -871,6 +873,66 @@
     "category": {
       "notFound": "ドキュメントが見つかりませんでした",
       "backToCategories": "大分類一覧へ戻る"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "売場検討会（動画）",
+      "pageDescription": "月ごとの売場検討会資料を確認できます。"
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "月ごとのPOP資料を確認できます。"
+    },
+    "list": {
+      "error": "資料の取得に失敗しました",
+      "empty": "資料はありません",
+      "downloadLink": "ダウンロード",
+      "openOriginalLink": "元のドキュメントを開く",
+      "googlePreviewError": "プレビューを表示できませんでした",
+      "googlePreviewHint": "プレビューが表示されない場合は、元のドキュメントを開いてください",
+      "addButton": "新規追加",
+      "editButton": "編集"
+    },
+    "delete": {
+      "buttonLabel": "削除",
+      "confirmTitle": "資料の削除",
+      "confirmMessage": "『{heading}』の資料を削除します。この操作は取り消せません。よろしいですか？",
+      "confirmButton": "削除する",
+      "cancelButton": "キャンセル",
+      "errorMessage": "削除に失敗しました。時間を置いて再度お試しください。"
+    },
+    "form": {
+      "yearLabel": "年",
+      "monthLabel": "月",
+      "sourceTypeLabel": "登録方式",
+      "sourceTypeUploadOption": "ファイルをアップロード",
+      "sourceTypeGoogleOption": "Googleドキュメントの共有リンクを登録",
+      "fileLabel": "ファイル",
+      "fileHint": "PDFファイル（20MBまで）を選択してください",
+      "removeFileButtonLabel": "削除",
+      "googleUrlLabel": "共有リンクURL",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "Googleドキュメント/スプレッドシート/スライドの共有リンクを貼り付けてください",
+      "targetingLabel": "公開範囲",
+      "targetingAllOption": "全体公開",
+      "targetingCountriesOption": "特定の国・地域を指定",
+      "targetingCompaniesOption": "特定の販社を指定",
+      "countriesLabel": "対象国・地域",
+      "companiesLabel": "対象販社",
+      "submitButton": "保存",
+      "cancelButton": "キャンセル",
+      "requiredError": "必須項目です",
+      "countriesRequiredError": "1件以上選択してください",
+      "companiesRequiredError": "1件以上選択してください",
+      "fileRequiredError": "ファイルを選択してください",
+      "sizeExceeded": "ファイルサイズが上限（20MB）を超えています",
+      "typeNotAllowed": "PDF以外のファイルは登録できません",
+      "readFailed": "ファイルの読み込みに失敗しました",
+      "googleUrlInvalid": "有効なGoogleドキュメント/スプレッドシート/スライドの共有リンクを入力してください",
+      "duplicateYearMonthError": "この年月には既に資料が登録されています",
+      "requiredIndicator": "必須",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。"
     }
   },
   "inquiryForm": {
