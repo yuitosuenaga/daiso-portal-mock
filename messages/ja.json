@@ -40,7 +40,8 @@
     "documents": "ドキュメント管理",
     "companies": "販社管理",
     "salesFloorMeeting": "売場検討会（動画）",
-    "pop": "POP"
+    "pop": "POP",
+    "manuals": "マニュアル"
   },
   "helpdeskDocuments": {
     "list": {
@@ -780,6 +781,10 @@
     "documents": {
       "title": "ドキュメント管理",
       "description": "ドキュメントの一覧・作成・編集・削除を行えます。"
+    },
+    "manuals": {
+      "title": "マニュアル",
+      "description": "業務マニュアルを確認できます。"
     },
     "inquiryForm": {
       "title": "問合せ",
