@@ -27,6 +27,38 @@ function formatHeading(locale: string, year: number, month: number): string {
   }).format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
+interface MonthlyMaterialGroup {
+  year: number;
+  month: number;
+  heading: string;
+  items: MonthlyMaterial[];
+}
+
+/**
+ * 年月ごとにグルーピングする。`materials`は`year desc, month desc`（同一年月内は`createdAt asc`）
+ * で既に取得済みのため、同一年月のレコードは必ず連続している前提で先頭から素直にまとめられる。
+ */
+function groupMaterialsByYearMonth(
+  materials: MonthlyMaterial[],
+  locale: string
+): MonthlyMaterialGroup[] {
+  const groups: MonthlyMaterialGroup[] = [];
+  for (const material of materials) {
+    const currentGroup = groups.at(-1);
+    if (currentGroup && currentGroup.year === material.year && currentGroup.month === material.month) {
+      currentGroup.items.push(material);
+    } else {
+      groups.push({
+        year: material.year,
+        month: material.month,
+        heading: formatHeading(locale, material.year, material.month),
+        items: [material],
+      });
+    }
+  }
+  return groups;
+}
+
 function buildMonthOptions(locale: string): SelectOption[] {
   const formatter = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" });
   return Array.from({ length: 12 }, (_, index) => {
@@ -38,7 +70,8 @@ function buildMonthOptions(locale: string): SelectOption[] {
 /**
  * 月次資料（売場検討会・POP）の一覧表示。海外販社側・ヘルプデスク側どちらからも呼び出せる
  * 共通のServer Component。`editable`に応じて可視性フィルタ済み一覧（海外側）と全件（ヘルプデスク側）を
- * 取得先ごと切り替え、登録済みの年月のみを新しい順に`MonthlyMaterialSection`として並べる。
+ * 取得先ごと切り替え、登録済みの年月のみを新しい順に並べる。同一年月に複数件登録されている
+ * 場合は年月の見出しを1つに共通化し、その下に各資料（`MonthlyMaterialSection`）を並べる。
  */
 export async function MonthlyMaterialGallery({
   category,
@@ -113,7 +146,6 @@ export async function MonthlyMaterialGallery({
     typeNotAllowedMessage: t("form.typeNotAllowed"),
     readFailedMessage: t("form.readFailed"),
     googleUrlInvalidMessage: t("form.googleUrlInvalid"),
-    duplicateYearMonthErrorMessage: t("form.duplicateYearMonthError"),
     requiredIndicator: t("form.requiredIndicator"),
     submitErrorMessage: t("form.submitError"),
   };
@@ -144,24 +176,35 @@ export async function MonthlyMaterialGallery({
           </CardContent>
         </Card>
       ) : (
-        materials.map((material) => {
-          const heading = formatHeading(locale, material.year, material.month);
+        groupMaterialsByYearMonth(materials, locale).map((group) => {
+          const groupHeadingId = `monthly-material-group-${group.year}-${group.month}-heading`;
           return (
-            <MonthlyMaterialSection
-              key={material.id}
-              material={material}
-              heading={heading}
-              editable={editable}
-              editButtonLabel={t("list.editButton")}
-              deleteButtonLabel={t("delete.buttonLabel")}
-              deleteConfirmTitle={t("delete.confirmTitle")}
-              deleteConfirmMessage={t("delete.confirmMessage", { heading })}
-              deleteConfirmButtonLabel={t("delete.confirmButton")}
-              deleteCancelButtonLabel={t("delete.cancelButton")}
-              deleteErrorMessage={t("delete.errorMessage")}
-              viewerLabels={viewerLabels}
-              formLabels={formLabels}
-            />
+            <div key={`${group.year}-${group.month}`} className="flex flex-col gap-3">
+              <h2 id={groupHeadingId} className="text-lg font-semibold">
+                {group.heading}
+              </h2>
+              <div className="flex flex-col gap-6">
+                {group.items.map((material) => (
+                  <MonthlyMaterialSection
+                    key={material.id}
+                    material={material}
+                    heading={group.heading}
+                    showHeading={false}
+                    groupHeadingId={groupHeadingId}
+                    editable={editable}
+                    editButtonLabel={t("list.editButton")}
+                    deleteButtonLabel={t("delete.buttonLabel")}
+                    deleteConfirmTitle={t("delete.confirmTitle")}
+                    deleteConfirmMessage={t("delete.confirmMessage", { heading: group.heading })}
+                    deleteConfirmButtonLabel={t("delete.confirmButton")}
+                    deleteCancelButtonLabel={t("delete.cancelButton")}
+                    deleteErrorMessage={t("delete.errorMessage")}
+                    viewerLabels={viewerLabels}
+                    formLabels={formLabels}
+                  />
+                ))}
+              </div>
+            </div>
           );
         })
       )}

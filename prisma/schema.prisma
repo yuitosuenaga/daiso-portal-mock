@@ -507,6 +507,6 @@ model MonthlyMaterial {
   createdAt             DateTime                      @default(now())
   updatedAt             DateTime                      @updatedAt
 
-  @@unique([category, year, month])
+  @@index([category, year, month])
   @@index([category])
 }

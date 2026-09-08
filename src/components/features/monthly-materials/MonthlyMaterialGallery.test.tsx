@@ -117,6 +117,20 @@ describe("MonthlyMaterialGallery", () => {
     expect(screen.queryByText("2026年7月")).toBeNull();
   });
 
+  it("同一年月に複数件登録されている場合、見出しは1つだけ表示し、各資料のファイル名を表示する", async () => {
+    getMonthlyMaterialsMock.mockResolvedValue([
+      material({ id: "1", year: 2026, month: 9, fileName: "a.pdf" }),
+      material({ id: "2", year: 2026, month: 9, fileName: "b.pdf" }),
+    ]);
+
+    const jsx = await MonthlyMaterialGallery({ category: "salesFloorMeeting", editable: false });
+    render(jsx);
+
+    expect(screen.getAllByText("2026年9月")).toHaveLength(1);
+    expect(screen.getByText("a.pdf")).toBeTruthy();
+    expect(screen.getByText("b.pdf")).toBeTruthy();
+  });
+
   it("資料が1件も無い場合は空状態メッセージを表示する", async () => {
     getMonthlyMaterialsMock.mockResolvedValue([]);
 

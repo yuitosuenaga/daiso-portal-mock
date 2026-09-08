@@ -924,7 +924,6 @@
       "typeNotAllowed": "PDF以外のファイルは登録できません",
       "readFailed": "ファイルの読み込みに失敗しました",
       "googleUrlInvalid": "有効なGoogleドキュメント/スプレッドシート/スライドの共有リンクを入力してください",
-      "duplicateYearMonthError": "この年月には既に資料が登録されています",
       "requiredIndicator": "必須",
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。"
     }

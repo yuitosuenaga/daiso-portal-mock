@@ -924,7 +924,6 @@
       "typeNotAllowed": "Only PDF files can be registered",
       "readFailed": "Failed to read the file",
       "googleUrlInvalid": "Enter a valid Google Docs/Sheets/Slides share link",
-      "duplicateYearMonthError": "A material is already registered for this year and month",
       "requiredIndicator": "Required",
       "submitError": "Failed to save. Please try again later."
     }
