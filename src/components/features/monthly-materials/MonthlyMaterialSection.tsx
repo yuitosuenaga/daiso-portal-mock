@@ -124,6 +124,7 @@ export function MonthlyMaterialSection({
           title={heading}
           downloadFileName={material.fileName}
           downloadLinkLabel={viewerLabels.downloadLinkLabel}
+          hideDownloadLink
         />
       </div>
     );
