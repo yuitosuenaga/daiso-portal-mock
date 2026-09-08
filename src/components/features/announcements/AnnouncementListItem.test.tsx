@@ -27,6 +27,7 @@ const BASE_ANNOUNCEMENT: Announcement = {
   body: "本文",
   targeting: { scope: "all" },
   actionRequired: false,
+  sendEmailNotification: false,
   publishStartDate: null,
   publishEndDate: null,
   dueDate: null,
@@ -44,6 +45,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: true,
+          sendEmailNotification: false,
           dueDate: "2026-07-14",
         }}
         categoryLabel="メンテナンス"
@@ -62,6 +64,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: false,
+          sendEmailNotification: false,
           dueDate: "2026-07-14",
         }}
         categoryLabel="メンテナンス"
@@ -80,6 +83,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: true,
+          sendEmailNotification: false,
           dueDate: null,
         }}
         categoryLabel="メンテナンス"
@@ -98,6 +102,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: true,
+          sendEmailNotification: false,
           dueDate: "2026-07-14",
         }}
         categoryLabel="メンテナンス"
@@ -216,6 +221,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: true,
+          sendEmailNotification: false,
           dueDate: overdueDueDate,
         }}
         categoryLabel="メンテナンス"
@@ -238,6 +244,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: true,
+          sendEmailNotification: false,
           dueDate: overdueDueDate,
         }}
         categoryLabel="メンテナンス"
@@ -260,6 +267,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: false,
+          sendEmailNotification: false,
           dueDate: overdueDueDate,
         }}
         categoryLabel="メンテナンス"
@@ -281,6 +289,7 @@ describe("AnnouncementListItem", () => {
         announcement={{
           ...BASE_ANNOUNCEMENT,
           actionRequired: true,
+          sendEmailNotification: false,
           dueDate: futureDueDate,
         }}
         categoryLabel="メンテナンス"

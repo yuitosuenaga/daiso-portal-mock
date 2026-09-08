@@ -51,6 +51,7 @@ function makeAnnouncement(
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    sendEmailNotification: false,
     createdAt: publishedAt,
     updatedAt: publishedAt,
     attachments: [],
@@ -91,6 +92,7 @@ describe("AnnouncementsPreviewPanel", () => {
       makeAnnouncement("1", "お知らせ1", "2026-07-01T09:00:00Z", {
         body: "本文の要約テキスト",
         actionRequired: true,
+        sendEmailNotification: false,
         dueDate: "2026-07-14",
       }),
     ]);

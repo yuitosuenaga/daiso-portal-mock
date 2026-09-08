@@ -44,6 +44,9 @@ const labels = {
   actionRequiredLabel: "対応要否",
   actionRequiredTrueOption: "対応が必要",
   actionRequiredFalseOption: "対応不要",
+  sendEmailNotificationLabel: "メール送信",
+  sendEmailNotificationTrueOption: "メールを送信する",
+  sendEmailNotificationFalseOption: "メールを送信しない",
   targetingLabel: "配信対象",
   targetingAllOption: "全体一律",
   targetingCountriesOption: "特定の国・地域を指定",
@@ -146,6 +149,7 @@ describe("AnnouncementForm", () => {
         status: "draft",
         targeting: { scope: "all" },
         actionRequired: false,
+        sendEmailNotification: false,
         publishStartDate: null,
         publishEndDate: null,
         dueDate: null,
@@ -242,6 +246,7 @@ describe("AnnouncementForm", () => {
         status: "draft",
         targeting: { scope: "countries", countries: ["JP", "VN"] },
         actionRequired: false,
+        sendEmailNotification: false,
         publishStartDate: null,
         publishEndDate: null,
         dueDate: null,
@@ -267,6 +272,7 @@ describe("AnnouncementForm", () => {
           status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
+          sendEmailNotification: false,
         }}
         {...labels}
       />
@@ -291,6 +297,7 @@ describe("AnnouncementForm", () => {
           status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
+          sendEmailNotification: false,
           publishStartDate: null,
           publishEndDate: null,
           dueDate: null,
@@ -319,6 +326,7 @@ describe("AnnouncementForm", () => {
           status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
+          sendEmailNotification: false,
         }}
         {...labels}
       />
@@ -500,6 +508,7 @@ describe("AnnouncementForm", () => {
           status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
+          sendEmailNotification: false,
           attachments: [
             {
               id: "attachment-pdf",
@@ -541,6 +550,7 @@ describe("AnnouncementForm", () => {
           status: "published",
           targeting: { scope: "all" },
           actionRequired: false,
+          sendEmailNotification: false,
           linkedDocumentIds: ["document-1"],
         }}
         {...labels}

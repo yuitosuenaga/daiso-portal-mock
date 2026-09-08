@@ -106,6 +106,7 @@ const ANNOUNCEMENT: Announcement = {
   body: "詳細本文テキスト",
   targeting: { scope: "all" },
   actionRequired: false,
+  sendEmailNotification: false,
   createdAt: "2026-07-01T09:00:00Z",
   updatedAt: "2026-07-01T09:00:00Z",
   attachments: [],
@@ -184,6 +185,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: true,
+      sendEmailNotification: false,
       dueDate: "2026-07-14",
     });
 
@@ -197,6 +199,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: false,
+      sendEmailNotification: false,
       dueDate: "2026-07-14",
     });
 
@@ -218,6 +221,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: true,
+      sendEmailNotification: false,
       dueDate: overdueDueDate,
     });
 
@@ -240,6 +244,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: true,
+      sendEmailNotification: false,
       dueDate: overdueDueDate,
     });
 
@@ -261,6 +266,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: true,
+      sendEmailNotification: false,
       dueDate: futureDueDate,
     });
 
@@ -284,6 +290,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: true,
+      sendEmailNotification: false,
     });
 
     const jsx = await AnnouncementDetail({ id: "1" });
@@ -298,6 +305,7 @@ describe("AnnouncementDetail", () => {
     getAnnouncementByIdMock.mockResolvedValueOnce({
       ...ANNOUNCEMENT,
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     const jsx = await AnnouncementDetail({ id: "1" });

@@ -75,6 +75,7 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
     body: record.body,
     targeting: mapTargeting(record),
     actionRequired: record.actionRequired,
+    sendEmailNotification: record.sendEmailNotification,
     publishStartDate: mapDateOnly(record.publishStartDate),
     publishEndDate: mapDateOnly(record.publishEndDate),
     dueDate: mapDateOnly(record.dueDate),

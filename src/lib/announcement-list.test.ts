@@ -16,6 +16,7 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    sendEmailNotification: false,
     createdAt: "2026-06-01T00:00:00.000Z",
     updatedAt: "2026-06-01T00:00:00.000Z",
     attachments: [],
@@ -32,18 +33,21 @@ describe("filterAnnouncements", () => {
       title: "システムメンテナンスのお知らせ",
       category: "maintenance",
       actionRequired: true,
+      sendEmailNotification: false,
     }),
     buildAnnouncement({
       id: "2",
       title: "新しいFAQページを追加しました",
       category: "other",
       actionRequired: false,
+      sendEmailNotification: false,
     }),
     buildAnnouncement({
       id: "3",
       title: "決済システム障害の発生について",
       category: "incident",
       actionRequired: true,
+      sendEmailNotification: false,
     }),
   ];
 

@@ -161,6 +161,7 @@ model Announcement {
   status             AnnouncementStatus            @default(published)
   publishedAt        DateTime?
   actionRequired     Boolean                       @default(false)
+  sendEmailNotification Boolean                    @default(false)
   targetingScope     AnnouncementTargetingScope    @default(all)
   targetingCountries String[]                      @default([])
   publishStartDate   DateTime?                     @db.Date

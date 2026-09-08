@@ -80,6 +80,7 @@ const ANNOUNCEMENT: Announcement = {
   body: "本文テキスト",
   targeting: { scope: "all" },
   actionRequired: false,
+  sendEmailNotification: false,
   createdAt: "2026-07-01T09:00:00Z",
   updatedAt: "2026-07-01T09:00:00Z",
   attachments: [],

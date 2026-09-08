@@ -68,6 +68,7 @@ function makeAnnouncement(
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: true,
+    sendEmailNotification: false,
     createdAt: "2026-07-01T09:00:00Z",
     updatedAt: "2026-07-01T09:00:00Z",
     attachments: [],

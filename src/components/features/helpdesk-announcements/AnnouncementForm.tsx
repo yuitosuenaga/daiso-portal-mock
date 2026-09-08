@@ -53,6 +53,9 @@ export interface AnnouncementFormProps {
   actionRequiredLabel: string;
   actionRequiredTrueOption: string;
   actionRequiredFalseOption: string;
+  sendEmailNotificationLabel: string;
+  sendEmailNotificationTrueOption: string;
+  sendEmailNotificationFalseOption: string;
   targetingLabel: string;
   targetingAllOption: string;
   targetingCountriesOption: string;
@@ -125,6 +128,9 @@ export function AnnouncementForm({
   actionRequiredLabel,
   actionRequiredTrueOption,
   actionRequiredFalseOption,
+  sendEmailNotificationLabel,
+  sendEmailNotificationTrueOption,
+  sendEmailNotificationFalseOption,
   targetingLabel,
   targetingAllOption,
   targetingCountriesOption,
@@ -190,6 +196,7 @@ export function AnnouncementForm({
       status: "draft",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       publishStartDate: "",
       publishEndDate: "",
       dueDate: "",
@@ -246,6 +253,11 @@ export function AnnouncementForm({
   const actionRequiredOptions: SelectOption[] = [
     { value: "false", label: actionRequiredFalseOption },
     { value: "true", label: actionRequiredTrueOption },
+  ];
+
+  const sendEmailNotificationOptions: SelectOption[] = [
+    { value: "false", label: sendEmailNotificationFalseOption },
+    { value: "true", label: sendEmailNotificationTrueOption },
   ];
 
   const scopeOptions: SelectOption[] = [
@@ -492,6 +504,24 @@ export function AnnouncementForm({
                   event.target.value as AnnouncementFormValues["status"]
                 )
               }
+            />
+          )}
+        />
+      </FormField>
+
+      <FormField
+        label={sendEmailNotificationLabel}
+        htmlFor="announcement-send-email-notification"
+      >
+        <Controller
+          control={control}
+          name="sendEmailNotification"
+          render={({ field }) => (
+            <Select
+              id="announcement-send-email-notification"
+              options={sendEmailNotificationOptions}
+              value={field.value ? "true" : "false"}
+              onChange={(event) => field.onChange(event.target.value === "true")}
             />
           )}
         />
