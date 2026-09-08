@@ -26,6 +26,9 @@
     --sidebar: 0 0% 30%;
     --sidebar-foreground: 0 0% 92%;
     --radius: 0.5rem;
+    --chart-status-new: 327 100% 31%;
+    --chart-status-in-progress: 327 90% 45%;
+    --chart-status-resolved: 327 78% 72%;
   }
 }
 

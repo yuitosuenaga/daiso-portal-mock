@@ -3,12 +3,15 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { SelectOption } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   EMPTY_HELPDESK_INQUIRY_FILTERS,
   filterInquiriesForHelpdesk,
 } from "@/lib/helpdesk-inquiry-list";
+import { computeHelpdeskInquiryStats } from "@/lib/helpdesk-inquiry-stats";
 import { HelpdeskInquiryFilterBar } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar";
 import { HelpdeskInquiryListItem } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryListItem";
+import { HelpdeskInquiryStatsPanel } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryStatsPanel";
 import type { Inquiry } from "@/types/inquiry";
 
 export interface HelpdeskInquiryListClientProps {
@@ -56,39 +59,66 @@ export function HelpdeskInquiryListClient({
     [inquiries, filters]
   );
 
+  const stats = useMemo(
+    () => computeHelpdeskInquiryStats(filteredInquiries),
+    [filteredInquiries]
+  );
+
   return (
     <div className="space-y-4">
-      <HelpdeskInquiryFilterBar
-        filters={filters}
-        onChange={setFilters}
-        onClear={() => setFilters(EMPTY_HELPDESK_INQUIRY_FILTERS)}
-        countryOptions={countryOptions}
-        categoryOptions={categoryOptions}
-        statusOptions={statusOptions}
-      />
-      {filteredInquiries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("noResults")}</p>
-      ) : (
-        <ul className="divide-y divide-border">
-          {filteredInquiries.map((inquiry) => (
-            <HelpdeskInquiryListItem
-              key={inquiry.id}
-              inquiry={inquiry}
-              categoryLabel={categoryLabels[inquiry.category]}
-              urgencyLabel={urgencyLabels[inquiry.urgency]}
-              statusLabel={statusLabels[inquiry.status]}
-              countryLabel={
-                countryLabels[inquiry.submittedBy.country] ??
-                inquiry.submittedBy.country
-              }
-              claimBadgeLabel={claimBadgeLabel}
-              claimedByLabel={claimedByLabel}
-              locale={locale}
-              untitledLabel={untitledLabel}
-            />
-          ))}
-        </ul>
-      )}
+      <Card>
+        <CardContent className="pt-5">
+          <HelpdeskInquiryFilterBar
+            filters={filters}
+            onChange={setFilters}
+            onClear={() => setFilters(EMPTY_HELPDESK_INQUIRY_FILTERS)}
+            countryOptions={countryOptions}
+            categoryOptions={categoryOptions}
+            statusOptions={statusOptions}
+          />
+        </CardContent>
+      </Card>
+
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <aside aria-labelledby="helpdesk-inquiry-stats-heading" className="xl:order-2 xl:sticky xl:top-20">
+          <HelpdeskInquiryStatsPanel
+            stats={stats}
+            statusLabels={statusLabels}
+            shown={filteredInquiries.length}
+            total={inquiries.length}
+          />
+        </aside>
+
+        <div className="min-w-0 xl:order-1">
+          <Card>
+            <CardContent className="p-5">
+              {filteredInquiries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("noResults")}</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {filteredInquiries.map((inquiry) => (
+                    <HelpdeskInquiryListItem
+                      key={inquiry.id}
+                      inquiry={inquiry}
+                      categoryLabel={categoryLabels[inquiry.category]}
+                      urgencyLabel={urgencyLabels[inquiry.urgency]}
+                      statusLabel={statusLabels[inquiry.status]}
+                      countryLabel={
+                        countryLabels[inquiry.submittedBy.country] ??
+                        inquiry.submittedBy.country
+                      }
+                      claimBadgeLabel={claimBadgeLabel}
+                      claimedByLabel={claimedByLabel}
+                      locale={locale}
+                      untitledLabel={untitledLabel}
+                    />
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

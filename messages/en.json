@@ -324,6 +324,25 @@
       "error": "The action failed. Please try again later.",
       "notOwnerErrorMessage": "This inquiry is claimed by another staff member and cannot be released."
     },
+    "stats": {
+      "title": "Status Summary",
+      "scopeAll": "Showing all inquiries",
+      "scopeFiltered": "Showing the {count} filtered inquiries",
+      "unclaimedLabel": "Unclaimed",
+      "unclaimedCaption": "No one has started working on these",
+      "unclaimedNone": "Every open inquiry has someone assigned",
+      "highUrgencyAlert": "{count} high-urgency unclaimed",
+      "statusBreakdownTitle": "Status Breakdown",
+      "staffLoadTitle": "Load by Staff",
+      "staffLoadEmpty": "No inquiries are currently in progress",
+      "staffOthers": "{count} others",
+      "unit": "",
+      "percent": "{value}%",
+      "tableToggle": "View as table",
+      "tableHeaderItem": "Item",
+      "tableHeaderCount": "Count",
+      "tableHeaderShare": "Share"
+    },
     "status": {
       "sectionTitle": "Change Status",
       "label": "Status",
