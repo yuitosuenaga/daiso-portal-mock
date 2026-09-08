@@ -65,6 +65,7 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    sendEmailNotification: false,
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
     attachments: [],
@@ -227,6 +228,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
     status: "published",
     targeting: { scope: "all" },
     actionRequired: false,
+    sendEmailNotification: false,
     attachments: [],
     linkedDocumentIds: [],
     translations: [{ locale: "en", title: "New announcement", body: "Body" }],
@@ -274,6 +276,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
     const inputWithNewFields: CreateAnnouncementInput = {
       ...input,
       actionRequired: true,
+      sendEmailNotification: false,
       publishStartDate: "2026-08-01",
       publishEndDate: "2026-08-31",
       dueDate: "2026-08-15",

@@ -49,6 +49,7 @@ function makeAnnouncement(
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    sendEmailNotification: false,
     createdAt: publishedAt,
     updatedAt: publishedAt,
     attachments: [],

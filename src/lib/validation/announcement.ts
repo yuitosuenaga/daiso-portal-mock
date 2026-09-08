@@ -67,6 +67,7 @@ export const announcementFormSchema = z
     status: z.enum(["draft", "published"]),
     targeting: announcementTargetingSchema,
     actionRequired: z.boolean(),
+    sendEmailNotification: z.boolean(),
     publishStartDate: optionalDateField,
     publishEndDate: optionalDateField,
     dueDate: optionalDateField,

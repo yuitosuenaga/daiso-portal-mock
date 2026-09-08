@@ -102,6 +102,7 @@ export default async function HelpdeskAnnouncementEditPage({
           // フォームの厳密な国コード型へ安全に絞り込める。
           targeting: announcement.targeting as AnnouncementFormValues["targeting"],
           actionRequired: announcement.actionRequired,
+          sendEmailNotification: announcement.sendEmailNotification,
           publishStartDate: announcement.publishStartDate ?? "",
           publishEndDate: announcement.publishEndDate ?? "",
           dueDate: announcement.dueDate ?? "",
@@ -133,6 +134,9 @@ export default async function HelpdeskAnnouncementEditPage({
         actionRequiredLabel={t("actionRequiredLabel")}
         actionRequiredTrueOption={t("actionRequiredTrueOption")}
         actionRequiredFalseOption={t("actionRequiredFalseOption")}
+        sendEmailNotificationLabel={t("sendEmailNotificationLabel")}
+        sendEmailNotificationTrueOption={t("sendEmailNotificationTrueOption")}
+        sendEmailNotificationFalseOption={t("sendEmailNotificationFalseOption")}
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}

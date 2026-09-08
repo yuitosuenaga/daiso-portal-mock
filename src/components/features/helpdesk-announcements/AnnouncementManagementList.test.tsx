@@ -104,6 +104,7 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
     body: "本文",
     targeting: { scope: "all" },
     actionRequired: false,
+    sendEmailNotification: false,
     createdAt: "2026-07-01T09:00:00Z",
     updatedAt: "2026-07-01T09:00:00Z",
     attachments: [],

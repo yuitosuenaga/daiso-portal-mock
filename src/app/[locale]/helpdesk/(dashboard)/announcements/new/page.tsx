@@ -58,6 +58,9 @@ export default async function HelpdeskAnnouncementNewPage() {
         actionRequiredLabel={t("actionRequiredLabel")}
         actionRequiredTrueOption={t("actionRequiredTrueOption")}
         actionRequiredFalseOption={t("actionRequiredFalseOption")}
+        sendEmailNotificationLabel={t("sendEmailNotificationLabel")}
+        sendEmailNotificationTrueOption={t("sendEmailNotificationTrueOption")}
+        sendEmailNotificationFalseOption={t("sendEmailNotificationFalseOption")}
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
