@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import {
   Bell,
+  BookOpen,
   Building2,
   FilePlus,
   FileText,
@@ -45,12 +46,6 @@ export default async function HelpdeskHomePage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <NavigationCard
-            title={nav("templates")}
-            description={t("templates.description")}
-            href="/helpdesk/templates"
-            icon={FileText}
-          />
-          <NavigationCard
             title={nav("announcements")}
             description={t("announcements.description")}
             href="/helpdesk/announcements"
@@ -63,22 +58,34 @@ export default async function HelpdeskHomePage() {
             icon={FolderOpen}
           />
           <NavigationCard
-            title={nav("inquiryForm")}
-            description={t("inquiryForm.description")}
-            href="/helpdesk/inquiry/new"
-            icon={FilePlus}
-          />
-          <NavigationCard
             title={nav("salesFloorMeeting")}
             description={t("salesFloorMeeting.description")}
             href="/helpdesk/sales-floor-meeting"
             icon={Video}
           />
           <NavigationCard
+            title={nav("inquiryForm")}
+            description={t("inquiryForm.description")}
+            href="/helpdesk/inquiry/new"
+            icon={FilePlus}
+          />
+          <NavigationCard
+            title={nav("manuals")}
+            description={t("manuals.description")}
+            href="/helpdesk/documents"
+            icon={BookOpen}
+          />
+          <NavigationCard
             title={nav("pop")}
             description={t("pop.description")}
             href="/helpdesk/pop"
             icon={Tags}
+          />
+          <NavigationCard
+            title={nav("templates")}
+            description={t("templates.description")}
+            href="/helpdesk/templates"
+            icon={FileText}
           />
           <NavigationCard
             title={nav("companies")}

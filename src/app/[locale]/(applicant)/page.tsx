@@ -48,14 +48,6 @@ export default async function DashboardPage() {
           href="/inquiry/new"
           icon={FilePlus}
         />
-        <Suspense fallback={<NavigationCardSkeleton />}>
-          <InquiryListCard
-            scope="own"
-            href="/inquiry"
-            titleKey="dashboard.inquiryList.title"
-            descriptionKey="dashboard.inquiryList.description"
-          />
-        </Suspense>
         <NavigationCard
           title={t("manuals.title")}
           description={t("manuals.description")}
@@ -68,6 +60,14 @@ export default async function DashboardPage() {
           href="/pop"
           icon={Tags}
         />
+        <Suspense fallback={<NavigationCardSkeleton />}>
+          <InquiryListCard
+            scope="own"
+            href="/inquiry"
+            titleKey="dashboard.inquiryList.title"
+            descriptionKey="dashboard.inquiryList.description"
+          />
+        </Suspense>
         <NavigationCard
           title={t("links.title")}
           description={t("links.description")}
