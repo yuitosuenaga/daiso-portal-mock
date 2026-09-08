@@ -2,6 +2,17 @@
 
 Kiro-style Spec-Driven Development on an agentic SDLC
 
+> **運用ステータス: kiro spec駆動フロー 一時停止中（2026-09-08〜）**
+>
+> 以下のkiro関連ルールは当面適用しない。新規の実装依頼は spec化せず、通常の実装依頼として直接進めてよい。
+> - `## Minimal Workflow`（spec-init〜spec-impl等のフェーズ運用）
+> - `## Development Rules` の3-phase承認フロー
+> - `## 開発後レビュー（別エージェントによるレビュー）`（実装後の別エージェントレビュー義務、およびそれに紐づくPRマージ待ちルール）
+> - `## Spec管理ルール（1画面 = 1spec）` および `### Spec の粒度・重複防止`
+>
+> 既存の `.kiro/steering/`・`.kiro/specs/` は削除せずそのまま残す。`## ブランチ運用`（ワークツリー必須・ブランチ命名・releaseブランチ運用）は kiro固有のルールではないため、停止中も引き続き有効。
+> 再開する場合はこのステータスブロックを削除する。
+
 ## Project Context
 
 ### Paths
