@@ -90,6 +90,22 @@ describe("PdfViewer", () => {
     expect(screen.getAllByText("元のドキュメントを開く").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("variant: uploadのときhideDownloadLinkを指定すると、ダウンロードリンクを表示しない", () => {
+    render(
+      <PdfViewer
+        variant="upload"
+        dataUrl="data:application/pdf;base64,AAAA"
+        title="サンプルPDF"
+        downloadFileName="sample.pdf"
+        downloadLinkLabel="ダウンロード"
+        hideDownloadLink
+      />
+    );
+
+    expect(screen.getByTitle("サンプルPDF")).toBeTruthy();
+    expect(screen.queryByText("ダウンロード")).toBeNull();
+  });
+
   it("variant: uploadのときはフォールバックUIを持たない（常時プレビューを描画する）", () => {
     render(
       <PdfViewer

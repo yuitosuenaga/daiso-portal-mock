@@ -10,6 +10,8 @@ export type PdfViewerProps =
       title: string;
       downloadFileName: string;
       downloadLinkLabel: string;
+      /** ブラウザ標準のPDFビューア（iframe内）が独自のダウンロードボタンを持つ場合に、重複するダウンロードリンクを非表示にする。省略時はfalse（常に表示、既存呼び出し元との後方互換）。 */
+      hideDownloadLink?: boolean;
     }
   | {
       variant: "google";
@@ -144,13 +146,15 @@ export function PdfViewer(props: PdfViewerProps) {
           className="h-full w-full"
         />
       </div>
-      <a
-        href={props.dataUrl}
-        download={props.downloadFileName}
-        className="inline-flex w-fit items-center justify-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
-      >
-        {props.downloadLinkLabel}
-      </a>
+      {!props.hideDownloadLink && (
+        <a
+          href={props.dataUrl}
+          download={props.downloadFileName}
+          className="inline-flex w-fit items-center justify-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+        >
+          {props.downloadLinkLabel}
+        </a>
+      )}
     </div>
   );
 }
