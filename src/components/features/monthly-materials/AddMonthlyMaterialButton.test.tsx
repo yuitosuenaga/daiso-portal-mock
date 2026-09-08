@@ -51,7 +51,6 @@ const formLabels: Omit<
   typeNotAllowedMessage: "PDF以外のファイルは登録できません",
   readFailedMessage: "ファイルの読み込みに失敗しました",
   googleUrlInvalidMessage: "有効な共有リンクを入力してください",
-  duplicateYearMonthErrorMessage: "この年月には既に資料が登録されています",
   requiredIndicator: "必須",
   submitErrorMessage: "保存に失敗しました",
 };

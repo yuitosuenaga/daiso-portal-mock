@@ -1,13 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
 
-function duplicateKeyPrismaError() {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed.", {
-    code: "P2002",
-    clientVersion: "test",
-  });
-}
-
 function notFoundPrismaError() {
   return new Prisma.PrismaClientKnownRequestError("Record to update not found.", {
     code: "P2025",
@@ -28,7 +21,6 @@ vi.mock("@/lib/db/prisma", () => ({
 
 import { prisma } from "@/lib/db/prisma";
 import {
-  DuplicateYearMonthError,
   MonthlyMaterialNotFoundError,
   createMonthlyMaterialRecord,
   deleteMonthlyMaterialRecord,
@@ -108,7 +100,7 @@ describe("listMonthlyMaterialsVisibleTo", () => {
             },
           ],
         },
-        orderBy: [{ year: "desc" }, { month: "desc" }],
+        orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "asc" }],
       })
     );
   });
@@ -152,7 +144,7 @@ describe("listAllMonthlyMaterials", () => {
     expect(result).toHaveLength(2);
     expect(prisma.monthlyMaterial.findMany).toHaveBeenCalledWith({
       where: { category: "salesFloorMeeting" },
-      orderBy: [{ year: "desc" }, { month: "desc" }],
+      orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "asc" }],
     });
   });
 
@@ -178,12 +170,14 @@ describe("createMonthlyMaterialRecord", () => {
     expect(result.id).toBe("monthly-material-1");
   });
 
-  it("同一カテゴリ内で年月が重複する場合、DuplicateYearMonthErrorを送出する", async () => {
-    vi.mocked(prisma.monthlyMaterial.create).mockRejectedValue(duplicateKeyPrismaError());
-
-    await expect(createMonthlyMaterialRecord(baseInput())).rejects.toThrow(
-      DuplicateYearMonthError
+  it("同一カテゴリ×年月に既に資料が存在していても、別レコードとして作成できる", async () => {
+    vi.mocked(prisma.monthlyMaterial.create).mockResolvedValue(
+      baseRecord({ id: "monthly-material-2" }) as never
     );
+
+    const result = await createMonthlyMaterialRecord(baseInput());
+
+    expect(result.id).toBe("monthly-material-2");
   });
 });
 
@@ -202,14 +196,6 @@ describe("updateMonthlyMaterialRecord", () => {
     await expect(
       updateMonthlyMaterialRecord("missing", baseInput())
     ).rejects.toThrow(MonthlyMaterialNotFoundError);
-  });
-
-  it("変更先の年月が別レコードと重複する場合、DuplicateYearMonthErrorを送出する", async () => {
-    vi.mocked(prisma.monthlyMaterial.update).mockRejectedValue(duplicateKeyPrismaError());
-
-    await expect(
-      updateMonthlyMaterialRecord("monthly-material-1", baseInput({ month: 10 }))
-    ).rejects.toThrow(DuplicateYearMonthError);
   });
 });
 

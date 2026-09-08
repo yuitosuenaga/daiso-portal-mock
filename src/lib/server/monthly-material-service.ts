@@ -23,23 +23,13 @@ export class MonthlyMaterialNotFoundError extends Error {
 }
 
 /**
- * 同一カテゴリ内で既に登録済みの年月と重複する年月を登録・変更しようとしたことを表すエラー。
- * `@@unique([category, year, month])`制約違反（Prismaの`P2002`）から変換して送出する。
+ * 年月の降順、同一年月内は登録順（`createdAt`昇順）で並べる。同一カテゴリ×年月に
+ * 複数件登録できるため、同一年月内の並びを安定させるための第3ソートキー。
  */
-export class DuplicateYearMonthError extends Error {
-  constructor(
-    public readonly category: MonthlyMaterialCategory,
-    public readonly year: number,
-    public readonly month: number
-  ) {
-    super(`MonthlyMaterial already exists for ${category} ${year}-${month}`);
-    this.name = "DuplicateYearMonthError";
-  }
-}
-
 const ORDER_BY_YEAR_MONTH_DESC: Prisma.MonthlyMaterialOrderByWithRelationInput[] = [
   { year: "desc" },
   { month: "desc" },
+  { createdAt: "asc" },
 ];
 
 /**
@@ -147,46 +137,23 @@ export async function listAllMonthlyMaterials(
   return mapMonthlyMaterialsSkippingCorrupted(records);
 }
 
-/**
- * 一意制約違反（`P2002`）を捕捉し`DuplicateYearMonthError`へ変換する。
- * それ以外のエラーはそのまま再送出する。
- */
-function rethrowAsDuplicateYearMonthError(
-  error: unknown,
-  category: MonthlyMaterialCategory,
-  year: number,
-  month: number
-): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    throw new DuplicateYearMonthError(category, year, month);
-  }
-  throw error;
-}
-
-/** 資料を新規作成する。同一カテゴリ内で年月が重複する場合は`DuplicateYearMonthError`を送出する。 */
+/** 資料を新規作成する。同一カテゴリ×年月に既に資料が存在していても、別レコードとして追加登録できる。 */
 export async function createMonthlyMaterialRecord(
   input: CreateMonthlyMaterialInput
 ): Promise<MonthlyMaterial> {
-  try {
-    const record = await prisma.monthlyMaterial.create({
-      data: {
-        category: input.category,
-        year: input.year,
-        month: input.month,
-        ...toMonthlyMaterialData(input),
-      },
-    });
+  const record = await prisma.monthlyMaterial.create({
+    data: {
+      category: input.category,
+      year: input.year,
+      month: input.month,
+      ...toMonthlyMaterialData(input),
+    },
+  });
 
-    return mapMonthlyMaterial(record);
-  } catch (error) {
-    rethrowAsDuplicateYearMonthError(error, input.category, input.year, input.month);
-  }
+  return mapMonthlyMaterial(record);
 }
 
-/**
- * 既存の資料の内容を更新する。存在しない場合は`MonthlyMaterialNotFoundError`、
- * 変更先の年月が同一カテゴリ内の別レコードと重複する場合は`DuplicateYearMonthError`を送出する。
- */
+/** 既存の資料の内容を更新する。存在しない場合は`MonthlyMaterialNotFoundError`を送出する。 */
 export async function updateMonthlyMaterialRecord(
   id: string,
   input: CreateMonthlyMaterialInput
@@ -207,7 +174,7 @@ export async function updateMonthlyMaterialRecord(
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       throw new MonthlyMaterialNotFoundError(id);
     }
-    rethrowAsDuplicateYearMonthError(error, input.category, input.year, input.month);
+    throw error;
   }
 }
 

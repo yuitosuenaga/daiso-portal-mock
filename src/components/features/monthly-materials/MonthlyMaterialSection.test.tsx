@@ -79,7 +79,6 @@ const formLabels: MonthlyMaterialFormLabels = {
   typeNotAllowedMessage: "PDF以外のファイルは登録できません",
   readFailedMessage: "ファイルの読み込みに失敗しました",
   googleUrlInvalidMessage: "有効な共有リンクを入力してください",
-  duplicateYearMonthErrorMessage: "この年月には既に資料が登録されています",
   requiredIndicator: "必須",
   submitErrorMessage: "保存に失敗しました",
 };
@@ -102,6 +101,32 @@ beforeEach(() => {
 });
 
 describe("MonthlyMaterialSection", () => {
+  it("アップロード方式の場合、ファイル名を画面上に表示する", () => {
+    render(
+      <MonthlyMaterialSection
+        {...DEFAULT_PROPS}
+        material={material({ fileName: "sales-floor-meeting-2026-09.pdf" })}
+        editable={false}
+      />
+    );
+
+    expect(screen.getByText("sales-floor-meeting-2026-09.pdf")).toBeTruthy();
+  });
+
+  it("showHeading=falseの場合、見出し（h2）を描画しない", () => {
+    render(
+      <MonthlyMaterialSection
+        {...DEFAULT_PROPS}
+        material={material()}
+        editable={false}
+        showHeading={false}
+        groupHeadingId="group-heading"
+      />
+    );
+
+    expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
+  });
+
   it("editable=falseの場合、編集ボタン・削除ボタンを表示しない", () => {
     render(
       <MonthlyMaterialSection {...DEFAULT_PROPS} material={material()} editable={false} />

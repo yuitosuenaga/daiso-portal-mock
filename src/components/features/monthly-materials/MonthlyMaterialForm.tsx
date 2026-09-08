@@ -130,7 +130,6 @@ export interface MonthlyMaterialFormProps {
   typeNotAllowedMessage: string;
   readFailedMessage: string;
   googleUrlInvalidMessage: string;
-  duplicateYearMonthErrorMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
 }
@@ -178,7 +177,6 @@ export function MonthlyMaterialForm({
   typeNotAllowedMessage,
   readFailedMessage,
   googleUrlInvalidMessage,
-  duplicateYearMonthErrorMessage,
   requiredIndicator,
   submitErrorMessage,
 }: MonthlyMaterialFormProps) {
@@ -189,7 +187,6 @@ export function MonthlyMaterialForm({
     control,
     watch,
     setValue,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<MonthlyMaterialFormFieldValues, unknown, MonthlyMaterialSubmitValues>({
     resolver: zodResolver(monthlyMaterialFormSchema) as unknown as Resolver<
@@ -277,17 +274,7 @@ export function MonthlyMaterialForm({
           : await createMonthlyMaterialAction(input);
       router.refresh();
       onSuccess(saved);
-    } catch (error) {
-      // Server Actionsを跨ぐと例外のプロトタイプチェーンは失われるため、`instanceof`ではなく
-      // `message`文字列で判別する（`CompanyForm.tsx`の`CompanyCodeTakenError`判定と同型）。
-      if (
-        error instanceof Error &&
-        error.message.includes("MonthlyMaterial already exists")
-      ) {
-        setError("year", { type: "duplicate", message: duplicateYearMonthErrorMessage });
-        setError("month", { type: "duplicate", message: duplicateYearMonthErrorMessage });
-        return;
-      }
+    } catch {
       setHasSubmitError(true);
     }
   }
@@ -300,13 +287,7 @@ export function MonthlyMaterialForm({
           required
           requiredIndicator={requiredIndicator}
           htmlFor="monthly-material-year"
-          error={
-            errors.year
-              ? errors.year.type === "duplicate"
-                ? duplicateYearMonthErrorMessage
-                : requiredErrorMessage
-              : undefined
-          }
+          error={errors.year ? requiredErrorMessage : undefined}
           className="flex-1"
         >
           <Controller
@@ -329,9 +310,7 @@ export function MonthlyMaterialForm({
           required
           requiredIndicator={requiredIndicator}
           htmlFor="monthly-material-month"
-          error={
-            errors.month?.type === "duplicate" ? duplicateYearMonthErrorMessage : undefined
-          }
+          error={errors.month ? requiredErrorMessage : undefined}
           className="flex-1"
         >
           <Controller

@@ -49,7 +49,6 @@ export interface MonthlyMaterialFormLabels {
   typeNotAllowedMessage: string;
   readFailedMessage: string;
   googleUrlInvalidMessage: string;
-  duplicateYearMonthErrorMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
 }
@@ -58,6 +57,14 @@ export interface MonthlyMaterialSectionProps {
   material: MonthlyMaterial;
   /** 見出し（例:「2026年9月」）。ロケールに応じた表示名は呼び出し側で解決済み。 */
   heading: string;
+  /**
+   * 見出し（`<h2>`）を自身で描画するかどうか。省略時はtrue。同一年月に複数件の資料がある場合、
+   * 呼び出し側（`MonthlyMaterialGallery`）が年月ごとに見出しを1つだけ描画するため、
+   * 各資料側の見出し描画をfalseにして重複表示を避ける。
+   */
+  showHeading?: boolean;
+  /** `showHeading=false`の場合に、呼び出し側が描画する見出し要素のidを渡す（aria-labelledby用）。 */
+  groupHeadingId?: string;
   /** ヘルプデスク側（編集可能な文脈）かどうか。falseの場合、編集ボタン等を一切表示しない。 */
   editable: boolean;
   editButtonLabel: string;
@@ -72,15 +79,18 @@ export interface MonthlyMaterialSectionProps {
 }
 
 /**
- * 1年月分の資料について、表示モード（見出し・PDFプレビュー・編集ボタン）と
+ * 1件の資料について、表示モード（見出し・PDFプレビュー・編集ボタン）と
  * 編集モード（`MonthlyMaterialForm`＋プレビュー継続表示）を、画面遷移なしで切り替える。
  * `editable=false`（海外販社側）の場合は表示モードのみで、編集関連のUIを一切描画しない。
- * モード状態はこのコンポーネント単位で独立して保持するため、あるセクションを編集モードに
- * 切り替えても他の年月セクションの表示モードには影響しない。
+ * モード状態はこのコンポーネント単位で独立して保持するため、ある資料を編集モードに
+ * 切り替えても他の資料の表示モードには影響しない。同一年月に複数件ある場合、見出しは
+ * 呼び出し側が年月ごとに1つだけ描画する（`showHeading=false`＋`groupHeadingId`）。
  */
 export function MonthlyMaterialSection({
   material,
   heading,
+  showHeading = true,
+  groupHeadingId,
   editable,
   editButtonLabel,
   deleteButtonLabel,
@@ -106,21 +116,29 @@ export function MonthlyMaterialSection({
         previewHint={viewerLabels.googlePreviewHint}
       />
     ) : (
-      <PdfViewer
-        variant="upload"
-        dataUrl={material.dataUrl}
-        title={heading}
-        downloadFileName={material.fileName}
-        downloadLinkLabel={viewerLabels.downloadLinkLabel}
-      />
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-medium text-foreground">{material.fileName}</p>
+        <PdfViewer
+          variant="upload"
+          dataUrl={material.dataUrl}
+          title={heading}
+          downloadFileName={material.fileName}
+          downloadLinkLabel={viewerLabels.downloadLinkLabel}
+        />
+      </div>
     );
 
   if (mode === "edit") {
     return (
-      <section aria-labelledby={`monthly-material-${material.id}-heading`} className="flex flex-col gap-4">
-        <h2 id={`monthly-material-${material.id}-heading`} className="text-lg font-semibold">
-          {heading}
-        </h2>
+      <section
+        aria-labelledby={showHeading ? `monthly-material-${material.id}-heading` : groupHeadingId}
+        className="flex flex-col gap-4"
+      >
+        {showHeading && (
+          <h2 id={`monthly-material-${material.id}-heading`} className="text-lg font-semibold">
+            {heading}
+          </h2>
+        )}
         <MonthlyMaterialForm
           category={material.category}
           mode="edit"
@@ -136,17 +154,24 @@ export function MonthlyMaterialSection({
   }
 
   return (
-    <section aria-labelledby={`monthly-material-${material.id}-heading`} className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 id={`monthly-material-${material.id}-heading`} className="text-lg font-semibold">
-          {heading}
-        </h2>
-        {editable && (
-          <Button type="button" variant="outline" onClick={() => setMode("edit")}>
-            {editButtonLabel}
-          </Button>
-        )}
-      </div>
+    <section
+      aria-labelledby={showHeading ? `monthly-material-${material.id}-heading` : groupHeadingId}
+      className="flex flex-col gap-3"
+    >
+      {(showHeading || editable) && (
+        <div className="flex items-center justify-between">
+          {showHeading && (
+            <h2 id={`monthly-material-${material.id}-heading`} className="text-lg font-semibold">
+              {heading}
+            </h2>
+          )}
+          {editable && (
+            <Button type="button" variant="outline" onClick={() => setMode("edit")}>
+              {editButtonLabel}
+            </Button>
+          )}
+        </div>
+      )}
       {preview}
       {editable && (
         <DeleteMonthlyMaterialButton
