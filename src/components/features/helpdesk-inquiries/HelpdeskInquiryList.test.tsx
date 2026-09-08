@@ -116,6 +116,6 @@ describe("HelpdeskInquiryList", () => {
     const jsx = await HelpdeskInquiryList();
     renderWithProvider(jsx);
 
-    expect(screen.getByText(/田中 太郎/)).toBeTruthy();
+    expect(screen.getAllByText(/田中 太郎/).length).toBeGreaterThan(0);
   });
 });

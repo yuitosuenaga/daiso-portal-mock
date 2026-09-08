@@ -115,27 +115,20 @@ export async function HelpdeskInquiryList() {
   return (
     <div>
       {heading}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <HelpdeskInquiryListClient
-            inquiries={sortedInquiries}
-            categoryLabels={categoryLabels}
-            urgencyLabels={urgencyLabels}
-            statusLabels={statusLabels}
-            countryLabels={countryLabels}
-            countryOptions={countryOptions}
-            categoryOptions={categoryOptions}
-            statusOptions={statusOptions}
-            claimBadgeLabel={tClaim("inProgressBadge")}
-            claimedByLabel={tClaim("claimedByLabel")}
-            locale={locale}
-            untitledLabel={t("untitled")}
-          />
-        </CardContent>
-      </Card>
+      <HelpdeskInquiryListClient
+        inquiries={sortedInquiries}
+        categoryLabels={categoryLabels}
+        urgencyLabels={urgencyLabels}
+        statusLabels={statusLabels}
+        countryLabels={countryLabels}
+        countryOptions={countryOptions}
+        categoryOptions={categoryOptions}
+        statusOptions={statusOptions}
+        claimBadgeLabel={tClaim("inProgressBadge")}
+        claimedByLabel={tClaim("claimedByLabel")}
+        locale={locale}
+        untitledLabel={t("untitled")}
+      />
     </div>
   );
 }
@@ -147,17 +140,37 @@ export function HelpdeskInquiryListSkeleton() {
         <Skeleton className="h-7 w-40" />
         <Skeleton className="h-4 w-72" />
       </div>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-24" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="pt-5">
+            <Skeleton className="h-9 w-full" />
+          </CardContent>
+        </Card>
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="min-w-0 xl:order-1">
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="xl:order-2">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-24" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

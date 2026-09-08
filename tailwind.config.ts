@@ -46,6 +46,11 @@ const config: Config = {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",
         },
+        chart: {
+          "status-new": "hsl(var(--chart-status-new))",
+          "status-in-progress": "hsl(var(--chart-status-in-progress))",
+          "status-resolved": "hsl(var(--chart-status-resolved))",
+        },
       },
       fontFamily: {
         sans: [

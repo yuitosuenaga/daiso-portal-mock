@@ -324,6 +324,25 @@
       "error": "操作に失敗しました。時間を置いて再度お試しください。",
       "notOwnerErrorMessage": "他の担当者が対応中のため解除できません"
     },
+    "stats": {
+      "title": "対応状況サマリ",
+      "scopeAll": "全件が対象",
+      "scopeFiltered": "絞り込み中の{count}件が対象",
+      "unclaimedLabel": "未着手",
+      "unclaimedCaption": "誰も対応を開始していない件数",
+      "unclaimedNone": "未対応の問合せはすべて対応者がついています",
+      "highUrgencyAlert": "緊急度「高」が{count}件",
+      "statusBreakdownTitle": "対応状況の内訳",
+      "staffLoadTitle": "対応者別の件数",
+      "staffLoadEmpty": "対応中の問合せはありません",
+      "staffOthers": "ほか{count}名",
+      "unit": "件",
+      "percent": "{value}%",
+      "tableToggle": "表で見る",
+      "tableHeaderItem": "項目",
+      "tableHeaderCount": "件数",
+      "tableHeaderShare": "割合"
+    },
     "status": {
       "sectionTitle": "対応状況の変更",
       "label": "対応状況",
