@@ -28,6 +28,7 @@ import type {
   CreateMonthlyMaterialInput,
   MonthlyMaterial,
   MonthlyMaterialCategory,
+  MonthlyMaterialDepartment,
 } from "@/types/monthly-material";
 
 type UploadFormValues = Extract<MonthlyMaterialFormValues, { sourceType: "upload" }>;
@@ -40,6 +41,7 @@ type UploadFormValues = Extract<MonthlyMaterialFormValues, { sourceType: "upload
  */
 interface MonthlyMaterialFormFieldValues {
   category: MonthlyMaterialCategory;
+  department: MonthlyMaterialDepartment;
   year: number;
   month: number;
   sourceType: "upload" | "google";
@@ -67,6 +69,7 @@ const EMPTY_GOOGLE_VALUES = {
 function toFieldValues(values: MonthlyMaterialFormValues): MonthlyMaterialFormFieldValues {
   const base = {
     category: values.category as MonthlyMaterialCategory,
+    department: values.department as MonthlyMaterialDepartment,
     year: values.year,
     month: values.month,
     targeting: values.targeting,
@@ -100,6 +103,8 @@ export interface MonthlyMaterialFormProps {
   defaultValues?: MonthlyMaterialFormValues;
   countryOptions: SelectOption[];
   companyOptions: SelectOption[];
+  departmentLabel: string;
+  departmentOptions: SelectOption[];
   yearLabel: string;
   monthLabel: string;
   monthOptions: SelectOption[];
@@ -147,6 +152,8 @@ export function MonthlyMaterialForm({
   defaultValues,
   countryOptions,
   companyOptions,
+  departmentLabel,
+  departmentOptions,
   yearLabel,
   monthLabel,
   monthOptions,
@@ -199,6 +206,7 @@ export function MonthlyMaterialForm({
         ? toFieldValues(defaultValues)
         : {
             category,
+            department: "other",
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
             sourceType: "upload",
@@ -328,6 +336,30 @@ export function MonthlyMaterialForm({
           />
         </FormField>
       </div>
+
+      <FormField
+        label={departmentLabel}
+        required
+        requiredIndicator={requiredIndicator}
+        htmlFor="monthly-material-department"
+        error={errors.department ? requiredErrorMessage : undefined}
+      >
+        <Controller
+          control={control}
+          name="department"
+          render={({ field }) => (
+            <Select
+              id="monthly-material-department"
+              options={departmentOptions}
+              value={field.value}
+              aria-invalid={errors.department ? true : undefined}
+              onChange={(event) =>
+                field.onChange(event.target.value as MonthlyMaterialFormFieldValues["department"])
+              }
+            />
+          )}
+        />
+      </FormField>
 
       <FormField label={sourceTypeLabel} htmlFor="monthly-material-source-type">
         <Select

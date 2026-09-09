@@ -7,6 +7,22 @@
 export type MonthlyMaterialCategory = "salesFloorMeeting" | "pop";
 
 /**
+ * 資料の売場（商品部門）カテゴリ。`category`（salesFloorMeeting/pop=資料種別・画面）とは
+ * 並列な第2軸で、画面内の検索・絞り込みに使う。ヒアリング結果で見直す前提の仮値。
+ */
+export type MonthlyMaterialDepartment =
+  | "seasonalEvent"
+  | "storage"
+  | "kitchen"
+  | "cleaning"
+  | "beautyHealth"
+  | "stationery"
+  | "interior"
+  | "craftDiy"
+  | "food"
+  | "other";
+
+/**
  * 資料の公開範囲。全社共通公開、特定の国（ISO 3166-1 alpha-2）を1件以上指定、
  * または特定の販社を1件以上指定するかを判別可能なユニオン型で表す。
  * `documents`specの`DocumentTargeting`と構造は同一だが、型としては独立させる。
@@ -19,6 +35,7 @@ export type MonthlyMaterialTargeting =
 interface MonthlyMaterialBase {
   id: string;
   category: MonthlyMaterialCategory;
+  department: MonthlyMaterialDepartment;
   /** 西暦年 */
   year: number;
   /** 1〜12 */

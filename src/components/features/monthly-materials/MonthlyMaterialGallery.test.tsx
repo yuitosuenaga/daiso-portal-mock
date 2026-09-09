@@ -24,11 +24,7 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-function resolveMessage(
-  namespace: string,
-  key: string,
-  values?: Record<string, unknown>
-): string {
+function resolveRawMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;
   for (const segment of segments) {
@@ -37,9 +33,15 @@ function resolveMessage(
     }
     value = (value as Record<string, unknown>)[segment];
   }
-  if (typeof value !== "string") {
-    return `${namespace}.${key}`;
-  }
+  return typeof value === "string" ? value : `${namespace}.${key}`;
+}
+
+function resolveMessage(
+  namespace: string,
+  key: string,
+  values?: Record<string, unknown>
+): string {
+  const value = resolveRawMessage(namespace, key);
   if (!values) {
     return value;
   }
@@ -50,8 +52,12 @@ function resolveMessage(
 }
 
 vi.mock("next-intl/server", () => ({
-  getTranslations: async (namespace: string) =>
-    (key: string, values?: Record<string, unknown>) => resolveMessage(namespace, key, values),
+  getTranslations: async (namespace: string) => {
+    const t = (key: string, values?: Record<string, unknown>) =>
+      resolveMessage(namespace, key, values);
+    t.raw = (key: string) => resolveRawMessage(namespace, key);
+    return t;
+  },
   getLocale: async () => "ja",
 }));
 
@@ -61,6 +67,7 @@ function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting",
+    department: "seasonalEvent",
     year: 2026,
     month: 9,
     sourceType: "upload",

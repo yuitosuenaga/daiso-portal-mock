@@ -34,6 +34,7 @@ function baseRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting" as const,
+    department: "seasonalEvent" as const,
     year: 2026,
     month: 9,
     sourceType: "upload" as const,
@@ -57,6 +58,7 @@ function baseInput(
 ): CreateMonthlyMaterialInput {
   return {
     category: "salesFloorMeeting",
+    department: "seasonalEvent",
     year: 2026,
     month: 9,
     sourceType: "upload",
@@ -179,6 +181,18 @@ describe("createMonthlyMaterialRecord", () => {
 
     expect(result.id).toBe("monthly-material-2");
   });
+
+  it("入力のdepartmentを書き込みデータに含める", async () => {
+    vi.mocked(prisma.monthlyMaterial.create).mockResolvedValue(baseRecord() as never);
+
+    await createMonthlyMaterialRecord(baseInput({ department: "kitchen" }));
+
+    expect(prisma.monthlyMaterial.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ department: "kitchen" }),
+      })
+    );
+  });
 });
 
 describe("updateMonthlyMaterialRecord", () => {
@@ -196,6 +210,21 @@ describe("updateMonthlyMaterialRecord", () => {
     await expect(
       updateMonthlyMaterialRecord("missing", baseInput())
     ).rejects.toThrow(MonthlyMaterialNotFoundError);
+  });
+
+  it("入力のdepartmentを書き込みデータに含める", async () => {
+    vi.mocked(prisma.monthlyMaterial.update).mockResolvedValue(baseRecord() as never);
+
+    await updateMonthlyMaterialRecord(
+      "monthly-material-1",
+      baseInput({ department: "food" })
+    );
+
+    expect(prisma.monthlyMaterial.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ department: "food" }),
+      })
+    );
   });
 });
 

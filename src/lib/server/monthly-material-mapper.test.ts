@@ -9,6 +9,7 @@ function baseRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting" as const,
+    department: "seasonalEvent" as const,
     year: 2026,
     month: 9,
     sourceType: "upload" as const,
@@ -33,6 +34,7 @@ describe("mapMonthlyMaterial", () => {
 
     expect(result.sourceType).toBe("upload");
     expect(result.category).toBe("salesFloorMeeting");
+    expect(result.department).toBe("seasonalEvent");
     expect(result.year).toBe(2026);
     expect(result.month).toBe(9);
     if (result.sourceType === "upload") {

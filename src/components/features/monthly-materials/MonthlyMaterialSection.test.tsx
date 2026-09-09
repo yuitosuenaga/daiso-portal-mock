@@ -24,6 +24,7 @@ function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting",
+    department: "seasonalEvent",
     year: 2026,
     month: 9,
     sourceType: "upload",
@@ -49,6 +50,8 @@ const viewerLabels: MonthlyMaterialViewerLabels = {
 const formLabels: MonthlyMaterialFormLabels = {
   countryOptions: [{ value: "VN", label: "ベトナム" }],
   companyOptions: [{ value: "vn-daiso-vietnam", label: "Daiso Vietnam" }],
+  departmentLabel: "カテゴリ",
+  departmentOptions: [{ value: "other", label: "その他" }],
   yearLabel: "年",
   monthLabel: "月",
   monthOptions: Array.from({ length: 12 }, (_, index) => ({
@@ -86,6 +89,7 @@ const formLabels: MonthlyMaterialFormLabels = {
 
 const DEFAULT_PROPS = {
   heading: "2026年9月",
+  departmentLabel: "季節・催事",
   editButtonLabel: "編集",
   deleteButtonLabel: "削除",
   deleteConfirmTitle: "資料の削除",
@@ -112,6 +116,19 @@ describe("MonthlyMaterialSection", () => {
     );
 
     expect(screen.getByText("sales-floor-meeting-2026-09.pdf")).toBeTruthy();
+  });
+
+  it("departmentLabelをBadgeとして表示する", () => {
+    render(
+      <MonthlyMaterialSection
+        {...DEFAULT_PROPS}
+        material={material()}
+        editable={false}
+        departmentLabel="キッチン・食器"
+      />
+    );
+
+    expect(screen.getByText("キッチン・食器")).toBeTruthy();
   });
 
   it("showHeading=falseの場合、見出し（h2）を描画しない", () => {

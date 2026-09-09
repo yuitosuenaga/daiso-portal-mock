@@ -7,6 +7,23 @@
  */
 export const MONTHLY_MATERIAL_CATEGORIES = ["salesFloorMeeting", "pop"] as const;
 
+/**
+ * 資料の売場（商品部門）カテゴリ。`category`（資料種別・画面）とは並列な第2軸で、
+ * 画面内の検索・絞り込みに使う。ヒアリング結果で見直す前提の仮値。
+ */
+export const MONTHLY_MATERIAL_DEPARTMENTS = [
+  "seasonalEvent",
+  "storage",
+  "kitchen",
+  "cleaning",
+  "beautyHealth",
+  "stationery",
+  "interior",
+  "craftDiy",
+  "food",
+  "other",
+] as const;
+
 /** 対象年の入力許容範囲（下限）。 */
 export const MONTHLY_MATERIAL_MIN_YEAR = 2020;
 

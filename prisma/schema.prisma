@@ -474,6 +474,21 @@ enum MonthlyMaterialCategory {
   pop
 }
 
+/// 月次資料の売場（商品部門）カテゴリ。category（salesFloorMeeting/pop=資料種別・画面）とは
+/// 並列な第2軸で、画面内の検索・絞り込みに使う。ヒアリング結果で見直す前提の仮値。
+enum MonthlyMaterialDepartment {
+  seasonalEvent
+  storage
+  kitchen
+  cleaning
+  beautyHealth
+  stationery
+  interior
+  craftDiy
+  food
+  other
+}
+
 enum MonthlyMaterialSourceType {
   upload
   google
@@ -493,6 +508,7 @@ enum MonthlyMaterialTargetingScope {
 model MonthlyMaterial {
   id                    String                        @id @default(cuid())
   category              MonthlyMaterialCategory
+  department            MonthlyMaterialDepartment     @default(other)
   year                  Int
   month                 Int
   sourceType            MonthlyMaterialSourceType     @default(upload)

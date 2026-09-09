@@ -910,6 +910,28 @@
       "pageTitle": "POP",
       "pageDescription": "月ごとのPOP資料を確認できます。"
     },
+    "departments": {
+      "seasonalEvent": "季節・催事",
+      "storage": "収納・整理",
+      "kitchen": "キッチン・食器",
+      "cleaning": "掃除・洗濯",
+      "beautyHealth": "美容・健康",
+      "stationery": "文具・事務",
+      "interior": "インテリア・雑貨",
+      "craftDiy": "手芸・DIY",
+      "food": "食品・菓子",
+      "other": "その他"
+    },
+    "filter": {
+      "departmentLabel": "カテゴリで絞り込み",
+      "departmentAll": "すべてのカテゴリ",
+      "yearLabel": "年で絞り込み",
+      "yearAll": "すべての年",
+      "monthLabel": "月で絞り込み",
+      "monthAll": "すべての月",
+      "clearButton": "条件をクリア",
+      "noResults": "該当する資料がありません"
+    },
     "list": {
       "error": "資料の取得に失敗しました",
       "empty": "資料はありません",
@@ -930,6 +952,7 @@
       "errorMessage": "削除に失敗しました。時間を置いて再度お試しください。"
     },
     "form": {
+      "departmentLabel": "カテゴリ",
       "yearLabel": "年",
       "monthLabel": "月",
       "sourceTypeLabel": "登録方式",

@@ -8,6 +8,7 @@ import { DOCUMENT_COMPANY_CODES } from "@/lib/constants/document-company-options
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import {
   MONTHLY_MATERIAL_CATEGORIES,
+  MONTHLY_MATERIAL_DEPARTMENTS,
   MONTHLY_MATERIAL_MAX_YEAR,
   MONTHLY_MATERIAL_MIN_YEAR,
 } from "@/lib/constants/monthly-material";
@@ -31,6 +32,7 @@ export const monthlyMaterialTargetingSchema = z.discriminatedUnion("scope", [
 
 const monthlyMaterialUploadSchema = z.object({
   category: z.enum(MONTHLY_MATERIAL_CATEGORIES),
+  department: z.enum(MONTHLY_MATERIAL_DEPARTMENTS),
   year: z.number().int().min(MONTHLY_MATERIAL_MIN_YEAR).max(MONTHLY_MATERIAL_MAX_YEAR),
   month: z.number().int().min(1).max(12),
   sourceType: z.literal("upload"),
@@ -43,6 +45,7 @@ const monthlyMaterialUploadSchema = z.object({
 
 const monthlyMaterialGoogleSchema = z.object({
   category: z.enum(MONTHLY_MATERIAL_CATEGORIES),
+  department: z.enum(MONTHLY_MATERIAL_DEPARTMENTS),
   year: z.number().int().min(MONTHLY_MATERIAL_MIN_YEAR).max(MONTHLY_MATERIAL_MAX_YEAR),
   month: z.number().int().min(1).max(12),
   sourceType: z.literal("google"),

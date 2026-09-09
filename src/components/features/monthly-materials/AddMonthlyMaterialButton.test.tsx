@@ -20,6 +20,8 @@ const formLabels: Omit<
 > = {
   countryOptions: [{ value: "VN", label: "ベトナム" }],
   companyOptions: [{ value: "vn-daiso-vietnam", label: "Daiso Vietnam" }],
+  departmentLabel: "カテゴリ",
+  departmentOptions: [{ value: "other", label: "その他" }],
   yearLabel: "年",
   monthLabel: "月",
   monthOptions: Array.from({ length: 12 }, (_, index) => ({
