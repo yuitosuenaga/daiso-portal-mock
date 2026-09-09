@@ -43,6 +43,7 @@ const viewerLabels: MonthlyMaterialViewerLabels = {
   openOriginalLinkLabel: "元のドキュメントを開く",
   googlePreviewErrorMessage: "プレビューを表示できません",
   googlePreviewHint: "プレビューが表示されない場合は、元のドキュメントを開いてください",
+  expandButtonLabel: "拡大表示",
 };
 
 const formLabels: MonthlyMaterialFormLabels = {
@@ -160,6 +161,26 @@ describe("MonthlyMaterialSection", () => {
 
     expect(screen.getByRole("button", { name: "編集" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "保存" })).toBeNull();
+  });
+
+  it("表示モードでは拡大表示ボタンが表示され、初期状態ではダイアログは開いていない", () => {
+    render(
+      <MonthlyMaterialSection {...DEFAULT_PROPS} material={material()} editable={false} />
+    );
+
+    expect(screen.getByRole("button", { name: "拡大表示" })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("拡大表示ボタンをクリックすると、見出しをタイトルに持つダイアログが開く", () => {
+    render(
+      <MonthlyMaterialSection {...DEFAULT_PROPS} material={material()} editable={false} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "拡大表示" }));
+
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "2026年9月" })).toBeTruthy();
   });
 
   it("あるセクションを編集モードにしても、他のセクションは表示モードのままである", () => {

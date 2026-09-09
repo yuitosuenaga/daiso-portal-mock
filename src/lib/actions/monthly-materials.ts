@@ -50,8 +50,8 @@ function withServerRecomputedEmbedUrl(
 
 /**
  * 資料を新規作成し、対象カテゴリの海外販社側・ヘルプデスク側ルートを再検証する。
- * 不正な入力（年月未入力、ファイル形式・サイズ不正、公開範囲0件選択など）や
- * 年月の重複は保存せず例外を送出する。
+ * 不正な入力（年月未入力、ファイル形式・サイズ不正、公開範囲0件選択など）は保存せず
+ * 例外を送出する。同一年月に複数件登録することは許容される（別レコードとして追加登録できる）。
  */
 export async function createMonthlyMaterialAction(
   input: CreateMonthlyMaterialInput
@@ -64,8 +64,8 @@ export async function createMonthlyMaterialAction(
 }
 
 /**
- * 既存の資料の内容を更新し、対象カテゴリのルートを再検証する。不正な入力・年月の重複は
- * 保存せず例外を送出する。
+ * 既存の資料の内容を更新し、対象カテゴリのルートを再検証する。不正な入力は保存せず
+ * 例外を送出する。
  */
 export async function updateMonthlyMaterialAction(
   id: string,

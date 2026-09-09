@@ -913,7 +913,8 @@
       "googlePreviewError": "プレビューを表示できませんでした",
       "googlePreviewHint": "プレビューが表示されない場合は、元のドキュメントを開いてください",
       "addButton": "新規追加",
-      "editButton": "編集"
+      "editButton": "編集",
+      "expandButton": "拡大表示"
     },
     "delete": {
       "buttonLabel": "削除",

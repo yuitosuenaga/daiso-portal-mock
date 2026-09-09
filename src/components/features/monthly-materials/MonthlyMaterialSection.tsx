@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { MonthlyMaterialForm } from "@/components/features/monthly-materials/MonthlyMaterialForm";
 import { DeleteMonthlyMaterialButton } from "@/components/features/monthly-materials/DeleteMonthlyMaterialButton";
@@ -15,6 +16,8 @@ export interface MonthlyMaterialViewerLabels {
   openOriginalLinkLabel: string;
   googlePreviewErrorMessage: string;
   googlePreviewHint: string;
+  /** サムネイル表示のプレビューを拡大表示に切り替えるボタンのラベル。 */
+  expandButtonLabel: string;
 }
 
 /** `MonthlyMaterialForm`が要求する入力用選択肢・文言をまとめて渡す（編集モードのみ使用）。 */
@@ -85,6 +88,8 @@ export interface MonthlyMaterialSectionProps {
  * モード状態はこのコンポーネント単位で独立して保持するため、ある資料を編集モードに
  * 切り替えても他の資料の表示モードには影響しない。同一年月に複数件ある場合、見出しは
  * 呼び出し側が年月ごとに1つだけ描画する（`showHeading=false`＋`groupHeadingId`）。
+ * 表示モードのプレビューはサムネイル（`PdfViewer`の`size="compact"`）で表示し、
+ * クリックすると`Dialog`で通常サイズのプレビューを重ねて表示する。
  */
 export function MonthlyMaterialSection({
   material,
@@ -129,11 +134,36 @@ export function MonthlyMaterialSection({
       </div>
     );
 
+  const compactPreview =
+    material.sourceType === "google" ? (
+      <PdfViewer
+        variant="google"
+        size="compact"
+        embedUrl={material.googleEmbedUrl}
+        title={heading}
+        originalUrl={material.googleUrl}
+        openOriginalLabel={viewerLabels.openOriginalLinkLabel}
+        previewErrorMessage={viewerLabels.googlePreviewErrorMessage}
+        previewHint={viewerLabels.googlePreviewHint}
+      />
+    ) : (
+      <PdfViewer
+        variant="upload"
+        size="compact"
+        dataUrl={material.dataUrl}
+        title={heading}
+        downloadFileName={material.fileName}
+        downloadLinkLabel={viewerLabels.downloadLinkLabel}
+        hideDownloadLink
+      />
+    );
+
   if (mode === "edit") {
     return (
       <section
         aria-labelledby={showHeading ? `monthly-material-${material.id}-heading` : groupHeadingId}
         className="flex flex-col gap-4"
+        style={{ gridColumn: "1 / -1" }}
       >
         {showHeading && (
           <h2 id={`monthly-material-${material.id}-heading`} className="text-lg font-semibold">
@@ -173,7 +203,32 @@ export function MonthlyMaterialSection({
           )}
         </div>
       )}
-      {preview}
+      <Dialog>
+        <div className="flex flex-col gap-2">
+          {material.sourceType === "upload" && (
+            <p className="text-sm font-medium text-foreground">{material.fileName}</p>
+          )}
+          <div className="group relative">
+            {compactPreview}
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="absolute inset-0 flex items-center justify-center rounded-md bg-background/0 transition-colors hover:bg-background/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <span className="rounded-md bg-background/90 px-3 py-1.5 text-sm font-medium opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  {viewerLabels.expandButtonLabel}
+                </span>
+              </button>
+            </DialogTrigger>
+          </div>
+        </div>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{heading}</DialogTitle>
+          </DialogHeader>
+          {preview}
+        </DialogContent>
+      </Dialog>
       {editable && (
         <DeleteMonthlyMaterialButton
           materialId={material.id}
