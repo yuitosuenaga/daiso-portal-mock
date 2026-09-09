@@ -116,4 +116,37 @@ describe("filterInquiries", () => {
 
     expect(inquiries).toEqual(original);
   });
+
+  it("緊急度で絞り込む", () => {
+    const highUrgency = [
+      ...inquiries,
+      buildInquiry({ id: "4", urgency: "high" }),
+    ];
+
+    const result = filterInquiries(highUrgency, {
+      ...EMPTY_INQUIRY_FILTERS,
+      urgency: "high",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["4"]);
+  });
+
+  it("unreadOnly=trueのとき、unreadInquiryIdsに含まれる問い合わせのみ返す", () => {
+    const result = filterInquiries(
+      inquiries,
+      { ...EMPTY_INQUIRY_FILTERS, unreadOnly: true },
+      { unreadInquiryIds: new Set(["2"]) }
+    );
+
+    expect(result.map((item) => item.id)).toEqual(["2"]);
+  });
+
+  it("unreadOnly=trueでunreadInquiryIdsが渡されない場合は空配列を返す", () => {
+    const result = filterInquiries(inquiries, {
+      ...EMPTY_INQUIRY_FILTERS,
+      unreadOnly: true,
+    });
+
+    expect(result).toEqual([]);
+  });
 });

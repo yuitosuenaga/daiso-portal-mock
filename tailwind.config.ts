@@ -50,6 +50,9 @@ const config: Config = {
           "status-new": "hsl(var(--chart-status-new))",
           "status-in-progress": "hsl(var(--chart-status-in-progress))",
           "status-resolved": "hsl(var(--chart-status-resolved))",
+          "urgency-high": "hsl(var(--chart-urgency-high))",
+          "urgency-medium": "hsl(var(--chart-urgency-medium))",
+          "urgency-low": "hsl(var(--chart-urgency-low))",
         },
       },
       fontFamily: {

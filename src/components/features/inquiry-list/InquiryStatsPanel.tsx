@@ -3,64 +3,58 @@
 import { AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  toStaffLoadRows,
-  toStatusSegments,
-  type HelpdeskInquiryStats,
-} from "@/lib/helpdesk-inquiry-stats";
-import type { HelpdeskInquiryFilters } from "@/lib/helpdesk-inquiry-list";
-import { StaffLoadBarList } from "@/components/features/helpdesk-inquiries/StaffLoadBarList";
+import { toStatusSegments } from "@/lib/helpdesk-inquiry-stats";
+import { toUrgencyRows, type ApplicantInquiryStats } from "@/lib/inquiry-stats";
+import type { InquiryFilters } from "@/lib/inquiry-filter";
 import { StatusBreakdownBar } from "@/components/features/inquiry-stats/StatusBreakdownBar";
+import { UrgencyBreakdownBarList } from "@/components/features/inquiry-stats/UrgencyBreakdownBarList";
 import { cn } from "@/lib/utils";
 import type { Inquiry } from "@/types/inquiry";
 
-export interface HelpdeskInquiryStatsPanelProps {
-  stats: HelpdeskInquiryStats;
+export interface InquiryStatsPanelProps {
+  stats: ApplicantInquiryStats;
   statusLabels: Record<Inquiry["status"], string>;
+  urgencyLabels: Record<Inquiry["urgency"], string>;
   /** フィルタ適用後に表示されている件数（stats.totalと同じ） */
   shown: number;
   /** フィルタ適用前の全件数。shownと異なる場合のみ「絞り込み中」の注記を出す */
   total: number;
   /** 現在一覧に適用されているフィルタ条件。各項目の選択状態表示に使う */
-  filters: HelpdeskInquiryFilters;
+  filters: InquiryFilters;
   /**
    * 指定すると各項目がクリック可能になり、クリックした条件で一覧を絞り込めるようになる
    * （呼び出し元で同一条件の再クリックをトグル解除として扱う想定）。
    */
-  onFilterChange?: (patch: Partial<HelpdeskInquiryFilters>) => void;
+  onFilterChange?: (patch: Partial<InquiryFilters>) => void;
 }
 
 /**
- * ヘルプデスク側問い合わせ一覧の右側に置く対応状況サマリパネル。
+ * 申請者側問い合わせ一覧の右側に置く対応状況サマリパネル。
  * 現在表示中の一覧（フィルタ適用後）に対する集計値を表示するため、
  * 一覧側のフィルタ状態と常に一致する（別々に集計しない）。
  */
-export function HelpdeskInquiryStatsPanel({
+export function InquiryStatsPanel({
   stats,
   statusLabels,
+  urgencyLabels,
   shown,
   total,
   filters,
   onFilterChange,
-}: HelpdeskInquiryStatsPanelProps) {
-  const t = useTranslations("helpdeskInquiries.stats");
+}: InquiryStatsPanelProps) {
+  const t = useTranslations("inquiryList.stats");
 
   const statusSegments = toStatusSegments(stats.byStatus, stats.total);
-  const staffLoadRows = toStaffLoadRows(stats);
+  const urgencyRows = toUrgencyRows(stats);
 
-  const unclaimedSelected = filters.unclaimedOnly && !filters.urgency;
-  const highUrgencyAlertSelected =
-    filters.unclaimedOnly && filters.urgency === "high";
-  const staffLoadSelectedKey = filters.unclaimedOnly
-    ? "unclaimed"
-    : filters.claimedBy
-      ? `staff:${filters.claimedBy}`
-      : null;
+  const unreadSelected = filters.unreadOnly;
+  const highUrgencySelected = filters.urgency === "high";
+  const awaitingResponseSelected = filters.status === "new";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle id="helpdesk-inquiry-stats-heading" className="text-base">
+        <CardTitle id="inquiry-stats-heading" className="text-base">
           {t("title")}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
@@ -69,57 +63,93 @@ export function HelpdeskInquiryStatsPanel({
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <p className="text-xs text-muted-foreground">{t("unclaimedLabel")}</p>
+          <p className="text-xs text-muted-foreground">{t("unreadLabel")}</p>
           {onFilterChange ? (
             <button
               type="button"
-              aria-pressed={unclaimedSelected}
-              onClick={() => onFilterChange({ unclaimedOnly: true, urgency: "" })}
+              aria-pressed={unreadSelected}
+              onClick={() =>
+                onFilterChange({ unreadOnly: !unreadSelected })
+              }
               className={cn(
                 "-mx-1 rounded-md px-1 text-left hover:bg-muted/60",
-                unclaimedSelected && "bg-accent"
+                unreadSelected && "bg-accent"
               )}
             >
               <p className="text-5xl font-semibold text-foreground">
-                {stats.unclaimed}
+                {stats.unread}
               </p>
             </button>
           ) : (
             <p className="text-5xl font-semibold text-foreground">
-              {stats.unclaimed}
+              {stats.unread}
             </p>
           )}
-          {stats.unclaimed === 0 ? (
+          {stats.unread === 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              {t("unclaimedNone")}
+              {t("unreadNone")}
             </p>
           ) : (
             <p className="mt-1 text-xs text-muted-foreground">
-              {t("unclaimedCaption")}
+              {t("unreadCaption")}
             </p>
           )}
-          {stats.unclaimedHighUrgency > 0 &&
+          {stats.highUrgencyUnresolved > 0 &&
             (onFilterChange ? (
               <button
                 type="button"
-                aria-pressed={highUrgencyAlertSelected}
+                aria-pressed={highUrgencySelected}
                 onClick={() =>
-                  onFilterChange({ unclaimedOnly: true, urgency: "high" })
+                  onFilterChange({
+                    urgency: highUrgencySelected ? "" : "high",
+                  })
                 }
                 className={cn(
                   "mt-2 flex w-full items-center gap-1.5 rounded-md text-left text-xs text-destructive hover:underline",
-                  highUrgencyAlertSelected && "font-semibold"
+                  highUrgencySelected && "font-semibold"
                 )}
               >
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                {t("highUrgencyAlert", { count: stats.unclaimedHighUrgency })}
+                {t("highUrgencyAlert", { count: stats.highUrgencyUnresolved })}
               </button>
             ) : (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-destructive">
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                {t("highUrgencyAlert", { count: stats.unclaimedHighUrgency })}
+                {t("highUrgencyAlert", { count: stats.highUrgencyUnresolved })}
               </p>
             ))}
+        </div>
+
+        <div>
+          <p className="text-xs text-muted-foreground">
+            {t("awaitingResponseLabel")}
+          </p>
+          {onFilterChange ? (
+            <button
+              type="button"
+              aria-pressed={awaitingResponseSelected}
+              onClick={() =>
+                onFilterChange({
+                  status: awaitingResponseSelected ? "" : "new",
+                })
+              }
+              className={cn(
+                "-mx-1 rounded-md px-1 text-left hover:bg-muted/60",
+                awaitingResponseSelected && "bg-accent"
+              )}
+            >
+              <p className="text-2xl font-semibold text-foreground">
+                {stats.awaitingResponse}
+              </p>
+            </button>
+          ) : (
+            <p className="text-2xl font-semibold text-foreground">
+              {stats.awaitingResponse}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("awaitingResponseCaption")}
+          </p>
         </div>
 
         <div>
@@ -142,25 +172,20 @@ export function HelpdeskInquiryStatsPanel({
 
         <div>
           <h3 className="mb-2 text-xs font-medium text-muted-foreground">
-            {t("staffLoadTitle")}
+            {t("urgencyBreakdownTitle")}
           </h3>
-          <StaffLoadBarList
-            rows={staffLoadRows}
-            selectedKey={staffLoadSelectedKey}
-            onSelectRow={
+          <UrgencyBreakdownBarList
+            rows={urgencyRows}
+            urgencyLabels={urgencyLabels}
+            unitLabel={t("unit")}
+            emptyMessage={t("urgencyBreakdownEmpty")}
+            selectedUrgency={filters.urgency || null}
+            onSelect={
               onFilterChange
-                ? (row) => {
-                    if (row.kind === "unclaimed") {
-                      onFilterChange({
-                        unclaimedOnly: !unclaimedSelected,
-                        urgency: unclaimedSelected ? filters.urgency : "",
-                      });
-                    } else if (row.kind === "staff" && row.label) {
-                      onFilterChange({
-                        claimedBy: filters.claimedBy === row.label ? "" : row.label,
-                      });
-                    }
-                  }
+                ? (urgency) =>
+                    onFilterChange({
+                      urgency: filters.urgency === urgency ? "" : urgency,
+                    })
                 : undefined
             }
           />
@@ -196,14 +221,10 @@ export function HelpdeskInquiryStatsPanel({
                   </td>
                 </tr>
               ))}
-              {staffLoadRows.map((row) => (
-                <tr key={row.key} className="border-b border-border/60">
+              {urgencyRows.map((row) => (
+                <tr key={row.urgency} className="border-b border-border/60">
                   <td className="py-1 text-foreground">
-                    {row.kind === "unclaimed"
-                      ? t("unclaimedLabel")
-                      : row.kind === "others"
-                        ? t("staffOthers", { count: row.staffCount ?? 0 })
-                        : row.label}
+                    {urgencyLabels[row.urgency]}
                   </td>
                   <td className="py-1 text-right tabular-nums text-foreground">
                     {row.count}

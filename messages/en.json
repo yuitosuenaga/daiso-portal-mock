@@ -314,6 +314,11 @@
       "categoryAll": "All categories",
       "statusLabel": "Status",
       "statusAll": "All statuses",
+      "urgencyLabel": "Urgency",
+      "urgencyAll": "All urgency levels",
+      "unclaimedOnlyLabel": "Unclaimed only",
+      "claimedByLabel": "Assignee",
+      "claimedByAll": "All assignees",
       "clearButton": "Clear filters"
     },
     "claim": {
@@ -1149,8 +1154,31 @@
       "statusAll": "All statuses",
       "categoryLabel": "Category",
       "categoryAll": "All categories",
+      "urgencyLabel": "Urgency",
+      "urgencyAll": "All urgency levels",
+      "unreadOnlyLabel": "Unread only",
       "clearButton": "Clear",
       "noResults": "No matching inquiries"
+    },
+    "stats": {
+      "title": "Status Summary",
+      "scopeAll": "Showing all",
+      "scopeFiltered": "Showing {count} filtered",
+      "unreadLabel": "Unread updates",
+      "unreadCaption": "Replies or status changes from the helpdesk you haven't checked yet",
+      "unreadNone": "No unread updates",
+      "highUrgencyAlert": "{count} unresolved with urgency \"High\"",
+      "awaitingResponseLabel": "Awaiting response",
+      "awaitingResponseCaption": "Waiting for a reply or for the helpdesk to start working on it",
+      "statusBreakdownTitle": "Status breakdown",
+      "urgencyBreakdownTitle": "Unresolved by urgency",
+      "urgencyBreakdownEmpty": "No unresolved inquiries",
+      "unit": "",
+      "percent": "{value}%",
+      "tableToggle": "View as table",
+      "tableHeaderItem": "Item",
+      "tableHeaderCount": "Count",
+      "tableHeaderShare": "Share"
     }
   },
   "links": {

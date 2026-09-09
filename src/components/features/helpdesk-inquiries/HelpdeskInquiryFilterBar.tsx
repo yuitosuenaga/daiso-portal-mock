@@ -14,10 +14,12 @@ export interface HelpdeskInquiryFilterBarProps {
   countryOptions: SelectOption[];
   categoryOptions: SelectOption[];
   statusOptions: SelectOption[];
+  urgencyOptions: SelectOption[];
+  staffOptions: SelectOption[];
 }
 
 /**
- * 会社名・キーワード・国・カテゴリ・対応状況の絞り込み条件を入力するフィルタバー。
+ * 会社名・キーワード・国・カテゴリ・対応状況・緊急度・未着手・対応者の絞り込み条件を入力するフィルタバー。
  * 状態は保持せず、変更を都度 `onChange` で呼び出し元へ通知する。
  */
 export function HelpdeskInquiryFilterBar({
@@ -27,11 +29,13 @@ export function HelpdeskInquiryFilterBar({
   countryOptions,
   categoryOptions,
   statusOptions,
+  urgencyOptions,
+  staffOptions,
 }: HelpdeskInquiryFilterBarProps) {
   const t = useTranslations("helpdeskInquiries.filter");
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="space-y-1">
         <Label htmlFor="helpdesk-filter-company">{t("companyLabel")}</Label>
         <Input
@@ -81,22 +85,67 @@ export function HelpdeskInquiryFilterBar({
       </div>
       <div className="space-y-1">
         <Label htmlFor="helpdesk-filter-status">{t("statusLabel")}</Label>
-        <div className="flex gap-2">
-          <Select
-            id="helpdesk-filter-status"
-            value={filters.status}
-            options={[{ value: "", label: t("statusAll") }, ...statusOptions]}
+        <Select
+          id="helpdesk-filter-status"
+          value={filters.status}
+          options={[{ value: "", label: t("statusAll") }, ...statusOptions]}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              status: event.target.value as HelpdeskInquiryFilters["status"],
+            })
+          }
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="helpdesk-filter-urgency">{t("urgencyLabel")}</Label>
+        <Select
+          id="helpdesk-filter-urgency"
+          value={filters.urgency}
+          options={[{ value: "", label: t("urgencyAll") }, ...urgencyOptions]}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              urgency: event.target.value as HelpdeskInquiryFilters["urgency"],
+            })
+          }
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="helpdesk-filter-staff">{t("claimedByLabel")}</Label>
+        <Select
+          id="helpdesk-filter-staff"
+          value={filters.claimedBy}
+          options={[
+            { value: "", label: t("claimedByAll") },
+            ...staffOptions,
+          ]}
+          onChange={(event) =>
+            onChange({ ...filters, claimedBy: event.target.value })
+          }
+        />
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <input
+            id="helpdesk-filter-unclaimed-only"
+            type="checkbox"
+            className="h-4 w-4 rounded border-input"
+            checked={filters.unclaimedOnly}
             onChange={(event) =>
-              onChange({
-                ...filters,
-                status: event.target.value as HelpdeskInquiryFilters["status"],
-              })
+              onChange({ ...filters, unclaimedOnly: event.target.checked })
             }
           />
-          <Button type="button" variant="outline" onClick={onClear}>
-            {t("clearButton")}
-          </Button>
+          <Label
+            htmlFor="helpdesk-filter-unclaimed-only"
+            className="cursor-pointer"
+          >
+            {t("unclaimedOnlyLabel")}
+          </Label>
         </div>
+        <Button type="button" variant="outline" onClick={onClear}>
+          {t("clearButton")}
+        </Button>
       </div>
     </div>
   );

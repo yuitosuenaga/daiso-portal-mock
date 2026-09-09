@@ -1,10 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InquiryListClient } from "@/components/features/inquiry-list/InquiryListClient";
 import type { Inquiry } from "@/types/inquiry";
 import messages from "../../../../messages/ja.json";
+
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
@@ -87,6 +91,11 @@ function renderClient() {
         { value: "in_progress", label: "対応中" },
         { value: "resolved", label: "解決済み" },
       ]}
+      urgencyOptions={[
+        { value: "high", label: "高" },
+        { value: "medium", label: "中" },
+        { value: "low", label: "低" },
+      ]}
       urgencyLabels={{ high: "高", medium: "中", low: "低" }}
       statusLabels={{ new: "新規", in_progress: "対応中", resolved: "解決済み" }}
       statusFieldLabel="対応状況"
@@ -130,5 +139,37 @@ describe("InquiryListClient", () => {
     await user.type(screen.getByLabelText("キーワード検索"), "存在しない語句");
 
     expect(screen.getByText("該当する問合せがありません")).toBeTruthy();
+  });
+
+  it("サマリパネルの対応状況セグメントをクリックすると一覧が絞り込まれ、フィルタの選択も同期する", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    const inProgressButtons = screen.getAllByText("対応中");
+    const legendButton = inProgressButtons
+      .map((el) => el.closest("button"))
+      .find((btn) => btn != null);
+    await user.click(legendButton!);
+
+    expect(screen.getByText("追加発注のお願い")).toBeTruthy();
+    expect(screen.queryByText("商品破損についての問い合わせ")).toBeNull();
+    expect(
+      (screen.getByLabelText("対応状況") as HTMLSelectElement).value
+    ).toBe("in_progress");
+  });
+
+  it("同じ絞り込みを再クリックすると解除される", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    const legendButton = screen
+      .getAllByText("対応中")
+      .map((el) => el.closest("button"))
+      .find((btn) => btn != null)!;
+    await user.click(legendButton);
+    await user.click(legendButton);
+
+    expect(screen.getByText("商品破損についての問い合わせ")).toBeTruthy();
+    expect(screen.getByText("追加発注のお願い")).toBeTruthy();
   });
 });
