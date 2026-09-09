@@ -511,3 +511,64 @@ model MonthlyMaterial {
   @@index([category, year, month])
   @@index([category])
 }
+
+enum ManualCategory {
+  storeOperations
+  registerPayment
+  inventoryOrdering
+  salesFloorDisplay
+  promotion
+  safetyHygiene
+  hrTraining
+  systemOperation
+  accounting
+  other
+}
+
+enum ManualSourceType {
+  upload
+  google
+}
+
+enum ManualTargetingScope {
+  all
+  countries
+  companies
+}
+
+model Manual {
+  id                    String               @id @default(cuid())
+  title                 String
+  description           String?
+  category              ManualCategory
+  year                  Int
+  month                 Int
+  sourceType            ManualSourceType     @default(upload)
+  fileName              String?
+  fileType              String?
+  fileSize              Int?
+  dataUrl               String?
+  googleUrl             String?
+  googleEmbedUrl        String?
+  targetingScope        ManualTargetingScope @default(all)
+  targetingCountries    String[]             @default([])
+  targetingCompanyCodes String[]             @default([])
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  translations          ManualTranslation[]
+
+  @@index([category, year, month])
+  @@index([category])
+}
+
+model ManualTranslation {
+  id          String  @id @default(cuid())
+  manualId    String
+  manual      Manual  @relation(fields: [manualId], references: [id], onDelete: Cascade)
+  locale      String
+  title       String
+  description String?
+
+  @@unique([manualId, locale])
+  @@index([manualId])
+}

@@ -10,6 +10,7 @@ import {
   Building2,
   Video,
   Tags,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ export const HELPDESK_NAV_ITEMS: NavItem[] = [
   { translationKey: "templates", href: "/helpdesk/templates", icon: FileText },
   { translationKey: "announcements", href: "/helpdesk/announcements", icon: Bell },
   { translationKey: "documents", href: "/helpdesk/documents", icon: FolderOpen },
+  { translationKey: "manuals", href: "/helpdesk/manuals", icon: BookOpen },
   { translationKey: "salesFloorMeeting", href: "/helpdesk/sales-floor-meeting", icon: Video },
   { translationKey: "pop", href: "/helpdesk/pop", icon: Tags },
   { translationKey: "links", href: "/helpdesk/links", icon: Link2 },

@@ -51,7 +51,7 @@ export default async function DashboardPage() {
         <NavigationCard
           title={t("manuals.title")}
           description={t("manuals.description")}
-          href="/documents"
+          href="/manuals"
           icon={BookOpen}
         />
         <NavigationCard

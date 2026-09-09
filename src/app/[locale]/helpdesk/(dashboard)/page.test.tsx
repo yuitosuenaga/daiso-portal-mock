@@ -46,7 +46,7 @@ function unwrapCard(node: ReactElement): CardIdentity {
 }
 
 describe("HelpdeskHomePage", () => {
-  it("「対応業務」セクションに、問い合わせ一覧カードを含まない7枚のカードが指定順で表示される", async () => {
+  it("「対応業務」セクションに、問い合わせ一覧カードを含まない8枚のカードが指定順で表示される", async () => {
     const page = (await HelpdeskHomePage()) as ReactElement;
     const rootChildren = (page.props as { children: ReactElement[] }).children;
     const supportSection = rootChildren[2];
@@ -58,12 +58,13 @@ describe("HelpdeskHomePage", () => {
     const cards = gridChildren.map(unwrapCard);
 
     expect(cards).toEqual([
-      { href: "/helpdesk/templates", label: "templates" },
       { href: "/helpdesk/announcements", label: "announcements" },
       { href: "/helpdesk/documents", label: "documents" },
-      { href: "/helpdesk/inquiry/new", label: "inquiryForm" },
       { href: "/helpdesk/sales-floor-meeting", label: "salesFloorMeeting" },
+      { href: "/helpdesk/inquiry/new", label: "inquiryForm" },
+      { href: "/helpdesk/manuals", label: "manuals" },
       { href: "/helpdesk/pop", label: "pop" },
+      { href: "/helpdesk/templates", label: "templates" },
       { href: "/helpdesk/companies", label: "companies" },
     ]);
   });
