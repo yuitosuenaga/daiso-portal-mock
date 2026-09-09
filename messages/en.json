@@ -1304,5 +1304,124 @@
         "companiesRequired": "Select at least one company"
       }
     }
+  },
+  "manuals": {
+    "list": {
+      "title": "Manuals",
+      "description": "Search and view operational manuals by category and month.",
+      "empty": "There are no manuals.",
+      "error": "Failed to load manuals.",
+      "downloadLink": "Download",
+      "openOriginalLink": "Open original document",
+      "revisionLabel": "Revised"
+    },
+    "categories": {
+      "storeOperations": "Store Operations",
+      "registerPayment": "Register & Payment",
+      "inventoryOrdering": "Ordering & Inventory",
+      "salesFloorDisplay": "Sales Floor & Display",
+      "promotion": "Promotion & POP",
+      "safetyHygiene": "Safety & Hygiene",
+      "hrTraining": "HR & Training",
+      "systemOperation": "System Operations",
+      "accounting": "Accounting",
+      "other": "Other"
+    },
+    "filter": {
+      "keywordLabel": "Keyword search",
+      "keywordPlaceholder": "Words contained in the title or description",
+      "categoryLabel": "Category",
+      "categoryAll": "All categories",
+      "yearLabel": "Year",
+      "yearAll": "All years",
+      "monthLabel": "Month",
+      "monthAll": "All months",
+      "clearButton": "Clear filters",
+      "noResults": "No manuals match your search."
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "Manual Management",
+      "description": "Upload, edit, and delete operational manuals (PDF) for overseas distributors.",
+      "newButton": "Add new manual",
+      "editLink": "Edit",
+      "empty": "There are no manuals.",
+      "error": "Failed to load manuals.",
+      "categoryLabel": "Category",
+      "revisionLabel": "Revised",
+      "sourceTypeUploadBadge": "Upload",
+      "sourceTypeGoogleBadge": "Google link",
+      "targetingAllLabel": "Published to all",
+      "targetingCountriesLabel": "Target countries/regions",
+      "targetingCompaniesLabel": "Target companies",
+      "filter": {
+        "keywordLabel": "Keyword search",
+        "keywordPlaceholder": "Words contained in the title or description",
+        "categoryLabel": "Category",
+        "categoryAll": "All categories",
+        "yearLabel": "Year",
+        "yearAll": "All years",
+        "monthLabel": "Month",
+        "monthAll": "All months",
+        "clearButton": "Clear filters",
+        "noResults": "No manuals match your search."
+      }
+    },
+    "form": {
+      "createTitle": "Create Manual",
+      "editTitle": "Edit Manual",
+      "notFound": "Manual not found.",
+      "backToList": "Back to list",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter the manual title",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter a supplementary description (optional)",
+      "language": {
+        "jaTab": "Japanese",
+        "enTab": "English"
+      },
+      "categoryLabel": "Category",
+      "categoryPlaceholderOption": "Please select",
+      "yearLabel": "Year",
+      "monthLabel": "Month",
+      "sourceTypeLabel": "Registration method",
+      "sourceTypeUploadOption": "Upload a file",
+      "sourceTypeGoogleOption": "Register a Google document share link",
+      "fileLabel": "PDF file",
+      "fileHint": "PDF only, up to 20MB.",
+      "removeButtonLabel": "Remove",
+      "googleUrlLabel": "Google document share link",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Set the sharing setting of the Google Docs/Sheets/Slides to \"Anyone with the link can view\" before registering.",
+      "targetingLabel": "Targeting",
+      "targetingAllOption": "Published to all",
+      "targetingCountriesOption": "Specify countries/regions",
+      "targetingCompaniesOption": "Specify companies",
+      "countriesLabel": "Countries/regions (multiple selection allowed)",
+      "companiesLabel": "Companies (multiple selection allowed)",
+      "submitButton": "Save",
+      "submitError": "Failed to save. Please try again later.",
+      "requiredIndicator": "Required",
+      "validation": {
+        "required": "This field is required.",
+        "countriesRequired": "Select at least one country or region.",
+        "companiesRequired": "Select at least one company.",
+        "fileRequired": "Please select a PDF file.",
+        "sizeExceeded": "The file size exceeds the limit (20MB).",
+        "typeNotAllowed": "This file type is not allowed (PDF only).",
+        "readFailed": "Failed to read the file. Please try again.",
+        "googleUrlInvalid": "Enter a Google Docs/Sheets/Slides share link.",
+        "categoryRequired": "Please select a category."
+      }
+    },
+    "delete": {
+      "buttonLabel": "Delete",
+      "confirmTitle": "Delete Manual",
+      "confirmMessage": "This will delete \"{title}\". This action cannot be undone. Are you sure?",
+      "confirmButton": "Delete",
+      "cancelButton": "Cancel",
+      "errorMessage": "Failed to delete. Please try again later."
+    }
   }
 }

@@ -1304,5 +1304,124 @@
         "companiesRequired": "1つ以上の販社を選択してください"
       }
     }
+  },
+  "manuals": {
+    "list": {
+      "title": "マニュアル",
+      "description": "業務マニュアルをカテゴリ・年月で検索して確認できます。",
+      "empty": "マニュアルはありません",
+      "error": "マニュアルの取得に失敗しました",
+      "downloadLink": "ダウンロード",
+      "openOriginalLink": "元のドキュメントを開く",
+      "revisionLabel": "改訂年月"
+    },
+    "categories": {
+      "storeOperations": "店舗運営",
+      "registerPayment": "レジ・決済",
+      "inventoryOrdering": "発注・在庫管理",
+      "salesFloorDisplay": "売場づくり・陳列",
+      "promotion": "販促・POP運用",
+      "safetyHygiene": "安全・衛生・防災",
+      "hrTraining": "人事・労務・教育",
+      "systemOperation": "システム操作",
+      "accounting": "経理",
+      "other": "その他"
+    },
+    "filter": {
+      "keywordLabel": "キーワード検索",
+      "keywordPlaceholder": "タイトルや説明に含まれる語句",
+      "categoryLabel": "カテゴリ",
+      "categoryAll": "すべてのカテゴリ",
+      "yearLabel": "年",
+      "yearAll": "すべての年",
+      "monthLabel": "月",
+      "monthAll": "すべての月",
+      "clearButton": "条件をクリア",
+      "noResults": "該当するマニュアルがありません"
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "マニュアル管理",
+      "description": "海外販社向けの業務マニュアル（PDF）をアップロード・編集・削除できます。",
+      "newButton": "新規マニュアルを追加",
+      "editLink": "編集",
+      "empty": "マニュアルはありません",
+      "error": "マニュアルの取得に失敗しました",
+      "categoryLabel": "カテゴリ",
+      "revisionLabel": "改訂年月",
+      "sourceTypeUploadBadge": "アップロード",
+      "sourceTypeGoogleBadge": "Googleリンク",
+      "targetingAllLabel": "全体公開",
+      "targetingCountriesLabel": "対象国・地域",
+      "targetingCompaniesLabel": "対象販社",
+      "filter": {
+        "keywordLabel": "キーワード検索",
+        "keywordPlaceholder": "タイトルや説明に含まれる語句",
+        "categoryLabel": "カテゴリ",
+        "categoryAll": "すべてのカテゴリ",
+        "yearLabel": "年",
+        "yearAll": "すべての年",
+        "monthLabel": "月",
+        "monthAll": "すべての月",
+        "clearButton": "条件をクリア",
+        "noResults": "該当するマニュアルがありません"
+      }
+    },
+    "form": {
+      "createTitle": "マニュアルの新規作成",
+      "editTitle": "マニュアルの編集",
+      "notFound": "マニュアルが見つかりません",
+      "backToList": "一覧へ戻る",
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "マニュアルのタイトルを入力してください",
+      "descriptionLabel": "説明",
+      "descriptionPlaceholder": "補足説明を入力してください（任意）",
+      "language": {
+        "jaTab": "日本語",
+        "enTab": "English"
+      },
+      "categoryLabel": "カテゴリ",
+      "categoryPlaceholderOption": "選択してください",
+      "yearLabel": "年",
+      "monthLabel": "月",
+      "sourceTypeLabel": "登録方法",
+      "sourceTypeUploadOption": "ファイルをアップロード",
+      "sourceTypeGoogleOption": "Googleドキュメントの共有リンクを登録",
+      "fileLabel": "PDFファイル",
+      "fileHint": "PDFのみ、20MBまでアップロードできます。",
+      "removeButtonLabel": "削除",
+      "googleUrlLabel": "Googleドキュメントの共有リンク",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Google Docs/スプレッドシート/スライドの共有設定を「リンクを知っている全員が閲覧可」にしてから登録してください。",
+      "targetingLabel": "公開範囲",
+      "targetingAllOption": "全体公開",
+      "targetingCountriesOption": "特定の国・地域を指定",
+      "targetingCompaniesOption": "特定の販社を指定",
+      "countriesLabel": "国・地域（複数選択可）",
+      "companiesLabel": "販社（複数選択可）",
+      "submitButton": "保存する",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "requiredIndicator": "必須",
+      "validation": {
+        "required": "この項目は必須です",
+        "countriesRequired": "1つ以上の国・地域を選択してください",
+        "companiesRequired": "1つ以上の販社を選択してください",
+        "fileRequired": "PDFファイルを選択してください",
+        "sizeExceeded": "ファイルサイズが上限（20MB）を超えています",
+        "typeNotAllowed": "許可されていないファイル形式です（PDFのみ）",
+        "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
+        "googleUrlInvalid": "Googleドキュメント/スプレッドシート/スライドの共有リンクを入力してください",
+        "categoryRequired": "カテゴリを選択してください"
+      }
+    },
+    "delete": {
+      "buttonLabel": "削除",
+      "confirmTitle": "マニュアルの削除",
+      "confirmMessage": "『{title}』を削除します。この操作は取り消せません。よろしいですか？",
+      "confirmButton": "削除する",
+      "cancelButton": "キャンセル",
+      "errorMessage": "削除に失敗しました。時間を置いて再度お試しください。"
+    }
   }
 }

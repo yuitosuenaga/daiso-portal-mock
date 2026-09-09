@@ -72,7 +72,7 @@ export default async function HelpdeskHomePage() {
           <NavigationCard
             title={nav("manuals")}
             description={t("manuals.description")}
-            href="/helpdesk/documents"
+            href="/helpdesk/manuals"
             icon={BookOpen}
           />
           <NavigationCard

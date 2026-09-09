@@ -48,5 +48,22 @@ describe("resolveActiveHref", () => {
         "/helpdesk/pop"
       );
     });
+
+    it("マニュアル管理ページ表示中はマニュアル項目がアクティブになる", () => {
+      expect(
+        resolveActiveHref("/helpdesk/manuals", HELPDESK_NAV_ITEMS, "/helpdesk")
+      ).toBe("/helpdesk/manuals");
+    });
+  });
+});
+
+describe("HELPDESK_NAV_ITEMS", () => {
+  it("ドキュメント管理の直後にマニュアル項目を含む", () => {
+    const hrefs = HELPDESK_NAV_ITEMS.map((item) => item.href);
+    const documentsIndex = hrefs.indexOf("/helpdesk/documents");
+    const manualsIndex = hrefs.indexOf("/helpdesk/manuals");
+
+    expect(documentsIndex).toBeGreaterThanOrEqual(0);
+    expect(manualsIndex).toBe(documentsIndex + 1);
   });
 });

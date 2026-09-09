@@ -584,6 +584,153 @@ async function seedMonthlyMaterials(): Promise<void> {
   }
 }
 
+/**
+ * マニュアル専用画面（`manuals`spec）のデモデータ。カテゴリ・年月が分散した7件を、
+ * 既存の`SAMPLE_PDF_DATA_URL`を使って投入する。`titleEn`/`descriptionEn`はデモ用の`en`翻訳。
+ */
+const MANUAL_SEEDS = [
+  {
+    id: "seed-manual-001",
+    title: "店舗オープン・クローズ手順書",
+    description: "開店前点検・閉店後点検の標準手順をまとめたマニュアルです。",
+    titleEn: "Store Opening & Closing Procedures",
+    descriptionEn:
+      "A manual summarizing the standard procedures for pre-opening and post-closing checks.",
+    category: "storeOperations" as const,
+    year: 2026,
+    month: 4,
+    fileName: "store-opening-closing.pdf",
+    fileSize: 204_800,
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-manual-002",
+    title: "レジ操作マニュアル（返品・返金対応）",
+    description: "返品・返金時のレジ操作手順をまとめた資料です。",
+    titleEn: "POS Operation Manual (Returns & Refunds)",
+    descriptionEn: "A document summarizing the POS operation procedures for returns and refunds.",
+    category: "registerPayment" as const,
+    year: 2026,
+    month: 5,
+    fileName: "pos-returns-refunds.pdf",
+    fileSize: 358_400,
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-manual-003",
+    title: "発注・在庫管理ガイドライン（東南アジア版）",
+    description: "東南アジア地域向けの発注・在庫管理の基本ルールです。",
+    titleEn: "Ordering & Inventory Guidelines (Southeast Asia Edition)",
+    descriptionEn:
+      "Basic rules for ordering and inventory management for the Southeast Asia region.",
+    category: "inventoryOrdering" as const,
+    year: 2026,
+    month: 6,
+    fileName: "inventory-ordering-sea.pdf",
+    fileSize: 512_000,
+    targetingScope: "countries" as const,
+    targetingCountries: ["VN", "TH", "ID"],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-manual-004",
+    title: "売場づくり・陳列ガイド（新商品導入時）",
+    description: "新商品導入時の売場レイアウト・陳列の考え方をまとめたガイドです。",
+    titleEn: "Sales Floor & Display Guide (New Product Launch)",
+    descriptionEn:
+      "A guide summarizing sales floor layout and display concepts for new product launches.",
+    category: "salesFloorDisplay" as const,
+    year: 2026,
+    month: 7,
+    fileName: "sales-floor-display-new-products.pdf",
+    fileSize: 460_800,
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-manual-005",
+    title: "安全・衛生・防災マニュアル（ベトナム限定）",
+    description: "ベトナム販社向けの店舗内安全・衛生・防災対応をまとめた資料です。",
+    titleEn: "Safety, Hygiene & Disaster Prevention Manual (Vietnam Only)",
+    descriptionEn:
+      "A document summarizing in-store safety, hygiene, and disaster prevention response for the Vietnam distributor.",
+    category: "safetyHygiene" as const,
+    year: 2026,
+    month: 8,
+    fileName: "safety-hygiene-vietnam.pdf",
+    fileSize: 307_200,
+    targetingScope: "companies" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: ["vn-daiso-vietnam"],
+  },
+  {
+    id: "seed-manual-006",
+    title: "新入社員研修マニュアル",
+    description: "新入社員向けの接客・業務研修の内容をまとめたマニュアルです。",
+    titleEn: "New Employee Training Manual",
+    descriptionEn: "A manual summarizing customer service and operations training for new employees.",
+    category: "hrTraining" as const,
+    year: 2026,
+    month: 9,
+    fileName: "new-employee-training.pdf",
+    fileSize: 614_400,
+    targetingScope: "all" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: [] as string[],
+  },
+  {
+    id: "seed-manual-007",
+    title: "ポータルシステム操作マニュアル（経理担当者向け）",
+    description: "経理担当者向けのポータルシステム操作手順をまとめた資料です。",
+    titleEn: "Portal System Operation Manual (For Accounting Staff)",
+    descriptionEn:
+      "A document summarizing portal system operation procedures for accounting staff.",
+    category: "accounting" as const,
+    year: 2026,
+    month: 9,
+    fileName: "portal-system-accounting.pdf",
+    fileSize: 256_000,
+    targetingScope: "companies" as const,
+    targetingCountries: [] as string[],
+    targetingCompanyCodes: ["jp-daiso-japan-trading"],
+  },
+];
+
+async function seedManuals(): Promise<void> {
+  for (const seed of MANUAL_SEEDS) {
+    await prisma.manual.upsert({
+      where: { id: seed.id },
+      update: {},
+      create: {
+        id: seed.id,
+        title: seed.title,
+        description: seed.description,
+        category: seed.category,
+        year: seed.year,
+        month: seed.month,
+        sourceType: "upload",
+        fileName: seed.fileName,
+        fileType: "application/pdf",
+        fileSize: seed.fileSize,
+        dataUrl: SAMPLE_PDF_DATA_URL,
+        targetingScope: seed.targetingScope,
+        targetingCountries: seed.targetingCountries,
+        targetingCompanyCodes: seed.targetingCompanyCodes,
+        translations: {
+          create: [
+            { locale: "en", title: seed.titleEn, description: seed.descriptionEn },
+          ],
+        },
+      },
+    });
+  }
+}
+
 /** 既存モック（`MOCK_FAQS`）と同内容のFAQ12件。`en`は要件12（多言語対応）のデモ用翻訳。 */
 const FAQ_SEEDS = [
   {
@@ -1163,6 +1310,7 @@ async function main() {
   await seedAnnouncementReadReceipts(applicantUser.id);
   await seedDocuments();
   await seedMonthlyMaterials();
+  await seedManuals();
   await seedFaqs();
   await seedLinks();
   await seedReplyTemplates();
@@ -1176,6 +1324,7 @@ async function main() {
     announcements: ANNOUNCEMENT_SEEDS.length,
     documents: DOCUMENT_SEEDS.length,
     monthlyMaterials: MONTHLY_MATERIAL_SEEDS.length,
+    manuals: MANUAL_SEEDS.length,
     faqs: FAQ_SEEDS.length,
     links: LINK_SEEDS.length,
     replyTemplates: REPLY_TEMPLATE_SEEDS.length,
