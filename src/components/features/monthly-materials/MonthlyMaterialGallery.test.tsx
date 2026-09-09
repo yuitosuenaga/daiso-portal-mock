@@ -131,6 +131,20 @@ describe("MonthlyMaterialGallery", () => {
     expect(screen.getByText("b.pdf")).toBeTruthy();
   });
 
+  it("同一年月に2件登録されている場合、その年月のグリッドは2列で並べる", async () => {
+    getMonthlyMaterialsMock.mockResolvedValue([
+      material({ id: "1", year: 2026, month: 9, fileName: "a.pdf" }),
+      material({ id: "2", year: 2026, month: 9, fileName: "b.pdf" }),
+    ]);
+
+    const jsx = await MonthlyMaterialGallery({ category: "salesFloorMeeting", editable: false });
+    render(jsx);
+
+    const heading = screen.getByText("2026年9月");
+    const grid = heading.nextElementSibling;
+    expect(grid?.className).toContain("sm:grid-cols-2");
+  });
+
   it("資料が1件も無い場合は空状態メッセージを表示する", async () => {
     getMonthlyMaterialsMock.mockResolvedValue([]);
 

@@ -913,7 +913,8 @@
       "googlePreviewError": "Unable to display the preview",
       "googlePreviewHint": "If the preview does not display, please open the original document",
       "addButton": "Add new",
-      "editButton": "Edit"
+      "editButton": "Edit",
+      "expandButton": "Expand"
     },
     "delete": {
       "buttonLabel": "Delete",

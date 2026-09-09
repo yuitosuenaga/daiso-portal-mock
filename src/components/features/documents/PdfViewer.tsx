@@ -2,6 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/**
+ * フレームの表示サイズ。省略時は`"default"`（既存呼び出し元との後方互換）。
+ * `"compact"`はサムネイル用の小さい固定高で、ダウンロードリンク・元ドキュメントを開くリンク・
+ * 補助案内文を描画しない（拡大表示側で改めて`"default"`として描画することを想定）。
+ */
+export type PdfViewerSize = "default" | "compact";
+
 export type PdfViewerProps =
   | {
       variant: "upload";
@@ -12,6 +19,7 @@ export type PdfViewerProps =
       downloadLinkLabel: string;
       /** ブラウザ標準のPDFビューア（iframe内）が独自のダウンロードボタンを持つ場合に、重複するダウンロードリンクを非表示にする。省略時はfalse（常に表示、既存呼び出し元との後方互換）。 */
       hideDownloadLink?: boolean;
+      size?: PdfViewerSize;
     }
   | {
       variant: "google";
@@ -28,6 +36,7 @@ export type PdfViewerProps =
       previewErrorMessage?: string;
       /** プレビュー成否によらず常時表示する補助案内文（クロスオリジンで検知できない失敗への対応）。省略可。 */
       previewHint?: string;
+      size?: PdfViewerSize;
     };
 
 interface GooglePreviewFrameProps {
@@ -92,13 +101,18 @@ export function PdfViewer(props: PdfViewerProps) {
     }
   }, [canShowFallback]);
 
+  const isCompact = props.size === "compact";
+  const frameClassName = isCompact
+    ? "h-48 w-full overflow-hidden rounded-md border border-input"
+    : "h-[50vh] min-h-[360px] w-full overflow-hidden rounded-md border border-input";
+
   if (props.variant === "google") {
     const previewErrorMessage = props.previewErrorMessage;
     const previewHint = props.previewHint;
 
     return (
       <div className="flex flex-col gap-3">
-        <div className="h-[50vh] min-h-[360px] w-full overflow-hidden rounded-md border border-input">
+        <div className={frameClassName}>
           {hasError && canShowFallback ? (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center">
               <p className="text-sm text-muted-foreground">
@@ -121,24 +135,26 @@ export function PdfViewer(props: PdfViewerProps) {
             />
           )}
         </div>
-        {previewHint && (
+        {!isCompact && previewHint && (
           <p className="text-xs text-muted-foreground">{previewHint}</p>
         )}
-        <a
-          href={props.originalUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-fit items-center justify-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
-        >
-          {props.openOriginalLabel}
-        </a>
+        {!isCompact && (
+          <a
+            href={props.originalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-fit items-center justify-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            {props.openOriginalLabel}
+          </a>
+        )}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="h-[50vh] min-h-[360px] w-full overflow-hidden rounded-md border border-input">
+      <div className={frameClassName}>
         <iframe
           src={props.dataUrl}
           title={props.title}
@@ -146,7 +162,7 @@ export function PdfViewer(props: PdfViewerProps) {
           className="h-full w-full"
         />
       </div>
-      {!props.hideDownloadLink && (
+      {!isCompact && !props.hideDownloadLink && (
         <a
           href={props.dataUrl}
           download={props.downloadFileName}

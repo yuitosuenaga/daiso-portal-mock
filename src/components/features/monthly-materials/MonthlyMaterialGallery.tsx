@@ -59,6 +59,25 @@ function groupMaterialsByYearMonth(
   return groups;
 }
 
+const MAX_GRID_COLUMNS = 3;
+
+/**
+ * 同一年月内の資料件数に応じたグリッド列数のTailwindクラスを返す。件数が多い場合も
+ * `MAX_GRID_COLUMNS`列で折り返す（Tailwindのクラス名検出はビルド時の静的解析のため、
+ * 動的な文字列結合ではなく完全なクラス名リテラルをここに列挙しておく必要がある）。
+ */
+function gridColumnsClassName(itemCount: number): string {
+  const columns = Math.min(itemCount, MAX_GRID_COLUMNS);
+  switch (columns) {
+    case 1:
+      return "grid-cols-1";
+    case 2:
+      return "grid-cols-1 sm:grid-cols-2";
+    default:
+      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  }
+}
+
 function buildMonthOptions(locale: string): SelectOption[] {
   const formatter = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" });
   return Array.from({ length: 12 }, (_, index) => {
@@ -113,6 +132,7 @@ export async function MonthlyMaterialGallery({
     openOriginalLinkLabel: t("list.openOriginalLink"),
     googlePreviewErrorMessage: t("list.googlePreviewError"),
     googlePreviewHint: t("list.googlePreviewHint"),
+    expandButtonLabel: t("list.expandButton"),
   };
 
   const formLabels = {
@@ -183,7 +203,7 @@ export async function MonthlyMaterialGallery({
               <h2 id={groupHeadingId} className="text-lg font-semibold">
                 {group.heading}
               </h2>
-              <div className="flex flex-col gap-6">
+              <div className={`grid gap-6 ${gridColumnsClassName(group.items.length)}`}>
                 {group.items.map((material) => (
                   <MonthlyMaterialSection
                     key={material.id}
