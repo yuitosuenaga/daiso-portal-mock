@@ -29,6 +29,7 @@ function buildInput(
 ): CreateMonthlyMaterialInput {
   return {
     category: "salesFloorMeeting",
+    department: "other",
     year: 2026,
     month: 9,
     sourceType: "upload",
@@ -46,6 +47,7 @@ function buildGoogleInput(
 ): CreateMonthlyMaterialInput {
   return {
     category: "pop",
+    department: "other",
     year: 2026,
     month: 9,
     sourceType: "google",
@@ -60,6 +62,7 @@ function monthlyMaterial(overrides: Partial<MonthlyMaterial> = {}): MonthlyMater
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting",
+    department: "other",
     year: 2026,
     month: 9,
     sourceType: "upload",
