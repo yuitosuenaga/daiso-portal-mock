@@ -174,4 +174,56 @@ describe("filterInquiriesForHelpdesk", () => {
 
     expect(result).toHaveLength(0);
   });
+
+  it("緊急度で絞り込む", () => {
+    const withUrgency = [
+      ...inquiries,
+      buildInquiry({ id: "3", urgency: "high", status: "new" }),
+    ];
+
+    const result = filterInquiriesForHelpdesk(withUrgency, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      urgency: "high",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["3"]);
+  });
+
+  it("unclaimedOnly=trueのとき、claimがない未対応件のみ返す（resolvedは除外しない点に注意）", () => {
+    const withClaim = [
+      buildInquiry({ id: "unclaimed", status: "new", claim: null }),
+      buildInquiry({
+        id: "claimed",
+        status: "new",
+        claim: { staffName: "田中", claimedAt: "2026-06-01T00:00:00.000Z" },
+      }),
+    ];
+
+    const result = filterInquiriesForHelpdesk(withClaim, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      unclaimedOnly: true,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["unclaimed"]);
+  });
+
+  it("claimedByで対応者名で絞り込む", () => {
+    const withClaim = [
+      buildInquiry({
+        id: "tanaka",
+        claim: { staffName: "田中", claimedAt: "2026-06-01T00:00:00.000Z" },
+      }),
+      buildInquiry({
+        id: "suzuki",
+        claim: { staffName: "鈴木", claimedAt: "2026-06-01T00:00:00.000Z" },
+      }),
+    ];
+
+    const result = filterInquiriesForHelpdesk(withClaim, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      claimedBy: "田中",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["tanaka"]);
+  });
 });

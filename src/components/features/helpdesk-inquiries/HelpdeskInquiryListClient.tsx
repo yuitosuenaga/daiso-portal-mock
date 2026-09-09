@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { SelectOption } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   EMPTY_HELPDESK_INQUIRY_FILTERS,
   filterInquiriesForHelpdesk,
+  type HelpdeskInquiryFilters,
 } from "@/lib/helpdesk-inquiry-list";
 import { computeHelpdeskInquiryStats } from "@/lib/helpdesk-inquiry-stats";
 import { HelpdeskInquiryFilterBar } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar";
@@ -27,10 +28,29 @@ export interface HelpdeskInquiryListClientProps {
   countryOptions: SelectOption[];
   categoryOptions: SelectOption[];
   statusOptions: SelectOption[];
+  urgencyOptions: SelectOption[];
   claimBadgeLabel: string;
   claimedByLabel: string;
   locale: string;
   untitledLabel: string;
+}
+
+/**
+ * パッチで指定されたキーが既に同じ値になっている場合は、そのキーだけ空値に戻す（トグル解除）。
+ * サマリパネルの各要素（ボタン化されたグラフの区間・行）を再クリックしたときに、
+ * 絞り込みを解除できるようにするための処理。
+ */
+function toggleFilterPatch(
+  current: HelpdeskInquiryFilters,
+  patch: Partial<HelpdeskInquiryFilters>
+): Partial<HelpdeskInquiryFilters> {
+  const resolved: Partial<HelpdeskInquiryFilters> = { ...patch };
+  for (const key of Object.keys(patch) as (keyof HelpdeskInquiryFilters)[]) {
+    if (current[key] === patch[key]) {
+      (resolved as Record<string, unknown>)[key] = EMPTY_HELPDESK_INQUIRY_FILTERS[key];
+    }
+  }
+  return resolved;
 }
 
 /**
@@ -46,6 +66,7 @@ export function HelpdeskInquiryListClient({
   countryOptions,
   categoryOptions,
   statusOptions,
+  urgencyOptions,
   claimBadgeLabel,
   claimedByLabel,
   locale,
@@ -53,6 +74,19 @@ export function HelpdeskInquiryListClient({
 }: HelpdeskInquiryListClientProps) {
   const t = useTranslations("helpdeskInquiries.list");
   const [filters, setFilters] = useState(EMPTY_HELPDESK_INQUIRY_FILTERS);
+  const listSectionRef = useRef<HTMLDivElement>(null);
+
+  const staffOptions = useMemo<SelectOption[]>(() => {
+    const staffNames = new Set<string>();
+    for (const inquiry of inquiries) {
+      if (inquiry.claim?.staffName) {
+        staffNames.add(inquiry.claim.staffName);
+      }
+    }
+    return Array.from(staffNames)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ value: name, label: name }));
+  }, [inquiries]);
 
   const filteredInquiries = useMemo(
     () => filterInquiriesForHelpdesk(inquiries, filters),
@@ -63,6 +97,14 @@ export function HelpdeskInquiryListClient({
     () => computeHelpdeskInquiryStats(filteredInquiries),
     [filteredInquiries]
   );
+
+  function handleFilterChange(patch: Partial<HelpdeskInquiryFilters>) {
+    setFilters((prev) => ({ ...prev, ...toggleFilterPatch(prev, patch) }));
+    listSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -75,6 +117,8 @@ export function HelpdeskInquiryListClient({
             countryOptions={countryOptions}
             categoryOptions={categoryOptions}
             statusOptions={statusOptions}
+            urgencyOptions={urgencyOptions}
+            staffOptions={staffOptions}
           />
         </CardContent>
       </Card>
@@ -86,10 +130,12 @@ export function HelpdeskInquiryListClient({
             statusLabels={statusLabels}
             shown={filteredInquiries.length}
             total={inquiries.length}
+            filters={filters}
+            onFilterChange={handleFilterChange}
           />
         </aside>
 
-        <div className="min-w-0 xl:order-1">
+        <div ref={listSectionRef} className="min-w-0 xl:order-1">
           <Card>
             <CardContent className="p-5">
               {filteredInquiries.length === 0 ? (

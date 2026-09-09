@@ -314,6 +314,11 @@
       "categoryAll": "すべての種別",
       "statusLabel": "対応状況",
       "statusAll": "すべての対応状況",
+      "urgencyLabel": "緊急度",
+      "urgencyAll": "すべての緊急度",
+      "unclaimedOnlyLabel": "未着手のみ",
+      "claimedByLabel": "対応者",
+      "claimedByAll": "すべての対応者",
       "clearButton": "条件をクリア"
     },
     "claim": {
@@ -1148,8 +1153,31 @@
       "statusAll": "すべての対応状況",
       "categoryLabel": "案件種別",
       "categoryAll": "すべての案件種別",
+      "urgencyLabel": "緊急度",
+      "urgencyAll": "すべての緊急度",
+      "unreadOnlyLabel": "新着のみ",
       "clearButton": "クリア",
       "noResults": "該当する問合せがありません"
+    },
+    "stats": {
+      "title": "対応状況サマリ",
+      "scopeAll": "全件が対象",
+      "scopeFiltered": "絞り込み中の{count}件が対象",
+      "unreadLabel": "未確認の新着",
+      "unreadCaption": "ヘルプデスクからの返信・状況変更を未確認の件数",
+      "unreadNone": "未確認の更新はありません",
+      "highUrgencyAlert": "緊急度「高」の未解決が{count}件",
+      "awaitingResponseLabel": "回答待ち",
+      "awaitingResponseCaption": "ヘルプデスクからの返信・対応開始待ちの件数",
+      "statusBreakdownTitle": "対応状況の内訳",
+      "urgencyBreakdownTitle": "未解決の緊急度別件数",
+      "urgencyBreakdownEmpty": "未解決の問合せはありません",
+      "unit": "件",
+      "percent": "{value}%",
+      "tableToggle": "表で見る",
+      "tableHeaderItem": "項目",
+      "tableHeaderCount": "件数",
+      "tableHeaderShare": "割合"
     }
   },
   "links": {

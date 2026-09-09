@@ -29,6 +29,9 @@
     --chart-status-new: 327 100% 31%;
     --chart-status-in-progress: 327 90% 45%;
     --chart-status-resolved: 327 78% 72%;
+    --chart-urgency-high: 0 84.2% 60.2%;
+    --chart-urgency-medium: 327 90% 45%;
+    --chart-urgency-low: 327 78% 72%;
   }
 }
 
