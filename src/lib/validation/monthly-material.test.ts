@@ -8,6 +8,7 @@ const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
 function buildValidUploadInput(overrides: Record<string, unknown> = {}) {
   return {
     category: "salesFloorMeeting",
+    department: "seasonalEvent",
     year: 2026,
     month: 9,
     sourceType: "upload",
@@ -23,6 +24,7 @@ function buildValidUploadInput(overrides: Record<string, unknown> = {}) {
 function buildValidGoogleInput(overrides: Record<string, unknown> = {}) {
   return {
     category: "pop",
+    department: "other",
     year: 2026,
     month: 9,
     sourceType: "google",
@@ -115,6 +117,14 @@ describe("monthlyMaterialFormSchema", () => {
 
   it("年が範囲外の場合は検証エラーになる", () => {
     const result = monthlyMaterialFormSchema.safeParse(buildValidUploadInput({ year: 1999 }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("departmentが未定義の値の場合は検証エラーになる", () => {
+    const result = monthlyMaterialFormSchema.safeParse(
+      buildValidUploadInput({ department: "unknown-department" })
+    );
 
     expect(result.success).toBe(false);
   });

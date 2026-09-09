@@ -11,6 +11,7 @@ export function toMonthlyMaterialFormDefaultValues(
 ): MonthlyMaterialFormValues {
   const base = {
     category: material.category,
+    department: material.department,
     year: material.year,
     month: material.month,
     targeting: material.targeting as MonthlyMaterialFormValues["targeting"],

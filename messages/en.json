@@ -910,6 +910,28 @@
       "pageTitle": "POP",
       "pageDescription": "View monthly POP materials."
     },
+    "departments": {
+      "seasonalEvent": "Seasonal & Events",
+      "storage": "Storage & Organization",
+      "kitchen": "Kitchen & Tableware",
+      "cleaning": "Cleaning & Laundry",
+      "beautyHealth": "Beauty & Health",
+      "stationery": "Stationery & Office",
+      "interior": "Interior & Sundries",
+      "craftDiy": "Craft & DIY",
+      "food": "Food & Snacks",
+      "other": "Other"
+    },
+    "filter": {
+      "departmentLabel": "Filter by category",
+      "departmentAll": "All categories",
+      "yearLabel": "Filter by year",
+      "yearAll": "All years",
+      "monthLabel": "Filter by month",
+      "monthAll": "All months",
+      "clearButton": "Clear filters",
+      "noResults": "No materials match the filters"
+    },
     "list": {
       "error": "Failed to load materials",
       "empty": "No materials",
@@ -930,6 +952,7 @@
       "errorMessage": "Failed to delete. Please try again later."
     },
     "form": {
+      "departmentLabel": "Category",
       "yearLabel": "Year",
       "monthLabel": "Month",
       "sourceTypeLabel": "Registration method",

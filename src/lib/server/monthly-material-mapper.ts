@@ -70,6 +70,7 @@ export function mapMonthlyMaterial(record: PrismaMonthlyMaterial): MonthlyMateri
   const base = {
     id: record.id,
     category: record.category,
+    department: record.department,
     year: record.year,
     month: record.month,
     targeting: mapTargeting(record),

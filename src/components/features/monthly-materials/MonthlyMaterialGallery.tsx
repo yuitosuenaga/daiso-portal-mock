@@ -6,10 +6,17 @@ import {
 } from "@/lib/api/monthly-materials";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
+import { MONTHLY_MATERIAL_DEPARTMENTS } from "@/lib/constants/monthly-material";
+import {
+  buildMonthOptions as buildFilterMonthOptions,
+  buildYearOptions,
+  collectYears,
+} from "@/lib/category-year-month-filter";
+import { buildMonthOptions } from "@/lib/monthly-material-utils";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddMonthlyMaterialButton } from "@/components/features/monthly-materials/AddMonthlyMaterialButton";
-import { MonthlyMaterialSection } from "@/components/features/monthly-materials/MonthlyMaterialSection";
+import { MonthlyMaterialGalleryClient } from "@/components/features/monthly-materials/MonthlyMaterialGalleryClient";
 import type { SelectOption } from "@/components/ui/select";
 import type { MonthlyMaterial, MonthlyMaterialCategory } from "@/types/monthly-material";
 
@@ -17,73 +24,6 @@ export interface MonthlyMaterialGalleryProps {
   category: MonthlyMaterialCategory;
   /** ヘルプデスク側（編集可能な文脈）かどうか。 */
   editable: boolean;
-}
-
-function formatHeading(locale: string, year: number, month: number): string {
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, 1)));
-}
-
-interface MonthlyMaterialGroup {
-  year: number;
-  month: number;
-  heading: string;
-  items: MonthlyMaterial[];
-}
-
-/**
- * 年月ごとにグルーピングする。`materials`は`year desc, month desc`（同一年月内は`createdAt asc`）
- * で既に取得済みのため、同一年月のレコードは必ず連続している前提で先頭から素直にまとめられる。
- */
-function groupMaterialsByYearMonth(
-  materials: MonthlyMaterial[],
-  locale: string
-): MonthlyMaterialGroup[] {
-  const groups: MonthlyMaterialGroup[] = [];
-  for (const material of materials) {
-    const currentGroup = groups.at(-1);
-    if (currentGroup && currentGroup.year === material.year && currentGroup.month === material.month) {
-      currentGroup.items.push(material);
-    } else {
-      groups.push({
-        year: material.year,
-        month: material.month,
-        heading: formatHeading(locale, material.year, material.month),
-        items: [material],
-      });
-    }
-  }
-  return groups;
-}
-
-const MAX_GRID_COLUMNS = 3;
-
-/**
- * 同一年月内の資料件数に応じたグリッド列数のTailwindクラスを返す。件数が多い場合も
- * `MAX_GRID_COLUMNS`列で折り返す（Tailwindのクラス名検出はビルド時の静的解析のため、
- * 動的な文字列結合ではなく完全なクラス名リテラルをここに列挙しておく必要がある）。
- */
-function gridColumnsClassName(itemCount: number): string {
-  const columns = Math.min(itemCount, MAX_GRID_COLUMNS);
-  switch (columns) {
-    case 1:
-      return "grid-cols-1";
-    case 2:
-      return "grid-cols-1 sm:grid-cols-2";
-    default:
-      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-  }
-}
-
-function buildMonthOptions(locale: string): SelectOption[] {
-  const formatter = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" });
-  return Array.from({ length: 12 }, (_, index) => {
-    const month = index + 1;
-    return { value: String(month), label: formatter.format(new Date(Date.UTC(2000, index, 1))) };
-  });
 }
 
 /**
@@ -126,6 +66,12 @@ export async function MonthlyMaterialGallery({
     label: `${tCountries(option.country)} - ${option.companyName}`,
   }));
   const monthOptions = buildMonthOptions(locale);
+  const departmentOptions: SelectOption[] = MONTHLY_MATERIAL_DEPARTMENTS.map((department) => ({
+    value: department,
+    label: t(`departments.${department}`),
+  }));
+  const yearOptions: SelectOption[] = buildYearOptions(collectYears(materials));
+  const filterMonthOptions = buildFilterMonthOptions(locale);
 
   const viewerLabels = {
     downloadLinkLabel: t("list.downloadLink"),
@@ -138,6 +84,8 @@ export async function MonthlyMaterialGallery({
   const formLabels = {
     countryOptions,
     companyOptions,
+    departmentLabel: t("form.departmentLabel"),
+    departmentOptions,
     yearLabel: t("form.yearLabel"),
     monthLabel: t("form.monthLabel"),
     monthOptions,
@@ -170,6 +118,16 @@ export async function MonthlyMaterialGallery({
     submitErrorMessage: t("form.submitError"),
   };
 
+  const filterBarLabels = {
+    categoryLabel: t("filter.departmentLabel"),
+    categoryAll: t("filter.departmentAll"),
+    yearLabel: t("filter.yearLabel"),
+    yearAll: t("filter.yearAll"),
+    monthLabel: t("filter.monthLabel"),
+    monthAll: t("filter.monthAll"),
+    clearButton: t("filter.clearButton"),
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -189,45 +147,26 @@ export async function MonthlyMaterialGallery({
         />
       )}
 
-      {materials.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">{t("list.empty")}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        groupMaterialsByYearMonth(materials, locale).map((group) => {
-          const groupHeadingId = `monthly-material-group-${group.year}-${group.month}-heading`;
-          return (
-            <div key={`${group.year}-${group.month}`} className="flex flex-col gap-3">
-              <h2 id={groupHeadingId} className="text-lg font-semibold">
-                {group.heading}
-              </h2>
-              <div className={`grid gap-6 ${gridColumnsClassName(group.items.length)}`}>
-                {group.items.map((material) => (
-                  <MonthlyMaterialSection
-                    key={material.id}
-                    material={material}
-                    heading={group.heading}
-                    showHeading={false}
-                    groupHeadingId={groupHeadingId}
-                    editable={editable}
-                    editButtonLabel={t("list.editButton")}
-                    deleteButtonLabel={t("delete.buttonLabel")}
-                    deleteConfirmTitle={t("delete.confirmTitle")}
-                    deleteConfirmMessage={t("delete.confirmMessage", { heading: group.heading })}
-                    deleteConfirmButtonLabel={t("delete.confirmButton")}
-                    deleteCancelButtonLabel={t("delete.cancelButton")}
-                    deleteErrorMessage={t("delete.errorMessage")}
-                    viewerLabels={viewerLabels}
-                    formLabels={formLabels}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })
-      )}
+      <MonthlyMaterialGalleryClient
+        materials={materials}
+        editable={editable}
+        locale={locale}
+        departmentOptions={departmentOptions}
+        yearOptions={yearOptions}
+        monthOptions={filterMonthOptions}
+        filterBarLabels={filterBarLabels}
+        emptyMessage={t("list.empty")}
+        noResultsMessage={t("filter.noResults")}
+        editButtonLabel={t("list.editButton")}
+        deleteButtonLabel={t("delete.buttonLabel")}
+        deleteConfirmTitle={t("delete.confirmTitle")}
+        deleteConfirmMessageTemplate={t.raw("delete.confirmMessage")}
+        deleteConfirmButtonLabel={t("delete.confirmButton")}
+        deleteCancelButtonLabel={t("delete.cancelButton")}
+        deleteErrorMessage={t("delete.errorMessage")}
+        viewerLabels={viewerLabels}
+        formLabels={formLabels}
+      />
     </div>
   );
 }

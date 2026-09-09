@@ -144,6 +144,7 @@ export async function createMonthlyMaterialRecord(
   const record = await prisma.monthlyMaterial.create({
     data: {
       category: input.category,
+      department: input.department,
       year: input.year,
       month: input.month,
       ...toMonthlyMaterialData(input),
@@ -163,6 +164,7 @@ export async function updateMonthlyMaterialRecord(
       where: { id },
       data: {
         category: input.category,
+        department: input.department,
         year: input.year,
         month: input.month,
         ...toMonthlyMaterialData(input),

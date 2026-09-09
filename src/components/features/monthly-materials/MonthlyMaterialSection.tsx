@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { SelectOption } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
@@ -24,6 +25,8 @@ export interface MonthlyMaterialViewerLabels {
 export interface MonthlyMaterialFormLabels {
   countryOptions: SelectOption[];
   companyOptions: SelectOption[];
+  departmentLabel: string;
+  departmentOptions: SelectOption[];
   yearLabel: string;
   monthLabel: string;
   monthOptions: SelectOption[];
@@ -60,6 +63,8 @@ export interface MonthlyMaterialSectionProps {
   material: MonthlyMaterial;
   /** 見出し（例:「2026年9月」）。ロケールに応じた表示名は呼び出し側で解決済み。 */
   heading: string;
+  /** `material.department`に対応する翻訳済みラベル（例:「季節・催事」）。Badgeとして表示する。 */
+  departmentLabel: string;
   /**
    * 見出し（`<h2>`）を自身で描画するかどうか。省略時はtrue。同一年月に複数件の資料がある場合、
    * 呼び出し側（`MonthlyMaterialGallery`）が年月ごとに見出しを1つだけ描画するため、
@@ -94,6 +99,7 @@ export interface MonthlyMaterialSectionProps {
 export function MonthlyMaterialSection({
   material,
   heading,
+  departmentLabel,
   showHeading = true,
   groupHeadingId,
   editable,
@@ -203,6 +209,9 @@ export function MonthlyMaterialSection({
           )}
         </div>
       )}
+      <div>
+        <Badge variant="other">{departmentLabel}</Badge>
+      </div>
       <Dialog>
         <div className="flex flex-col gap-2">
           {material.sourceType === "upload" && (
