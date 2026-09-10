@@ -7,8 +7,24 @@ import type { ApplicantInquiryStats } from "@/lib/inquiry-stats";
 import { EMPTY_INQUIRY_FILTERS, type InquiryFilters } from "@/lib/inquiry-filter";
 import messages from "../../../../messages/ja.json";
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 const statusLabels = { new: "新規", in_progress: "対応中", resolved: "解決済み" };
 const urgencyLabels = { high: "高", medium: "中", low: "低" };
+const categoryLabels = { defect: "不良品", order: "発注", system: "システム", other: "その他" };
 
 function renderWithProvider(jsx: React.ReactElement) {
   return render(
@@ -48,6 +64,8 @@ describe("InquiryStatsPanel", () => {
         stats={buildStats({ unread: 2 })}
         statusLabels={statusLabels}
         urgencyLabels={urgencyLabels}
+        categoryLabels={categoryLabels}
+        locale="ja"
         shown={10}
         total={10}
         filters={buildFilters()}
@@ -63,6 +81,8 @@ describe("InquiryStatsPanel", () => {
         stats={buildStats({ highUrgencyUnresolved: 1 })}
         statusLabels={statusLabels}
         urgencyLabels={urgencyLabels}
+        categoryLabels={categoryLabels}
+        locale="ja"
         shown={10}
         total={10}
         filters={buildFilters()}
@@ -78,6 +98,8 @@ describe("InquiryStatsPanel", () => {
         stats={buildStats({ unread: 0 })}
         statusLabels={statusLabels}
         urgencyLabels={urgencyLabels}
+        categoryLabels={categoryLabels}
+        locale="ja"
         shown={10}
         total={10}
         filters={buildFilters()}
@@ -89,11 +111,13 @@ describe("InquiryStatsPanel", () => {
 
   it("未確認のヒーロー数値をクリックするとunreadOnly絞り込みを通知する", () => {
     const onFilterChange = vi.fn();
-    renderWithProvider(
+    const { container } = renderWithProvider(
       <InquiryStatsPanel
         stats={buildStats({ unread: 2 })}
         statusLabels={statusLabels}
         urgencyLabels={urgencyLabels}
+        categoryLabels={categoryLabels}
+        locale="ja"
         shown={10}
         total={10}
         filters={buildFilters()}
@@ -101,7 +125,7 @@ describe("InquiryStatsPanel", () => {
       />
     );
 
-    screen.getByText("2").closest("button")?.click();
+    container.querySelector(".text-5xl")?.closest("button")?.click();
     expect(onFilterChange).toHaveBeenCalledWith({ unreadOnly: true });
   });
 
@@ -112,6 +136,8 @@ describe("InquiryStatsPanel", () => {
         stats={buildStats({ awaitingResponse: 3 })}
         statusLabels={statusLabels}
         urgencyLabels={urgencyLabels}
+        categoryLabels={categoryLabels}
+        locale="ja"
         shown={10}
         total={10}
         filters={buildFilters()}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InquiryList } from "@/components/features/inquiry-list/InquiryList";
@@ -88,10 +88,13 @@ describe("InquiryList", () => {
     const jsx = await InquiryList();
     render(jsx);
 
-    expect(
-      screen.getByRole("link", { name: "商品破損についての問い合わせ" })
-    ).toBeTruthy();
-    expect(screen.getByText("不具合", { selector: "span" })).toBeTruthy();
+    const link = screen.getByRole("link", {
+      name: "商品破損についての問い合わせ",
+    });
+    expect(link).toBeTruthy();
+    const listItem = link.closest("li");
+    expect(listItem).not.toBeNull();
+    expect(within(listItem!).getByText("不具合")).toBeTruthy();
     expect(
       screen.getByText(
         "納品された商品の一部に破損が見られます。至急対応をお願いします。"

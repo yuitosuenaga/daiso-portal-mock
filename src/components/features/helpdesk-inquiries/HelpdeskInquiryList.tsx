@@ -1,5 +1,6 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllInquiries } from "@/lib/api/inquiries";
+import { getCurrentHelpdeskStaffName } from "@/lib/api/current-staff";
 import { sortInquiriesForHelpdesk } from "@/lib/helpdesk-inquiry-list";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,12 +14,13 @@ import { HelpdeskInquiryListClient } from "@/components/features/helpdesk-inquir
 import type { Inquiry } from "@/types/inquiry";
 
 export async function HelpdeskInquiryList() {
-  const [t, tOptions, tStatus, tClaim, locale] = await Promise.all([
+  const [t, tOptions, tStatus, tClaim, locale, currentStaffName] = await Promise.all([
     getTranslations("helpdeskInquiries.list"),
     getTranslations("inquiryForm.options"),
     getTranslations("inquiryList.status"),
     getTranslations("helpdeskInquiries.claim"),
     getLocale(),
+    getCurrentHelpdeskStaffName(),
   ]);
 
   const heading = (
@@ -134,6 +136,7 @@ export async function HelpdeskInquiryList() {
         claimedByLabel={tClaim("claimedByLabel")}
         locale={locale}
         untitledLabel={t("untitled")}
+        currentStaffName={currentStaffName}
       />
     </div>
   );

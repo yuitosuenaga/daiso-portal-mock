@@ -3,6 +3,21 @@ import { describe, expect, it, vi } from "vitest";
 
 import { StatusBreakdownBar } from "@/components/features/inquiry-stats/StatusBreakdownBar";
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 const statusLabels = { new: "新規", in_progress: "対応中", resolved: "解決済み" };
 
 describe("StatusBreakdownBar", () => {

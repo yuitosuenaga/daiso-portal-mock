@@ -1,9 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { StaffLoadBarList } from "@/components/features/helpdesk-inquiries/StaffLoadBarList";
 import messages from "../../../../messages/ja.json";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
 function renderWithProvider(jsx: React.ReactElement) {
   return render(

@@ -125,6 +125,8 @@ export function InquiryListClient({
             stats={stats}
             statusLabels={statusLabels}
             urgencyLabels={urgencyLabels}
+            categoryLabels={categoryLabels}
+            locale={locale}
             shown={filteredInquiries.length}
             total={inquiries.length}
             filters={filters}

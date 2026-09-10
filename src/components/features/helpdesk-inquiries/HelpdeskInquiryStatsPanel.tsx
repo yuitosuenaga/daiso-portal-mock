@@ -9,14 +9,29 @@ import {
   type HelpdeskInquiryStats,
 } from "@/lib/helpdesk-inquiry-stats";
 import type { HelpdeskInquiryFilters } from "@/lib/helpdesk-inquiry-list";
+import {
+  toAgingBarRows,
+  toCategoryBarRows,
+  toCountryBarRows,
+} from "@/lib/inquiry-breakdown";
+import { toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
+import { INQUIRY_AGING_BUCKETS, type InquiryAgingBucket } from "@/lib/inquiry-aging";
 import { StaffLoadBarList } from "@/components/features/helpdesk-inquiries/StaffLoadBarList";
 import { StatusBreakdownBar } from "@/components/features/inquiry-stats/StatusBreakdownBar";
+import { StatsBarList } from "@/components/features/inquiry-stats/StatsBarList";
+import { StatsMetricTile } from "@/components/features/inquiry-stats/StatsMetricTile";
+import { IntakeTrendBarChart } from "@/components/features/inquiry-stats/IntakeTrendBarChart";
 import { cn } from "@/lib/utils";
 import type { Inquiry } from "@/types/inquiry";
 
 export interface HelpdeskInquiryStatsPanelProps {
   stats: HelpdeskInquiryStats;
   statusLabels: Record<Inquiry["status"], string>;
+  categoryLabels: Record<Inquiry["category"], string>;
+  countryLabels: Record<string, string>;
+  locale: string;
+  /** ログイン中ヘルプデスク担当者の表示名。「自分の担当」タイルの表示判定に使う */
+  currentStaffName?: string | null;
   /** フィルタ適用後に表示されている件数（stats.totalと同じ） */
   shown: number;
   /** フィルタ適用前の全件数。shownと異なる場合のみ「絞り込み中」の注記を出す */
@@ -30,6 +45,13 @@ export interface HelpdeskInquiryStatsPanelProps {
   onFilterChange?: (patch: Partial<HelpdeskInquiryFilters>) => void;
 }
 
+const AGING_BUCKET_LABEL_KEY: Record<InquiryAgingBucket, string> = {
+  lt24h: "aging.lt24h",
+  h24to72: "aging.h24to72",
+  d3to7: "aging.d3to7",
+  gte7d: "aging.gte7d",
+};
+
 /**
  * ヘルプデスク側問い合わせ一覧の右側に置く対応状況サマリパネル。
  * 現在表示中の一覧（フィルタ適用後）に対する集計値を表示するため、
@@ -38,24 +60,61 @@ export interface HelpdeskInquiryStatsPanelProps {
 export function HelpdeskInquiryStatsPanel({
   stats,
   statusLabels,
+  categoryLabels,
+  countryLabels,
+  locale,
+  currentStaffName,
   shown,
   total,
   filters,
   onFilterChange,
 }: HelpdeskInquiryStatsPanelProps) {
   const t = useTranslations("helpdeskInquiries.stats");
+  const tAnalytics = useTranslations("inquiryAnalytics");
 
   const statusSegments = toStatusSegments(stats.byStatus, stats.total);
   const staffLoadRows = toStaffLoadRows(stats);
+  const categoryRows = toCategoryBarRows(stats.byCategory, categoryLabels).map((row) => ({
+    ...row,
+    label: row.label ?? "",
+  }));
+  const COUNTRY_MAX_ROWS = 5;
+  const otherCountriesCount = Math.max(0, stats.byCountry.length - COUNTRY_MAX_ROWS);
+  const countryRows = toCountryBarRows(stats.byCountry, countryLabels, {
+    maxRows: COUNTRY_MAX_ROWS,
+  }).map((row) => ({
+    ...row,
+    label: row.label ?? tAnalytics("country.others", { count: otherCountriesCount }),
+  }));
+  const agingLabels: Record<InquiryAgingBucket, string> = INQUIRY_AGING_BUCKETS.reduce(
+    (labels, bucket) => {
+      labels[bucket] = tAnalytics(AGING_BUCKET_LABEL_KEY[bucket]);
+      return labels;
+    },
+    {} as Record<InquiryAgingBucket, string>
+  );
+  const agingRows = toAgingBarRows(stats.unresolvedAging, agingLabels).map((row) => ({
+    ...row,
+    label: row.label ?? "",
+  }));
+  const intakeColumns = toIntakeTrendColumns(stats.dailyIntake);
 
-  const unclaimedSelected = filters.unclaimedOnly && !filters.urgency;
+  const unclaimedSelected =
+    filters.unclaimedOnly && filters.unresolvedOnly && !filters.urgency && filters.aging === "";
   const highUrgencyAlertSelected =
-    filters.unclaimedOnly && filters.urgency === "high";
-  const staffLoadSelectedKey = filters.unclaimedOnly
-    ? "unclaimed"
-    : filters.claimedBy
-      ? `staff:${filters.claimedBy}`
-      : null;
+    filters.unclaimedOnly && filters.unresolvedOnly && filters.urgency === "high";
+  const staleUnclaimedSelected =
+    filters.unclaimedOnly && filters.unresolvedOnly && filters.aging === "over24h";
+  const mineSelected =
+    Boolean(currentStaffName) &&
+    filters.claimedBy === currentStaffName &&
+    filters.unresolvedOnly;
+  const staffLoadSelectedKey =
+    filters.unclaimedOnly && filters.unresolvedOnly
+      ? "unclaimed"
+      : filters.claimedBy
+        ? `staff:${filters.claimedBy}`
+        : null;
 
   return (
     <Card>
@@ -74,7 +133,9 @@ export function HelpdeskInquiryStatsPanel({
             <button
               type="button"
               aria-pressed={unclaimedSelected}
-              onClick={() => onFilterChange({ unclaimedOnly: true, urgency: "" })}
+              onClick={() =>
+                onFilterChange({ unclaimedOnly: true, unresolvedOnly: true, urgency: "", aging: "" })
+              }
               className={cn(
                 "-mx-1 rounded-md px-1 text-left hover:bg-muted/60",
                 unclaimedSelected && "bg-accent"
@@ -104,7 +165,12 @@ export function HelpdeskInquiryStatsPanel({
                 type="button"
                 aria-pressed={highUrgencyAlertSelected}
                 onClick={() =>
-                  onFilterChange({ unclaimedOnly: true, urgency: "high" })
+                  onFilterChange({
+                    unclaimedOnly: true,
+                    unresolvedOnly: true,
+                    urgency: "high",
+                    aging: "",
+                  })
                 }
                 className={cn(
                   "mt-2 flex w-full items-center gap-1.5 rounded-md text-left text-xs text-destructive hover:underline",
@@ -120,7 +186,55 @@ export function HelpdeskInquiryStatsPanel({
                 {t("highUrgencyAlert", { count: stats.unclaimedHighUrgency })}
               </p>
             ))}
+          {stats.staleUnclaimed > 0 &&
+            (onFilterChange ? (
+              <button
+                type="button"
+                aria-pressed={staleUnclaimedSelected}
+                onClick={() =>
+                  onFilterChange({
+                    unclaimedOnly: true,
+                    unresolvedOnly: true,
+                    urgency: "",
+                    aging: "over24h",
+                  })
+                }
+                className={cn(
+                  "mt-2 flex w-full items-center gap-1.5 rounded-md text-left text-xs text-destructive hover:underline",
+                  staleUnclaimedSelected && "font-semibold"
+                )}
+              >
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                {t("staleUnclaimedAlert", { count: stats.staleUnclaimed })}
+              </button>
+            ) : (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-destructive">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                {t("staleUnclaimedAlert", { count: stats.staleUnclaimed })}
+              </p>
+            ))}
         </div>
+
+        {currentStaffName && (
+          <div>
+            <StatsMetricTile
+              label={t("mineLabel")}
+              value={stats.mine}
+              caption={t("mineCaption")}
+              size="secondary"
+              selected={mineSelected}
+              onSelect={
+                onFilterChange
+                  ? () =>
+                      onFilterChange({
+                        claimedBy: currentStaffName,
+                        unresolvedOnly: true,
+                      })
+                  : undefined
+              }
+            />
+          </div>
+        )}
 
         <div>
           <h3 className="mb-2 text-xs font-medium text-muted-foreground">
@@ -152,12 +266,15 @@ export function HelpdeskInquiryStatsPanel({
                 ? (row) => {
                     if (row.kind === "unclaimed") {
                       onFilterChange({
-                        unclaimedOnly: !unclaimedSelected,
-                        urgency: unclaimedSelected ? filters.urgency : "",
+                        unclaimedOnly: true,
+                        unresolvedOnly: true,
+                        urgency: "",
+                        aging: "",
                       });
                     } else if (row.kind === "staff" && row.label) {
                       onFilterChange({
-                        claimedBy: filters.claimedBy === row.label ? "" : row.label,
+                        claimedBy: row.label,
+                        unresolvedOnly: true,
                       });
                     }
                   }
@@ -165,6 +282,96 @@ export function HelpdeskInquiryStatsPanel({
             }
           />
         </div>
+
+        <div>
+          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+            {tAnalytics("category.title")}
+          </h3>
+          <StatsBarList
+            rows={categoryRows}
+            unitLabel={t("unit")}
+            emptyMessage={tAnalytics("category.empty")}
+            selectedKey={filters.category || null}
+            onSelectKey={
+              onFilterChange
+                ? (category) => onFilterChange({ category })
+                : undefined
+            }
+          />
+        </div>
+
+        <div>
+          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+            {tAnalytics("country.title")}
+          </h3>
+          <StatsBarList
+            rows={countryRows}
+            unitLabel={t("unit")}
+            emptyMessage={tAnalytics("country.empty")}
+            selectedKey={filters.unresolvedOnly ? filters.country || null : null}
+            onSelectKey={
+              onFilterChange
+                ? (country) => {
+                    if (country === "others") {
+                      return;
+                    }
+                    onFilterChange({ country, unresolvedOnly: true });
+                  }
+                : undefined
+            }
+          />
+        </div>
+
+        <div>
+          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+            {tAnalytics("aging.title")}
+          </h3>
+          <StatsBarList
+            rows={agingRows}
+            unitLabel={t("unit")}
+            emptyMessage={tAnalytics("aging.empty")}
+            selectedKey={filters.unresolvedOnly ? filters.aging || null : null}
+            onSelectKey={
+              onFilterChange
+                ? (aging) =>
+                    onFilterChange({
+                      aging: aging as HelpdeskInquiryFilters["aging"],
+                      unresolvedOnly: true,
+                    })
+                : undefined
+            }
+          />
+          {stats.oldestUnclaimedHours !== null && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {tAnalytics("aging.oldest", {
+                hours: Math.floor(stats.oldestUnclaimedHours),
+              })}
+            </p>
+          )}
+        </div>
+
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+            {tAnalytics("intake.receivedTitle")}
+          </summary>
+          <div className="mt-2">
+            <IntakeTrendBarChart
+              columns={intakeColumns}
+              locale={locale}
+              unitLabel={t("unit")}
+              emptyMessage={tAnalytics("intake.empty")}
+              columnAriaLabel={(dateLabel, count) =>
+                tAnalytics("intake.columnLabel", { date: dateLabel, count })
+              }
+              selectedDateKey={filters.receivedOn || null}
+              onSelectDateKey={
+                onFilterChange
+                  ? (dateKey) => onFilterChange({ receivedOn: dateKey })
+                  : undefined
+              }
+            />
+          </div>
+        </details>
 
         <details className="text-xs">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
@@ -212,6 +419,51 @@ export function HelpdeskInquiryStatsPanel({
                     {stats.total > 0
                       ? t("percent", {
                           value: Math.round((row.count / stats.total) * 100),
+                        })
+                      : t("percent", { value: 0 })}
+                  </td>
+                </tr>
+              ))}
+              {categoryRows.map((row) => (
+                <tr key={row.key} className="border-b border-border/60">
+                  <td className="py-1 text-foreground">{row.label}</td>
+                  <td className="py-1 text-right tabular-nums text-foreground">
+                    {row.count}
+                  </td>
+                  <td className="py-1 text-right tabular-nums text-muted-foreground">
+                    {stats.total > 0
+                      ? t("percent", {
+                          value: Math.round((row.count / stats.total) * 100),
+                        })
+                      : t("percent", { value: 0 })}
+                  </td>
+                </tr>
+              ))}
+              {countryRows.map((row) => (
+                <tr key={row.key} className="border-b border-border/60">
+                  <td className="py-1 text-foreground">{row.label}</td>
+                  <td className="py-1 text-right tabular-nums text-foreground">
+                    {row.count}
+                  </td>
+                  <td className="py-1 text-right tabular-nums text-muted-foreground">
+                    {stats.unresolved > 0
+                      ? t("percent", {
+                          value: Math.round((row.count / stats.unresolved) * 100),
+                        })
+                      : t("percent", { value: 0 })}
+                  </td>
+                </tr>
+              ))}
+              {agingRows.map((row) => (
+                <tr key={row.key} className="border-b border-border/60">
+                  <td className="py-1 text-foreground">{row.label}</td>
+                  <td className="py-1 text-right tabular-nums text-foreground">
+                    {row.count}
+                  </td>
+                  <td className="py-1 text-right tabular-nums text-muted-foreground">
+                    {stats.unresolved > 0
+                      ? t("percent", {
+                          value: Math.round((row.count / stats.unresolved) * 100),
                         })
                       : t("percent", { value: 0 })}
                   </td>

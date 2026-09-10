@@ -30,6 +30,10 @@ vi.mock("@/lib/api/inquiries", () => ({
   getAllInquiries: (...args: unknown[]) => getAllInquiriesMock(...args),
 }));
 
+vi.mock("@/lib/api/current-staff", () => ({
+  getCurrentHelpdeskStaffName: async () => null,
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;

@@ -40,6 +40,8 @@ export interface HelpdeskInquiryListClientProps {
    * 未指定時は`new Date()`（従来の挙動）。
    */
   nowIso?: string;
+  /** ログイン中ヘルプデスク担当者の表示名。「自分の担当」KPIの判定に使う。未指定時は集計対象外 */
+  currentStaffName?: string | null;
 }
 
 /**
@@ -61,6 +63,7 @@ export function HelpdeskInquiryListClient({
   locale,
   untitledLabel,
   nowIso,
+  currentStaffName,
 }: HelpdeskInquiryListClientProps) {
   const t = useTranslations("helpdeskInquiries.list");
   const [filters, setFilters] = useState(EMPTY_HELPDESK_INQUIRY_FILTERS);
@@ -89,8 +92,12 @@ export function HelpdeskInquiryListClient({
   );
 
   const stats = useMemo(
-    () => computeHelpdeskInquiryStats(filteredInquiries, { referenceDate }),
-    [filteredInquiries, referenceDate]
+    () =>
+      computeHelpdeskInquiryStats(filteredInquiries, {
+        referenceDate,
+        currentStaffName: currentStaffName ?? undefined,
+      }),
+    [filteredInquiries, referenceDate, currentStaffName]
   );
 
   function handleFilterChange(patch: Partial<HelpdeskInquiryFilters>) {
@@ -126,6 +133,10 @@ export function HelpdeskInquiryListClient({
           <HelpdeskInquiryStatsPanel
             stats={stats}
             statusLabels={statusLabels}
+            categoryLabels={categoryLabels}
+            countryLabels={countryLabels}
+            locale={locale}
+            currentStaffName={currentStaffName}
             shown={filteredInquiries.length}
             total={inquiries.length}
             filters={filters}
