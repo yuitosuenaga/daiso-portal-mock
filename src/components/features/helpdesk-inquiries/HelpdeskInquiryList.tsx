@@ -32,7 +32,8 @@ export async function HelpdeskInquiryList({
     getTranslations("inquiryList.status"),
     getTranslations("helpdeskInquiries.claim"),
     getLocale(),
-    getCurrentHelpdeskStaffName(),
+    // 「自分の担当」絞り込みは付加的な情報であり、取得に失敗しても一覧表示自体は継続する。
+    getCurrentHelpdeskStaffName().catch(() => null),
   ]);
 
   const heading = (

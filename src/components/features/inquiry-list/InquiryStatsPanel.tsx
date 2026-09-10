@@ -247,8 +247,16 @@ export function InquiryStatsPanel({
             selectedStatus={filters.status || null}
             onSelect={
               onFilterChange
-                ? (status) =>
-                    onFilterChange({ status: filters.status === status ? "" : status })
+                ? (status) => {
+                    const nextStatus = filters.status === status ? "" : status;
+                    onFilterChange({
+                      status: nextStatus,
+                      // resolvedはunresolvedOnly(new/in_progressのみ)と両立しないため、
+                      // resolvedを選ぶ場合はunresolvedOnlyを解除して一覧が無言で空にならないようにする。
+                      unresolvedOnly:
+                        nextStatus === "resolved" ? false : filters.unresolvedOnly,
+                    });
+                  }
                 : undefined
             }
           />

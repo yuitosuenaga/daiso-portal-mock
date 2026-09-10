@@ -70,7 +70,8 @@ export async function HelpdeskInquiryKpiPanel({
   try {
     const [inquiries, staffName] = await Promise.all([
       getAllInquiries(),
-      getCurrentHelpdeskStaffName(),
+      // 自分の担当タイルは付加的な情報であり、取得に失敗してもKPIパネル全体は表示を継続する。
+      getCurrentHelpdeskStaffName().catch(() => null),
     ]);
     currentStaffName = staffName;
     stats = computeHelpdeskInquiryStats(inquiries, {

@@ -141,7 +141,14 @@ export function HelpdeskInquiryStatsPanel({
               type="button"
               aria-pressed={unclaimedSelected}
               onClick={() =>
-                onFilterChange({ unclaimedOnly: true, unresolvedOnly: true, urgency: "", aging: "" })
+                onFilterChange({
+                  unclaimedOnly: true,
+                  unresolvedOnly: true,
+                  urgency: "",
+                  aging: "",
+                  // claim===nullとclaim.staffName===Xは両立しないため、対応者絞り込みを解除する。
+                  claimedBy: "",
+                })
               }
               className={cn(
                 "-mx-1 rounded-md px-1 text-left hover:bg-muted/60",
@@ -177,6 +184,7 @@ export function HelpdeskInquiryStatsPanel({
                     unresolvedOnly: true,
                     urgency: "high",
                     aging: "",
+                    claimedBy: "",
                   })
                 }
                 className={cn(
@@ -204,6 +212,7 @@ export function HelpdeskInquiryStatsPanel({
                     unresolvedOnly: true,
                     urgency: "",
                     aging: "over24h",
+                    claimedBy: "",
                   })
                 }
                 className={cn(
@@ -236,6 +245,8 @@ export function HelpdeskInquiryStatsPanel({
                       onFilterChange({
                         claimedBy: currentStaffName,
                         unresolvedOnly: true,
+                        // claim.staffName===Xとclaim===nullは両立しないため、未着手絞り込みを解除する。
+                        unclaimedOnly: false,
                       })
                   : undefined
               }
@@ -254,8 +265,16 @@ export function HelpdeskInquiryStatsPanel({
             selectedStatus={filters.status || null}
             onSelect={
               onFilterChange
-                ? (status) =>
-                    onFilterChange({ status: filters.status === status ? "" : status })
+                ? (status) => {
+                    const nextStatus = filters.status === status ? "" : status;
+                    onFilterChange({
+                      status: nextStatus,
+                      // resolvedはunresolvedOnly(new/in_progressのみ)と両立しないため、
+                      // resolvedを選ぶ場合はunresolvedOnlyを解除して一覧が無言で空にならないようにする。
+                      unresolvedOnly:
+                        nextStatus === "resolved" ? false : filters.unresolvedOnly,
+                    });
+                  }
                 : undefined
             }
           />
@@ -277,11 +296,13 @@ export function HelpdeskInquiryStatsPanel({
                         unresolvedOnly: true,
                         urgency: "",
                         aging: "",
+                        claimedBy: "",
                       });
                     } else if (row.kind === "staff" && row.label) {
                       onFilterChange({
                         claimedBy: row.label,
                         unresolvedOnly: true,
+                        unclaimedOnly: false,
                       });
                     }
                   }

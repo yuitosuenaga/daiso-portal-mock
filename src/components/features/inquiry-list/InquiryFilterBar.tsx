@@ -51,12 +51,16 @@ export function InquiryFilterBar({
           id="inquiry-filter-status"
           value={filters.status}
           options={[{ value: "", label: t("statusAll") }, ...statusOptions]}
-          onChange={(event) =>
+          onChange={(event) => {
+            const status = event.target.value as InquiryFilters["status"];
             onChange({
               ...filters,
-              status: event.target.value as InquiryFilters["status"],
-            })
-          }
+              status,
+              // resolvedはunresolvedOnly(new/in_progressのみ)と両立しないため、
+              // resolvedを選ぶ場合はunresolvedOnlyを解除して一覧が無言で空にならないようにする。
+              unresolvedOnly: status === "resolved" ? false : filters.unresolvedOnly,
+            });
+          }}
         />
       </div>
       <div className="space-y-1">
@@ -97,9 +101,16 @@ export function InquiryFilterBar({
             type="checkbox"
             className="h-4 w-4 rounded border-input"
             checked={filters.unresolvedOnly}
-            onChange={(event) =>
-              onChange({ ...filters, unresolvedOnly: event.target.checked })
-            }
+            onChange={(event) => {
+              const unresolvedOnly = event.target.checked;
+              onChange({
+                ...filters,
+                unresolvedOnly,
+                // 同上の理由でresolvedと両立しないため、有効化時はstatus=resolvedを解除する。
+                status:
+                  unresolvedOnly && filters.status === "resolved" ? "" : filters.status,
+              });
+            }}
           />
           <Label htmlFor="inquiry-filter-unresolved-only" className="cursor-pointer">
             {tAnalytics("filter.unresolvedOnlyLabel")}

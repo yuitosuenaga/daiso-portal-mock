@@ -159,6 +159,7 @@ describe("HelpdeskInquiryStatsPanel", () => {
       unresolvedOnly: true,
       urgency: "",
       aging: "",
+      claimedBy: "",
     });
   });
 
@@ -182,6 +183,7 @@ describe("HelpdeskInquiryStatsPanel", () => {
     expect(onFilterChange).toHaveBeenCalledWith({
       claimedBy: "田中",
       unresolvedOnly: true,
+      unclaimedOnly: false,
     });
   });
 });
