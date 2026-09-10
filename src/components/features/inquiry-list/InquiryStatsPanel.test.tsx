@@ -27,6 +27,12 @@ function buildStats(overrides: Partial<ApplicantInquiryStats> = {}): ApplicantIn
     awaitingResponse: 3,
     highUrgencyUnresolved: 0,
     byUrgencyUnresolved: { high: 0, medium: 4, low: 3 },
+    byCategory: { defect: 3, order: 3, system: 2, other: 2 },
+    unresolvedAging: { lt24h: 3, h24to72: 2, d3to7: 1, gte7d: 1 },
+    oldestUnresolvedHours: null,
+    staleAwaitingResponse: 0,
+    dailyIntake: [],
+    todayCount: 1,
     ...overrides,
   };
 }

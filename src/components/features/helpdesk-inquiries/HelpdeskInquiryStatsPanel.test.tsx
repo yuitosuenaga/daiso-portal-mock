@@ -30,6 +30,14 @@ function buildStats(overrides: Partial<HelpdeskInquiryStats> = {}): HelpdeskInqu
     claimedByStaff: [{ staffName: "田中", count: 5 }],
     claimedTotal: 5,
     todayCount: 1,
+    todayUnresolved: 1,
+    byCategory: { defect: 3, order: 3, system: 2, other: 2 },
+    byCountry: [],
+    unresolvedAging: { lt24h: 3, h24to72: 2, d3to7: 1, gte7d: 1 },
+    staleUnclaimed: 0,
+    oldestUnclaimedHours: null,
+    mine: 0,
+    dailyIntake: [],
     ...overrides,
   };
 }

@@ -1,5 +1,14 @@
 import type { Inquiry } from "@/types/inquiry";
 import type { HelpdeskInquiryStatusBreakdown } from "@/lib/helpdesk-inquiry-stats";
+import {
+  elapsedHoursSince,
+  STALE_AWAITING_RESPONSE_THRESHOLD_HOURS,
+} from "@/lib/inquiry-aging";
+import type { InquiryAgingBucket } from "@/lib/inquiry-aging";
+import { countByCategory, countUnresolvedAging, findOldestUnresolvedHours } from "@/lib/inquiry-breakdown";
+import { computeDailyIntake } from "@/lib/inquiry-intake-trend";
+import type { DailyIntakePoint } from "@/lib/inquiry-intake-trend";
+import { toReferenceDateKey } from "@/lib/reference-date";
 
 const UNRESOLVED_STATUSES: Inquiry["status"][] = ["new", "in_progress"];
 const URGENCY_ORDER: Inquiry["urgency"][] = ["high", "medium", "low"];
@@ -18,6 +27,18 @@ export interface ApplicantInquiryStats {
   highUrgencyUnresolved: number;
   /** 未解決を緊急度別に集計したもの（high/medium/lowの3キー） */
   byUrgencyUnresolved: Record<Inquiry["urgency"], number>;
+  /** 案件種別別の件数（母集団は渡された配列全件） */
+  byCategory: Record<Inquiry["category"], number>;
+  /** 未解決のみを母集団とした滞留時間バケット別件数 */
+  unresolvedAging: Record<InquiryAgingBucket, number>;
+  /** 未解決のうち最古の経過時間（時間）。未解決0件ならnull */
+  oldestUnresolvedHours: number | null;
+  /** status="new"（回答待ち）のまま72時間以上経過している件数 */
+  staleAwaitingResponse: number;
+  /** 直近7日（JST、referenceDate当日を最終日）の送信件数 */
+  dailyIntake: DailyIntakePoint[];
+  /** referenceDate当日（JST）の送信件数。statusは問わない */
+  todayCount: number;
 }
 
 /**
@@ -26,12 +47,16 @@ export interface ApplicantInquiryStats {
  *
  * `unreadInquiryIds`は、ヘルプデスク起点の更新をまだ確認していない問い合わせのID集合
  * （`getUnreadReplyInquiryIds`の結果）。
+ * `referenceDate`は「当日」「滞留時間」の基準時刻（既定は呼び出し時点の現在時刻）。
+ * サーバーとクライアントで基準時刻がずれるとハイドレーション不一致になるため、
+ * ダッシュボード/一覧の呼び出し元はサーバーが決めた同一の時刻を渡すこと。
  */
 export function computeApplicantInquiryStats(
   inquiries: Inquiry[],
-  options: { unreadInquiryIds: ReadonlySet<string> }
+  options: { unreadInquiryIds: ReadonlySet<string>; referenceDate?: Date }
 ): ApplicantInquiryStats {
   const { unreadInquiryIds } = options;
+  const referenceDate = options.referenceDate ?? new Date();
 
   const byStatus: HelpdeskInquiryStatusBreakdown = {
     new: 0,
@@ -41,6 +66,9 @@ export function computeApplicantInquiryStats(
 
   let unread = 0;
   let highUrgencyUnresolved = 0;
+  let staleAwaitingResponse = 0;
+  let todayCount = 0;
+  const todayKey = toReferenceDateKey(referenceDate);
   const byUrgencyUnresolved: Record<Inquiry["urgency"], number> = {
     high: 0,
     medium: 0,
@@ -52,6 +80,17 @@ export function computeApplicantInquiryStats(
 
     if (unreadInquiryIds.has(inquiry.id)) {
       unread += 1;
+    }
+
+    if (toReferenceDateKey(new Date(inquiry.createdAt)) === todayKey) {
+      todayCount += 1;
+    }
+
+    if (
+      inquiry.status === "new" &&
+      elapsedHoursSince(inquiry.createdAt, referenceDate) >= STALE_AWAITING_RESPONSE_THRESHOLD_HOURS
+    ) {
+      staleAwaitingResponse += 1;
     }
 
     if (UNRESOLVED_STATUSES.includes(inquiry.status)) {
@@ -72,6 +111,12 @@ export function computeApplicantInquiryStats(
     awaitingResponse: byStatus.new,
     highUrgencyUnresolved,
     byUrgencyUnresolved,
+    byCategory: countByCategory(inquiries),
+    unresolvedAging: countUnresolvedAging(inquiries, referenceDate),
+    oldestUnresolvedHours: findOldestUnresolvedHours(inquiries, referenceDate),
+    staleAwaitingResponse,
+    dailyIntake: computeDailyIntake(inquiries, referenceDate),
+    todayCount,
   };
 }
 
