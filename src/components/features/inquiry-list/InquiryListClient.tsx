@@ -39,6 +39,8 @@ export interface InquiryListClientProps {
    * 未指定時は`new Date()`（従来の挙動）。
    */
   nowIso?: string;
+  /** ダッシュボード等からのディープリンクで復元された初期フィルタ値。未指定時は空フィルタ */
+  initialFilters?: InquiryFilters;
 }
 
 /**
@@ -60,9 +62,10 @@ export function InquiryListClient({
   unreadInquiryIds = [],
   newBadgeLabel = "",
   nowIso,
+  initialFilters,
 }: InquiryListClientProps) {
   const t = useTranslations("inquiryList.filter");
-  const [filters, setFilters] = useState(EMPTY_INQUIRY_FILTERS);
+  const [filters, setFilters] = useState(initialFilters ?? EMPTY_INQUIRY_FILTERS);
   const listSectionRef = useRef<HTMLDivElement>(null);
 
   const referenceDate = useMemo(

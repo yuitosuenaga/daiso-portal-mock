@@ -42,6 +42,8 @@ export interface HelpdeskInquiryListClientProps {
   nowIso?: string;
   /** ログイン中ヘルプデスク担当者の表示名。「自分の担当」KPIの判定に使う。未指定時は集計対象外 */
   currentStaffName?: string | null;
+  /** ダッシュボード等からのディープリンクで復元された初期フィルタ値。未指定時は空フィルタ */
+  initialFilters?: HelpdeskInquiryFilters;
 }
 
 /**
@@ -64,9 +66,12 @@ export function HelpdeskInquiryListClient({
   untitledLabel,
   nowIso,
   currentStaffName,
+  initialFilters,
 }: HelpdeskInquiryListClientProps) {
   const t = useTranslations("helpdeskInquiries.list");
-  const [filters, setFilters] = useState(EMPTY_HELPDESK_INQUIRY_FILTERS);
+  const [filters, setFilters] = useState(
+    initialFilters ?? EMPTY_HELPDESK_INQUIRY_FILTERS
+  );
   const listSectionRef = useRef<HTMLDivElement>(null);
 
   const referenceDate = useMemo(

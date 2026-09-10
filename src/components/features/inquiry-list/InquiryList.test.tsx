@@ -200,4 +200,29 @@ describe("InquiryList", () => {
 
     expect(emptyText).not.toBe(errorText);
   });
+
+  it("searchParamsから初期フィルタ（unresolved=1）がフィルタバーに反映される", async () => {
+    getInquiriesMock.mockResolvedValueOnce([
+      {
+        id: "inquiry-001",
+        title: "対象",
+        category: "defect",
+        urgency: "high",
+        storeRegion: "関東",
+        originalText: "本文",
+        originalLanguage: "ja",
+        status: "new",
+        createdAt: "2026-06-28T09:15:00.000Z",
+        submittedBy: { companyName: "Test Company", country: "JP" },
+      },
+    ]);
+
+    const jsx = await InquiryList({ searchParams: { unresolved: "1" } });
+    render(jsx);
+
+    const checkbox = screen.getByLabelText(
+      "未解決のみ"
+    ) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+  });
 });

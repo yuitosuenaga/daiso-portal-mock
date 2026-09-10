@@ -122,4 +122,16 @@ describe("HelpdeskInquiryList", () => {
 
     expect(screen.getAllByText(/田中 太郎/).length).toBeGreaterThan(0);
   });
+
+  it("searchParamsから初期フィルタ（unclaimed=1）がフィルタバーに反映される", async () => {
+    getAllInquiriesMock.mockResolvedValueOnce([buildInquiry({ id: "1" })]);
+
+    const jsx = await HelpdeskInquiryList({
+      searchParams: { unclaimed: "1" },
+    });
+    renderWithProvider(jsx);
+
+    const checkbox = screen.getByLabelText("未着手のみ") as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+  });
 });
