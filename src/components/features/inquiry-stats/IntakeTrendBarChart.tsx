@@ -9,7 +9,12 @@ export interface IntakeTrendBarChartProps {
   locale: string;
   unitLabel: string;
   emptyMessage: string;
-  columnAriaLabel: (dateLabel: string, count: number) => string;
+  /**
+   * 各列のaria-label（例: "9/10: 3件"）。dateKey→文字列のMapで渡す。
+   * Server Componentの親（ダッシュボード）から使うため、関数ではなく事前計算済みの
+   * 値を渡す（Client Componentへ関数をpropとして渡すことはできないため）。
+   */
+  ariaLabelByDateKey: Record<string, string>;
   /** 指定すると各列がクリック可能になり、一覧側の状態をページ内で直接トグルする（一覧画面向け） */
   selectedDateKey?: string | null;
   onSelectDateKey?: (dateKey: string) => void;
@@ -27,7 +32,7 @@ export function IntakeTrendBarChart({
   locale,
   unitLabel,
   emptyMessage,
-  columnAriaLabel,
+  ariaLabelByDateKey,
   selectedDateKey = null,
   onSelectDateKey,
   hrefByDateKey,
@@ -39,7 +44,7 @@ export function IntakeTrendBarChart({
       <div className="flex h-24 items-end gap-1">
         {columns.map((column) => {
           const dateLabel = formatIntakeDateLabel(column.dateKey, locale);
-          const ariaLabel = columnAriaLabel(dateLabel, column.count);
+          const ariaLabel = ariaLabelByDateKey[column.dateKey] ?? dateLabel;
           const selected = Boolean(onSelectDateKey) && selectedDateKey === column.dateKey;
 
           const bar = (

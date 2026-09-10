@@ -797,6 +797,7 @@
       "unclaimedLabel": "未着手",
       "todayLabel": "本日受付",
       "todayUnresolvedCaption": "うち未対応 {count}件",
+      "todayNone": "本日の受付はありません",
       "none": "未対応なし",
       "viewAll": "問合せ一覧を見る",
       "error": "未対応件数の取得に失敗しました"
@@ -1244,7 +1245,7 @@
     "intake": {
       "receivedTitle": "直近7日の受付件数",
       "submittedTitle": "直近7日の送信件数",
-      "empty": "直近7日の受付はありません",
+      "empty": "直近7日は対象の問合せはありません",
       "columnLabel": "{date}: {count}件"
     },
     "filter": {

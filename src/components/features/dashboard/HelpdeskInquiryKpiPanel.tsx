@@ -17,7 +17,7 @@ import {
   toCategoryBarRows,
   toCountryBarRows,
 } from "@/lib/inquiry-breakdown";
-import { toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
+import { formatIntakeDateLabel, toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
 import { INQUIRY_AGING_BUCKETS, type InquiryAgingBucket } from "@/lib/inquiry-aging";
 import { buildHelpdeskInquiryListHref } from "@/lib/helpdesk-inquiry-filter-query";
 import { toReferenceDateKey } from "@/lib/reference-date";
@@ -145,6 +145,13 @@ export async function HelpdeskInquiryKpiPanel({
     label: row.label ?? "",
   }));
   const intakeColumns = toIntakeTrendColumns(stats.dailyIntake);
+  const intakeAriaLabelByDateKey: Record<string, string> = {};
+  for (const column of intakeColumns) {
+    intakeAriaLabelByDateKey[column.dateKey] = tAnalytics("intake.columnLabel", {
+      date: formatIntakeDateLabel(column.dateKey, locale),
+      count: column.count,
+    });
+  }
 
   const staffHrefByKey: Record<string, string> = {
     unclaimed: buildHelpdeskInquiryListHref(listHref, {
@@ -234,7 +241,7 @@ export async function HelpdeskInquiryKpiPanel({
           <StatsMetricTile
             label={t("todayLabel")}
             value={stats.todayCount}
-            zeroLabel={t("none")}
+            zeroLabel={t("todayNone")}
             caption={
               stats.todayUnresolved > 0
                 ? t("todayUnresolvedCaption", { count: stats.todayUnresolved })
@@ -347,9 +354,7 @@ export async function HelpdeskInquiryKpiPanel({
               locale={locale}
               unitLabel={tStats("unit")}
               emptyMessage={tAnalytics("intake.empty")}
-              columnAriaLabel={(dateLabel, count) =>
-                tAnalytics("intake.columnLabel", { date: dateLabel, count })
-              }
+              ariaLabelByDateKey={intakeAriaLabelByDateKey}
               hrefByDateKey={intakeHrefByDateKey}
             />
           </div>

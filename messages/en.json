@@ -797,6 +797,7 @@
       "unclaimedLabel": "Unclaimed",
       "todayLabel": "Received today",
       "todayUnresolvedCaption": "{count} of these unresolved",
+      "todayNone": "No inquiries received today",
       "none": "No unresolved items",
       "viewAll": "View all inquiries",
       "error": "Failed to load the unresolved count"

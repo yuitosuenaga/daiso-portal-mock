@@ -12,7 +12,7 @@ import {
 } from "@/lib/inquiry-stats";
 import { toStatusSegments } from "@/lib/helpdesk-inquiry-stats";
 import { toCategoryBarRows } from "@/lib/inquiry-breakdown";
-import { toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
+import { formatIntakeDateLabel, toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
 import { buildInquiryListHref } from "@/lib/inquiry-filter-query";
 import { toReferenceDateKey } from "@/lib/reference-date";
 import { INQUIRY_CATEGORY_CODES } from "@/lib/constants/inquiry-options";
@@ -118,6 +118,13 @@ export async function ApplicantInquiryKpiPanel({
     label: row.label ?? "",
   }));
   const intakeColumns = toIntakeTrendColumns(stats.dailyIntake);
+  const intakeAriaLabelByDateKey: Record<string, string> = {};
+  for (const column of intakeColumns) {
+    intakeAriaLabelByDateKey[column.dateKey] = tAnalytics("intake.columnLabel", {
+      date: formatIntakeDateLabel(column.dateKey, locale),
+      count: column.count,
+    });
+  }
 
   const categoryHrefByKey: Record<string, string> = {};
   for (const row of categoryRows) {
@@ -242,9 +249,7 @@ export async function ApplicantInquiryKpiPanel({
               locale={locale}
               unitLabel={tListStats("unit")}
               emptyMessage={tAnalytics("intake.empty")}
-              columnAriaLabel={(dateLabel, count) =>
-                tAnalytics("intake.columnLabel", { date: dateLabel, count })
-              }
+              ariaLabelByDateKey={intakeAriaLabelByDateKey}
               hrefByDateKey={intakeHrefByDateKey}
             />
           </div>

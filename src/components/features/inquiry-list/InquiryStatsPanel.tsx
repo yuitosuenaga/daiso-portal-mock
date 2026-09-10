@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toStatusSegments } from "@/lib/helpdesk-inquiry-stats";
 import { toUrgencyRows, type ApplicantInquiryStats } from "@/lib/inquiry-stats";
 import { toAgingBarRows, toCategoryBarRows } from "@/lib/inquiry-breakdown";
-import { toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
+import { formatIntakeDateLabel, toIntakeTrendColumns } from "@/lib/inquiry-intake-trend";
 import { INQUIRY_AGING_BUCKETS, type InquiryAgingBucket } from "@/lib/inquiry-aging";
 import type { InquiryFilters } from "@/lib/inquiry-filter";
 import { StatusBreakdownBar } from "@/components/features/inquiry-stats/StatusBreakdownBar";
@@ -80,6 +80,13 @@ export function InquiryStatsPanel({
     label: row.label ?? "",
   }));
   const intakeColumns = toIntakeTrendColumns(stats.dailyIntake);
+  const intakeAriaLabelByDateKey: Record<string, string> = {};
+  for (const column of intakeColumns) {
+    intakeAriaLabelByDateKey[column.dateKey] = tAnalytics("intake.columnLabel", {
+      date: formatIntakeDateLabel(column.dateKey, locale),
+      count: column.count,
+    });
+  }
 
   const unreadSelected = filters.unreadOnly;
   const highUrgencySelected = filters.urgency === "high" && filters.unresolvedOnly;
@@ -323,9 +330,7 @@ export function InquiryStatsPanel({
               locale={locale}
               unitLabel={t("unit")}
               emptyMessage={tAnalytics("intake.empty")}
-              columnAriaLabel={(dateLabel, count) =>
-                tAnalytics("intake.columnLabel", { date: dateLabel, count })
-              }
+              ariaLabelByDateKey={intakeAriaLabelByDateKey}
               selectedDateKey={filters.receivedOn || null}
               onSelectDateKey={
                 onFilterChange
