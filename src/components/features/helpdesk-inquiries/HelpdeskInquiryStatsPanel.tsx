@@ -109,7 +109,10 @@ export function HelpdeskInquiryStatsPanel({
   const unclaimedSelected =
     filters.unclaimedOnly && filters.unresolvedOnly && !filters.urgency && filters.aging === "";
   const highUrgencyAlertSelected =
-    filters.unclaimedOnly && filters.unresolvedOnly && filters.urgency === "high";
+    filters.unclaimedOnly &&
+    filters.unresolvedOnly &&
+    filters.urgency === "high" &&
+    filters.aging === "";
   const staleUnclaimedSelected =
     filters.unclaimedOnly && filters.unresolvedOnly && filters.aging === "over24h";
   const mineSelected =
@@ -336,7 +339,7 @@ export function HelpdeskInquiryStatsPanel({
             rows={countryRows}
             unitLabel={t("unit")}
             emptyMessage={tAnalytics("country.empty")}
-            selectedKey={filters.unresolvedOnly ? filters.country || null : null}
+            selectedKey={filters.country || null}
             onSelectKey={
               onFilterChange
                 ? (country) => {
@@ -358,7 +361,7 @@ export function HelpdeskInquiryStatsPanel({
             rows={agingRows}
             unitLabel={t("unit")}
             emptyMessage={tAnalytics("aging.empty")}
-            selectedKey={filters.unresolvedOnly ? filters.aging || null : null}
+            selectedKey={filters.aging || null}
             onSelectKey={
               onFilterChange
                 ? (aging) =>

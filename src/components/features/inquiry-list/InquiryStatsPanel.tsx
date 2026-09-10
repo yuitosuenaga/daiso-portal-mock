@@ -271,7 +271,7 @@ export function InquiryStatsPanel({
             urgencyLabels={urgencyLabels}
             unitLabel={t("unit")}
             emptyMessage={t("urgencyBreakdownEmpty")}
-            selectedUrgency={filters.unresolvedOnly ? filters.urgency || null : null}
+            selectedUrgency={filters.urgency || null}
             onSelect={
               onFilterChange
                 ? (urgency) => onFilterChange({ urgency, unresolvedOnly: true })
@@ -308,7 +308,7 @@ export function InquiryStatsPanel({
             rows={agingRows}
             unitLabel={t("unit")}
             emptyMessage={tAnalytics("aging.empty")}
-            selectedKey={filters.unresolvedOnly ? filters.aging || null : null}
+            selectedKey={filters.aging || null}
             onSelectKey={
               onFilterChange
                 ? (aging) =>

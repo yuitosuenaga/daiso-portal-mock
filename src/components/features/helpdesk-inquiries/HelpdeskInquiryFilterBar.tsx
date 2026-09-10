@@ -151,6 +151,10 @@ export function HelpdeskInquiryFilterBar({
                 unclaimedOnly,
                 // claim===nullとclaim.staffName===Xは両立しないため、有効化時は対応者指定を解除する。
                 claimedBy: unclaimedOnly ? "" : filters.claimedBy,
+                // unclaimedOnlyはresolvedを除外しない仕様のため、有効化時はunresolvedOnlyも
+                // 同時にセットしないと「未着手」の集計値（未対応かつclaim===null）と
+                // 一覧件数（resolvedも含みうる）がずれてしまう。
+                unresolvedOnly: unclaimedOnly ? true : filters.unresolvedOnly,
               });
             }}
           />
