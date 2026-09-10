@@ -730,14 +730,6 @@
     }
   },
   "dashboard": {
-    "inquiryKpi": {
-      "title": "Your inquiry status",
-      "todayLabel": "Submitted today",
-      "todayNone": "No inquiries submitted today",
-      "viewAll": "View inquiries",
-      "error": "Failed to load inquiry status",
-      "empty": "No inquiries yet"
-    },
     "inquiryForm": {
       "title": "Inquiry",
       "description": "Submit a new inquiry."
@@ -774,6 +766,15 @@
       "title": "Latest Announcements",
       "empty": "There are no announcements to show.",
       "error": "Failed to load announcements.",
+      "viewAll": "View all announcements"
+    },
+    "announcementSummary": {
+      "title": "Announcement status",
+      "unconfirmedLabel": "Unconfirmed",
+      "actionPendingLabel": "Confirmed, action pending",
+      "totalCaption": "{count} announcements in scope",
+      "empty": "There are no announcements to show.",
+      "error": "Failed to load announcement status.",
       "viewAll": "View all announcements"
     },
     "reminderAnnouncements": {

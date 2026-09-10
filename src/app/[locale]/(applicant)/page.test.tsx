@@ -31,16 +31,17 @@ vi.mock("@/lib/api/announcements", () => ({
 
 vi.mock("@/lib/api/announcement-tracking", () => ({
   isReminderPendingForCompany: vi.fn().mockResolvedValue(false),
+  getAnnouncementSelfStatuses: vi.fn().mockRejectedValue(new Error("mock")),
 }));
 
 vi.mock("@/lib/api/inquiries", () => ({
   getInquiryStatusSummary: vi.fn().mockRejectedValue(new Error("mock")),
   getAllInquiryStatusSummary: vi.fn().mockRejectedValue(new Error("mock")),
-  getInquiries: vi.fn().mockRejectedValue(new Error("mock")),
-  getUnreadReplyInquiryIds: vi.fn().mockRejectedValue(new Error("mock")),
 }));
 
 import DashboardPage from "@/app/[locale]/(applicant)/page";
+import { AnnouncementSelfSummaryPanel } from "@/components/features/dashboard/AnnouncementSelfSummaryPanel";
+import { AnnouncementsPreviewPanel } from "@/components/features/dashboard/AnnouncementsPreviewPanel";
 import { InquiryListCard } from "@/components/features/dashboard/InquiryListCard";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 
@@ -73,11 +74,39 @@ function unwrapCard(node: ReactElement): CardIdentity {
   throw new Error(`予期しないノード種別: ${String(node.type)}`);
 }
 
+/** React要素ツリーを再帰的に辿り、指定した`type`を持つノードが含まれるかを判定する。 */
+function containsComponentType(node: unknown, type: unknown): boolean {
+  if (node === null || typeof node !== "object" || !("type" in node)) {
+    return false;
+  }
+  const element = node as ReactElement;
+  if (element.type === type) {
+    return true;
+  }
+  const children = (element.props as { children?: unknown }).children;
+  if (Array.isArray(children)) {
+    return children.some((child) => containsComponentType(child, type));
+  }
+  return containsComponentType(children, type);
+}
+
 describe("DashboardPage", () => {
+  it("お知らせサマリと最新のお知らせプレビューがファーストビューの同じ親要素内に同居する", async () => {
+    const page = (await DashboardPage()) as ReactElement;
+    const rootChildren = (page.props as { children: ReactElement[] }).children;
+    const announcementsBlock = rootChildren[0];
+
+    expect(containsComponentType(announcementsBlock, AnnouncementSelfSummaryPanel)).toBe(
+      true
+    );
+    expect(containsComponentType(announcementsBlock, AnnouncementsPreviewPanel)).toBe(true);
+  });
+
+
   it("お知らせブロックの下に、資料共有→売場検討会（動画）→問合せ申請→マニュアル→POP→問合せ一覧→リンク→よくある質問の順でブロックを表示する（お知らせカードはプレビューパネルと重複するため表示しない）", async () => {
     const page = (await DashboardPage()) as ReactElement;
     const rootChildren = (page.props as { children: ReactElement[] }).children;
-    const gridDiv = rootChildren[3];
+    const gridDiv = rootChildren[1];
     const gridChildren = (gridDiv.props as { children: ReactElement[] })
       .children;
 

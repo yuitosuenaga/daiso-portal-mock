@@ -24,6 +24,7 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     announcementReadReceipt: {
       findUnique: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       upsert: vi.fn(),
     },
     document: {
@@ -55,6 +56,7 @@ import {
   findAnnouncementVisibleToCountry,
   getAnnouncementRecipientStatuses,
   getAnnouncementSelfStatusForCompany,
+  getAnnouncementSelfStatuses,
   getAnnouncementTrackingSummary,
   getAnnouncementUserReadStatuses,
   getUserSelfConfirmation,
@@ -1685,6 +1687,102 @@ describe("getAnnouncementSelfStatusForCompany", () => {
     const result = await getAnnouncementSelfStatusForCompany("missing", "vn-daiso-vietnam");
 
     expect(result).toEqual({ completedAt: null });
+  });
+});
+
+describe("getAnnouncementSelfStatuses", () => {
+  it("空配列を渡した場合はクエリを発行せず空のMapを返す", async () => {
+    const result = await getAnnouncementSelfStatuses([], "user-1", "vn-daiso-vietnam");
+
+    expect(result.size).toBe(0);
+    expect(prisma.announcementReadReceipt.findMany).not.toHaveBeenCalled();
+    expect(prisma.announcementRecipient.findMany).not.toHaveBeenCalled();
+  });
+
+  it("お知らせ件数に関わらずfindManyが各1回だけ呼ばれる（N+1回避）", async () => {
+    vi.mocked(prisma.announcementReadReceipt.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([] as never);
+
+    await getAnnouncementSelfStatuses(
+      [
+        { id: "a1", targeting: { scope: "all" } },
+        { id: "a2", targeting: { scope: "all" } },
+        { id: "a3", targeting: { scope: "all" } },
+      ],
+      "user-1",
+      "vn-daiso-vietnam"
+    );
+
+    expect(prisma.announcementReadReceipt.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.announcementRecipient.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("本人が確認済み・自社の対象担当者全員が実施済みのお知らせはconfirmedAt/completedAtが返る", async () => {
+    vi.mocked(prisma.announcementReadReceipt.findMany).mockResolvedValue([
+      { announcementId: "a1", confirmedAt: new Date("2026-01-01T00:00:00.000Z") },
+    ] as never);
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      {
+        id: "r1",
+        company: { country: "VN" },
+        statuses: [{ announcementId: "a1", completedAt: new Date("2026-01-02T00:00:00.000Z") }],
+      },
+    ] as never);
+
+    const result = await getAnnouncementSelfStatuses(
+      [{ id: "a1", targeting: { scope: "all" } }],
+      "user-1",
+      "vn-daiso-vietnam"
+    );
+
+    expect(result.get("a1")).toEqual({
+      confirmedAt: "2026-01-01T00:00:00.000Z",
+      completedAt: "2026-01-02T00:00:00.000Z",
+    });
+  });
+
+  it("1人でも未実施の担当者がいる場合はcompletedAtがnullになる", async () => {
+    vi.mocked(prisma.announcementReadReceipt.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      {
+        id: "r1",
+        company: { country: "VN" },
+        statuses: [{ announcementId: "a1", completedAt: new Date("2026-01-02T00:00:00.000Z") }],
+      },
+      {
+        id: "r2",
+        company: { country: "VN" },
+        statuses: [],
+      },
+    ] as never);
+
+    const result = await getAnnouncementSelfStatuses(
+      [{ id: "a1", targeting: { scope: "all" } }],
+      "user-1",
+      "vn-daiso-vietnam"
+    );
+
+    expect(result.get("a1")?.completedAt).toBeNull();
+    expect(result.get("a1")?.confirmedAt).toBeNull();
+  });
+
+  it("配信対象国に自社の国が含まれない場合は対象0件としてcompletedAtがnullになる", async () => {
+    vi.mocked(prisma.announcementReadReceipt.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      {
+        id: "r1",
+        company: { country: "JP" },
+        statuses: [{ announcementId: "a1", completedAt: new Date("2026-01-02T00:00:00.000Z") }],
+      },
+    ] as never);
+
+    const result = await getAnnouncementSelfStatuses(
+      [{ id: "a1", targeting: { scope: "countries", countries: ["VN"] } }],
+      "user-1",
+      "jp-daiso-japan-trading"
+    );
+
+    expect(result.get("a1")).toEqual({ confirmedAt: null, completedAt: null });
   });
 });
 

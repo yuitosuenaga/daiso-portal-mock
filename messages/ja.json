@@ -730,14 +730,6 @@
     }
   },
   "dashboard": {
-    "inquiryKpi": {
-      "title": "自社の問合せ状況",
-      "todayLabel": "本日送信",
-      "todayNone": "本日の送信はありません",
-      "viewAll": "問合せ一覧を見る",
-      "error": "問合せ状況の取得に失敗しました",
-      "empty": "問合せはまだありません"
-    },
     "inquiryForm": {
       "title": "問合せ",
       "description": "新しい問合せを送信します。"
@@ -774,6 +766,15 @@
       "title": "最新のお知らせ",
       "empty": "表示できるお知らせはありません。",
       "error": "お知らせの取得に失敗しました。",
+      "viewAll": "お知らせ一覧を見る"
+    },
+    "announcementSummary": {
+      "title": "お知らせの対応状況",
+      "unconfirmedLabel": "未確認",
+      "actionPendingLabel": "確認済み・対応未完了",
+      "totalCaption": "対象のお知らせ {count}件",
+      "empty": "表示できるお知らせはありません。",
+      "error": "お知らせの対応状況の取得に失敗しました。",
       "viewAll": "お知らせ一覧を見る"
     },
     "reminderAnnouncements": {
