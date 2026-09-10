@@ -730,6 +730,14 @@
     }
   },
   "dashboard": {
+    "inquiryKpi": {
+      "title": "自社の問合せ状況",
+      "todayLabel": "本日送信",
+      "todayNone": "本日の送信はありません",
+      "viewAll": "問合せ一覧を見る",
+      "error": "問合せ状況の取得に失敗しました",
+      "empty": "問合せはまだありません"
+    },
     "inquiryForm": {
       "title": "問合せ",
       "description": "新しい問合せを送信します。"
@@ -784,9 +792,11 @@
       "reference": "参考情報"
     },
     "kpi": {
-      "title": "未対応件数",
+      "title": "問合せ状況",
       "unresolvedLabel": "全社の未対応件数",
-      "todayLabel": "本日受付の未対応件数",
+      "unclaimedLabel": "未着手",
+      "todayLabel": "本日受付",
+      "todayUnresolvedCaption": "うち未対応 {count}件",
       "none": "未対応なし",
       "viewAll": "問合せ一覧を見る",
       "error": "未対応件数の取得に失敗しました"

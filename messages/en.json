@@ -730,6 +730,14 @@
     }
   },
   "dashboard": {
+    "inquiryKpi": {
+      "title": "Your inquiry status",
+      "todayLabel": "Submitted today",
+      "todayNone": "No inquiries submitted today",
+      "viewAll": "View inquiries",
+      "error": "Failed to load inquiry status",
+      "empty": "No inquiries yet"
+    },
     "inquiryForm": {
       "title": "Inquiry",
       "description": "Submit a new inquiry."
@@ -784,9 +792,11 @@
       "reference": "Reference"
     },
     "kpi": {
-      "title": "Unresolved Count",
+      "title": "Inquiry status",
       "unresolvedLabel": "Total unresolved (all companies)",
-      "todayLabel": "Unresolved received today",
+      "unclaimedLabel": "Unclaimed",
+      "todayLabel": "Received today",
+      "todayUnresolvedCaption": "{count} of these unresolved",
       "none": "No unresolved items",
       "viewAll": "View all inquiries",
       "error": "Failed to load the unresolved count"

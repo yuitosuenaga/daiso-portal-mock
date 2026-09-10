@@ -17,12 +17,19 @@ import {
   AnnouncementsPreviewPanelSkeleton,
 } from "@/components/features/dashboard/AnnouncementsPreviewPanel";
 import { ReminderAnnouncementsPanel } from "@/components/features/dashboard/ReminderAnnouncementsPanel";
+import {
+  ApplicantInquiryKpiPanel,
+  ApplicantInquiryKpiPanelSkeleton,
+} from "@/components/features/dashboard/ApplicantInquiryKpiPanel";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={<ApplicantInquiryKpiPanelSkeleton />}>
+        <ApplicantInquiryKpiPanel listHref="/inquiry" />
+      </Suspense>
       <Suspense fallback={null}>
         <ReminderAnnouncementsPanel />
       </Suspense>

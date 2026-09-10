@@ -24,6 +24,10 @@ vi.mock("@/lib/api/inquiries", () => ({
   getAllInquiries: vi.fn().mockRejectedValue(new Error("mock")),
 }));
 
+vi.mock("@/lib/api/current-staff", () => ({
+  getCurrentHelpdeskStaffName: vi.fn().mockResolvedValue(null),
+}));
+
 import HelpdeskHomePage from "@/app/[locale]/helpdesk/(dashboard)/page";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 

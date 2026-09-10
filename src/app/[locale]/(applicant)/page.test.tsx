@@ -36,6 +36,8 @@ vi.mock("@/lib/api/announcement-tracking", () => ({
 vi.mock("@/lib/api/inquiries", () => ({
   getInquiryStatusSummary: vi.fn().mockRejectedValue(new Error("mock")),
   getAllInquiryStatusSummary: vi.fn().mockRejectedValue(new Error("mock")),
+  getInquiries: vi.fn().mockRejectedValue(new Error("mock")),
+  getUnreadReplyInquiryIds: vi.fn().mockRejectedValue(new Error("mock")),
 }));
 
 import DashboardPage from "@/app/[locale]/(applicant)/page";
@@ -75,7 +77,7 @@ describe("DashboardPage", () => {
   it("お知らせブロックの下に、資料共有→売場検討会（動画）→問合せ申請→マニュアル→POP→問合せ一覧→リンク→よくある質問の順でブロックを表示する（お知らせカードはプレビューパネルと重複するため表示しない）", async () => {
     const page = (await DashboardPage()) as ReactElement;
     const rootChildren = (page.props as { children: ReactElement[] }).children;
-    const gridDiv = rootChildren[2];
+    const gridDiv = rootChildren[3];
     const gridChildren = (gridDiv.props as { children: ReactElement[] })
       .children;
 
