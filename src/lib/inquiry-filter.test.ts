@@ -149,4 +149,75 @@ describe("filterInquiries", () => {
 
     expect(result).toEqual([]);
   });
+
+  it("unresolvedOnly=trueのとき、new・in_progressのみ返す（resolvedは除外）", () => {
+    const result = filterInquiries(inquiries, {
+      ...EMPTY_INQUIRY_FILTERS,
+      unresolvedOnly: true,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["1", "2"]);
+  });
+
+  it("agingでバケット完全一致で絞り込む", () => {
+    const referenceDate = new Date("2026-06-04T00:00:00.000Z");
+    const target = [
+      buildInquiry({ id: "recent", createdAt: "2026-06-03T12:00:00.000Z" }),
+      buildInquiry({ id: "old", createdAt: "2026-05-01T00:00:00.000Z" }),
+    ];
+
+    const result = filterInquiries(
+      target,
+      { ...EMPTY_INQUIRY_FILTERS, aging: "lt24h" },
+      { referenceDate }
+    );
+
+    expect(result.map((item) => item.id)).toEqual(["recent"]);
+  });
+
+  it("agingでプリセット（over72h）による絞り込みができる", () => {
+    const referenceDate = new Date("2026-06-10T00:00:00.000Z");
+    const target = [
+      buildInquiry({ id: "stale", createdAt: "2026-06-01T00:00:00.000Z" }),
+      buildInquiry({ id: "fresh", createdAt: "2026-06-09T12:00:00.000Z" }),
+    ];
+
+    const result = filterInquiries(
+      target,
+      { ...EMPTY_INQUIRY_FILTERS, aging: "over72h" },
+      { referenceDate }
+    );
+
+    expect(result.map((item) => item.id)).toEqual(["stale"]);
+  });
+
+  it("receivedOnで受付日（日本時間基準）が一致する問い合わせのみ返す", () => {
+    const target = [
+      buildInquiry({ id: "jst-morning", createdAt: "2026-06-01T23:30:00.000Z" }),
+      buildInquiry({ id: "other-day", createdAt: "2026-06-01T10:00:00.000Z" }),
+    ];
+
+    const result = filterInquiries(target, {
+      ...EMPTY_INQUIRY_FILTERS,
+      receivedOn: "2026-06-02",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["jst-morning"]);
+  });
+
+  it("unresolvedOnlyとurgencyはAND条件で適用される", () => {
+    const target = [
+      buildInquiry({ id: "match", status: "new", urgency: "high" }),
+      buildInquiry({ id: "wrong-status", status: "resolved", urgency: "high" }),
+      buildInquiry({ id: "wrong-urgency", status: "new", urgency: "low" }),
+    ];
+
+    const result = filterInquiries(target, {
+      ...EMPTY_INQUIRY_FILTERS,
+      unresolvedOnly: true,
+      urgency: "high",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["match"]);
+  });
 });

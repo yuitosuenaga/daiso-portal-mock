@@ -10,6 +10,7 @@ import {
   type HelpdeskInquiryFilters,
 } from "@/lib/helpdesk-inquiry-list";
 import { computeHelpdeskInquiryStats } from "@/lib/helpdesk-inquiry-stats";
+import { toggleFilterPatch } from "@/lib/filter-toggle";
 import { HelpdeskInquiryFilterBar } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar";
 import { HelpdeskInquiryListItem } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryListItem";
 import { HelpdeskInquiryStatsPanel } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryStatsPanel";
@@ -33,24 +34,12 @@ export interface HelpdeskInquiryListClientProps {
   claimedByLabel: string;
   locale: string;
   untitledLabel: string;
-}
-
-/**
- * パッチで指定されたキーが既に同じ値になっている場合は、そのキーだけ空値に戻す（トグル解除）。
- * サマリパネルの各要素（ボタン化されたグラフの区間・行）を再クリックしたときに、
- * 絞り込みを解除できるようにするための処理。
- */
-function toggleFilterPatch(
-  current: HelpdeskInquiryFilters,
-  patch: Partial<HelpdeskInquiryFilters>
-): Partial<HelpdeskInquiryFilters> {
-  const resolved: Partial<HelpdeskInquiryFilters> = { ...patch };
-  for (const key of Object.keys(patch) as (keyof HelpdeskInquiryFilters)[]) {
-    if (current[key] === patch[key]) {
-      (resolved as Record<string, unknown>)[key] = EMPTY_HELPDESK_INQUIRY_FILTERS[key];
-    }
-  }
-  return resolved;
+  /**
+   * 集計・フィルタ判定の基準時刻（ISO文字列）。ダッシュボードから渡された基準時刻を使うことで、
+   * サーバー描画時とクライアント描画時で「現在時刻」がずれてハイドレーション不一致にならないようにする。
+   * 未指定時は`new Date()`（従来の挙動）。
+   */
+  nowIso?: string;
 }
 
 /**
@@ -71,10 +60,16 @@ export function HelpdeskInquiryListClient({
   claimedByLabel,
   locale,
   untitledLabel,
+  nowIso,
 }: HelpdeskInquiryListClientProps) {
   const t = useTranslations("helpdeskInquiries.list");
   const [filters, setFilters] = useState(EMPTY_HELPDESK_INQUIRY_FILTERS);
   const listSectionRef = useRef<HTMLDivElement>(null);
+
+  const referenceDate = useMemo(
+    () => (nowIso ? new Date(nowIso) : new Date()),
+    [nowIso]
+  );
 
   const staffOptions = useMemo<SelectOption[]>(() => {
     const staffNames = new Set<string>();
@@ -89,17 +84,20 @@ export function HelpdeskInquiryListClient({
   }, [inquiries]);
 
   const filteredInquiries = useMemo(
-    () => filterInquiriesForHelpdesk(inquiries, filters),
-    [inquiries, filters]
+    () => filterInquiriesForHelpdesk(inquiries, filters, { referenceDate }),
+    [inquiries, filters, referenceDate]
   );
 
   const stats = useMemo(
-    () => computeHelpdeskInquiryStats(filteredInquiries),
-    [filteredInquiries]
+    () => computeHelpdeskInquiryStats(filteredInquiries, { referenceDate }),
+    [filteredInquiries, referenceDate]
   );
 
   function handleFilterChange(patch: Partial<HelpdeskInquiryFilters>) {
-    setFilters((prev) => ({ ...prev, ...toggleFilterPatch(prev, patch) }));
+    setFilters((prev) => ({
+      ...prev,
+      ...toggleFilterPatch(prev, patch, EMPTY_HELPDESK_INQUIRY_FILTERS),
+    }));
     listSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",

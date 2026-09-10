@@ -10,6 +10,7 @@ import {
   type InquiryFilters,
 } from "@/lib/inquiry-filter";
 import { computeApplicantInquiryStats } from "@/lib/inquiry-stats";
+import { toggleFilterPatch } from "@/lib/filter-toggle";
 import { InquiryFilterBar } from "@/components/features/inquiry-list/InquiryFilterBar";
 import { InquiryListItem } from "@/components/features/inquiry-list/InquiryListItem";
 import { InquiryStatsPanel } from "@/components/features/inquiry-list/InquiryStatsPanel";
@@ -32,24 +33,12 @@ export interface InquiryListClientProps {
   unreadInquiryIds?: string[];
   /** 新着インジケーターの表示文言 */
   newBadgeLabel?: string;
-}
-
-/**
- * パッチで指定されたキーが既に同じ値になっている場合は、そのキーだけ空値に戻す（トグル解除）。
- * サマリパネルの各要素（ボタン化されたグラフの区間・行）を再クリックしたときに、
- * 絞り込みを解除できるようにするための処理。
- */
-function toggleFilterPatch(
-  current: InquiryFilters,
-  patch: Partial<InquiryFilters>
-): Partial<InquiryFilters> {
-  const resolved: Partial<InquiryFilters> = { ...patch };
-  for (const key of Object.keys(patch) as (keyof InquiryFilters)[]) {
-    if (current[key] === patch[key]) {
-      (resolved as Record<string, unknown>)[key] = EMPTY_INQUIRY_FILTERS[key];
-    }
-  }
-  return resolved;
+  /**
+   * 集計・フィルタ判定の基準時刻（ISO文字列）。ダッシュボードから渡された基準時刻を使うことで、
+   * サーバー描画時とクライアント描画時で「現在時刻」がずれてハイドレーション不一致にならないようにする。
+   * 未指定時は`new Date()`（従来の挙動）。
+   */
+  nowIso?: string;
 }
 
 /**
@@ -70,10 +59,16 @@ export function InquiryListClient({
   untitledLabel,
   unreadInquiryIds = [],
   newBadgeLabel = "",
+  nowIso,
 }: InquiryListClientProps) {
   const t = useTranslations("inquiryList.filter");
   const [filters, setFilters] = useState(EMPTY_INQUIRY_FILTERS);
   const listSectionRef = useRef<HTMLDivElement>(null);
+
+  const referenceDate = useMemo(
+    () => (nowIso ? new Date(nowIso) : new Date()),
+    [nowIso]
+  );
 
   const unreadInquiryIdSet = useMemo(
     () => new Set(unreadInquiryIds),
@@ -81,20 +76,28 @@ export function InquiryListClient({
   );
 
   const filteredInquiries = useMemo(
-    () => filterInquiries(inquiries, filters, { unreadInquiryIds: unreadInquiryIdSet }),
-    [inquiries, filters, unreadInquiryIdSet]
+    () =>
+      filterInquiries(inquiries, filters, {
+        unreadInquiryIds: unreadInquiryIdSet,
+        referenceDate,
+      }),
+    [inquiries, filters, unreadInquiryIdSet, referenceDate]
   );
 
   const stats = useMemo(
     () =>
       computeApplicantInquiryStats(filteredInquiries, {
         unreadInquiryIds: unreadInquiryIdSet,
+        referenceDate,
       }),
-    [filteredInquiries, unreadInquiryIdSet]
+    [filteredInquiries, unreadInquiryIdSet, referenceDate]
   );
 
   function handleFilterChange(patch: Partial<InquiryFilters>) {
-    setFilters((prev) => ({ ...prev, ...toggleFilterPatch(prev, patch) }));
+    setFilters((prev) => ({
+      ...prev,
+      ...toggleFilterPatch(prev, patch, EMPTY_INQUIRY_FILTERS),
+    }));
     listSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",

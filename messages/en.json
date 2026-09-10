@@ -1204,6 +1204,40 @@
       "tableHeaderShare": "Share"
     }
   },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "Unresolved aging",
+      "lt24h": "Within 24 hours",
+      "h24to72": "24-72 hours",
+      "d3to7": "3-7 days",
+      "gte7d": "7 days or more",
+      "over24h": "24 hours or more",
+      "over72h": "72 hours or more",
+      "empty": "No unresolved inquiries",
+      "oldest": "Oldest unresolved: {hours}h since received"
+    },
+    "category": {
+      "title": "Breakdown by category",
+      "empty": "No matching inquiries"
+    },
+    "country": {
+      "title": "Unresolved by country",
+      "others": "{count} more countries",
+      "empty": "No unresolved inquiries"
+    },
+    "intake": {
+      "receivedTitle": "Received in the last 7 days",
+      "submittedTitle": "Submitted in the last 7 days",
+      "empty": "No inquiries in the last 7 days",
+      "columnLabel": "{date}: {count}"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "Unresolved only",
+      "agingLabel": "Aging",
+      "agingAll": "All aging",
+      "receivedOnLabel": "Received on"
+    }
+  },
   "links": {
     "list": {
       "title": "Links",

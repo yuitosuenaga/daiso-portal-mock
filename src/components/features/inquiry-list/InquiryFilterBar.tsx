@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import type { InquiryFilters } from "@/lib/inquiry-filter";
+import { INQUIRY_AGING_FILTER_VALUES } from "@/lib/inquiry-aging";
 
 export interface InquiryFilterBarProps {
   filters: InquiryFilters;
@@ -29,9 +30,10 @@ export function InquiryFilterBar({
   urgencyOptions,
 }: InquiryFilterBarProps) {
   const t = useTranslations("inquiryList.filter");
+  const tAnalytics = useTranslations("inquiryAnalytics");
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="space-y-1">
         <Label htmlFor="inquiry-filter-keyword">{t("keywordLabel")}</Label>
         <Input
@@ -85,6 +87,55 @@ export function InquiryFilterBar({
               ...filters,
               urgency: event.target.value as InquiryFilters["urgency"],
             })
+          }
+        />
+      </div>
+      <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
+          <input
+            id="inquiry-filter-unresolved-only"
+            type="checkbox"
+            className="h-4 w-4 rounded border-input"
+            checked={filters.unresolvedOnly}
+            onChange={(event) =>
+              onChange({ ...filters, unresolvedOnly: event.target.checked })
+            }
+          />
+          <Label htmlFor="inquiry-filter-unresolved-only" className="cursor-pointer">
+            {tAnalytics("filter.unresolvedOnlyLabel")}
+          </Label>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="inquiry-filter-aging">{tAnalytics("filter.agingLabel")}</Label>
+        <Select
+          id="inquiry-filter-aging"
+          value={filters.aging}
+          options={[
+            { value: "", label: tAnalytics("filter.agingAll") },
+            ...INQUIRY_AGING_FILTER_VALUES.map((value) => ({
+              value,
+              label: tAnalytics(`aging.${value}`),
+            })),
+          ]}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              aging: event.target.value as InquiryFilters["aging"],
+            })
+          }
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="inquiry-filter-received-on">
+          {tAnalytics("filter.receivedOnLabel")}
+        </Label>
+        <Input
+          id="inquiry-filter-received-on"
+          type="date"
+          value={filters.receivedOn}
+          onChange={(event) =>
+            onChange({ ...filters, receivedOn: event.target.value })
           }
         />
       </div>

@@ -226,4 +226,58 @@ describe("filterInquiriesForHelpdesk", () => {
 
     expect(result.map((item) => item.id)).toEqual(["tanaka"]);
   });
+
+  it("unresolvedOnly=trueのとき、new・in_progressのみ返す（resolvedは除外）", () => {
+    const result = filterInquiriesForHelpdesk(inquiries, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      unresolvedOnly: true,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["1"]);
+  });
+
+  it("unclaimedOnlyとunresolvedOnlyを併用するとresolvedかつ未着手の件は除外される", () => {
+    const withResolvedUnclaimed = [
+      buildInquiry({ id: "unclaimed-new", status: "new", claim: null }),
+      buildInquiry({ id: "unclaimed-resolved", status: "resolved", claim: null }),
+    ];
+
+    const result = filterInquiriesForHelpdesk(withResolvedUnclaimed, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      unclaimedOnly: true,
+      unresolvedOnly: true,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["unclaimed-new"]);
+  });
+
+  it("agingでバケット完全一致で絞り込む", () => {
+    const referenceDate = new Date("2026-06-04T00:00:00.000Z");
+    const target = [
+      buildInquiry({ id: "recent", createdAt: "2026-06-03T12:00:00.000Z" }),
+      buildInquiry({ id: "old", createdAt: "2026-05-01T00:00:00.000Z" }),
+    ];
+
+    const result = filterInquiriesForHelpdesk(
+      target,
+      { ...EMPTY_HELPDESK_INQUIRY_FILTERS, aging: "lt24h" },
+      { referenceDate }
+    );
+
+    expect(result.map((item) => item.id)).toEqual(["recent"]);
+  });
+
+  it("receivedOnで受付日（日本時間基準）が一致する問い合わせのみ返す", () => {
+    const target = [
+      buildInquiry({ id: "jst-morning", createdAt: "2026-06-01T23:30:00.000Z" }),
+      buildInquiry({ id: "other-day", createdAt: "2026-06-01T10:00:00.000Z" }),
+    ];
+
+    const result = filterInquiriesForHelpdesk(target, {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      receivedOn: "2026-06-02",
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["jst-morning"]);
+  });
 });

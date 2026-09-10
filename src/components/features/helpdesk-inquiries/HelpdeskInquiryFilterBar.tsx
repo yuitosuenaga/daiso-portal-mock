@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import type { HelpdeskInquiryFilters } from "@/lib/helpdesk-inquiry-list";
+import { INQUIRY_AGING_FILTER_VALUES } from "@/lib/inquiry-aging";
 
 export interface HelpdeskInquiryFilterBarProps {
   filters: HelpdeskInquiryFilters;
@@ -33,6 +34,7 @@ export function HelpdeskInquiryFilterBar({
   staffOptions,
 }: HelpdeskInquiryFilterBarProps) {
   const t = useTranslations("helpdeskInquiries.filter");
+  const tAnalytics = useTranslations("inquiryAnalytics");
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -125,7 +127,7 @@ export function HelpdeskInquiryFilterBar({
           }
         />
       </div>
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex items-end gap-2">
         <div className="flex items-center gap-2">
           <input
             id="helpdesk-filter-unclaimed-only"
@@ -143,6 +145,62 @@ export function HelpdeskInquiryFilterBar({
             {t("unclaimedOnlyLabel")}
           </Label>
         </div>
+      </div>
+      <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
+          <input
+            id="helpdesk-filter-unresolved-only"
+            type="checkbox"
+            className="h-4 w-4 rounded border-input"
+            checked={filters.unresolvedOnly}
+            onChange={(event) =>
+              onChange({ ...filters, unresolvedOnly: event.target.checked })
+            }
+          />
+          <Label
+            htmlFor="helpdesk-filter-unresolved-only"
+            className="cursor-pointer"
+          >
+            {tAnalytics("filter.unresolvedOnlyLabel")}
+          </Label>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="helpdesk-filter-aging">
+          {tAnalytics("filter.agingLabel")}
+        </Label>
+        <Select
+          id="helpdesk-filter-aging"
+          value={filters.aging}
+          options={[
+            { value: "", label: tAnalytics("filter.agingAll") },
+            ...INQUIRY_AGING_FILTER_VALUES.map((value) => ({
+              value,
+              label: tAnalytics(`aging.${value}`),
+            })),
+          ]}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              aging: event.target.value as HelpdeskInquiryFilters["aging"],
+            })
+          }
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="helpdesk-filter-received-on">
+          {tAnalytics("filter.receivedOnLabel")}
+        </Label>
+        <Input
+          id="helpdesk-filter-received-on"
+          type="date"
+          value={filters.receivedOn}
+          onChange={(event) =>
+            onChange({ ...filters, receivedOn: event.target.value })
+          }
+        />
+      </div>
+      <div className="flex items-end justify-end">
         <Button type="button" variant="outline" onClick={onClear}>
           {t("clearButton")}
         </Button>
