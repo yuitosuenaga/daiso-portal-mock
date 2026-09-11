@@ -16,8 +16,8 @@ import { getAnnouncements } from "@/lib/api/announcements";
 import type { StatsBarRow } from "@/lib/inquiry-breakdown";
 
 export interface AnnouncementSelfSummaryPanelProps {
-  /** お知らせ一覧ページへの遷移先パス（例: "/announcements"） */
-  viewAllHref: string;
+  /** お知らせ一覧ページへの遷移先パス（例: "/announcements"）。未指定時は「一覧を見る」リンクを表示しない */
+  viewAllHref?: string;
 }
 
 interface AnnouncementSelfSummaryData {
@@ -103,12 +103,14 @@ export async function AnnouncementSelfSummaryPanel({
             </p>
           </>
         )}
-        <Link
-          href={viewAllHref}
-          className="inline-block text-sm font-medium text-primary hover:underline"
-        >
-          {t("viewAll")}
-        </Link>
+        {viewAllHref ? (
+          <Link
+            href={viewAllHref}
+            className="inline-block text-sm font-medium text-primary hover:underline"
+          >
+            {t("viewAll")}
+          </Link>
+        ) : null}
       </CardContent>
     </Card>
   );

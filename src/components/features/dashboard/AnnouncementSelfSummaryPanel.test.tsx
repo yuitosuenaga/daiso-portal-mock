@@ -140,4 +140,18 @@ describe("AnnouncementSelfSummaryPanel", () => {
     });
     expect(link.getAttribute("href")).toBe("/announcements");
   });
+
+  it("viewAllHref未指定時は「一覧を見る」リンクを表示しない", async () => {
+    getAnnouncementsMock.mockResolvedValueOnce([makeAnnouncement("1")]);
+    getAnnouncementSelfStatusesMock.mockResolvedValueOnce(new Map());
+
+    const jsx = await AnnouncementSelfSummaryPanel({});
+    render(jsx);
+
+    expect(
+      screen.queryByRole("link", {
+        name: "dashboard.announcementSummary.viewAll",
+      })
+    ).toBeNull();
+  });
 });
