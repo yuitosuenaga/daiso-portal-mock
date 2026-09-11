@@ -30,6 +30,10 @@ vi.mock("@/lib/api/inquiries", () => ({
   getAllInquiries: (...args: unknown[]) => getAllInquiriesMock(...args),
 }));
 
+vi.mock("@/lib/api/current-staff", () => ({
+  getCurrentHelpdeskStaffName: async () => null,
+}));
+
 function resolveMessage(namespace: string, key: string): string {
   const segments = `${namespace}.${key}`.split(".");
   let value: unknown = messages;
@@ -117,5 +121,17 @@ describe("HelpdeskInquiryList", () => {
     renderWithProvider(jsx);
 
     expect(screen.getAllByText(/田中 太郎/).length).toBeGreaterThan(0);
+  });
+
+  it("searchParamsから初期フィルタ（unclaimed=1）がフィルタバーに反映される", async () => {
+    getAllInquiriesMock.mockResolvedValueOnce([buildInquiry({ id: "1" })]);
+
+    const jsx = await HelpdeskInquiryList({
+      searchParams: { unclaimed: "1" },
+    });
+    renderWithProvider(jsx);
+
+    const checkbox = screen.getByLabelText("未着手のみ") as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
   });
 });

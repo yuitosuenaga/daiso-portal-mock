@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { StaffLoadRow } from "@/lib/helpdesk-inquiry-stats";
 
@@ -10,6 +11,11 @@ export interface StaffLoadBarListProps {
   selectedKey?: string | null;
   /** 指定すると各行がクリック可能になる（"others"行はクリック不可のまま） */
   onSelectRow?: (row: StaffLoadRow) => void;
+  /**
+   * 指定すると各行がリンク化され、他画面（一覧画面）へ絞り込み付きで遷移する（ダッシュボード向け、"others"行は対象外）。
+   * `onSelectRow`と同時指定時は`onSelectRow`を優先する。
+   */
+  hrefByKey?: Record<string, string>;
 }
 
 const ROW_COLOR_CLASS: Record<StaffLoadRow["kind"], string> = {
@@ -27,6 +33,7 @@ export function StaffLoadBarList({
   rows,
   selectedKey = null,
   onSelectRow,
+  hrefByKey,
 }: StaffLoadBarListProps) {
   const t = useTranslations("helpdeskInquiries.stats");
 
@@ -50,6 +57,7 @@ export function StaffLoadBarList({
         {rows.map((row) => {
           const clickable = Boolean(onSelectRow) && row.kind !== "others";
           const selected = clickable && selectedKey === row.key;
+          const linkHref = !onSelectRow && row.kind !== "others" ? hrefByKey?.[row.key] : undefined;
           const content = (
             <>
               <div className="flex items-baseline justify-between gap-2">
@@ -84,6 +92,13 @@ export function StaffLoadBarList({
                 >
                   {content}
                 </button>
+              ) : linkHref ? (
+                <Link
+                  href={linkHref}
+                  className="block rounded-md px-1 py-0.5 hover:bg-muted/60"
+                >
+                  {content}
+                </Link>
               ) : (
                 <div className="rounded-md px-1 py-0.5">{content}</div>
               )}

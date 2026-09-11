@@ -5,7 +5,30 @@ import {
   toStaffLoadRows,
   toStatusSegments,
 } from "@/lib/helpdesk-inquiry-stats";
+import type { HelpdeskInquiryStats } from "@/lib/helpdesk-inquiry-stats";
 import type { Inquiry } from "@/types/inquiry";
+
+function buildStats(overrides: Partial<HelpdeskInquiryStats>): HelpdeskInquiryStats {
+  return {
+    total: 0,
+    byStatus: { new: 0, in_progress: 0, resolved: 0 },
+    unresolved: 0,
+    unclaimed: 0,
+    unclaimedHighUrgency: 0,
+    claimedByStaff: [],
+    claimedTotal: 0,
+    todayCount: 0,
+    todayUnresolved: 0,
+    byCategory: { defect: 0, order: 0, system: 0, other: 0 },
+    byCountry: [],
+    unresolvedAging: { lt24h: 0, h24to72: 0, d3to7: 0, gte7d: 0 },
+    staleUnclaimed: 0,
+    oldestUnclaimedHours: null,
+    mine: 0,
+    dailyIntake: [],
+    ...overrides,
+  };
+}
 
 function makeInquiry(overrides: Partial<Inquiry> & { id: string }): Inquiry {
   return {
@@ -27,7 +50,7 @@ describe("computeHelpdeskInquiryStats", () => {
   const referenceDate = new Date("2026-07-22T15:00:00.000Z"); // 2026-07-23T00:00:00+09:00
 
   it("空配列の場合は全項目が0になる", () => {
-    const result = computeHelpdeskInquiryStats([]);
+    const result = computeHelpdeskInquiryStats([], { referenceDate });
 
     expect(result).toEqual({
       total: 0,
@@ -38,7 +61,113 @@ describe("computeHelpdeskInquiryStats", () => {
       claimedByStaff: [],
       claimedTotal: 0,
       todayCount: 0,
+      todayUnresolved: 0,
+      byCategory: { defect: 0, order: 0, system: 0, other: 0 },
+      byCountry: [],
+      unresolvedAging: { lt24h: 0, h24to72: 0, d3to7: 0, gte7d: 0 },
+      staleUnclaimed: 0,
+      oldestUnclaimedHours: null,
+      mine: 0,
+      dailyIntake: result.dailyIntake,
     });
+    expect(result.dailyIntake).toHaveLength(7);
+  });
+
+  it("currentStaffName指定時、一致する担当者の未解決件数をmineとして数える", () => {
+    const inquiries = [
+      makeInquiry({
+        id: "1",
+        status: "new",
+        claim: { staffName: "田中", claimedAt: "2026-07-01T00:00:00.000Z" },
+      }),
+      makeInquiry({
+        id: "2",
+        status: "in_progress",
+        claim: { staffName: "田中", claimedAt: "2026-07-01T00:00:00.000Z" },
+      }),
+      makeInquiry({
+        id: "3",
+        status: "resolved",
+        claim: { staffName: "田中", claimedAt: "2026-07-01T00:00:00.000Z" },
+      }),
+      makeInquiry({
+        id: "4",
+        status: "new",
+        claim: { staffName: "佐藤", claimedAt: "2026-07-01T00:00:00.000Z" },
+      }),
+    ];
+
+    const result = computeHelpdeskInquiryStats(inquiries, {
+      referenceDate,
+      currentStaffName: "田中",
+    });
+
+    expect(result.mine).toBe(2);
+  });
+
+  it("currentStaffName未指定時、mineは0", () => {
+    const inquiries = [
+      makeInquiry({
+        id: "1",
+        status: "new",
+        claim: { staffName: "田中", claimedAt: "2026-07-01T00:00:00.000Z" },
+      }),
+    ];
+
+    const result = computeHelpdeskInquiryStats(inquiries, { referenceDate });
+
+    expect(result.mine).toBe(0);
+  });
+
+  it("staleUnclaimedは未着手かつ24時間以上経過の件数", () => {
+    const inquiries = [
+      makeInquiry({
+        id: "1",
+        status: "new",
+        claim: null,
+        createdAt: new Date(referenceDate.getTime() - 30 * 3_600_000).toISOString(),
+      }),
+      makeInquiry({
+        id: "2",
+        status: "new",
+        claim: null,
+        createdAt: new Date(referenceDate.getTime() - 1 * 3_600_000).toISOString(),
+      }),
+    ];
+
+    const result = computeHelpdeskInquiryStats(inquiries, { referenceDate });
+
+    expect(result.staleUnclaimed).toBe(1);
+  });
+
+  it("oldestUnclaimedHoursは未着手が無ければnull、あれば最古の経過時間", () => {
+    const empty = computeHelpdeskInquiryStats([], { referenceDate });
+    expect(empty.oldestUnclaimedHours).toBeNull();
+
+    const withUnclaimed = computeHelpdeskInquiryStats(
+      [
+        makeInquiry({
+          id: "1",
+          status: "new",
+          claim: null,
+          createdAt: new Date(referenceDate.getTime() - 8 * 3_600_000).toISOString(),
+        }),
+      ],
+      { referenceDate }
+    );
+    expect(withUnclaimed.oldestUnclaimedHours).toBeCloseTo(8);
+  });
+
+  it("todayUnresolvedはtodayCountのうち未対応のもの", () => {
+    const inquiries = [
+      makeInquiry({ id: "1", status: "resolved", createdAt: "2026-07-22T15:00:00.000Z" }), // JST 07-23
+      makeInquiry({ id: "2", status: "new", createdAt: "2026-07-22T15:00:00.000Z" }), // JST 07-23
+    ];
+
+    const result = computeHelpdeskInquiryStats(inquiries, { referenceDate });
+
+    expect(result.todayCount).toBe(2);
+    expect(result.todayUnresolved).toBe(1);
   });
 
   it("status別件数を正しく集計する", () => {
@@ -148,16 +277,7 @@ describe("toStatusSegments", () => {
 
 describe("toStaffLoadRows", () => {
   it("未着手0件・対応者なしの場合は未着手行のみ返す", () => {
-    const rows = toStaffLoadRows({
-      total: 0,
-      byStatus: { new: 0, in_progress: 0, resolved: 0 },
-      unresolved: 0,
-      unclaimed: 0,
-      unclaimedHighUrgency: 0,
-      claimedByStaff: [],
-      claimedTotal: 0,
-      todayCount: 0,
-    });
+    const rows = toStaffLoadRows(buildStats({}));
 
     expect(rows).toEqual([
       { key: "unclaimed", kind: "unclaimed", label: null, count: 0, barPercent: 0 },
@@ -170,16 +290,15 @@ describe("toStaffLoadRows", () => {
       count: 8 - i,
     }));
 
-    const rows = toStaffLoadRows({
-      total: 40,
-      byStatus: { new: 4, in_progress: 32, resolved: 4 },
-      unresolved: 36,
-      unclaimed: 0,
-      unclaimedHighUrgency: 0,
-      claimedByStaff,
-      claimedTotal: claimedByStaff.reduce((s, c) => s + c.count, 0),
-      todayCount: 0,
-    });
+    const rows = toStaffLoadRows(
+      buildStats({
+        total: 40,
+        byStatus: { new: 4, in_progress: 32, resolved: 4 },
+        unresolved: 36,
+        claimedByStaff,
+        claimedTotal: claimedByStaff.reduce((s, c) => s + c.count, 0),
+      })
+    );
 
     const others = rows.find((r) => r.kind === "others");
     expect(rows.filter((r) => r.kind === "staff")).toHaveLength(6);
@@ -187,16 +306,16 @@ describe("toStaffLoadRows", () => {
   });
 
   it("barPercentは全行のcount最大値を100とした相対値になる", () => {
-    const rows = toStaffLoadRows({
-      total: 10,
-      byStatus: { new: 2, in_progress: 8, resolved: 0 },
-      unresolved: 10,
-      unclaimed: 2,
-      unclaimedHighUrgency: 0,
-      claimedByStaff: [{ staffName: "田中", count: 8 }],
-      claimedTotal: 8,
-      todayCount: 0,
-    });
+    const rows = toStaffLoadRows(
+      buildStats({
+        total: 10,
+        byStatus: { new: 2, in_progress: 8, resolved: 0 },
+        unresolved: 10,
+        unclaimed: 2,
+        claimedByStaff: [{ staffName: "田中", count: 8 }],
+        claimedTotal: 8,
+      })
+    );
 
     expect(rows.find((r) => r.kind === "unclaimed")?.barPercent).toBe(25);
     expect(rows.find((r) => r.kind === "staff")?.barPercent).toBe(100);

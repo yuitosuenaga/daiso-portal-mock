@@ -19,9 +19,9 @@ import {
   PriorityInquiriesPreviewPanelSkeleton,
 } from "@/components/features/dashboard/PriorityInquiriesPreviewPanel";
 import {
-  UnresolvedInquiriesKpiPanel,
-  UnresolvedInquiriesKpiPanelSkeleton,
-} from "@/components/features/dashboard/UnresolvedInquiriesKpiPanel";
+  HelpdeskInquiryKpiPanel,
+  HelpdeskInquiryKpiPanelSkeleton,
+} from "@/components/features/dashboard/HelpdeskInquiryKpiPanel";
 
 export default async function HelpdeskHomePage() {
   const t = await getTranslations("helpdeskDashboard");
@@ -29,8 +29,8 @@ export default async function HelpdeskHomePage() {
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<UnresolvedInquiriesKpiPanelSkeleton />}>
-        <UnresolvedInquiriesKpiPanel viewAllHref="/helpdesk/inquiries" />
+      <Suspense fallback={<HelpdeskInquiryKpiPanelSkeleton />}>
+        <HelpdeskInquiryKpiPanel listHref="/helpdesk/inquiries" />
       </Suspense>
 
       <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>

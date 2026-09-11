@@ -337,6 +337,9 @@
       "unclaimedCaption": "No one has started working on these",
       "unclaimedNone": "Every open inquiry has someone assigned",
       "highUrgencyAlert": "{count} high-urgency unclaimed",
+      "staleUnclaimedAlert": "{count} unclaimed for 24 hours or more",
+      "mineLabel": "My open inquiries",
+      "mineCaption": "Unresolved inquiries you're currently handling",
       "statusBreakdownTitle": "Status Breakdown",
       "staffLoadTitle": "Load by Staff",
       "staffLoadEmpty": "No inquiries are currently in progress",
@@ -765,6 +768,18 @@
       "error": "Failed to load announcements.",
       "viewAll": "View all announcements"
     },
+    "announcementSummary": {
+      "title": "Announcement status",
+      "unconfirmedLabel": "Unconfirmed",
+      "actionPendingLabel": "Confirmed, action pending",
+      "confirmedCompleteLabel": "Confirmed, completed",
+      "categoryBreakdownTitle": "By category",
+      "unit": "",
+      "totalCaption": "{count} announcements in scope",
+      "empty": "There are no announcements to show.",
+      "error": "Failed to load announcement status.",
+      "viewAll": "View all announcements"
+    },
     "reminderAnnouncements": {
       "title": "Reminders from Japan"
     },
@@ -781,9 +796,12 @@
       "reference": "Reference"
     },
     "kpi": {
-      "title": "Unresolved Count",
+      "title": "Inquiry status",
       "unresolvedLabel": "Total unresolved (all companies)",
-      "todayLabel": "Unresolved received today",
+      "unclaimedLabel": "Unclaimed",
+      "todayLabel": "Received today",
+      "todayUnresolvedCaption": "{count} of these unresolved",
+      "todayNone": "No inquiries received today",
       "none": "No unresolved items",
       "viewAll": "View all inquiries",
       "error": "Failed to load the unresolved count"
@@ -1193,6 +1211,9 @@
       "highUrgencyAlert": "{count} unresolved with urgency \"High\"",
       "awaitingResponseLabel": "Awaiting response",
       "awaitingResponseCaption": "Waiting for a reply or for the helpdesk to start working on it",
+      "staleAwaitingResponseAlert": "{count} awaiting response for 72 hours or more",
+      "unresolvedLabel": "Unresolved",
+      "unresolvedCaption": "Inquiries with status \"New\" or \"In progress\"",
       "statusBreakdownTitle": "Status breakdown",
       "urgencyBreakdownTitle": "Unresolved by urgency",
       "urgencyBreakdownEmpty": "No unresolved inquiries",
@@ -1202,6 +1223,40 @@
       "tableHeaderItem": "Item",
       "tableHeaderCount": "Count",
       "tableHeaderShare": "Share"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "Unresolved aging",
+      "lt24h": "Within 24 hours",
+      "h24to72": "24-72 hours",
+      "d3to7": "3-7 days",
+      "gte7d": "7 days or more",
+      "over24h": "24 hours or more",
+      "over72h": "72 hours or more",
+      "empty": "No unresolved inquiries",
+      "oldest": "Oldest unresolved: {hours}h since received"
+    },
+    "category": {
+      "title": "Breakdown by category",
+      "empty": "No matching inquiries"
+    },
+    "country": {
+      "title": "Unresolved by country",
+      "others": "{count} more countries",
+      "empty": "No unresolved inquiries"
+    },
+    "intake": {
+      "receivedTitle": "Received in the last 7 days",
+      "submittedTitle": "Submitted in the last 7 days",
+      "empty": "No inquiries in the last 7 days",
+      "columnLabel": "{date}: {count}"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "Unresolved only",
+      "agingLabel": "Aging",
+      "agingAll": "All aging",
+      "receivedOnLabel": "Received on"
     }
   },
   "links": {

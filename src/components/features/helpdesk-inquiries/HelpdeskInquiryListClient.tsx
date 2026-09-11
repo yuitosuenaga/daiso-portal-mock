@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   EMPTY_HELPDESK_INQUIRY_FILTERS,
   filterInquiriesForHelpdesk,
+  normalizeHelpdeskInquiryFilters,
   type HelpdeskInquiryFilters,
 } from "@/lib/helpdesk-inquiry-list";
 import { computeHelpdeskInquiryStats } from "@/lib/helpdesk-inquiry-stats";
+import { toggleFilterPatch } from "@/lib/filter-toggle";
 import { HelpdeskInquiryFilterBar } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryFilterBar";
 import { HelpdeskInquiryListItem } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryListItem";
 import { HelpdeskInquiryStatsPanel } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryStatsPanel";
@@ -33,24 +35,16 @@ export interface HelpdeskInquiryListClientProps {
   claimedByLabel: string;
   locale: string;
   untitledLabel: string;
-}
-
-/**
- * パッチで指定されたキーが既に同じ値になっている場合は、そのキーだけ空値に戻す（トグル解除）。
- * サマリパネルの各要素（ボタン化されたグラフの区間・行）を再クリックしたときに、
- * 絞り込みを解除できるようにするための処理。
- */
-function toggleFilterPatch(
-  current: HelpdeskInquiryFilters,
-  patch: Partial<HelpdeskInquiryFilters>
-): Partial<HelpdeskInquiryFilters> {
-  const resolved: Partial<HelpdeskInquiryFilters> = { ...patch };
-  for (const key of Object.keys(patch) as (keyof HelpdeskInquiryFilters)[]) {
-    if (current[key] === patch[key]) {
-      (resolved as Record<string, unknown>)[key] = EMPTY_HELPDESK_INQUIRY_FILTERS[key];
-    }
-  }
-  return resolved;
+  /**
+   * 集計・フィルタ判定の基準時刻（ISO文字列）。ダッシュボードから渡された基準時刻を使うことで、
+   * サーバー描画時とクライアント描画時で「現在時刻」がずれてハイドレーション不一致にならないようにする。
+   * 未指定時は`new Date()`（従来の挙動）。
+   */
+  nowIso?: string;
+  /** ログイン中ヘルプデスク担当者の表示名。「自分の担当」KPIの判定に使う。未指定時は集計対象外 */
+  currentStaffName?: string | null;
+  /** ダッシュボード等からのディープリンクで復元された初期フィルタ値。未指定時は空フィルタ */
+  initialFilters?: HelpdeskInquiryFilters;
 }
 
 /**
@@ -71,10 +65,20 @@ export function HelpdeskInquiryListClient({
   claimedByLabel,
   locale,
   untitledLabel,
+  nowIso,
+  currentStaffName,
+  initialFilters,
 }: HelpdeskInquiryListClientProps) {
   const t = useTranslations("helpdeskInquiries.list");
-  const [filters, setFilters] = useState(EMPTY_HELPDESK_INQUIRY_FILTERS);
+  const [filters, setFilters] = useState(
+    initialFilters ?? EMPTY_HELPDESK_INQUIRY_FILTERS
+  );
   const listSectionRef = useRef<HTMLDivElement>(null);
+
+  const referenceDate = useMemo(
+    () => (nowIso ? new Date(nowIso) : new Date()),
+    [nowIso]
+  );
 
   const staffOptions = useMemo<SelectOption[]>(() => {
     const staffNames = new Set<string>();
@@ -89,21 +93,54 @@ export function HelpdeskInquiryListClient({
   }, [inquiries]);
 
   const filteredInquiries = useMemo(
-    () => filterInquiriesForHelpdesk(inquiries, filters),
-    [inquiries, filters]
+    () => filterInquiriesForHelpdesk(inquiries, filters, { referenceDate }),
+    [inquiries, filters, referenceDate]
   );
 
   const stats = useMemo(
-    () => computeHelpdeskInquiryStats(filteredInquiries),
-    [filteredInquiries]
+    () =>
+      computeHelpdeskInquiryStats(filteredInquiries, {
+        referenceDate,
+        currentStaffName: currentStaffName ?? undefined,
+      }),
+    [filteredInquiries, referenceDate, currentStaffName]
   );
 
+  /**
+   * サマリパネルのクリック（StatsPanel）由来のフィルタ変更。トグル解除の判定
+   * （`toggleFilterPatch`）を経たうえで、最終結果を必ず`normalizeHelpdeskInquiryFilters`に
+   * 通し、他の経路（フィルタバー）からの変更と組み合わさっても矛盾した状態
+   * （例: unclaimedOnly=trueのままunresolvedOnlyだけが独立に解除される等）に
+   * 到達しないようにする。
+   */
   function handleFilterChange(patch: Partial<HelpdeskInquiryFilters>) {
-    setFilters((prev) => ({ ...prev, ...toggleFilterPatch(prev, patch) }));
+    setFilters((prev) => {
+      const merged = {
+        ...prev,
+        ...toggleFilterPatch(prev, patch, EMPTY_HELPDESK_INQUIRY_FILTERS),
+      };
+      return normalizeHelpdeskInquiryFilters(
+        merged,
+        Object.keys(patch) as (keyof HelpdeskInquiryFilters)[]
+      );
+    });
     listSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  }
+
+  /**
+   * フィルタバー（`HelpdeskInquiryFilterBar`）由来のフィルタ変更。フィルタバーは
+   * 各コントロールが完全な`HelpdeskInquiryFilters`オブジェクトを構築して渡す設計のため、
+   * 直前の`filters`と比較して実際に変わったキーを求め、
+   * `normalizeHelpdeskInquiryFilters`に「今回明示的に変更されたキー」として渡す。
+   */
+  function handleFilterBarChange(next: HelpdeskInquiryFilters) {
+    const changedKeys = (
+      Object.keys(next) as (keyof HelpdeskInquiryFilters)[]
+    ).filter((key) => filters[key] !== next[key]);
+    setFilters(normalizeHelpdeskInquiryFilters(next, changedKeys));
   }
 
   return (
@@ -112,7 +149,7 @@ export function HelpdeskInquiryListClient({
         <CardContent className="pt-5">
           <HelpdeskInquiryFilterBar
             filters={filters}
-            onChange={setFilters}
+            onChange={handleFilterBarChange}
             onClear={() => setFilters(EMPTY_HELPDESK_INQUIRY_FILTERS)}
             countryOptions={countryOptions}
             categoryOptions={categoryOptions}
@@ -128,6 +165,10 @@ export function HelpdeskInquiryListClient({
           <HelpdeskInquiryStatsPanel
             stats={stats}
             statusLabels={statusLabels}
+            categoryLabels={categoryLabels}
+            countryLabels={countryLabels}
+            locale={locale}
+            currentStaffName={currentStaffName}
             shown={filteredInquiries.length}
             total={inquiries.length}
             filters={filters}

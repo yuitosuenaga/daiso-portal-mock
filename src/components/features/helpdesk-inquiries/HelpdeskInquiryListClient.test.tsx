@@ -78,6 +78,14 @@ const INQUIRIES: Inquiry[] = [
     claim: { staffName: "田中", claimedAt: "2026-06-02T00:00:00.000Z" },
     submittedBy: { companyName: "Daiso USA Inc.", country: "US" },
   }),
+  buildInquiry({
+    id: "3",
+    title: "解決済みの問い合わせ",
+    status: "resolved",
+    urgency: "low",
+    claim: null,
+    submittedBy: { companyName: "Daiso Vietnam Co., Ltd.", country: "VN" },
+  }),
 ];
 
 function renderClient() {
@@ -155,5 +163,132 @@ describe("HelpdeskInquiryListClient", () => {
     expect(
       (screen.getByLabelText("対応者") as HTMLSelectElement).value
     ).toBe("田中");
+  });
+
+  it("未解決のみを選んだ状態で対応状況を解決済みに変更すると、未解決のみが解除され一覧が空にならない", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText("未解決のみ"));
+    await user.selectOptions(screen.getByLabelText("対応状況"), "resolved");
+
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect(screen.getByText("解決済みの問い合わせ")).toBeTruthy();
+  });
+
+  it("対応状況を解決済みに変更した状態で未解決のみを選ぶと、対応状況の絞り込みが解除され一覧が空にならない", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("対応状況"), "resolved");
+    await user.click(screen.getByLabelText("未解決のみ"));
+
+    expect(
+      (screen.getByLabelText("対応状況") as HTMLSelectElement).value
+    ).toBe("");
+    expect(screen.getByText("商品破損の報告")).toBeTruthy();
+    expect(screen.queryByText("解決済みの問い合わせ")).toBeNull();
+  });
+
+  it("未着手のみを選んだ状態で対応者を選択すると、未着手のみが解除される", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText("未着手のみ"));
+    await user.selectOptions(screen.getByLabelText("対応者"), "田中");
+
+    expect(
+      (screen.getByLabelText("未着手のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect(screen.getByText("追加発注のお願い")).toBeTruthy();
+  });
+
+  it("対応者を選択した状態で未着手のみを選ぶと、対応者の絞り込みが解除される", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("対応者"), "田中");
+    await user.click(screen.getByLabelText("未着手のみ"));
+
+    expect(
+      (screen.getByLabelText("対応者") as HTMLSelectElement).value
+    ).toBe("");
+    expect(screen.getByText("商品破損の報告")).toBeTruthy();
+    expect(screen.queryByText("追加発注のお願い")).toBeNull();
+  });
+
+  it("対応者行をクリックした後に未着手ヒーロー数値をクリックすると、対応者の絞り込みが解除される", async () => {
+    const { container } = renderClient();
+    const user = userEvent.setup();
+
+    const rowLabel = screen
+      .getAllByText("田中")
+      .find((el) => el.tagName !== "OPTION")!;
+    await user.click(rowLabel);
+    expect(
+      (screen.getByLabelText("対応者") as HTMLSelectElement).value
+    ).toBe("田中");
+
+    await user.click(container.querySelector(".text-5xl")!);
+
+    expect(
+      (screen.getByLabelText("対応者") as HTMLSelectElement).value
+    ).toBe("");
+    expect(
+      (screen.getByLabelText("未着手のみ") as HTMLInputElement).checked
+    ).toBe(true);
+    expect(screen.getByText("商品破損の報告")).toBeTruthy();
+    expect(screen.queryByText("追加発注のお願い")).toBeNull();
+  });
+
+  it("再現シナリオ: 未着手のみを選んだ状態で未解決のみを独立にOFFにすると、未着手のみも解除される（KPIと一覧件数の不整合を防ぐ）", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText("未着手のみ"));
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(true);
+
+    await user.click(screen.getByLabelText("未解決のみ"));
+
+    expect(
+      (screen.getByLabelText("未着手のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect(screen.getByText("商品破損の報告")).toBeTruthy();
+    expect(screen.getByText("追加発注のお願い")).toBeTruthy();
+    expect(screen.getByText("解決済みの問い合わせ")).toBeTruthy();
+  });
+
+  it("再現シナリオ: 未解決のみOFFの状態で滞留時間を選ぶと、未解決のみが自動的にONになる", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("滞留時間"), "over24h");
+
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(true);
+  });
+
+  it("再現シナリオ: 滞留時間が有効な状態で対応状況を解決済みに変更すると、対応状況が優先され滞留時間・未解決のみが解除される", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("滞留時間"), "over24h");
+    await user.selectOptions(screen.getByLabelText("対応状況"), "resolved");
+
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect((screen.getByLabelText("滞留時間") as HTMLSelectElement).value).toBe(
+      ""
+    );
+    expect(screen.getByText("解決済みの問い合わせ")).toBeTruthy();
   });
 });

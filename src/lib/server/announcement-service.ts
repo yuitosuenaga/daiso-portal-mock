@@ -27,6 +27,7 @@ import type {
 } from "@/types/announcement";
 import type {
   AnnouncementRecipientStatusView,
+  AnnouncementSelfStatus,
   AnnouncementTrackingSummary,
   AnnouncementUserReadStatusView,
 } from "@/types/announcement-recipient";
@@ -641,6 +642,21 @@ export async function recordCompanyCompletion(
 }
 
 /**
+ * 対象担当者全員の実施済み日時が揃っているときのみ、代表として先頭の実施済み日時を返す。
+ * 1人でも未記録（`null`）がいる場合、または対象が1件も無い場合は`null`を返す。
+ * `getAnnouncementSelfStatusForCompany`（単一お知らせ版）と`getAnnouncementSelfStatuses`
+ * （バッチ版）の両方が同じ判定規則を使うための共通化。
+ */
+function resolveCompanyCompletedAt(completedAts: (Date | null)[]): string | null {
+  if (completedAts.length === 0) {
+    return null;
+  }
+  return completedAts.every((completedAt) => completedAt !== null)
+    ? completedAts[0]!.toISOString()
+    : null;
+}
+
+/**
  * 指定した会社かつ配信対象に含まれる担当者全員が実施済みのときのみ、対応完了日時を返す。
  * 1人でも未記録の担当者がいる場合、または対象担当者が1人も存在しない場合は`null`を返す。
  * 確認済み（既読）は個人単位化されたため本関数では扱わない（`getUserSelfConfirmation`が担う。
@@ -664,10 +680,89 @@ export async function getAnnouncementSelfStatusForCompany(
     return { completedAt: null };
   }
 
-  const statuses = recipients.map((recipient) => recipient.statuses[0]);
-  const allCompleted = statuses.every((status) => status?.completedAt);
-
   return {
-    completedAt: allCompleted ? statuses[0]!.completedAt!.toISOString() : null,
+    completedAt: resolveCompanyCompletedAt(
+      recipients.map((recipient) => recipient.statuses[0]?.completedAt ?? null)
+    ),
   };
+}
+
+/**
+ * お知らせの配信対象国に自社の`Company.country`が含まれるかどうかを判定する。
+ * `targetRecipientsWhere`（Prismaの`where`条件版）と同じ判定基準をメモリ上で再現したもの。
+ * `targetRecipientsWhere`の判定基準を変える場合はこちらも追随させる必要がある。
+ */
+function isRecipientTargeted(targeting: AnnouncementTargeting, recipientCountry: string): boolean {
+  return targeting.scope === "countries"
+    ? targeting.countries.includes(recipientCountry)
+    : true;
+}
+
+/**
+ * 複数のお知らせについて、本人の確認済み（`AnnouncementReadReceipt`）と自社の実施済み
+ * （`AnnouncementRecipientStatus`）を1回のクエリセットでまとめて解決する。
+ * `getUserSelfConfirmation`＋`getAnnouncementSelfStatusForCompany`を件数分呼ぶN+1を
+ * 避けるためのバッチ版で、クエリ本数はお知らせ件数に依存しない
+ * （`AnnouncementReadReceipt`をID配列で1回、`AnnouncementRecipient`を会社単位で1回）。
+ * 判定規則は単一ID版と同一（`resolveCompanyCompletedAt`を共有）。
+ */
+export async function getAnnouncementSelfStatuses(
+  announcements: Pick<Announcement, "id" | "targeting">[],
+  applicantUserId: string,
+  companyCode: string
+): Promise<Map<string, AnnouncementSelfStatus>> {
+  if (announcements.length === 0) {
+    return new Map();
+  }
+
+  const announcementIds = announcements.map((announcement) => announcement.id);
+
+  const [receipts, recipients] = await Promise.all([
+    prisma.announcementReadReceipt.findMany({
+      where: { applicantUserId, announcementId: { in: announcementIds } },
+      select: { announcementId: true, confirmedAt: true },
+    }),
+    prisma.announcementRecipient.findMany({
+      where: { company: { companyCode } },
+      select: {
+        id: true,
+        company: { select: { country: true } },
+        statuses: {
+          where: { announcementId: { in: announcementIds } },
+          select: { announcementId: true, completedAt: true },
+        },
+      },
+    }),
+  ]);
+
+  const confirmedAtByAnnouncementId = new Map(
+    receipts.map((receipt) => [
+      receipt.announcementId,
+      receipt.confirmedAt ? receipt.confirmedAt.toISOString() : null,
+    ])
+  );
+
+  const recipientViews = recipients.map((recipient) => ({
+    country: recipient.company.country,
+    completedAtByAnnouncementId: new Map(
+      recipient.statuses.map((status) => [status.announcementId, status.completedAt])
+    ),
+  }));
+
+  const selfStatuses = new Map<string, AnnouncementSelfStatus>();
+  for (const announcement of announcements) {
+    const targets = recipientViews.filter((recipient) =>
+      isRecipientTargeted(announcement.targeting, recipient.country)
+    );
+    selfStatuses.set(announcement.id, {
+      confirmedAt: confirmedAtByAnnouncementId.get(announcement.id) ?? null,
+      completedAt: resolveCompanyCompletedAt(
+        targets.map(
+          (target) => target.completedAtByAnnouncementId.get(announcement.id) ?? null
+        )
+      ),
+    });
+  }
+
+  return selfStatuses;
 }

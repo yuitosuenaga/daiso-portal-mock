@@ -7,6 +7,11 @@ import {
   INQUIRY_URGENCY_CODES,
 } from "@/lib/constants/inquiry-options";
 import { InquiryListClient } from "@/components/features/inquiry-list/InquiryListClient";
+import {
+  inquiryFilterStateKey,
+  parseInquiryFilters,
+  type InquiryListSearchParams,
+} from "@/lib/inquiry-filter-query";
 import type { Inquiry } from "@/types/inquiry";
 
 const INQUIRY_STATUS_CODES = [
@@ -15,7 +20,14 @@ const INQUIRY_STATUS_CODES = [
   "resolved",
 ] as const satisfies readonly Inquiry["status"][];
 
-export async function InquiryList() {
+export async function InquiryList({
+  searchParams,
+}: {
+  searchParams?: InquiryListSearchParams;
+} = {}) {
+  const initialFilters = parseInquiryFilters(searchParams);
+  const nowIso = new Date().toISOString();
+
   const [t, tOptions, locale] = await Promise.all([
     getTranslations("inquiryList"),
     getTranslations("inquiryForm.options"),
@@ -117,6 +129,7 @@ export async function InquiryList() {
     <div>
       {heading}
       <InquiryListClient
+        key={inquiryFilterStateKey(initialFilters)}
         inquiries={inquiries}
         categoryLabels={categoryLabels}
         categoryOptions={categoryOptions}
@@ -130,6 +143,8 @@ export async function InquiryList() {
         untitledLabel={t("list.untitled")}
         unreadInquiryIds={unreadInquiryIds}
         newBadgeLabel={t("list.newBadge")}
+        initialFilters={initialFilters}
+        nowIso={nowIso}
       />
     </div>
   );

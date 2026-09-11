@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   EMPTY_INQUIRY_FILTERS,
   filterInquiries,
+  normalizeInquiryFilters,
   type InquiryFilters,
 } from "@/lib/inquiry-filter";
 import { computeApplicantInquiryStats } from "@/lib/inquiry-stats";
+import { toggleFilterPatch } from "@/lib/filter-toggle";
 import { InquiryFilterBar } from "@/components/features/inquiry-list/InquiryFilterBar";
 import { InquiryListItem } from "@/components/features/inquiry-list/InquiryListItem";
 import { InquiryStatsPanel } from "@/components/features/inquiry-list/InquiryStatsPanel";
@@ -32,24 +34,14 @@ export interface InquiryListClientProps {
   unreadInquiryIds?: string[];
   /** 新着インジケーターの表示文言 */
   newBadgeLabel?: string;
-}
-
-/**
- * パッチで指定されたキーが既に同じ値になっている場合は、そのキーだけ空値に戻す（トグル解除）。
- * サマリパネルの各要素（ボタン化されたグラフの区間・行）を再クリックしたときに、
- * 絞り込みを解除できるようにするための処理。
- */
-function toggleFilterPatch(
-  current: InquiryFilters,
-  patch: Partial<InquiryFilters>
-): Partial<InquiryFilters> {
-  const resolved: Partial<InquiryFilters> = { ...patch };
-  for (const key of Object.keys(patch) as (keyof InquiryFilters)[]) {
-    if (current[key] === patch[key]) {
-      (resolved as Record<string, unknown>)[key] = EMPTY_INQUIRY_FILTERS[key];
-    }
-  }
-  return resolved;
+  /**
+   * 集計・フィルタ判定の基準時刻（ISO文字列）。ダッシュボードから渡された基準時刻を使うことで、
+   * サーバー描画時とクライアント描画時で「現在時刻」がずれてハイドレーション不一致にならないようにする。
+   * 未指定時は`new Date()`（従来の挙動）。
+   */
+  nowIso?: string;
+  /** ダッシュボード等からのディープリンクで復元された初期フィルタ値。未指定時は空フィルタ */
+  initialFilters?: InquiryFilters;
 }
 
 /**
@@ -70,10 +62,17 @@ export function InquiryListClient({
   untitledLabel,
   unreadInquiryIds = [],
   newBadgeLabel = "",
+  nowIso,
+  initialFilters,
 }: InquiryListClientProps) {
   const t = useTranslations("inquiryList.filter");
-  const [filters, setFilters] = useState(EMPTY_INQUIRY_FILTERS);
+  const [filters, setFilters] = useState(initialFilters ?? EMPTY_INQUIRY_FILTERS);
   const listSectionRef = useRef<HTMLDivElement>(null);
+
+  const referenceDate = useMemo(
+    () => (nowIso ? new Date(nowIso) : new Date()),
+    [nowIso]
+  );
 
   const unreadInquiryIdSet = useMemo(
     () => new Set(unreadInquiryIds),
@@ -81,24 +80,58 @@ export function InquiryListClient({
   );
 
   const filteredInquiries = useMemo(
-    () => filterInquiries(inquiries, filters, { unreadInquiryIds: unreadInquiryIdSet }),
-    [inquiries, filters, unreadInquiryIdSet]
+    () =>
+      filterInquiries(inquiries, filters, {
+        unreadInquiryIds: unreadInquiryIdSet,
+        referenceDate,
+      }),
+    [inquiries, filters, unreadInquiryIdSet, referenceDate]
   );
 
   const stats = useMemo(
     () =>
       computeApplicantInquiryStats(filteredInquiries, {
         unreadInquiryIds: unreadInquiryIdSet,
+        referenceDate,
       }),
-    [filteredInquiries, unreadInquiryIdSet]
+    [filteredInquiries, unreadInquiryIdSet, referenceDate]
   );
 
+  /**
+   * サマリパネルのクリック（StatsPanel）由来のフィルタ変更。トグル解除の判定
+   * （`toggleFilterPatch`）を経たうえで、最終結果を必ず`normalizeInquiryFilters`に
+   * 通し、他の経路（フィルタバー）からの変更と組み合わさっても矛盾した状態
+   * （例: status=resolvedとunresolvedOnly=trueの同時成立）に到達しないようにする。
+   */
   function handleFilterChange(patch: Partial<InquiryFilters>) {
-    setFilters((prev) => ({ ...prev, ...toggleFilterPatch(prev, patch) }));
+    setFilters((prev) => {
+      const merged = {
+        ...prev,
+        ...toggleFilterPatch(prev, patch, EMPTY_INQUIRY_FILTERS),
+      };
+      return normalizeInquiryFilters(
+        merged,
+        Object.keys(patch) as (keyof InquiryFilters)[]
+      );
+    });
     listSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  }
+
+  /**
+   * フィルタバー（`InquiryFilterBar`）由来のフィルタ変更。フィルタバーは
+   * 各コントロールが完全な`InquiryFilters`オブジェクトを構築して渡す設計のため、
+   * 直前の`filters`と比較して実際に変わったキーを求め、`normalizeInquiryFilters`に
+   * 「今回明示的に変更されたキー」として渡す（矛盾解消時にどちらの値を優先するかの
+   * 判定に使われる）。
+   */
+  function handleFilterBarChange(next: InquiryFilters) {
+    const changedKeys = (Object.keys(next) as (keyof InquiryFilters)[]).filter(
+      (key) => filters[key] !== next[key]
+    );
+    setFilters(normalizeInquiryFilters(next, changedKeys));
   }
 
   return (
@@ -107,7 +140,7 @@ export function InquiryListClient({
         <CardContent className="pt-5">
           <InquiryFilterBar
             filters={filters}
-            onChange={setFilters}
+            onChange={handleFilterBarChange}
             onClear={() => setFilters(EMPTY_INQUIRY_FILTERS)}
             statusOptions={statusOptions}
             categoryOptions={categoryOptions}
@@ -122,6 +155,8 @@ export function InquiryListClient({
             stats={stats}
             statusLabels={statusLabels}
             urgencyLabels={urgencyLabels}
+            categoryLabels={categoryLabels}
+            locale={locale}
             shown={filteredInquiries.length}
             total={inquiries.length}
             filters={filters}

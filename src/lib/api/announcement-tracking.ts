@@ -3,6 +3,7 @@ import {
   findAnnouncementVisibleToCountry,
   getAnnouncementRecipientStatuses as getAnnouncementRecipientStatusesService,
   getAnnouncementSelfStatusForCompany as getAnnouncementSelfStatusForCompanyService,
+  getAnnouncementSelfStatuses as getAnnouncementSelfStatusesService,
   getAnnouncementTrackingSummary as getAnnouncementTrackingSummaryService,
   getAnnouncementUserReadStatuses as getAnnouncementUserReadStatusesService,
   getUserSelfConfirmation as getUserSelfConfirmationService,
@@ -12,6 +13,7 @@ import {
   sendAnnouncementReminders as sendAnnouncementRemindersService,
   sendUserReadReminders as sendUserReadRemindersService,
 } from "@/lib/server/announcement-service";
+import type { Announcement } from "@/types/announcement";
 import type {
   AnnouncementRecipientStatusView,
   AnnouncementSelfStatus,
@@ -148,4 +150,21 @@ export async function getAnnouncementSelfStatus(id: string): Promise<Announcemen
   ]);
 
   return { confirmedAt, completedAt };
+}
+
+/**
+ * 申請者セッションの自己状態を、複数のお知らせについて一括で取得する。
+ * ダッシュボードのサマリ集計など全件横断で確認状況を見る場面向けで、
+ * `getAnnouncementSelfStatus`を件数分呼ぶN+1を避けるためのバッチ版。
+ */
+export async function getAnnouncementSelfStatuses(
+  announcements: Pick<Announcement, "id" | "targeting">[]
+): Promise<Map<string, AnnouncementSelfStatus>> {
+  const { claims } = await requireApplicantSession();
+
+  return getAnnouncementSelfStatusesService(
+    announcements,
+    claims.applicantUserId,
+    claims.companyCode
+  );
 }

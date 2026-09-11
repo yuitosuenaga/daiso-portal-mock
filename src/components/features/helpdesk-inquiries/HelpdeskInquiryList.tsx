@@ -1,6 +1,12 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllInquiries } from "@/lib/api/inquiries";
+import { getCurrentHelpdeskStaffName } from "@/lib/api/current-staff";
 import { sortInquiriesForHelpdesk } from "@/lib/helpdesk-inquiry-list";
+import {
+  helpdeskInquiryFilterStateKey,
+  parseHelpdeskInquiryFilters,
+} from "@/lib/helpdesk-inquiry-filter-query";
+import type { InquiryListSearchParams } from "@/lib/inquiry-filter-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,13 +18,22 @@ import {
 import { HelpdeskInquiryListClient } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryListClient";
 import type { Inquiry } from "@/types/inquiry";
 
-export async function HelpdeskInquiryList() {
-  const [t, tOptions, tStatus, tClaim, locale] = await Promise.all([
+export async function HelpdeskInquiryList({
+  searchParams,
+}: {
+  searchParams?: InquiryListSearchParams;
+} = {}) {
+  const initialFilters = parseHelpdeskInquiryFilters(searchParams);
+  const nowIso = new Date().toISOString();
+
+  const [t, tOptions, tStatus, tClaim, locale, currentStaffName] = await Promise.all([
     getTranslations("helpdeskInquiries.list"),
     getTranslations("inquiryForm.options"),
     getTranslations("inquiryList.status"),
     getTranslations("helpdeskInquiries.claim"),
     getLocale(),
+    // 「自分の担当」絞り込みは付加的な情報であり、取得に失敗しても一覧表示自体は継続する。
+    getCurrentHelpdeskStaffName().catch(() => null),
   ]);
 
   const heading = (
@@ -121,6 +136,7 @@ export async function HelpdeskInquiryList() {
     <div>
       {heading}
       <HelpdeskInquiryListClient
+        key={helpdeskInquiryFilterStateKey(initialFilters)}
         inquiries={sortedInquiries}
         categoryLabels={categoryLabels}
         urgencyLabels={urgencyLabels}
@@ -134,6 +150,9 @@ export async function HelpdeskInquiryList() {
         claimedByLabel={tClaim("claimedByLabel")}
         locale={locale}
         untitledLabel={t("untitled")}
+        currentStaffName={currentStaffName}
+        initialFilters={initialFilters}
+        nowIso={nowIso}
       />
     </div>
   );

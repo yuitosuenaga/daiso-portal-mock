@@ -1,5 +1,10 @@
 import type { Inquiry } from "@/types/inquiry";
 import { toReferenceDateKey } from "@/lib/reference-date";
+import { elapsedHoursSince, STALE_UNCLAIMED_THRESHOLD_HOURS } from "@/lib/inquiry-aging";
+import type { InquiryAgingBucket } from "@/lib/inquiry-aging";
+import { countByCategory, countUnresolvedAging, countUnresolvedByCountry } from "@/lib/inquiry-breakdown";
+import { computeDailyIntake } from "@/lib/inquiry-intake-trend";
+import type { DailyIntakePoint } from "@/lib/inquiry-intake-trend";
 
 const UNRESOLVED_STATUSES: Inquiry["status"][] = ["new", "in_progress"];
 
@@ -36,6 +41,27 @@ export interface HelpdeskInquiryStats {
   claimedTotal: number;
   /** createdAtが当日（日本時間基準）の件数。statusを問わない受付件数 */
   todayCount: number;
+  /** todayCountのうちstatusがnew・in_progress（未対応）のもの */
+  todayUnresolved: number;
+  /** 案件種別別の件数（母集団は渡された配列全件） */
+  byCategory: Record<Inquiry["category"], number>;
+  /** 未解決のみを母集団とした国別件数。count降順→country昇順 */
+  byCountry: { country: string; count: number }[];
+  /** 未解決のみを母集団とした滞留時間バケット別件数 */
+  unresolvedAging: Record<InquiryAgingBucket, number>;
+  /** 未着手（未対応かつclaim無し）かつ受付から24時間超の件数 */
+  staleUnclaimed: number;
+  /** 未着手のうち最古の経過時間（時間）。未着手0件ならnull */
+  oldestUnclaimedHours: number | null;
+  /**
+   * `options.currentStaffName`と一致する`claim.staffName`を持つ未解決件数。
+   * `HelpdeskStaff.displayName`に一意制約が無いため、既存の`claimedBy`フィルタと同じ
+   * 表示名の文字列一致で判定する（IDベースにするとフィルタ結果とKPI数値がずれるため）。
+   * `currentStaffName`未指定時は0。
+   */
+  mine: number;
+  /** 直近7日（JST、referenceDate当日を最終日）の受付件数 */
+  dailyIntake: DailyIntakePoint[];
 }
 
 /**
@@ -52,13 +78,17 @@ function isUnclaimed(inquiry: Inquiry): boolean {
  * ヘルプデスク側問い合わせ一覧の右側パネル（対応状況サマリ）向けに、
  * 渡された配列（フィルタ適用済みの想定）から表示に必要な集計値をまとめて算出する。
  *
- * `referenceDate`は「当日」の基準となる日時。既定値は呼び出し時点の現在時刻。
+ * `referenceDate`は「当日」「滞留時間」の基準となる日時。既定値は呼び出し時点の現在時刻。
+ * サーバーとクライアントで基準時刻がずれるとハイドレーション不一致になるため、
+ * ダッシュボード/一覧の呼び出し元はサーバーが決めた同一の時刻を渡すこと。
+ * `currentStaffName`はログイン中スタッフの表示名（`mine`集計に使用）。
  */
 export function computeHelpdeskInquiryStats(
   inquiries: Inquiry[],
-  options?: { referenceDate?: Date }
+  options?: { referenceDate?: Date; currentStaffName?: string }
 ): HelpdeskInquiryStats {
   const referenceDate = options?.referenceDate ?? new Date();
+  const currentStaffName = options?.currentStaffName;
   const todayKey = toReferenceDateKey(referenceDate);
 
   const byStatus: HelpdeskInquiryStatusBreakdown = {
@@ -69,13 +99,18 @@ export function computeHelpdeskInquiryStats(
 
   let unclaimed = 0;
   let unclaimedHighUrgency = 0;
+  let staleUnclaimed = 0;
+  let oldestUnclaimedCreatedAtMs: number | null = null;
   let todayCount = 0;
+  let todayUnresolved = 0;
+  let mine = 0;
   const staffCounts = new Map<string, number>();
 
   for (const inquiry of inquiries) {
     byStatus[inquiry.status] += 1;
 
-    if (toReferenceDateKey(new Date(inquiry.createdAt)) === todayKey) {
+    const isToday = toReferenceDateKey(new Date(inquiry.createdAt)) === todayKey;
+    if (isToday) {
       todayCount += 1;
     }
 
@@ -83,10 +118,25 @@ export function computeHelpdeskInquiryStats(
       continue;
     }
 
+    if (isToday) {
+      todayUnresolved += 1;
+    }
+
+    if (currentStaffName != null && inquiry.claim?.staffName === currentStaffName) {
+      mine += 1;
+    }
+
     if (isUnclaimed(inquiry)) {
       unclaimed += 1;
       if (inquiry.urgency === "high") {
         unclaimedHighUrgency += 1;
+      }
+      if (elapsedHoursSince(inquiry.createdAt, referenceDate) >= STALE_UNCLAIMED_THRESHOLD_HOURS) {
+        staleUnclaimed += 1;
+      }
+      const createdAtMs = new Date(inquiry.createdAt).getTime();
+      if (oldestUnclaimedCreatedAtMs === null || createdAtMs < oldestUnclaimedCreatedAtMs) {
+        oldestUnclaimedCreatedAtMs = createdAtMs;
       }
     } else {
       const staffName = inquiry.claim!.staffName;
@@ -101,6 +151,10 @@ export function computeHelpdeskInquiryStats(
 
   const claimedTotal = claimedByStaff.reduce((sum, row) => sum + row.count, 0);
   const unresolved = byStatus.new + byStatus.in_progress;
+  const oldestUnclaimedHours =
+    oldestUnclaimedCreatedAtMs === null
+      ? null
+      : Math.max(0, (referenceDate.getTime() - oldestUnclaimedCreatedAtMs) / 3_600_000);
 
   return {
     total: inquiries.length,
@@ -111,6 +165,14 @@ export function computeHelpdeskInquiryStats(
     claimedByStaff,
     claimedTotal,
     todayCount,
+    todayUnresolved,
+    byCategory: countByCategory(inquiries),
+    byCountry: countUnresolvedByCountry(inquiries),
+    unresolvedAging: countUnresolvedAging(inquiries, referenceDate),
+    staleUnclaimed,
+    oldestUnclaimedHours,
+    mine,
+    dailyIntake: computeDailyIntake(inquiries, referenceDate),
   };
 }
 

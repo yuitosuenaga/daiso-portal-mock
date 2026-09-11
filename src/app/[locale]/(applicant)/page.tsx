@@ -17,18 +17,31 @@ import {
   AnnouncementsPreviewPanelSkeleton,
 } from "@/components/features/dashboard/AnnouncementsPreviewPanel";
 import { ReminderAnnouncementsPanel } from "@/components/features/dashboard/ReminderAnnouncementsPanel";
+import {
+  AnnouncementSelfSummaryPanel,
+  AnnouncementSelfSummaryPanelSkeleton,
+} from "@/components/features/dashboard/AnnouncementSelfSummaryPanel";
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={null}>
-        <ReminderAnnouncementsPanel />
-      </Suspense>
-      <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
-        <AnnouncementsPreviewPanel viewAllHref="/announcements" />
-      </Suspense>
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+        <div className="lg:col-start-3 lg:row-start-1">
+          <Suspense fallback={<AnnouncementSelfSummaryPanelSkeleton />}>
+            <AnnouncementSelfSummaryPanel viewAllHref="/announcements" />
+          </Suspense>
+        </div>
+        <div className="space-y-6 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+          <Suspense fallback={null}>
+            <ReminderAnnouncementsPanel />
+          </Suspense>
+          <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
+            <AnnouncementsPreviewPanel viewAllHref="/announcements" />
+          </Suspense>
+        </div>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NavigationCard
           title={t("documents.title")}

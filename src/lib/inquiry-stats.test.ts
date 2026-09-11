@@ -19,10 +19,13 @@ function buildInquiry(overrides: Partial<Inquiry>): Inquiry {
   };
 }
 
+const referenceDate = new Date("2026-07-23T00:00:00.000Z");
+
 describe("computeApplicantInquiryStats", () => {
   it("空配列を渡すと全項目0を返す", () => {
     const stats = computeApplicantInquiryStats([], {
       unreadInquiryIds: new Set(),
+      referenceDate,
     });
 
     expect(stats).toEqual({
@@ -33,7 +36,15 @@ describe("computeApplicantInquiryStats", () => {
       awaitingResponse: 0,
       highUrgencyUnresolved: 0,
       byUrgencyUnresolved: { high: 0, medium: 0, low: 0 },
+      byCategory: { defect: 0, order: 0, system: 0, other: 0 },
+      unresolvedAging: { lt24h: 0, h24to72: 0, d3to7: 0, gte7d: 0 },
+      oldestUnresolvedHours: null,
+      staleAwaitingResponse: 0,
+      dailyIntake: stats.dailyIntake,
+      todayCount: 0,
     });
+    expect(stats.dailyIntake).toHaveLength(7);
+    expect(stats.dailyIntake.every((point) => point.count === 0)).toBe(true);
   });
 
   it("unreadはstatusを問わずunreadInquiryIdsに含まれる件数を数える", () => {
@@ -89,6 +100,86 @@ describe("computeApplicantInquiryStats", () => {
     });
 
     expect(stats.byUrgencyUnresolved).toEqual({ high: 1, medium: 1, low: 0 });
+  });
+
+  it("byCategoryは案件種別ごとの件数を返す", () => {
+    const inquiries = [
+      buildInquiry({ id: "1", category: "defect" }),
+      buildInquiry({ id: "2", category: "defect" }),
+      buildInquiry({ id: "3", category: "order" }),
+    ];
+
+    const stats = computeApplicantInquiryStats(inquiries, {
+      unreadInquiryIds: new Set(),
+      referenceDate,
+    });
+
+    expect(stats.byCategory).toEqual({ defect: 2, order: 1, system: 0, other: 0 });
+  });
+
+  it("staleAwaitingResponseはstatus=newかつ72時間以上経過の件数", () => {
+    const inquiries = [
+      buildInquiry({
+        id: "1",
+        status: "new",
+        createdAt: new Date(referenceDate.getTime() - 100 * 3_600_000).toISOString(),
+      }),
+      buildInquiry({
+        id: "2",
+        status: "new",
+        createdAt: new Date(referenceDate.getTime() - 1 * 3_600_000).toISOString(),
+      }),
+      buildInquiry({
+        id: "3",
+        status: "in_progress",
+        createdAt: new Date(referenceDate.getTime() - 100 * 3_600_000).toISOString(),
+      }),
+    ];
+
+    const stats = computeApplicantInquiryStats(inquiries, {
+      unreadInquiryIds: new Set(),
+      referenceDate,
+    });
+
+    expect(stats.staleAwaitingResponse).toBe(1);
+  });
+
+  it("todayCountはreferenceDate基準の当日件数をstatusを問わず数える", () => {
+    const inquiries = [
+      buildInquiry({ id: "1", status: "resolved", createdAt: referenceDate.toISOString() }),
+      buildInquiry({
+        id: "2",
+        status: "new",
+        createdAt: new Date(referenceDate.getTime() - 10 * 86_400_000).toISOString(),
+      }),
+    ];
+
+    const stats = computeApplicantInquiryStats(inquiries, {
+      unreadInquiryIds: new Set(),
+      referenceDate,
+    });
+
+    expect(stats.todayCount).toBe(1);
+  });
+
+  it("oldestUnresolvedHoursは未解決0件ならnull、未解決があれば最古の経過時間", () => {
+    const empty = computeApplicantInquiryStats([], {
+      unreadInquiryIds: new Set(),
+      referenceDate,
+    });
+    expect(empty.oldestUnresolvedHours).toBeNull();
+
+    const withUnresolved = computeApplicantInquiryStats(
+      [
+        buildInquiry({
+          id: "1",
+          status: "new",
+          createdAt: new Date(referenceDate.getTime() - 5 * 3_600_000).toISOString(),
+        }),
+      ],
+      { unreadInquiryIds: new Set(), referenceDate }
+    );
+    expect(withUnresolved.oldestUnresolvedHours).toBeCloseTo(5);
   });
 });
 

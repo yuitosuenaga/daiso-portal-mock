@@ -337,6 +337,9 @@
       "unclaimedCaption": "誰も対応を開始していない件数",
       "unclaimedNone": "未対応の問合せはすべて対応者がついています",
       "highUrgencyAlert": "緊急度「高」が{count}件",
+      "staleUnclaimedAlert": "{count}件が24時間以上未着手",
+      "mineLabel": "自分の担当",
+      "mineCaption": "自分が対応中の未解決件数",
       "statusBreakdownTitle": "対応状況の内訳",
       "staffLoadTitle": "対応者別の件数",
       "staffLoadEmpty": "対応中の問合せはありません",
@@ -765,6 +768,18 @@
       "error": "お知らせの取得に失敗しました。",
       "viewAll": "お知らせ一覧を見る"
     },
+    "announcementSummary": {
+      "title": "お知らせの対応状況",
+      "unconfirmedLabel": "未確認",
+      "actionPendingLabel": "確認済み・対応未完了",
+      "confirmedCompleteLabel": "確認済み・対応完了",
+      "categoryBreakdownTitle": "種別ごとの件数",
+      "unit": "件",
+      "totalCaption": "対象のお知らせ {count}件",
+      "empty": "表示できるお知らせはありません。",
+      "error": "お知らせの対応状況の取得に失敗しました。",
+      "viewAll": "お知らせ一覧を見る"
+    },
     "reminderAnnouncements": {
       "title": "日本側からのリマインド"
     },
@@ -781,9 +796,12 @@
       "reference": "参考情報"
     },
     "kpi": {
-      "title": "未対応件数",
+      "title": "問合せ状況",
       "unresolvedLabel": "全社の未対応件数",
-      "todayLabel": "本日受付の未対応件数",
+      "unclaimedLabel": "未着手",
+      "todayLabel": "本日受付",
+      "todayUnresolvedCaption": "うち未対応 {count}件",
+      "todayNone": "本日の受付はありません",
       "none": "未対応なし",
       "viewAll": "問合せ一覧を見る",
       "error": "未対応件数の取得に失敗しました"
@@ -1193,6 +1211,9 @@
       "highUrgencyAlert": "緊急度「高」の未解決が{count}件",
       "awaitingResponseLabel": "回答待ち",
       "awaitingResponseCaption": "ヘルプデスクからの返信・対応開始待ちの件数",
+      "staleAwaitingResponseAlert": "{count}件が72時間以上回答待ち",
+      "unresolvedLabel": "未解決",
+      "unresolvedCaption": "対応状況が「新規」「対応中」の件数",
       "statusBreakdownTitle": "対応状況の内訳",
       "urgencyBreakdownTitle": "未解決の緊急度別件数",
       "urgencyBreakdownEmpty": "未解決の問合せはありません",
@@ -1202,6 +1223,40 @@
       "tableHeaderItem": "項目",
       "tableHeaderCount": "件数",
       "tableHeaderShare": "割合"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "未解決の滞留時間",
+      "lt24h": "24時間以内",
+      "h24to72": "24〜72時間",
+      "d3to7": "3〜7日",
+      "gte7d": "7日以上",
+      "over24h": "24時間以上経過",
+      "over72h": "72時間以上経過",
+      "empty": "未解決の問合せはありません",
+      "oldest": "最古の未解決: 受付から{hours}時間経過"
+    },
+    "category": {
+      "title": "案件種別の内訳",
+      "empty": "対象の問合せはありません"
+    },
+    "country": {
+      "title": "国別の未解決件数",
+      "others": "ほか{count}カ国",
+      "empty": "未解決の問合せはありません"
+    },
+    "intake": {
+      "receivedTitle": "直近7日の受付件数",
+      "submittedTitle": "直近7日の送信件数",
+      "empty": "直近7日は対象の問合せはありません",
+      "columnLabel": "{date}: {count}件"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "未解決のみ",
+      "agingLabel": "滞留時間",
+      "agingAll": "すべての滞留時間",
+      "receivedOnLabel": "受付日"
     }
   },
   "links": {
