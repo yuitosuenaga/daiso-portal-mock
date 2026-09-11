@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_INQUIRY_FILTERS,
   filterInquiries,
+  normalizeInquiryFilters,
 } from "@/lib/inquiry-filter";
 import type { Inquiry } from "@/types/inquiry";
 
@@ -219,5 +220,104 @@ describe("filterInquiries", () => {
     });
 
     expect(result.map((item) => item.id)).toEqual(["match"]);
+  });
+});
+
+describe("normalizeInquiryFilters", () => {
+  it("矛盾がない場合は無変更", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, category: "defect" as const };
+    expect(normalizeInquiryFilters(filters)).toEqual(filters);
+  });
+
+  it("statusをresolvedに変更したとき、unresolvedOnlyが解除される", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, unresolvedOnly: true, status: "resolved" as const };
+    const result = normalizeInquiryFilters(filters, ["status"]);
+
+    expect(result.status).toBe("resolved");
+    expect(result.unresolvedOnly).toBe(false);
+  });
+
+  it("unresolvedOnlyをONにしたとき、status=resolvedが解除される", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, status: "resolved" as const, unresolvedOnly: true };
+    const result = normalizeInquiryFilters(filters, ["unresolvedOnly"]);
+
+    expect(result.status).toBe("");
+    expect(result.unresolvedOnly).toBe(true);
+  });
+
+  it("agingを選ぶと、unresolvedOnlyが未設定でも自動的にtrueになる", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, aging: "over24h" as const };
+    const result = normalizeInquiryFilters(filters, ["aging"]);
+
+    expect(result.aging).toBe("over24h");
+    expect(result.unresolvedOnly).toBe(true);
+  });
+
+  it("urgencyを選ぶと、unresolvedOnlyが未設定でも自動的にtrueになる", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, urgency: "high" as const };
+    const result = normalizeInquiryFilters(filters, ["urgency"]);
+
+    expect(result.urgency).toBe("high");
+    expect(result.unresolvedOnly).toBe(true);
+  });
+
+  it("status=resolvedが既にある状態でagingを選ぶと、statusが解除されaging・unresolvedOnlyが有効になる（今回の変更が優先される）", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, status: "resolved" as const, aging: "over24h" as const };
+    const result = normalizeInquiryFilters(filters, ["aging"]);
+
+    expect(result.status).toBe("");
+    expect(result.aging).toBe("over24h");
+    expect(result.unresolvedOnly).toBe(true);
+  });
+
+  it("agingが有効な状態でstatusをresolvedに変更すると、statusが優先されunresolvedOnly・agingが解除される", () => {
+    const filters = { ...EMPTY_INQUIRY_FILTERS, aging: "over24h" as const, unresolvedOnly: true };
+    const withStatus = { ...filters, status: "resolved" as const };
+    const result = normalizeInquiryFilters(withStatus, ["status"]);
+
+    expect(result.status).toBe("resolved");
+    expect(result.unresolvedOnly).toBe(false);
+    expect(result.aging).toBe("");
+  });
+
+  it("unclaimedOnlyに相当する概念は無いため、urgency・agingが有効な状態でunresolvedOnlyを明示的にOFFにすると両方解除される", () => {
+    const filters = {
+      ...EMPTY_INQUIRY_FILTERS,
+      urgency: "high" as const,
+      aging: "over24h" as const,
+      unresolvedOnly: true,
+    };
+    const result = normalizeInquiryFilters(
+      { ...filters, unresolvedOnly: false },
+      ["unresolvedOnly"]
+    );
+
+    expect(result.unresolvedOnly).toBe(false);
+    expect(result.urgency).toBe("");
+    expect(result.aging).toBe("");
+  });
+
+  it("再現シナリオ: aging選択→status=resolved選択→再度同じagingを選択すると詰み状態にならない（StatsPanel経由の複数キーpatchを想定）", () => {
+    // 1. agingバーをクリック: {aging:"over24h", unresolvedOnly:true}
+    let filters = normalizeInquiryFilters(
+      { ...EMPTY_INQUIRY_FILTERS, aging: "over24h", unresolvedOnly: true },
+      ["aging", "unresolvedOnly"]
+    );
+    expect(filters).toEqual({ ...EMPTY_INQUIRY_FILTERS, aging: "over24h", unresolvedOnly: true });
+
+    // 2. 対応状況セレクトでresolvedを選ぶ: {status:"resolved"}（unresolvedOnlyは変更しない）
+    filters = normalizeInquiryFilters({ ...filters, status: "resolved" }, ["status"]);
+    expect(filters.status).toBe("resolved");
+    expect(filters.unresolvedOnly).toBe(false);
+    expect(filters.aging).toBe(""); // unresolvedOnlyの前提を欠くため解除される
+
+    // 3. 再度同じagingバー行をクリック: {aging:"over24h", unresolvedOnly:true}
+    filters = normalizeInquiryFilters(
+      { ...filters, aging: "over24h", unresolvedOnly: true },
+      ["aging", "unresolvedOnly"]
+    );
+    expect(filters.status).toBe(""); // statusは今回変更されていないため解除される
+    expect(filters.aging).toBe("over24h");
+    expect(filters.unresolvedOnly).toBe(true);
   });
 });

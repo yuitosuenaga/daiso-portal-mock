@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   EMPTY_INQUIRY_FILTERS,
   filterInquiries,
+  normalizeInquiryFilters,
   type InquiryFilters,
 } from "@/lib/inquiry-filter";
 import { computeApplicantInquiryStats } from "@/lib/inquiry-stats";
@@ -96,15 +97,41 @@ export function InquiryListClient({
     [filteredInquiries, unreadInquiryIdSet, referenceDate]
   );
 
+  /**
+   * サマリパネルのクリック（StatsPanel）由来のフィルタ変更。トグル解除の判定
+   * （`toggleFilterPatch`）を経たうえで、最終結果を必ず`normalizeInquiryFilters`に
+   * 通し、他の経路（フィルタバー）からの変更と組み合わさっても矛盾した状態
+   * （例: status=resolvedとunresolvedOnly=trueの同時成立）に到達しないようにする。
+   */
   function handleFilterChange(patch: Partial<InquiryFilters>) {
-    setFilters((prev) => ({
-      ...prev,
-      ...toggleFilterPatch(prev, patch, EMPTY_INQUIRY_FILTERS),
-    }));
+    setFilters((prev) => {
+      const merged = {
+        ...prev,
+        ...toggleFilterPatch(prev, patch, EMPTY_INQUIRY_FILTERS),
+      };
+      return normalizeInquiryFilters(
+        merged,
+        Object.keys(patch) as (keyof InquiryFilters)[]
+      );
+    });
     listSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  }
+
+  /**
+   * フィルタバー（`InquiryFilterBar`）由来のフィルタ変更。フィルタバーは
+   * 各コントロールが完全な`InquiryFilters`オブジェクトを構築して渡す設計のため、
+   * 直前の`filters`と比較して実際に変わったキーを求め、`normalizeInquiryFilters`に
+   * 「今回明示的に変更されたキー」として渡す（矛盾解消時にどちらの値を優先するかの
+   * 判定に使われる）。
+   */
+  function handleFilterBarChange(next: InquiryFilters) {
+    const changedKeys = (Object.keys(next) as (keyof InquiryFilters)[]).filter(
+      (key) => filters[key] !== next[key]
+    );
+    setFilters(normalizeInquiryFilters(next, changedKeys));
   }
 
   return (
@@ -113,7 +140,7 @@ export function InquiryListClient({
         <CardContent className="pt-5">
           <InquiryFilterBar
             filters={filters}
-            onChange={setFilters}
+            onChange={handleFilterBarChange}
             onClear={() => setFilters(EMPTY_INQUIRY_FILTERS)}
             statusOptions={statusOptions}
             categoryOptions={categoryOptions}

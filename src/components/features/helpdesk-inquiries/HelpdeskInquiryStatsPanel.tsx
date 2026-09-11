@@ -106,25 +106,25 @@ export function HelpdeskInquiryStatsPanel({
     });
   }
 
-  const unclaimedSelected =
-    filters.unclaimedOnly && filters.unresolvedOnly && !filters.urgency && filters.aging === "";
+  // normalizeHelpdeskInquiryFiltersが「unclaimedOnly・aging・countryのいずれかが
+  // 有効ならunresolvedOnlyも常にtrue」を保証するため、これらに関する選択状態判定では
+  // unresolvedOnlyの別チェックは不要（filters自体が単一の真実源として常に整合している）。
+  // ただし`claimedBy`はこの保証の対象外（対応者による絞り込みは対応状況を問わず
+  // 意味を持つ操作のため）なので、「自分の担当」タイルの選択判定は自身の
+  // 複合パッチ（claimedBy・unresolvedOnly）と一致するかを個別に確認する。
+  const unclaimedSelected = filters.unclaimedOnly && !filters.urgency && filters.aging === "";
   const highUrgencyAlertSelected =
-    filters.unclaimedOnly &&
-    filters.unresolvedOnly &&
-    filters.urgency === "high" &&
-    filters.aging === "";
-  const staleUnclaimedSelected =
-    filters.unclaimedOnly && filters.unresolvedOnly && filters.aging === "over24h";
+    filters.unclaimedOnly && filters.urgency === "high" && filters.aging === "";
+  const staleUnclaimedSelected = filters.unclaimedOnly && filters.aging === "over24h";
   const mineSelected =
     Boolean(currentStaffName) &&
     filters.claimedBy === currentStaffName &&
     filters.unresolvedOnly;
-  const staffLoadSelectedKey =
-    filters.unclaimedOnly && filters.unresolvedOnly
-      ? "unclaimed"
-      : filters.claimedBy
-        ? `staff:${filters.claimedBy}`
-        : null;
+  const staffLoadSelectedKey = filters.unclaimedOnly
+    ? "unclaimed"
+    : filters.claimedBy
+      ? `staff:${filters.claimedBy}`
+      : null;
 
   return (
     <Card>

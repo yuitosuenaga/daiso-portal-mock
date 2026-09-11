@@ -89,7 +89,9 @@ export function InquiryStatsPanel({
   }
 
   const unreadSelected = filters.unreadOnly;
-  const highUrgencySelected = filters.urgency === "high" && filters.unresolvedOnly;
+  // normalizeInquiryFiltersがurgency!==""⟹unresolvedOnly===trueを常に保証するため、
+  // unresolvedOnlyの別チェックは不要（filters自体が単一の真実源として常に整合している）。
+  const highUrgencySelected = filters.urgency === "high";
   const awaitingResponseSelected = filters.status === "new";
   const unresolvedSelected =
     filters.unresolvedOnly && !filters.urgency && !filters.status;

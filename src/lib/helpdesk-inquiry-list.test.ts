@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_HELPDESK_INQUIRY_FILTERS,
   filterInquiriesForHelpdesk,
+  normalizeHelpdeskInquiryFilters,
   sortInquiriesForHelpdesk,
 } from "@/lib/helpdesk-inquiry-list";
 import type { Inquiry } from "@/types/inquiry";
@@ -279,5 +280,107 @@ describe("filterInquiriesForHelpdesk", () => {
     });
 
     expect(result.map((item) => item.id)).toEqual(["jst-morning"]);
+  });
+});
+
+describe("normalizeHelpdeskInquiryFilters", () => {
+  it("矛盾がない場合は無変更", () => {
+    const filters = { ...EMPTY_HELPDESK_INQUIRY_FILTERS, category: "defect" };
+    expect(normalizeHelpdeskInquiryFilters(filters)).toEqual(filters);
+  });
+
+  it("unclaimedOnlyをONにすると、claimedByが解除されunresolvedOnlyが有効になる", () => {
+    const filters = {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      claimedBy: "田中",
+      unclaimedOnly: true,
+    };
+    const result = normalizeHelpdeskInquiryFilters(filters, ["unclaimedOnly"]);
+
+    expect(result.unclaimedOnly).toBe(true);
+    expect(result.claimedBy).toBe("");
+    expect(result.unresolvedOnly).toBe(true);
+  });
+
+  it("claimedByを選ぶと、unclaimedOnlyは解除されるが、unresolvedOnlyは強制されない（対応者絞り込みは対応状況を問わず意味を持つため）", () => {
+    const filters = {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      unclaimedOnly: true,
+      claimedBy: "田中",
+    };
+    const result = normalizeHelpdeskInquiryFilters(filters, ["claimedBy"]);
+
+    expect(result.claimedBy).toBe("田中");
+    expect(result.unclaimedOnly).toBe(false);
+    expect(result.unresolvedOnly).toBe(false);
+  });
+
+  it("countryを選ぶと、unresolvedOnlyが未設定でも自動的にtrueになる", () => {
+    const filters = { ...EMPTY_HELPDESK_INQUIRY_FILTERS, country: "VN" };
+    const result = normalizeHelpdeskInquiryFilters(filters, ["country"]);
+
+    expect(result.country).toBe("VN");
+    expect(result.unresolvedOnly).toBe(true);
+  });
+
+  it("statusをresolvedに変更したとき、unresolvedOnlyが解除される", () => {
+    const filters = {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      unresolvedOnly: true,
+      status: "resolved" as const,
+    };
+    const result = normalizeHelpdeskInquiryFilters(filters, ["status"]);
+
+    expect(result.status).toBe("resolved");
+    expect(result.unresolvedOnly).toBe(false);
+  });
+
+  it("unresolvedOnlyを明示的にOFFにすると、unclaimedOnly・aging・countryが解除される", () => {
+    const filters = {
+      ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+      unclaimedOnly: true,
+      aging: "over24h" as const,
+      country: "VN",
+      unresolvedOnly: true,
+    };
+    const result = normalizeHelpdeskInquiryFilters(
+      { ...filters, unresolvedOnly: false },
+      ["unresolvedOnly"]
+    );
+
+    expect(result.unresolvedOnly).toBe(false);
+    expect(result.unclaimedOnly).toBe(false);
+    expect(result.aging).toBe("");
+    expect(result.country).toBe("");
+  });
+
+  it("再現シナリオ: 対応者行クリック→status=resolved選択→再度同じ対応者行をクリックすると詰み状態にならない", () => {
+    // 1. 対応者行クリック: {claimedBy:"田中", unresolvedOnly:true, unclaimedOnly:false}
+    let filters = normalizeHelpdeskInquiryFilters(
+      {
+        ...EMPTY_HELPDESK_INQUIRY_FILTERS,
+        claimedBy: "田中",
+        unresolvedOnly: true,
+        unclaimedOnly: false,
+      },
+      ["claimedBy", "unresolvedOnly", "unclaimedOnly"]
+    );
+    expect(filters.claimedBy).toBe("田中");
+    expect(filters.unresolvedOnly).toBe(true);
+
+    // 2. 対応状況セレクトでresolvedを選ぶ: {status:"resolved"}（claimedBy・unresolvedOnlyには触れない）
+    filters = normalizeHelpdeskInquiryFilters({ ...filters, status: "resolved" }, ["status"]);
+    expect(filters.status).toBe("resolved");
+    expect(filters.unresolvedOnly).toBe(false);
+    expect(filters.claimedBy).toBe("田中"); // claimedBy自体はunresolvedOnlyに依存しても解除対象ではない範囲を確認
+
+    // 3. 再度同じ対応者行をクリック: {claimedBy:"田中", unresolvedOnly:true, unclaimedOnly:false}
+    filters = normalizeHelpdeskInquiryFilters(
+      { ...filters, claimedBy: "田中", unresolvedOnly: true, unclaimedOnly: false },
+      ["claimedBy", "unresolvedOnly", "unclaimedOnly"]
+    );
+    expect(filters.status).toBe(""); // statusは今回変更されていないため解除される
+    expect(filters.claimedBy).toBe("田中");
+    expect(filters.unresolvedOnly).toBe(true);
   });
 });

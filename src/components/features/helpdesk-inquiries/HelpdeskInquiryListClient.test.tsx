@@ -242,4 +242,53 @@ describe("HelpdeskInquiryListClient", () => {
     expect(screen.getByText("商品破損の報告")).toBeTruthy();
     expect(screen.queryByText("追加発注のお願い")).toBeNull();
   });
+
+  it("再現シナリオ: 未着手のみを選んだ状態で未解決のみを独立にOFFにすると、未着手のみも解除される（KPIと一覧件数の不整合を防ぐ）", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText("未着手のみ"));
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(true);
+
+    await user.click(screen.getByLabelText("未解決のみ"));
+
+    expect(
+      (screen.getByLabelText("未着手のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect(screen.getByText("商品破損の報告")).toBeTruthy();
+    expect(screen.getByText("追加発注のお願い")).toBeTruthy();
+    expect(screen.getByText("解決済みの問い合わせ")).toBeTruthy();
+  });
+
+  it("再現シナリオ: 未解決のみOFFの状態で滞留時間を選ぶと、未解決のみが自動的にONになる", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("滞留時間"), "over24h");
+
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(true);
+  });
+
+  it("再現シナリオ: 滞留時間が有効な状態で対応状況を解決済みに変更すると、対応状況が優先され滞留時間・未解決のみが解除される", async () => {
+    renderClient();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("滞留時間"), "over24h");
+    await user.selectOptions(screen.getByLabelText("対応状況"), "resolved");
+
+    expect(
+      (screen.getByLabelText("未解決のみ") as HTMLInputElement).checked
+    ).toBe(false);
+    expect((screen.getByLabelText("滞留時間") as HTMLSelectElement).value).toBe(
+      ""
+    );
+    expect(screen.getByText("解決済みの問い合わせ")).toBeTruthy();
+  });
 });

@@ -36,6 +36,51 @@ export const EMPTY_INQUIRY_FILTERS: InquiryFilters = {
 };
 
 /**
+ * 申請者側フィルタの相互排他ルールを一括で正規化する。設計の考え方は
+ * `normalizeHelpdeskInquiryFilters`（`src/lib/helpdesk-inquiry-list.ts`）のJSDoc参照
+ * （個別ハンドラの対症療法ではなく、フィルタ変更の都度この関数を通して内部一貫性を保つ）。
+ *
+ * `changedKeys`には今回明示的に変更されたキーを渡し、矛盾解消の優先度判定に使う。
+ */
+export function normalizeInquiryFilters(
+  filters: InquiryFilters,
+  changedKeys: readonly (keyof InquiryFilters)[] = []
+): InquiryFilters {
+  const next = { ...filters };
+  const changed = new Set<keyof InquiryFilters>(changedKeys);
+
+  // 緊急度・滞留時間はいずれも「未解決のみ」を母集団にした集計
+  // （byUrgencyUnresolved・unresolvedAging）と対になっているため、
+  // 有効な間はunresolvedOnlyも常にtrueでなければならない。
+  const requiresUnresolved = next.urgency !== "" || next.aging !== "";
+  if (requiresUnresolved && !next.unresolvedOnly) {
+    if (changed.has("unresolvedOnly")) {
+      // unresolvedOnlyが明示的にオフにされた: 前提を欠く依存項目側を解除する
+      next.urgency = "";
+      next.aging = "";
+    } else {
+      next.unresolvedOnly = true;
+      changed.add("unresolvedOnly");
+    }
+  }
+
+  // 対応状況「解決済み」と未解決のみは両立しない。
+  if (next.status === "resolved" && next.unresolvedOnly) {
+    if (changed.has("unresolvedOnly") && !changed.has("status")) {
+      next.status = "";
+    } else {
+      next.unresolvedOnly = false;
+      if (next.urgency !== "" || next.aging !== "") {
+        next.urgency = "";
+        next.aging = "";
+      }
+    }
+  }
+
+  return next;
+}
+
+/**
  * タイトル・自由記述（部分一致・大文字小文字を区別しない）・対応状況・案件種別・緊急度・
  * 未確認（新着）・未解決・滞留時間・受付日のAND条件で問い合わせを絞り込む。
  * 引数の配列の順序は変更しない。

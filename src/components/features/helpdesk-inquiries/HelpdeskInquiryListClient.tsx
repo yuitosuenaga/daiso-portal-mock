@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   EMPTY_HELPDESK_INQUIRY_FILTERS,
   filterInquiriesForHelpdesk,
+  normalizeHelpdeskInquiryFilters,
   type HelpdeskInquiryFilters,
 } from "@/lib/helpdesk-inquiry-list";
 import { computeHelpdeskInquiryStats } from "@/lib/helpdesk-inquiry-stats";
@@ -105,15 +106,41 @@ export function HelpdeskInquiryListClient({
     [filteredInquiries, referenceDate, currentStaffName]
   );
 
+  /**
+   * サマリパネルのクリック（StatsPanel）由来のフィルタ変更。トグル解除の判定
+   * （`toggleFilterPatch`）を経たうえで、最終結果を必ず`normalizeHelpdeskInquiryFilters`に
+   * 通し、他の経路（フィルタバー）からの変更と組み合わさっても矛盾した状態
+   * （例: unclaimedOnly=trueのままunresolvedOnlyだけが独立に解除される等）に
+   * 到達しないようにする。
+   */
   function handleFilterChange(patch: Partial<HelpdeskInquiryFilters>) {
-    setFilters((prev) => ({
-      ...prev,
-      ...toggleFilterPatch(prev, patch, EMPTY_HELPDESK_INQUIRY_FILTERS),
-    }));
+    setFilters((prev) => {
+      const merged = {
+        ...prev,
+        ...toggleFilterPatch(prev, patch, EMPTY_HELPDESK_INQUIRY_FILTERS),
+      };
+      return normalizeHelpdeskInquiryFilters(
+        merged,
+        Object.keys(patch) as (keyof HelpdeskInquiryFilters)[]
+      );
+    });
     listSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  }
+
+  /**
+   * フィルタバー（`HelpdeskInquiryFilterBar`）由来のフィルタ変更。フィルタバーは
+   * 各コントロールが完全な`HelpdeskInquiryFilters`オブジェクトを構築して渡す設計のため、
+   * 直前の`filters`と比較して実際に変わったキーを求め、
+   * `normalizeHelpdeskInquiryFilters`に「今回明示的に変更されたキー」として渡す。
+   */
+  function handleFilterBarChange(next: HelpdeskInquiryFilters) {
+    const changedKeys = (
+      Object.keys(next) as (keyof HelpdeskInquiryFilters)[]
+    ).filter((key) => filters[key] !== next[key]);
+    setFilters(normalizeHelpdeskInquiryFilters(next, changedKeys));
   }
 
   return (
@@ -122,7 +149,7 @@ export function HelpdeskInquiryListClient({
         <CardContent className="pt-5">
           <HelpdeskInquiryFilterBar
             filters={filters}
-            onChange={setFilters}
+            onChange={handleFilterBarChange}
             onClear={() => setFilters(EMPTY_HELPDESK_INQUIRY_FILTERS)}
             countryOptions={countryOptions}
             categoryOptions={categoryOptions}
