@@ -68,11 +68,11 @@ describe("AnnouncementSelfSummaryPanel", () => {
     getAnnouncementSelfStatusesMock.mockReset();
   });
 
-  it("未確認・確認済み対応未完了の件数を分けて表示する", async () => {
+  it("対応状況3区分・カテゴリ別内訳をグラフ（横棒リスト）で分けて表示する", async () => {
     getAnnouncementsMock.mockResolvedValueOnce([
-      makeAnnouncement("1", { actionRequired: true }),
-      makeAnnouncement("2", { actionRequired: true }),
-      makeAnnouncement("3", { actionRequired: false }),
+      makeAnnouncement("1", { actionRequired: true, category: "maintenance" }),
+      makeAnnouncement("2", { actionRequired: true, category: "incident" }),
+      makeAnnouncement("3", { actionRequired: false, category: "other" }),
     ]);
     const statuses = new Map<string, AnnouncementSelfStatus>([
       ["1", { confirmedAt: null, completedAt: null }],
@@ -84,7 +84,22 @@ describe("AnnouncementSelfSummaryPanel", () => {
     const jsx = await AnnouncementSelfSummaryPanel({ viewAllHref: "/announcements" });
     render(jsx);
 
-    expect(screen.getAllByText("1")).toHaveLength(2);
+    expect(
+      screen.getByText("dashboard.announcementSummary.unconfirmedLabel")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("dashboard.announcementSummary.actionPendingLabel")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("dashboard.announcementSummary.confirmedCompleteLabel")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("dashboard.announcementSummary.categoryBreakdownTitle")
+    ).toBeTruthy();
+    expect(screen.getByText("announcements.categories.maintenance")).toBeTruthy();
+    expect(screen.getByText("announcements.categories.incident")).toBeTruthy();
+    expect(screen.getByText("announcements.categories.policy")).toBeTruthy();
+    expect(screen.getByText("announcements.categories.other")).toBeTruthy();
     expect(
       screen.getByText("dashboard.announcementSummary.totalCaption")
     ).toBeTruthy();
