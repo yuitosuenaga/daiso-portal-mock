@@ -487,6 +487,9 @@ enum MonthlyMaterialDepartment {
   craftDiy
   food
   other
+  localPopsList
+  globalPopsList
+  endPopsList
 }
 
 enum MonthlyMaterialSourceType {

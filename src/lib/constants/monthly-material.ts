@@ -22,6 +22,9 @@ export const MONTHLY_MATERIAL_DEPARTMENTS = [
   "craftDiy",
   "food",
   "other",
+  "localPopsList",
+  "globalPopsList",
+  "endPopsList",
 ] as const;
 
 /** 対象年の入力許容範囲（下限）。 */

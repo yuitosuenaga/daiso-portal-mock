@@ -938,7 +938,10 @@
       "interior": "Interior & Sundries",
       "craftDiy": "Craft & DIY",
       "food": "Food & Snacks",
-      "other": "Other"
+      "other": "Other",
+      "localPopsList": "Local POPs List",
+      "globalPopsList": "Global POPs List",
+      "endPopsList": "End POPs List"
     },
     "filter": {
       "departmentLabel": "Filter by category",
