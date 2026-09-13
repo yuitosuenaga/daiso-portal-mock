@@ -20,7 +20,10 @@ export type MonthlyMaterialDepartment =
   | "interior"
   | "craftDiy"
   | "food"
-  | "other";
+  | "other"
+  | "localPopsList"
+  | "globalPopsList"
+  | "endPopsList";
 
 /**
  * 資料の公開範囲。全社共通公開、特定の国（ISO 3166-1 alpha-2）を1件以上指定、
