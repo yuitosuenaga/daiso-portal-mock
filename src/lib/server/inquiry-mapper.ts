@@ -15,7 +15,7 @@ type PrismaInquiryAttachment = {
 };
 
 type PrismaInquiryWithRelations = Prisma.InquiryGetPayload<{
-  include: { claimedByStaff: true };
+  include: { claimedByStaff: true; translations: true };
 }> & { attachments?: PrismaInquiryAttachment[] };
 
 type PrismaHistoryEntryWithRelations = Prisma.InquiryHistoryEntryGetPayload<{
@@ -42,6 +42,13 @@ export function mapInquiry(record: PrismaInquiryWithRelations): Inquiry {
     originalText: record.originalText,
     originalLanguage: record.originalLanguage,
     translatedText: record.translatedText ?? undefined,
+    translations: record.translations.map((translation) => ({
+      locale: translation.locale,
+      title: translation.title,
+      body: translation.body,
+      source: translation.source,
+    })),
+    translationStatus: record.translationStatus,
     status: record.status,
     createdAt: record.createdAt.toISOString(),
     submittedBy: {

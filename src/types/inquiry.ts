@@ -17,8 +17,12 @@ export type Inquiry = {
   originalText: string;
   /** ISO 639-1 言語コード（例: "ja", "en"） */
   originalLanguage: string;
-  /** 日本語訳。フェーズ3（Amazon Translate連携）まで未使用 */
+  /** @deprecated `translations`（locale="ja"）へ移行。新規書き込みは行わない */
   translatedText?: string;
+  /** 原文以外の言語の翻訳（Claude APIによる自動翻訳）。`originalLanguage`と同じlocaleの行は作らない */
+  translations?: InquiryTranslation[];
+  /** 自動翻訳の状態。`pending`=翻訳対象言語なし/未実行、`completed`=全言語翻訳済み、`failed`=1件以上失敗 */
+  translationStatus?: "pending" | "completed" | "failed";
   status: "new" | "in_progress" | "resolved";
   /** ISO 8601 形式の送信時刻 */
   createdAt: string;
@@ -40,8 +44,20 @@ export type Inquiry = {
   attachments?: InquiryAttachment[];
 };
 
+/** 問い合わせ本文の翻訳1件分（`originalLanguage`以外の言語）。 */
+export type InquiryTranslation = {
+  locale: string;
+  title: string;
+  body: string;
+  source: "manual" | "machine";
+};
+
 /**
  * 問い合わせ・申請送信時のAPI入力契約。
- * `Inquiry` から `id`（API側で生成）と `translatedText`（フェーズ3まで未使用）を除いたサブセット。
+ * `Inquiry` から `id`（API側で生成）・`translatedText`（非推奨）・`translations`・`translationStatus`
+ * （いずれもAPI側で書き込む）を除いたサブセット。
  */
-export type CreateInquiryInput = Omit<Inquiry, "id" | "translatedText">;
+export type CreateInquiryInput = Omit<
+  Inquiry,
+  "id" | "translatedText" | "translations" | "translationStatus"
+>;

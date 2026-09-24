@@ -271,3 +271,7 @@
 5. The ヘルプデスクポータル shall 要件1が前提としていた「サイドバーの『問い合わせ申請』ナビゲーション項目」からの導線記述を、「ダッシュボードの『問合せ』ブロック」からの導線に更新する（左サイドバー撤去に伴う導線変更を反映するのみで、フォーム画面自体のUI・ルートは変更しない）。
 6. The ヘルプデスクポータル shall 英語表記（`messages/en.json`）についても、Application系の併記表現（"Inquiry / Request"等）をInquiry系表記に統一する。
 7. The ヘルプデスクポータル shall 本要件による文言変更を、翻訳キー名自体を変更せず、値のみを変更する形で行う（既存テストのキー参照を壊さない）。
+
+### 追記（2026-09-24）: `translatedText`書き込み方針の撤回とClaude API自動翻訳への移行
+
+2026-07-22追記で定めた「投稿時は`translatedText`を`null`のまま維持する」方針は、Claude APIによる自動翻訳実装（`helpdesk-inquiry-management`spec「追記, 2026-09-24」）に伴い撤回する。以後、投稿時（`createInquiry`→`createInquiryRecord`）は`translatedText`を書き込まないが、直後に`translateInquiryAndStore`（`src/lib/server/inquiry-translation-service.ts`）が呼ばれ、`originalLanguage`以外の全ロケールへの翻訳を子テーブル`InquiryTranslation`へ保存する。`translatedText`列自体は非推奨（`@deprecated`）として残すが、新規書き込みは行わない。要件13（本ファイル）が定める「`translatedText`へ値を設定しない」保証・回帰テストは、この新方式のもとでも変わらず成立する。

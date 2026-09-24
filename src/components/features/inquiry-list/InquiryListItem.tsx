@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
+import { resolveInquiryContent } from "@/lib/inquiry-content";
 import type { Inquiry } from "@/types/inquiry";
 
 export interface InquiryListItemProps {
@@ -42,6 +43,8 @@ export function InquiryListItem({
   hasUnreadReply,
   newBadgeLabel,
 }: InquiryListItemProps) {
+  const resolvedContent = resolveInquiryContent(inquiry, locale);
+
   return (
     <li className="flex items-start justify-between gap-4 py-3">
       <div className="flex-1 space-y-1">
@@ -50,7 +53,7 @@ export function InquiryListItem({
             href={`/inquiry/${inquiry.id}`}
             className="text-sm font-medium hover:underline"
           >
-            {inquiry.title || untitledLabel}
+            {resolvedContent.title || untitledLabel}
           </Link>
           {hasUnreadReply && (
             <Badge variant="unread" aria-label={newBadgeLabel}>
@@ -59,7 +62,7 @@ export function InquiryListItem({
           )}
         </div>
         <p className="line-clamp-2 text-sm text-muted-foreground">
-          {inquiry.originalText}
+          {resolvedContent.body}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="muted">{categoryLabel}</Badge>

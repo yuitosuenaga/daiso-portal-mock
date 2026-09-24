@@ -9,11 +9,16 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   createInquiryRecord: vi.fn(),
   listInquiriesForCompany: vi.fn(),
   listAllInquiries: vi.fn(),
+  findInquiryById: vi.fn(),
+}));
+vi.mock("@/lib/server/inquiry-translation-service", () => ({
+  translateInquiryAndStore: vi.fn(),
 }));
 
 import { getSession } from "@/lib/server/get-session";
 import {
   createInquiryRecord,
+  findInquiryById,
   listAllInquiries,
   listInquiriesForCompany,
 } from "@/lib/server/inquiry-service";
@@ -60,6 +65,7 @@ describe("POST /api/inquiries", () => {
   it("申請者セッションで有効な入力のとき、companyIdを付与して作成し201を返す", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
     vi.mocked(createInquiryRecord).mockResolvedValue({ id: "inquiry-1" } as never);
+    vi.mocked(findInquiryById).mockResolvedValue({ id: "inquiry-1" } as never);
 
     const response = await POST(
       jsonRequest({

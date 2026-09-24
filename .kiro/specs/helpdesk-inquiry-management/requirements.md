@@ -444,3 +444,14 @@ Requirement 13.4を次の内容に置き換える（他のAcceptance Criteria 13
 3. The Portal shall 対応履歴の申請者メッセージラベル（`helpdeskInquiries.history.types.requester_message`＝「申請者からのメッセージ」）を、問い合わせ送信者を指すロール的な語として据え置き、本要件による変更対象としない。
 4. The Portal shall 英語表記（`messages/en.json`）についても、Application系表記（"Application Management"等）をInquiry系表記（"Inquiry Management"等）に統一する。
 5. The Portal shall 本要件による文言変更を、翻訳キー名自体を変更せず、値のみを変更する形で行う（既存テストのキー参照を壊さない）。ただし`HelpdeskSidebar.test.tsx`等のテスト名に「申請管理」という文言が含まれる場合は、新しい表示文言に追随してテスト名を更新する（アサーション自体は既存の翻訳キー参照のままでよい）。
+
+### Requirement（追記, 2026-09-24）: 問い合わせ本文の自動翻訳（フェーズ3の前倒し実施）
+
+**背景**: 本specは従来、実際の翻訳API連携を「フェーズ3以降」としてスコープ外（Requirement 13.6、L47・L50・L77・L199・L242・L364・L404・L423の各記述）としてきたが、2026-09-24付でClaude APIによる自動翻訳を実装した。これにより上記の「フェーズ3以降」「翻訳API連携をスコープ外」とする記述は、以後この追記により上書きされる。
+
+#### Acceptance Criteria
+
+1. The Portal shall 問い合わせ送信時（申請者本人・ヘルプデスク代理登録の両経路）、`originalLanguage`以外の全ロケール（`ja`/`en`）へClaude APIで自動翻訳し、`Inquiry.translatedText`（非推奨）ではなく子テーブル`InquiryTranslation`へ保存する。
+2. The Portal shall ヘルプデスク側詳細画面（`HelpdeskInquiryDetail`）で、表示ロケールに対応する翻訳が存在する場合はそれを優先表示し、既存の「日本語訳」固定ラベル・`originalLanguage !== "ja"`判定を、表示ロケールに依存しない一般化した判定（`originalLanguage !== locale`）に置き換える。
+3. The Portal shall 翻訳が未実行・失敗している問い合わせについて、ヘルプデスク担当者が詳細画面から再翻訳を実行できるボタンを提供する。
+4. The Portal shall 対応履歴（ヘルプデスクの返信・申請者の追加メッセージ）の翻訳は本追記の対象外とする（原文のまま表示を維持し、将来の別ラウンドで対応する）。

@@ -7,9 +7,13 @@ import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 import type { InquiryHistoryEntry } from "@/types/inquiry-history";
 
 // 一覧用: 添付ファイル（dataUrl=Base64、最大5MB×5件）を読み込まない
-const INQUIRY_LIST_INCLUDE = { claimedByStaff: true } as const;
+const INQUIRY_LIST_INCLUDE = { claimedByStaff: true, translations: true } as const;
 // 詳細・作成・更新用: 添付ファイルを含む
-const INQUIRY_DETAIL_INCLUDE = { claimedByStaff: true, attachments: true } as const;
+const INQUIRY_DETAIL_INCLUDE = {
+  claimedByStaff: true,
+  attachments: true,
+  translations: true,
+} as const;
 
 /**
  * 未読判定に含める「ヘルプデスク起点」の対応履歴種別。
@@ -66,10 +70,10 @@ function attachmentCreateInput(attachments: InquiryAttachment[] | undefined) {
  * セッションから解決した会社IDを永続化し、フォーム入力値（会社名・国）は
  * 表示用フィールドとしてそのまま保存する。
  *
- * 注意: `translatedText`は意図的に書き込まない（DB既定の`null`のまま維持する）。
- * 実際の翻訳API連携（フェーズ3以降）まで、虚偽の訳文・原文コピー・固定プレース
- * ホルダーで埋めることはしない。表示側の「翻訳未対応」注記は
- * `helpdesk-inquiry-management`spec（Requirement 17）が担当する。
+ * 翻訳（`InquiryTranslation`）はここでは書き込まない。呼び出し元
+ * （`src/lib/api/inquiries.ts`の`createInquiry`）が保存後に
+ * `translateInquiryAndStore`（`inquiry-translation-service.ts`）を呼び、
+ * Claude APIによる自動翻訳を別途書き込む。
  */
 export async function createInquiryRecord(
   input: CreateInquiryServiceInput

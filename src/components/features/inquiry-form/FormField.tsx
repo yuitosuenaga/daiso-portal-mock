@@ -12,6 +12,8 @@ export interface FormFieldProps {
   requiredIndicator?: React.ReactNode;
   /** 表示済みのエラーメッセージ文字列（翻訳解決は呼び出し側の責務） */
   error?: string;
+  /** ラベル下・入力欄上に表示する補足説明文字列（翻訳解決は呼び出し側の責務） */
+  hint?: string;
   /** エラーメッセージ要素に付与するid（`aria-describedby`等で参照する場合に指定） */
   errorId?: string;
   /** ラベルと関連付けるフォーム要素のid */
@@ -31,6 +33,7 @@ export function FormField({
   requiredIndicator,
   error,
   errorId,
+  hint,
   htmlFor,
   children,
   className,
@@ -40,6 +43,7 @@ export function FormField({
       <Label htmlFor={htmlFor} required={required} requiredIndicator={requiredIndicator}>
         {label}
       </Label>
+      {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
       {children}
       {error && (
         <p id={errorId} role="alert" className="text-sm text-destructive">

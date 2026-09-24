@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
+import { resolveInquiryContent } from "@/lib/inquiry-content";
 import type { Inquiry } from "@/types/inquiry";
 
 export interface HelpdeskInquiryListItemProps {
@@ -30,6 +31,8 @@ export function HelpdeskInquiryListItem({
   locale,
   untitledLabel,
 }: HelpdeskInquiryListItemProps) {
+  const resolvedContent = resolveInquiryContent(inquiry, locale);
+
   return (
     <li className="flex items-start justify-between gap-4 py-3">
       <div className="flex-1 space-y-1">
@@ -37,7 +40,7 @@ export function HelpdeskInquiryListItem({
           href={`/helpdesk/inquiries/${inquiry.id}`}
           className="text-sm font-medium hover:underline"
         >
-          {inquiry.title || untitledLabel}
+          {resolvedContent.title || untitledLabel}
         </Link>
         <p className="text-xs text-muted-foreground">
           {inquiry.submittedBy.companyName} / {categoryLabel}

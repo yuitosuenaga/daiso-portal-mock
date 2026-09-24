@@ -415,7 +415,7 @@
 - 受信者ごとの通知設定（配信オプトアウト等）のUI（将来検討事項とし、本ラウンドは全対象受信者への一律送信とする）
 - ヘルプデスク側担当者マスタ（`AnnouncementRecipient`）へのログイン機能の付与、個人単位の識別への拡張（引き続き会社単位の扱いを維持する）
 - 対応要否・対応期限・添付ファイル等、既存要件（要件1〜25）の変更
-- 20か国語すべてを網羅する翻訳データの自動生成・機械翻訳連携
+- 20か国語すべてを網羅する翻訳データの自動生成・機械翻訳連携 → **2026-09 追記（Requirement 43）でen翻訳に限り対象化。ja/en以外の追加言語は引き続き対象外**
 
 ### Requirement 26: メール送信基盤の導入
 
@@ -555,7 +555,7 @@
 あわせて、通知メールの**詳細リンクのUIロケール**（`resolveUiLocale`、`announcement-notifications.ts`）も、現状は`routing.locales`に含まれない`preferredLocale`（`th`/`vi`等）を`routing.defaultLocale`（`ja`）にフォールバックしている。本文が英語で生成されるのにリンク先が日本語UIページになる不整合を避けるため、詳細リンクのUIロケールのフォールバック先も`en`に統一する。
 
 スコープ外:
-- 20か国語すべての翻訳データの整備・機械翻訳連携（引き続き対象外。あくまで未整備時のフォールバック先の変更のみ）
+- 20か国語すべての翻訳データの整備・機械翻訳連携（引き続き対象外。あくまで未整備時のフォールバック先の変更のみ） → **2026-09 追記（Requirement 43）でen翻訳に限り対象化**
 - `ApplicantUser.preferredLocale`の既定値（`en`）の変更（要件30.2を維持）
 - 申請者側UIロケールの追加（`ja`/`en`以外のUIルーティングは引き続き対象外）
 
@@ -682,3 +682,23 @@
 2. The Portal shall 既読リマインド（要件39.6）を、完了督促とは別の状態（`AnnouncementReadReceipt.readReminderSentAt`）で記録し、自動エスカレーションの当日重複判定（`AnnouncementNotificationLog` の `escalation`/`reminder`）には影響させない（既読リマインドは完了督促の送信実績と混同しない）。
 3. The Portal shall `announcement-escalation.ts` が参照する会社単位の状態取得（`getAnnouncementRecipientStatuses` 相当＝会社単位の `completedAt`/`companyCode`/`recipientId` を返す読み取り）を、確認済みの個人単位化後も会社単位の実施済み・完了督促情報を返すよう維持し、エスカレーション処理が個人単位化の影響を受けないことを設計書で確認する。
 4. The Portal shall 新規に作成された `ApplicantUser`（`helpdesk-account-management`spec 経由）が、追加のマスタ生成なしに確認済みトラッキングの対象母集団（要件39.2）へ自動的に「未確認」として含まれるようにする（受信レシートは確認・既読リマインド時に遅延生成するため、`ApplicantUser` 作成時のレシート事前生成は不要）。
+
+### Requirement 43: en翻訳のClaude API自動翻訳・既存データのバックフィル（2026-09-24 追記）
+
+**Objective:** As a 海外販社スタッフ, I want ページ言語を英語にした際にお知らせが英語で表示される, so that 日本語が読めなくても内容を理解できる
+
+#### 背景
+
+要件31.2はen翻訳（`titleEn`/`bodyEn`）を作成・編集時の必須入力としていたが、この必須化より前に作成された既存お知らせには`AnnouncementTranslation`のen行が存在しないものがあり、英語ロケール選択時でも`ja`にフォールバックし日本語が表示される不具合があった。本追記により、要件31.2の「en必須入力」を「未入力時はClaude APIで自動翻訳」に読み替え、かつ既存データのバックフィルを行う。
+
+#### Acceptance Criteria
+
+1. The Portal shall お知らせ作成・更新時、`titleEn`/`bodyEn`が両方入力されていればそれを`manual`として保存し、両方未入力の場合はja本文からClaude API（`claude-haiku-4-5`）で自動翻訳し`machine`として保存する。片方のみの入力はエラーとする。
+2. The Portal shall 既存の`en`翻訳が`machine`かつ送信された`en`内容が既存と同一（未編集）で、かつja本文が変更されている場合、古い機械翻訳を残さず再翻訳する。
+3. The Portal shall ヘルプデスク担当者がフォーム上で「日本語から自動翻訳」ボタンにより、保存前にen欄へ翻訳結果を反映・確認・編集できるようにする。
+4. The Portal shall 機能追加前に作成され`en`翻訳が存在しない既存お知らせに対し、Claude APIによる翻訳を人によるレビューを経ずに直接投入するバックフィルスクリプト（`prisma/backfill-announcement-en-translations.ts`）を提供する。
+5. The Portal shall 翻訳API（`ANTHROPIC_API_KEY`）が未設定の環境では自動翻訳を無効化し、`en`欄の手入力を必須のまま維持する（縮退動作）。
+
+スコープ外:
+- `ja`/`en`以外の追加言語（`th`/`vi`等）の自動翻訳（引き続き手入力のみ）
+- 申請者側での機械翻訳である旨の注記表示（本ラウンドでは表示しない）

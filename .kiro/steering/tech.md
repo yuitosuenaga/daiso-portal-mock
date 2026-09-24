@@ -33,6 +33,7 @@ PostgreSQL・Prisma・Auth.jsによるバックエンド実装（`spec/backend-d
   ```
   - 環境変数（`DATABASE_URL`・`AUTH_SECRET`・`AUTH_TRUST_HOST`・`AUTH_URL`等）やCloud SQL接続設定（`--add-cloudsql-instances`）は前リビジョンから引き継がれるため、変更が不要な限り`--set-env-vars`等は付けない
   - 秘匿値を変更する場合のみ`gcloud run services update portal-mock --update-env-vars ...`等で個別に更新する
+  - Claude API連携用の`ANTHROPIC_API_KEY`はSecret Managerに登録し、以下でサービスへ注入する（`gcloud run services update portal-mock --update-secrets ANTHROPIC_API_KEY=anthropic-api-key:latest`）
 - **DB**: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（`asia-northeast1`、最小構成）に`portal-mock`から接続。Cloud Run→Cloud SQLはCloud Run組み込みのCloud SQL Auth Proxy（`--add-cloudsql-instances`）経由、Unixソケット接続
   - `AUTH_URL`はCloud Run経由のリクエストだとAuth.jsが内部ホスト（`localhost:8080`）を誤検出しログイン後リダイレクトが壊れるため、`portal-mock`の公開URLを明示的に設定している
 - **コスト管理**: Cloud SQLインスタンスは`portal-mock`（公開サービス）の本番DBのため、停止すると公開サービスが使えなくなる。`db-start`/`db-end`スキルによる手動起動・停止で運用（デプロイ自体はDB停止中でも実行可能だが、DBアクセスを伴う画面確認にはインスタンス起動が必要）
@@ -44,13 +45,13 @@ PostgreSQL・Prisma・Auth.jsによるバックエンド実装（`spec/backend-d
 | API | Next.js Route Handlers / Server Actions（`src/app/api/`・`src/lib/actions/`） |
 | 認証 | Auth.js（NextAuth）v5、Credentials Provider、JWTセッション |
 | DB | Cloud SQL for PostgreSQL（Prisma ORM） |
-| 自由記述の翻訳処理 | Google Cloud Translation API（未実装、引き続き将来対応） |
+| 自由記述の翻訳処理 | Anthropic Claude API（`@anthropic-ai/sdk`、`src/lib/translation/claude-translator.ts`、既定モデル`claude-haiku-4-5`）。2026-09導入、お知らせ`en`欄・問い合わせ本文の自動翻訳に使用。`ANTHROPIC_API_KEY`未設定時は無効化（縮退動作） |
 
 ## 多言語対応方針
 
 - UIのベース言語は **日本語・英語** から開始。他言語は `messages/` にJSONファイルを追加するだけで拡張できる構成にする
 - 存在しない翻訳キーは英語にフォールバックする設定にする
-- フォームの自由記述欄は「原文のまま送信」を前提とし、翻訳処理（Google Cloud Translation API連携）はフェーズ3で対応する
+- フォームの自由記述欄は「原文のまま送信」を前提とする。送信後の自動翻訳（表示用の多言語化）はClaude APIで実施済み（お知らせ・問い合わせ）。フォーム入力時点の翻訳（送信前のリアルタイム変換）は対象外
 - 対象国が20か国以上に及ぶため、フォント表示崩れを防ぐよう `next/font` で多言語対応フォント（Noto Sans系）を必要に応じて追加できる構成にしておく
 - 言語コードは ISO 639-1 で統一し、「国」と「言語」は別フィールドとして持つ
 

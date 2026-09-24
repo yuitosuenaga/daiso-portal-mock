@@ -23,6 +23,10 @@ export interface AnnouncementTranslationView {
   locale: string;
   title: string;
   body: string;
+  /** この翻訳が人による入力か自動翻訳（Claude API）かを表す。既存行（機能追加前）はmanual */
+  source?: "manual" | "machine";
+  /** 自動翻訳時に翻訳元としたja本文のハッシュ。ja編集後の再翻訳が必要かの判定に使う内部用フィールド */
+  sourceHash?: string;
 }
 
 /**

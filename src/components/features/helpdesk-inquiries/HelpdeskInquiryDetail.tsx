@@ -11,7 +11,9 @@ import { StatusSelect } from "@/components/features/helpdesk-inquiries/StatusSel
 import { ReplyForm } from "@/components/features/helpdesk-inquiries/ReplyForm";
 import { HistoryTimeline } from "@/components/features/helpdesk-inquiries/HistoryTimeline";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
+import { RetryTranslationButton } from "@/components/features/helpdesk-inquiries/RetryTranslationButton";
 import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
+import { resolveInquiryContent } from "@/lib/inquiry-content";
 import type { Inquiry } from "@/types/inquiry";
 
 export async function HelpdeskInquiryDetail({ id }: { id: string }) {
@@ -76,13 +78,16 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
     label: tStatuses(code),
   }));
 
+  const resolvedContent = resolveInquiryContent(inquiry, locale);
+  const translationNeeded = inquiry.originalLanguage !== locale;
+
   return (
     <div className="space-y-4">
       {backToListLink}
       <Card>
         <CardHeader className="space-y-3">
           <div>
-            <CardTitle>{inquiry.title || t("detail.untitled")}</CardTitle>
+            <CardTitle>{resolvedContent.title || t("detail.untitled")}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               {inquiry.submittedBy.companyName} / {tCategories(inquiry.category)}
             </p>
@@ -112,14 +117,14 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {inquiry.originalLanguage !== "ja" && inquiry.translatedText ? (
+          {translationNeeded && resolvedContent.isTranslated ? (
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   {t("detail.translatedTextLabel")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-                  {inquiry.translatedText}
+                  {resolvedContent.body}
                 </p>
               </div>
               <div>
@@ -131,7 +136,7 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
                 </p>
               </div>
             </div>
-          ) : inquiry.originalLanguage !== "ja" && !inquiry.translatedText ? (
+          ) : translationNeeded && !resolvedContent.isTranslated ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 {t("detail.translationUnavailable")}
@@ -139,6 +144,11 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
                 {inquiry.originalText}
               </p>
+              <RetryTranslationButton
+                inquiryId={inquiry.id}
+                label={t("detail.retryTranslationButton")}
+                errorMessage={t("detail.retryTranslationError")}
+              />
             </div>
           ) : (
             <p className="whitespace-pre-wrap text-sm leading-relaxed">
