@@ -53,6 +53,8 @@ const baseInquiryRecord = {
   claimedByStaff: null,
   claimedAt: null,
   attachments: [],
+  translations: [],
+  translationStatus: "pending",
 };
 
 beforeEach(() => {
@@ -134,7 +136,7 @@ describe("createInquiryRecord", () => {
 
     expect(prisma.inquiry.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true },
+        include: { claimedByStaff: true, attachments: true, translations: true },
       })
     );
   });
@@ -158,7 +160,7 @@ describe("listInquiriesForCompany", () => {
     await listInquiriesForCompany("company-1");
 
     expect(prisma.inquiry.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ include: { claimedByStaff: true } })
+      expect.objectContaining({ include: { claimedByStaff: true, translations: true } })
     );
   });
 });
@@ -179,7 +181,7 @@ describe("listAllInquiries", () => {
     await listAllInquiries();
 
     expect(prisma.inquiry.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ include: { claimedByStaff: true } })
+      expect.objectContaining({ include: { claimedByStaff: true, translations: true } })
     );
   });
 
@@ -214,7 +216,7 @@ describe("findInquiryById", () => {
 
     expect(prisma.inquiry.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true },
+        include: { claimedByStaff: true, attachments: true, translations: true },
       })
     );
   });
@@ -247,7 +249,7 @@ describe("findInquiryForCompany", () => {
 
     expect(prisma.inquiry.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true },
+        include: { claimedByStaff: true, attachments: true, translations: true },
       })
     );
   });
@@ -349,7 +351,7 @@ describe("setClaim", () => {
 
     expect(prisma.inquiry.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true },
+        include: { claimedByStaff: true, attachments: true, translations: true },
       })
     );
   });
@@ -374,7 +376,7 @@ describe("updateStatus", () => {
 
     expect(prisma.inquiry.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true },
+        include: { claimedByStaff: true, attachments: true, translations: true },
       })
     );
   });

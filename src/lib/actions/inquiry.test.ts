@@ -7,10 +7,14 @@ vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
 vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
 vi.mock("@/lib/server/inquiry-service", () => ({
   createInquiryRecord: vi.fn(),
+  findInquiryById: vi.fn(),
   findInquiryForCompany: vi.fn(),
   appendHistoryEntry: vi.fn(),
   listUnreadReplyInquiryIds: vi.fn(),
   markInquiryRead: vi.fn(),
+}));
+vi.mock("@/lib/server/inquiry-translation-service", () => ({
+  translateInquiryAndStore: vi.fn(),
 }));
 
 import { revalidatePath } from "next/cache";

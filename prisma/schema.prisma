@@ -34,6 +34,18 @@ enum InquiryHistoryEntryType {
   requester_message
 }
 
+/// お知らせ・問い合わせの翻訳がどこから来たかを表す。manual=人が入力、machine=Claude APIによる自動翻訳
+enum TranslationSource {
+  manual
+  machine
+}
+
+enum InquiryTranslationStatus {
+  pending
+  completed
+  failed
+}
+
 model Company {
   id                     String                  @id @default(cuid())
   name                   String
@@ -69,29 +81,52 @@ model HelpdeskStaff {
 }
 
 model Inquiry {
-  id                     String                @id @default(cuid())
-  title                  String                @default("")
+  id                     String                   @id @default(cuid())
+  title                  String                   @default("")
   category               InquiryCategory
   urgency                InquiryUrgency
   storeRegion            String
   originalText           String
   originalLanguage       String
+  /// @deprecated InquiryTranslation(locale="ja")へ移行。新規書き込みは行わない
   translatedText         String?
-  status                 InquiryStatus         @default(new)
-  createdAt              DateTime              @default(now())
+  status                 InquiryStatus            @default(new)
+  createdAt              DateTime                 @default(now())
   companyId              String
-  company                Company               @relation(fields: [companyId], references: [id])
+  company                Company                  @relation(fields: [companyId], references: [id])
   submittedByCompanyName String
   submittedByCountry     String
   claimedByStaffId       String?
-  claimedByStaff         HelpdeskStaff?        @relation(fields: [claimedByStaffId], references: [id])
+  claimedByStaff         HelpdeskStaff?           @relation(fields: [claimedByStaffId], references: [id])
   claimedAt              DateTime?
   attachments            InquiryAttachment[]
   history                InquiryHistoryEntry[]
+  translations           InquiryTranslation[]
+  translationStatus      InquiryTranslationStatus @default(pending)
   /// 申請者が最後にこの問い合わせの詳細画面を開いた時刻（既読時刻）。null=一度も開いていない
   lastReadAt             DateTime?
 
   @@index([companyId])
+}
+
+/**
+ * 問い合わせのタイトル・本文を`originalLanguage`以外の言語で保持する子テーブル。
+ * `originalLanguage`と一致するlocaleの行は作らない（原文が正）。
+ */
+model InquiryTranslation {
+  id        String            @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry           @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  locale    String
+  title     String            @default("")
+  body      String
+  source    TranslationSource @default(machine)
+  model     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([inquiryId, locale])
+  @@index([inquiryId])
 }
 
 model InquiryHistoryEntry {
@@ -183,12 +218,16 @@ model Announcement {
  * `en`の行は作成・編集時に必ず1件存在するようサービス層で保証する。
  */
 model AnnouncementTranslation {
-  id             String       @id @default(cuid())
+  id             String            @id @default(cuid())
   announcementId String
-  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  announcement   Announcement      @relation(fields: [announcementId], references: [id], onDelete: Cascade)
   locale         String
   title          String
   body           String
+  /// この翻訳が人による入力か自動翻訳かを表す。既存行（機能追加前に作成）はmanual
+  source         TranslationSource @default(manual)
+  /// 自動翻訳時に翻訳元としたja本文のハッシュ。ja編集後の再翻訳が必要かの判定に使う
+  sourceHash     String?
 
   @@unique([announcementId, locale])
   @@index([announcementId])

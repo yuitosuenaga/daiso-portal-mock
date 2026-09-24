@@ -104,6 +104,8 @@ function translationsToNestedWrite(translations: Announcement["translations"]) {
       locale: translation.locale,
       title: translation.title,
       body: translation.body,
+      source: translation.source ?? "manual",
+      sourceHash: translation.sourceHash ?? null,
     })),
   };
 }
@@ -236,6 +238,8 @@ export async function createAnnouncementRecord(
           locale: translation.locale,
           title: translation.title,
           body: translation.body,
+          source: translation.source ?? "manual",
+          sourceHash: translation.sourceHash ?? null,
         })),
       },
     },

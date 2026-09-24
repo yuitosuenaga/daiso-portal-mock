@@ -11,12 +11,15 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:backfill-announcement-recipients": "tsx prisma/backfill-announcement-recipients.ts",
     "db:backfill-announcement-read-receipts": "tsx prisma/backfill-announcement-read-receipts.ts",
+    "db:backfill-announcement-en-translations": "tsx prisma/backfill-announcement-en-translations.ts",
+    "db:backfill-inquiry-translations": "tsx prisma/backfill-inquiry-translations.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-accordion": "^1.2.15",

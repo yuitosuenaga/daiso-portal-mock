@@ -8,6 +8,7 @@ import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHi
 import { ApplicantMessageForm } from "@/components/features/inquiry-list/ApplicantMessageForm";
 import { MarkInquiryRead } from "@/components/features/inquiry-list/MarkInquiryRead";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
+import { resolveInquiryContent } from "@/lib/inquiry-content";
 
 export async function InquiryDetail({ id }: { id: string }) {
   const [t, tStatuses, tCategories, tUrgencies, tCountries, tMessage, locale] =
@@ -53,6 +54,8 @@ export async function InquiryDetail({ id }: { id: string }) {
   }
 
   const historySection = await InquiryHistoryList({ inquiryId: inquiry.id });
+  const resolvedContent = resolveInquiryContent(inquiry, locale);
+  const translationNeeded = inquiry.originalLanguage !== locale;
 
   return (
     <div className="space-y-4">
@@ -60,7 +63,7 @@ export async function InquiryDetail({ id }: { id: string }) {
       {backToListLink}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>{inquiry.title || t("untitled")}</CardTitle>
+          <CardTitle>{resolvedContent.title || t("untitled")}</CardTitle>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span>
               {t("categoryLabel")}: {tCategories(inquiry.category)}
@@ -100,14 +103,44 @@ export async function InquiryDetail({ id }: { id: string }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              {t("originalTextLabel")}
-            </p>
-            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-              {inquiry.originalText}
-            </p>
-          </div>
+          {translationNeeded && resolvedContent.isTranslated ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t("translatedTextLabel")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                  {resolvedContent.body}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t("originalTextLabel")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                  {inquiry.originalText}
+                </p>
+              </div>
+            </div>
+          ) : translationNeeded && !resolvedContent.isTranslated ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {t("translationUnavailable")}
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {inquiry.originalText}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("originalTextLabel")}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                {inquiry.originalText}
+              </p>
+            </div>
+          )}
           {inquiry.attachments && inquiry.attachments.length > 0 && (
             <div>
               <p className="text-sm font-medium text-muted-foreground">

@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/reply-templates";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import { ClaimOwnershipError } from "@/lib/server/inquiry-service";
+import { translateInquiryAndStore } from "@/lib/server/inquiry-translation-service";
 import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
 import { replyTemplateFormSchema } from "@/lib/validation/reply-template";
 import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
@@ -38,6 +39,17 @@ const replyBodySchema = z.string().trim().min(1);
 function revalidateInquiryRoutes() {
   revalidatePath(INQUIRY_LIST_PATH, "page");
   revalidatePath(INQUIRY_DETAIL_PATH, "page");
+}
+
+/**
+ * 問い合わせの自動翻訳を再実行する。ヘルプデスク担当者のセッションを要求する。
+ */
+export async function retryInquiryTranslationAction(inquiryId: string): Promise<void> {
+  const id = inquiryIdSchema.parse(inquiryId);
+  await requireHelpdeskStaffSession();
+
+  await translateInquiryAndStore(id);
+  revalidateInquiryRoutes();
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   updateStatus,
   updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
+import { translateInquiryAndStore } from "@/lib/server/inquiry-translation-service";
 
 function summarize(inquiries: Inquiry[]): InquiryStatusSummary {
   return inquiries.reduce<InquiryStatusSummary>(
@@ -50,12 +51,16 @@ export async function createInquiry(
 
   if (session?.claims?.role === "applicant") {
     const data = createInquirySchema.parse(input);
-    return createInquiryRecord({ data, companyId: session.claims.companyId });
+    const created = await createInquiryRecord({ data, companyId: session.claims.companyId });
+    await translateInquiryAndStore(created.id);
+    return (await findInquiryByIdService(created.id)) ?? created;
   }
 
   if (session?.claims?.role === "helpdesk" && proxyCompanyId) {
     const data = createInquirySchema.parse(input);
-    return createInquiryRecord({ data, companyId: proxyCompanyId });
+    const created = await createInquiryRecord({ data, companyId: proxyCompanyId });
+    await translateInquiryAndStore(created.id);
+    return (await findInquiryByIdService(created.id)) ?? created;
   }
 
   throw new UnauthorizedSessionError(

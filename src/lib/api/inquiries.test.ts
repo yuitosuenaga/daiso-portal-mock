@@ -14,6 +14,9 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   updateStatus: vi.fn(),
   updateStatusIfCurrent: vi.fn(),
 }));
+vi.mock("@/lib/server/inquiry-translation-service", () => ({
+  translateInquiryAndStore: vi.fn(),
+}));
 
 import { getSession } from "@/lib/server/get-session";
 import {

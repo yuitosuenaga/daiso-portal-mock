@@ -80,6 +80,11 @@ export default async function HelpdeskAnnouncementNewPage() {
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         countriesRequiredErrorMessage={t("validation.countriesRequired")}
+        enAutoTranslateHint={t("enAutoTranslateHint")}
+        enBothOrNeitherErrorMessage={t("validation.enBothOrNeither")}
+        translateFromJaButtonLabel={t("translateFromJaButton")}
+        translateFromJaPendingLabel={t("translateFromJaPending")}
+        translateFromJaErrorMessage={t("translateFromJaError")}
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
         attachmentsLabel={t("attachmentsLabel")}

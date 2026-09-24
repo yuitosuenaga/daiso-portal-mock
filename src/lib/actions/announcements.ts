@@ -8,6 +8,9 @@ import {
   updateAnnouncement,
 } from "@/lib/api/announcements";
 import { announcementFormSchema } from "@/lib/validation/announcement";
+import { ensureEnTranslation } from "@/lib/server/announcement-translation";
+import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import { getTranslator } from "@/lib/server/translation-service";
 import type { Announcement, CreateAnnouncementInput } from "@/types/announcement";
 
 const HELPDESK_ANNOUNCEMENT_LIST_PATH = "/[locale]/helpdesk/announcements";
@@ -32,7 +35,8 @@ export async function createAnnouncementAction(
   input: CreateAnnouncementInput
 ): Promise<Announcement> {
   const parsed = announcementFormSchema.parse(input);
-  const created = await createAnnouncement(parsed);
+  const withEnTranslation = await ensureEnTranslation(parsed);
+  const created = await createAnnouncement(withEnTranslation);
   revalidateAnnouncementRoutes();
 
   return created;
@@ -47,10 +51,34 @@ export async function updateAnnouncementAction(
   input: CreateAnnouncementInput
 ): Promise<Announcement> {
   const parsed = announcementFormSchema.parse(input);
-  const updated = await updateAnnouncement(id, parsed);
+  const withEnTranslation = await ensureEnTranslation(parsed, id);
+  const updated = await updateAnnouncement(id, withEnTranslation);
   revalidateAnnouncementRoutes();
 
   return updated;
+}
+
+/**
+ * フォーム編集中のja本文をClaude APIで即時翻訳し、英語欄に反映するための下書き翻訳。
+ * 保存は行わない（フォームの「日本語から自動翻訳」ボタン用）。
+ */
+export async function translateAnnouncementDraftAction(input: {
+  title: string;
+  body: string;
+}): Promise<{ title: string; body: string }> {
+  await requireHelpdeskStaffSession();
+
+  const translator = getTranslator();
+  if (!translator) {
+    throw new Error("Automatic translation is not configured");
+  }
+
+  return translator.translate({
+    title: input.title,
+    body: input.body,
+    sourceLocale: "ja",
+    targetLocale: "en",
+  });
 }
 
 /**

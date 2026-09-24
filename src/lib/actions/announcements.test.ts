@@ -8,6 +8,15 @@ vi.mock("@/lib/api/announcements", () => ({
   updateAnnouncement: vi.fn(),
   deleteAnnouncement: vi.fn(),
 }));
+vi.mock("@/lib/server/announcement-translation", () => ({
+  ensureEnTranslation: vi.fn(async (input) => input),
+}));
+vi.mock("@/lib/server/auth-session", () => ({
+  requireHelpdeskStaffSession: vi.fn(),
+}));
+vi.mock("@/lib/server/translation-service", () => ({
+  getTranslator: vi.fn(() => null),
+}));
 
 import { revalidatePath } from "next/cache";
 import {

@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   createAnnouncementAction,
+  translateAnnouncementDraftAction,
   updateAnnouncementAction,
 } from "@/lib/actions/announcements";
 import {
@@ -75,6 +76,14 @@ export interface AnnouncementFormProps {
   submitButtonLabel: string;
   requiredErrorMessage: string;
   countriesRequiredErrorMessage: string;
+  /** en欄が未入力の場合の補足文言（保存時に自動翻訳される旨） */
+  enAutoTranslateHint: string;
+  /** titleEn/bodyEnの片方だけが入力されている場合のエラー文言 */
+  enBothOrNeitherErrorMessage: string;
+  /** 「日本語から自動翻訳」ボタンの文言 */
+  translateFromJaButtonLabel: string;
+  translateFromJaPendingLabel: string;
+  translateFromJaErrorMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
   attachmentsLabel: string;
@@ -150,6 +159,11 @@ export function AnnouncementForm({
   submitButtonLabel,
   requiredErrorMessage,
   countriesRequiredErrorMessage,
+  enAutoTranslateHint,
+  enBothOrNeitherErrorMessage,
+  translateFromJaButtonLabel,
+  translateFromJaPendingLabel,
+  translateFromJaErrorMessage,
   requiredIndicator,
   submitErrorMessage,
   attachmentsLabel,
@@ -176,6 +190,8 @@ export function AnnouncementForm({
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [hasTranslateError, setHasTranslateError] = useState(false);
   const [activeLanguageTab, setActiveLanguageTab] = useState<string>("ja");
   const {
     register,
@@ -281,6 +297,24 @@ export function AnnouncementForm({
     }
   }
 
+  async function handleTranslateFromJa() {
+    setHasTranslateError(false);
+    setIsTranslating(true);
+    try {
+      const result = await translateAnnouncementDraftAction({
+        title: watch("title"),
+        body: watch("body"),
+      });
+      setValue("titleEn", result.title, { shouldValidate: true });
+      setValue("bodyEn", result.body, { shouldValidate: true });
+      setActiveLanguageTab("en");
+    } catch {
+      setHasTranslateError(true);
+    } finally {
+      setIsTranslating(false);
+    }
+  }
+
   const languageTabButtonClassName = (isActive: boolean) =>
     `rounded-md border px-3 py-1.5 text-sm ${
       isActive
@@ -372,12 +406,27 @@ export function AnnouncementForm({
 
         {activeLanguageTab === "en" && (
           <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTranslateFromJa}
+                disabled={isTranslating}
+              >
+                {isTranslating ? translateFromJaPendingLabel : translateFromJaButtonLabel}
+              </Button>
+              {hasTranslateError && (
+                <span role="status" className="text-sm text-destructive">
+                  {translateFromJaErrorMessage}
+                </span>
+              )}
+            </div>
             <FormField
               label={titleLabel}
-              required
-              requiredIndicator={requiredIndicator}
               htmlFor="announcement-title-en"
-              error={errors.titleEn ? requiredErrorMessage : undefined}
+              hint={enAutoTranslateHint}
+              error={errors.titleEn ? enBothOrNeitherErrorMessage : undefined}
             >
               <Input
                 id="announcement-title-en"
@@ -388,10 +437,9 @@ export function AnnouncementForm({
             </FormField>
             <FormField
               label={bodyLabel}
-              required
-              requiredIndicator={requiredIndicator}
               htmlFor="announcement-body-en"
-              error={errors.bodyEn ? requiredErrorMessage : undefined}
+              hint={enAutoTranslateHint}
+              error={errors.bodyEn ? enBothOrNeitherErrorMessage : undefined}
             >
               <Textarea
                 id="announcement-body-en"

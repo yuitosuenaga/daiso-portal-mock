@@ -47,21 +47,31 @@ const ANNOUNCEMENT_ADDITIONAL_TRANSLATIONS_MAX_COUNT = 20;
  * タイトル・本文・種別を必須とし、配信対象を「特定の国・地域を指定」にした場合は
  * 1件以上の国が選択されていることを要求する。公開期間の終了日は開始日以降であること、
  * 対応要否が真の場合は対応期限の入力を必須とする。
- * タイトル・本文は言語別（`ja`は`title`/`body`、`en`は`titleEn`/`bodyEn`、いずれも必須）に
- * 入力し、`translations`で`ja`/`en`以外の任意言語（重複不可）を追加できる。
+ * タイトル・本文は言語別（`ja`は`title`/`body`、`en`は`titleEn`/`bodyEn`）に入力し、
+ * `translations`で`ja`/`en`以外の任意言語（重複不可）を追加できる。
  *
- * `titleEn`/`bodyEn`は型としては任意（`optional`）だが、`superRefine`で実質必須として
- * 検証する。これは、サービス層に渡す出力（`translations`に`en`行を合成済み）を本スキーマで
- * 再検証（サーバーアクション側の多重防御）した場合に、既に`en`が`translations`側へ
- * 合成されていて`titleEn`/`bodyEn`が存在しない状態でも冪等に検証を通せるようにするため
- * （`translations`内の`en`行から実質的な値を導出する）。
+ * `titleEn`/`bodyEn`は両方入力するか、両方未入力のいずれかのみを許可する（片方だけの入力は
+ * エラー）。両方未入力の場合、呼び出し元（`src/lib/actions/announcements.ts`の
+ * `ensureEnTranslation`）がja本文からClaude APIで自動翻訳しen行を補う。
+ * 出力（`translations`）は、titleEn/bodyEnが入力されていればそこからen行を合成し、
+ * 未入力かつ既にtranslations側にen行がある場合（2回目のparse時の冪等性）はそれを維持し、
+ * どちらもなければen行を作らない。
  */
 export const announcementFormSchema = z
   .object({
     title: z.string().trim().min(1),
     body: z.string().trim().min(1),
-    titleEn: z.string().trim().min(1).optional(),
-    bodyEn: z.string().trim().min(1).optional(),
+    // 空文字は「未入力」として扱う（未入力の場合は保存時にja本文から自動翻訳される）。
+    titleEn: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? value : undefined)),
+    bodyEn: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? value : undefined)),
     translations: z.array(announcementTranslationSchema).default([]),
     category: z.enum(ANNOUNCEMENT_CATEGORY_CODES),
     status: z.enum(["draft", "published"]),
@@ -94,23 +104,14 @@ export const announcementFormSchema = z
       });
     }
 
-    const enFromTranslations = values.translations.find(
-      (translation) => translation.locale === "en"
-    );
-    const effectiveTitleEn = values.titleEn ?? enFromTranslations?.title;
-    const effectiveBodyEn = values.bodyEn ?? enFromTranslations?.body;
-    if (!effectiveTitleEn) {
+    // titleEn/bodyEnは両方入力するか、両方未入力（保存時に自動翻訳）のいずれかのみを許可する。
+    const titleEnProvided = values.titleEn !== undefined;
+    const bodyEnProvided = values.bodyEn !== undefined;
+    if (titleEnProvided !== bodyEnProvided) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["titleEn"],
-        message: "titleEn is required",
-      });
-    }
-    if (!effectiveBodyEn) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["bodyEn"],
-        message: "bodyEn is required",
+        path: titleEnProvided ? ["bodyEn"] : ["titleEn"],
+        message: "titleEn and bodyEn must be provided together, or both left empty",
       });
     }
 
@@ -150,19 +151,24 @@ export const announcementFormSchema = z
   })
   .transform(({ titleEn, bodyEn, translations, ...values }) => {
     const enFromTranslations = translations.find((translation) => translation.locale === "en");
-    const resolvedTitleEn = titleEn ?? enFromTranslations?.title ?? "";
-    const resolvedBodyEn = bodyEn ?? enFromTranslations?.body ?? "";
     const additionalTranslations = translations.filter(
       (translation) => translation.locale !== "en"
     );
 
+    // titleEn/bodyEnが入力されていれば、その内容でen行を合成する（手入力優先）。
+    // 未入力の場合、既存のtranslations側にen行があれば（2回目のparse）それを維持する。
+    // どちらもない場合はen行を作らない（呼び出し元が保存時に自動翻訳してen行を補う）。
+    const resolvedEnTranslation =
+      titleEn !== undefined
+        ? { locale: "en", title: titleEn, body: bodyEn ?? "" }
+        : enFromTranslations;
+
     return {
       ...values,
       dueDate: values.actionRequired ? values.dueDate : null,
-      translations: [
-        { locale: "en", title: resolvedTitleEn, body: resolvedBodyEn },
-        ...additionalTranslations,
-      ],
+      translations: resolvedEnTranslation
+        ? [resolvedEnTranslation, ...additionalTranslations]
+        : additionalTranslations,
     };
   });
 

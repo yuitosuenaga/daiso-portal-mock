@@ -5,6 +5,9 @@ import { AnnouncementForm } from "@/components/features/helpdesk-announcements/A
 
 const createAnnouncementActionMock = vi.fn().mockResolvedValue({ id: "new-id" });
 const updateAnnouncementActionMock = vi.fn().mockResolvedValue({ id: "existing-id" });
+const translateAnnouncementDraftActionMock = vi
+  .fn()
+  .mockResolvedValue({ title: "Translated Title", body: "Translated Body" });
 const pushMock = vi.fn();
 
 vi.mock("@/lib/actions/announcements", () => ({
@@ -12,11 +15,14 @@ vi.mock("@/lib/actions/announcements", () => ({
     createAnnouncementActionMock(...args),
   updateAnnouncementAction: (...args: unknown[]) =>
     updateAnnouncementActionMock(...args),
+  translateAnnouncementDraftAction: (...args: unknown[]) =>
+    translateAnnouncementDraftActionMock(...args),
 }));
 
 beforeEach(() => {
   createAnnouncementActionMock.mockClear();
   updateAnnouncementActionMock.mockClear();
+  translateAnnouncementDraftActionMock.mockClear();
   pushMock.mockClear();
 });
 
@@ -68,6 +74,11 @@ const labels = {
   countriesRequiredErrorMessage: "1つ以上の国・地域を選択してください",
   requiredIndicator: "必須",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
+  enAutoTranslateHint: "未入力の場合、保存時に日本語から自動翻訳されます。",
+  enBothOrNeitherErrorMessage: "英語のタイトル・本文は両方入力するか、両方未入力にしてください",
+  translateFromJaButtonLabel: "日本語から自動翻訳",
+  translateFromJaPendingLabel: "翻訳中...",
+  translateFromJaErrorMessage: "自動翻訳に失敗しました。時間を置いて再度お試しください。",
   categoryOptions: [
     { value: "maintenance", label: "メンテナンス" },
     { value: "policy", label: "制度変更" },
@@ -434,7 +445,7 @@ describe("AnnouncementForm", () => {
     expect(createAnnouncementActionMock).not.toHaveBeenCalled();
   });
 
-  it("enタブが未入力のまま送信すると送信がブロックされる", async () => {
+  it("enタブが両方未入力のまま送信できる（保存時に自動翻訳される想定でブロックしない）", async () => {
     render(<AnnouncementForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText(/タイトル/), {
@@ -449,8 +460,36 @@ describe("AnnouncementForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
     await waitFor(() => {
-      expect(createAnnouncementActionMock).not.toHaveBeenCalled();
+      expect(createAnnouncementActionMock).toHaveBeenCalled();
     });
+    const submitted = createAnnouncementActionMock.mock.calls[0]?.[0];
+    expect(submitted.translations).toEqual([]);
+  });
+
+  it("titleEnのみ入力しbodyEnが未入力のまま送信すると送信がブロックされる", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "New announcement" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("英語のタイトル・本文は両方入力するか、両方未入力にしてください")
+      ).toBeTruthy();
+    });
+    expect(createAnnouncementActionMock).not.toHaveBeenCalled();
   });
 
   it("言語を追加ボタンで追加言語のタブが表示され、入力した内容が送信される", async () => {
@@ -600,5 +639,33 @@ describe("AnnouncementForm", () => {
       ).toBeTruthy();
     });
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("「日本語から自動翻訳」ボタンを押すとtranslateAnnouncementDraftActionを呼び英語欄に反映する", async () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
+    fireEvent.click(screen.getByRole("button", { name: "日本語から自動翻訳" }));
+
+    await waitFor(() => {
+      expect(translateAnnouncementDraftActionMock).toHaveBeenCalledWith({
+        title: "新規お知らせ",
+        body: "本文テキスト",
+      });
+    });
+    await waitFor(() => {
+      expect((screen.getByLabelText(/タイトル/) as HTMLInputElement).value).toBe(
+        "Translated Title"
+      );
+    });
+    expect((screen.getByLabelText(/本文/) as HTMLTextAreaElement).value).toBe(
+      "Translated Body"
+    );
   });
 });
