@@ -33,7 +33,7 @@ PostgreSQL・Prisma・Auth.jsによるバックエンド実装（`spec/backend-d
   ```
   - 環境変数（`DATABASE_URL`・`AUTH_SECRET`・`AUTH_TRUST_HOST`・`AUTH_URL`等）やCloud SQL接続設定（`--add-cloudsql-instances`）は前リビジョンから引き継がれるため、変更が不要な限り`--set-env-vars`等は付けない
   - 秘匿値を変更する場合のみ`gcloud run services update portal-mock --update-env-vars ...`等で個別に更新する
-  - Claude API連携用の`ANTHROPIC_API_KEY`はSecret Managerに登録し、以下でサービスへ注入する（`gcloud run services update portal-mock --update-secrets ANTHROPIC_API_KEY=anthropic-api-key:latest`）
+  - Claude API連携用の`ANTHROPIC_API_KEY`はSecret Manager（secret名: `anthropic-api-key-suenaga-daiso-portal`）に登録済み。以下でサービスへ注入する（`gcloud run services update portal-mock --update-secrets ANTHROPIC_API_KEY=anthropic-api-key-suenaga-daiso-portal:latest`）。2026-09-24時点は個人発行キーを流用しているため、長期運用では専用キーへの切替を検討する
 - **DB**: Cloud SQL for PostgreSQLインスタンス `portal-mock-backend-db`（`asia-northeast1`、最小構成）に`portal-mock`から接続。Cloud Run→Cloud SQLはCloud Run組み込みのCloud SQL Auth Proxy（`--add-cloudsql-instances`）経由、Unixソケット接続
   - `AUTH_URL`はCloud Run経由のリクエストだとAuth.jsが内部ホスト（`localhost:8080`）を誤検出しログイン後リダイレクトが壊れるため、`portal-mock`の公開URLを明示的に設定している
 - **コスト管理**: Cloud SQLインスタンスは`portal-mock`（公開サービス）の本番DBのため、停止すると公開サービスが使えなくなる。`db-start`/`db-end`スキルによる手動起動・停止で運用（デプロイ自体はDB停止中でも実行可能だが、DBアクセスを伴う画面確認にはインスタンス起動が必要）
