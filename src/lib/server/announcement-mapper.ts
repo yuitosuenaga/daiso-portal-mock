@@ -1,5 +1,7 @@
 import "server-only";
 
+import { COUNTRY_CONTENT_LANGUAGE } from "@/lib/constants/translation-languages";
+
 import type { Prisma } from "@prisma/client";
 
 import type {
@@ -152,10 +154,22 @@ export const DEFAULT_ANNOUNCEMENT_LOCALE = "ja";
  */
 export function resolveAnnouncementContent(
   announcement: Pick<Announcement, "title" | "body" | "translations">,
-  locale: string
+  locale: string,
+  country?: string
 ): { title: string; body: string } {
   if (locale === DEFAULT_ANNOUNCEMENT_LOCALE) {
     return { title: announcement.title, body: announcement.body };
+  }
+
+  // UI言語が`en`のままでも、閲覧者の国の言語に翻訳があればそれを本文として優先する。
+  const countryLanguage = country ? COUNTRY_CONTENT_LANGUAGE[country.toUpperCase()] : undefined;
+  if (countryLanguage) {
+    const countryTranslation = announcement.translations.find(
+      (item) => item.locale.toLowerCase() === countryLanguage.toLowerCase()
+    );
+    if (countryTranslation) {
+      return { title: countryTranslation.title, body: countryTranslation.body };
+    }
   }
 
   const translation = announcement.translations.find((item) => item.locale === locale);

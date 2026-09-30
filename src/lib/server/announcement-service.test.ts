@@ -1415,6 +1415,45 @@ describe("resolveAnnouncementContent", () => {
       body: "日本語本文",
     });
   });
+
+  describe("country指定（UI言語enのまま国の言語で本文を解決）", () => {
+    const multi = {
+      ...announcement,
+      translations: [
+        ...announcement.translations,
+        { locale: "th", title: "หัวข้อ", body: "เนื้อหา" },
+        { locale: "zh-TW", title: "繁體標題", body: "繁體內文" },
+      ],
+    };
+
+    it("国の言語の翻訳があればenより優先する", () => {
+      expect(resolveAnnouncementContent(multi, "en", "TH")).toEqual({
+        title: "หัวข้อ",
+        body: "เนื้อหา",
+      });
+    });
+
+    it("言語コードの大文字小文字を区別せず照合する", () => {
+      expect(resolveAnnouncementContent(multi, "en", "hk")).toEqual({
+        title: "繁體標題",
+        body: "繁體內文",
+      });
+    });
+
+    it("国の言語の翻訳が無ければenにフォールバックする", () => {
+      expect(resolveAnnouncementContent(multi, "en", "VN")).toEqual({
+        title: "English Title",
+        body: "English Body",
+      });
+    });
+
+    it("localeがjaのときは国に関わらずjaを返す", () => {
+      expect(resolveAnnouncementContent(multi, "ja", "TH")).toEqual({
+        title: "日本語タイトル",
+        body: "日本語本文",
+      });
+    });
+  });
 });
 
 describe("targetApplicantUsersWhere", () => {

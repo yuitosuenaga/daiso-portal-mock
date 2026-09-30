@@ -25,6 +25,10 @@ import {
   type AnnouncementSubmitValues,
 } from "@/lib/validation/announcement";
 import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
+import {
+  TRANSLATION_LANGUAGES,
+  translationLanguageLabel,
+} from "@/lib/constants/translation-languages";
 import type { Document } from "@/types/document";
 
 export interface AnnouncementFormProps {
@@ -297,17 +301,29 @@ export function AnnouncementForm({
     }
   }
 
-  async function handleTranslateFromJa() {
+  async function handleTranslateFromJa(translationIndex?: number) {
     setHasTranslateError(false);
     setIsTranslating(true);
     try {
+      const targetLocale =
+        translationIndex === undefined ? "en" : watch(`translations.${translationIndex}.locale`);
       const result = await translateAnnouncementDraftAction({
         title: watch("title"),
         body: watch("body"),
+        targetLocale,
       });
-      setValue("titleEn", result.title, { shouldValidate: true });
-      setValue("bodyEn", result.body, { shouldValidate: true });
-      setActiveLanguageTab("en");
+      if (translationIndex === undefined) {
+        setValue("titleEn", result.title, { shouldValidate: true });
+        setValue("bodyEn", result.body, { shouldValidate: true });
+        setActiveLanguageTab("en");
+      } else {
+        setValue(`translations.${translationIndex}.title`, result.title, {
+          shouldValidate: true,
+        });
+        setValue(`translations.${translationIndex}.body`, result.body, {
+          shouldValidate: true,
+        });
+      }
     } catch {
       setHasTranslateError(true);
     } finally {
@@ -355,7 +371,7 @@ export function AnnouncementForm({
                 className={languageTabButtonClassName(activeLanguageTab === field.id)}
                 onClick={() => setActiveLanguageTab(field.id)}
               >
-                {locale || languageLocaleCodeLabel}
+                {locale ? translationLanguageLabel(locale) : languageLocaleCodeLabel}
               </button>
             );
           })}
@@ -411,7 +427,7 @@ export function AnnouncementForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleTranslateFromJa}
+                onClick={() => handleTranslateFromJa()}
                 disabled={isTranslating}
               >
                 {isTranslating ? translateFromJaPendingLabel : translateFromJaButtonLabel}
@@ -470,9 +486,17 @@ export function AnnouncementForm({
                     : undefined
                 }
               >
-                <Input
+                <Select
                   id={`announcement-translation-${index}-locale`}
                   placeholder={languageLocaleCodePlaceholder}
+                  options={TRANSLATION_LANGUAGES.filter(
+                    (language) =>
+                      !translationFields.some(
+                        (_, otherIndex) =>
+                          otherIndex !== index &&
+                          watch(`translations.${otherIndex}.locale`) === language.code
+                      )
+                  ).map((language) => ({ value: language.code, label: language.label }))}
                   aria-invalid={translationError?.locale ? true : undefined}
                   {...register(`translations.${index}.locale`)}
                 />
@@ -506,6 +530,22 @@ export function AnnouncementForm({
                   {...register(`translations.${index}.body`)}
                 />
               </FormField>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-fit"
+                  onClick={() => handleTranslateFromJa(index)}
+                  disabled={isTranslating || !watch(`translations.${index}.locale`)}
+                >
+                  {isTranslating ? translateFromJaPendingLabel : translateFromJaButtonLabel}
+                </Button>
+                {hasTranslateError && (
+                  <p role="alert" className="text-xs text-destructive">
+                    {translateFromJaErrorMessage}
+                  </p>
+                )}
+              </div>
               <Button
                 type="button"
                 variant="outline"
