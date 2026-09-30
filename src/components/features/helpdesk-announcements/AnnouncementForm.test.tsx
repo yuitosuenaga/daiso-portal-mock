@@ -657,6 +657,7 @@ describe("AnnouncementForm", () => {
       expect(translateAnnouncementDraftActionMock).toHaveBeenCalledWith({
         title: "新規お知らせ",
         body: "本文テキスト",
+        targetLocale: "en",
       });
     });
     await waitFor(() => {

@@ -128,7 +128,7 @@ export async function listAnnouncementsVisibleToCountry(
   return records
     .map(mapAnnouncement)
     .filter((item) => isWithinPublishPeriod(item, now))
-    .map((item) => ({ ...item, ...resolveAnnouncementContent(item, locale) }));
+    .map((item) => ({ ...item, ...resolveAnnouncementContent(item, locale, country) }));
 }
 
 /**
@@ -154,7 +154,7 @@ export async function findAnnouncementVisibleToCountry(
     return null;
   }
 
-  return { ...announcement, ...resolveAnnouncementContent(announcement, locale) };
+  return { ...announcement, ...resolveAnnouncementContent(announcement, locale, country) };
 }
 
 /**

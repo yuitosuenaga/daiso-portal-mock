@@ -59,12 +59,14 @@ export async function updateAnnouncementAction(
 }
 
 /**
- * フォーム編集中のja本文をClaude APIで即時翻訳し、英語欄に反映するための下書き翻訳。
+ * フォーム編集中のja本文をClaude APIで即時翻訳し、英語欄（または`targetLocale`の追加言語欄）に反映するための下書き翻訳。
  * 保存は行わない（フォームの「日本語から自動翻訳」ボタン用）。
  */
 export async function translateAnnouncementDraftAction(input: {
   title: string;
   body: string;
+  /** 翻訳先の言語コード。省略時は`en`。 */
+  targetLocale?: string;
 }): Promise<{ title: string; body: string }> {
   await requireHelpdeskStaffSession();
 
@@ -77,7 +79,7 @@ export async function translateAnnouncementDraftAction(input: {
     title: input.title,
     body: input.body,
     sourceLocale: "ja",
-    targetLocale: "en",
+    targetLocale: input.targetLocale ?? "en",
   });
 }
 
