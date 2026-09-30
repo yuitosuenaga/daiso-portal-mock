@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { BackLink } from "@/components/ui/back-link";
 import { ReminderBadge } from "@/components/features/announcements/ReminderBadge";
 import { OverdueBadge } from "@/components/features/announcements/OverdueBadge";
+import { LinkifiedText } from "@/components/features/announcements/LinkifiedText";
 import { AnnouncementSelfReportPanel } from "@/components/features/announcements/AnnouncementSelfReportPanel";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
@@ -142,7 +143,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {announcement.body}
+            <LinkifiedText text={announcement.body} />
           </p>
           {hasAttachments && (
             <div className="space-y-3">
