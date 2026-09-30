@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { AnnouncementConfirmersDialog } from "@/components/features/helpdesk-announcements/AnnouncementConfirmersDialog";
 import { AnnouncementRecipientDialog } from "@/components/features/helpdesk-announcements/AnnouncementRecipientDialog";
 import type {
   AnnouncementRecipientStatusView,
@@ -17,7 +18,7 @@ export interface AnnouncementTrackingBadgeProps {
   recipientStatuses: AnnouncementRecipientStatusView[];
 }
 
-type DialogMode = "confirmed" | "completed";
+type DialogMode = "confirmed" | "completed" | "confirmers";
 
 /**
  * お知らせごとの確認済み（人数ベース）・実施済み（会社ベース）人数を表示し、クリックで
@@ -37,6 +38,11 @@ export function AnnouncementTrackingBadge({
   const totalRecipientUsers = userReadStatuses.length;
   const confirmedCount = useMemo(
     () => userReadStatuses.filter((status) => status.confirmedAt !== null).length,
+    [userReadStatuses]
+  );
+
+  const usersWithConfirmers = useMemo(
+    () => userReadStatuses.filter((status) => status.confirmers.length > 0),
     [userReadStatuses]
   );
 
@@ -65,6 +71,13 @@ export function AnnouncementTrackingBadge({
         >
           {t("confirmedCount", { confirmed: confirmedCount, total: totalRecipientUsers })}
         </button>
+        <button
+          type="button"
+          className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          onClick={() => setOpenMode("confirmers")}
+        >
+          {t("confirmersButton")}
+        </button>
         {actionRequired && (
           <button
             type="button"
@@ -82,6 +95,13 @@ export function AnnouncementTrackingBadge({
           announcementId={announcementId}
           mode="confirmed"
           recipients={unconfirmedUsers}
+        />
+      )}
+      {openMode === "confirmers" && (
+        <AnnouncementConfirmersDialog
+          open
+          onOpenChange={(nextOpen) => setOpenMode(nextOpen ? "confirmers" : null)}
+          userReadStatuses={usersWithConfirmers}
         />
       )}
       {openMode === "completed" && (

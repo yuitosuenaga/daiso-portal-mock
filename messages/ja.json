@@ -166,6 +166,7 @@
       "error": "お知らせの取得に失敗しました",
       "addButton": "新規お知らせを作成",
       "editLink": "編集",
+      "createdBy": "作成者",
       "deleteButton": "削除",
       "deleteConfirmTitle": "お知らせの削除",
       "deleteConfirm": "『{title}』を削除します。この操作は取り消せません。よろしいですか？",
@@ -286,7 +287,12 @@
       "remindSuccessMessage": "リマインドを送信しました",
       "remindErrorMessage": "送信に失敗しました。時間を置いて再度お試しください。",
       "alreadyRemindedLabel": "送信済み",
-      "allRespondedMessage": "全員が対応済みです"
+      "allRespondedMessage": "全員が対応済みです",
+      "confirmersButton": "確認者一覧",
+      "dialogTitleConfirmers": "確認者一覧",
+      "confirmersEmptyMessage": "氏名が入力された確認者はいません",
+      "columnConfirmerName": "確認者名",
+      "columnConfirmedAt": "確認日時"
     }
   },
   "helpdeskInquiries": {
@@ -883,7 +889,12 @@
     "selfReport": {
       "confirmed": "確認済み",
       "completeButton": "対応完了にする",
-      "completed": "対応完了"
+      "completed": "対応完了",
+      "confirmerLabel": "確認者名",
+      "confirmerPlaceholder": "確認した人の氏名",
+      "confirmerAddButton": "確認者として記録",
+      "confirmerError": "記録に失敗しました。時間をおいて再度お試しください。",
+      "confirmersLabel": "確認者"
     },
     "filter": {
       "keywordLabel": "タイトル検索",

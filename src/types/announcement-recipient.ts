@@ -58,6 +58,14 @@ export interface AnnouncementUserReadStatusView {
   country: string;
   confirmedAt: string | null;
   readReminderSentAt: string | null;
+  /** このアカウントで確認した人として入力された氏名一覧（共有アカウント対応。古い順）。 */
+  confirmers: AnnouncementConfirmerView[];
+}
+
+/** 共有アカウントで実際にお知らせを確認した人1名分の記録。 */
+export interface AnnouncementConfirmerView {
+  name: string;
+  confirmedAt: string;
 }
 
 /**

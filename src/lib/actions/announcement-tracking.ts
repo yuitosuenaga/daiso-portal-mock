@@ -3,12 +3,16 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  addAnnouncementConfirmerForCurrentUser,
   completeAnnouncementForCurrentCompany,
   confirmAnnouncementForCurrentCompany,
   sendAnnouncementReminders,
   sendAnnouncementUserReadReminders,
 } from "@/lib/api/announcement-tracking";
-import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
+import type {
+  AnnouncementConfirmerView,
+  AnnouncementSelfStatus,
+} from "@/types/announcement-recipient";
 
 const HELPDESK_ANNOUNCEMENT_LIST_PATH = "/[locale]/helpdesk/announcements";
 const APPLICANT_ANNOUNCEMENT_LIST_PATH = "/[locale]/announcements";
@@ -82,4 +86,19 @@ export async function completeAnnouncementAction(
   revalidateAnnouncementTrackingRoutes();
 
   return status;
+}
+
+/**
+ * 共有アカウントで実際に確認した人の氏名を記録し、最新の確認者一覧を返す。
+ * 氏名が空（空白のみ含む）の場合は何も記録しない。
+ */
+export async function addAnnouncementConfirmerAction(
+  announcementId: string,
+  name: string
+): Promise<AnnouncementConfirmerView[]> {
+  const confirmers = await addAnnouncementConfirmerForCurrentUser(announcementId, name);
+
+  revalidateAnnouncementTrackingRoutes();
+
+  return confirmers;
 }

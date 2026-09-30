@@ -78,6 +78,7 @@ model HelpdeskStaff {
   displayName      String
   createdAt        DateTime  @default(now())
   claimedInquiries Inquiry[]
+  announcements    Announcement[]
 }
 
 model Inquiry {
@@ -204,6 +205,9 @@ model Announcement {
   dueDate            DateTime?                     @db.Date
   createdAt          DateTime                      @default(now())
   updatedAt          DateTime                      @updatedAt
+  /// 作成したヘルプデスクスタッフ。導入前の既存お知らせ・スタッフ削除後は`null`。
+  createdById        String?
+  createdBy          HelpdeskStaff?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
   recipientStatuses  AnnouncementRecipientStatus[]
   attachments        AnnouncementAttachment[]
   linkedDocuments    AnnouncementDocumentLink[]
@@ -313,10 +317,26 @@ model AnnouncementReadReceipt {
   applicantUser      ApplicantUser @relation(fields: [applicantUserId], references: [id], onDelete: Cascade)
   confirmedAt        DateTime?
   readReminderSentAt DateTime?
+  confirmers         AnnouncementConfirmer[]
 
   @@unique([announcementId, applicantUserId])
   @@index([announcementId])
   @@index([applicantUserId])
+}
+
+/**
+ * 海外側で複数人が同一`ApplicantUser`アカウントを共有している場合に、実際にお知らせを
+ * 確認した人の氏名を記録するモデル。受信レシート（`AnnouncementReadReceipt`）1件に対し
+ * 複数件紐づく。日本側は確認者一覧ダイアログで参照する。
+ */
+model AnnouncementConfirmer {
+  id          String                  @id @default(cuid())
+  receiptId   String
+  receipt     AnnouncementReadReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  name        String
+  confirmedAt DateTime                @default(now())
+
+  @@index([receiptId])
 }
 
 enum DocumentTargetingScope {

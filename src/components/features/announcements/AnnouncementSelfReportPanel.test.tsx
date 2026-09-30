@@ -40,6 +40,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired={false}
         initialStatus={{ confirmedAt: null, completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 
@@ -58,6 +59,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired={false}
         initialStatus={{ confirmedAt: "2026-07-01T00:00:00Z", completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 
@@ -71,6 +73,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired={false}
         initialStatus={{ confirmedAt: "2026-07-01T00:00:00Z", completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 
@@ -85,6 +88,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired
         initialStatus={{ confirmedAt: "2026-07-01T00:00:00Z", completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 
@@ -98,6 +102,7 @@ describe("AnnouncementSelfReportPanel", () => {
       <AnnouncementSelfReportPanel
         announcementId="a-1"
         actionRequired
+        initialConfirmers={[]}
         initialStatus={{
           confirmedAt: "2026-07-01T00:00:00Z",
           completedAt: "2026-07-02T00:00:00Z",
@@ -117,6 +122,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired
         initialStatus={{ confirmedAt: "2026-07-01T00:00:00Z", completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 
@@ -143,6 +149,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired={false}
         initialStatus={{ confirmedAt: null, completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 
@@ -163,6 +170,7 @@ describe("AnnouncementSelfReportPanel", () => {
         announcementId="a-1"
         actionRequired
         initialStatus={{ confirmedAt: "2026-07-01T00:00:00Z", completedAt: null }}
+        initialConfirmers={[]}
       />
     );
 

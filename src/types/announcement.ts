@@ -65,6 +65,8 @@ export interface Announcement {
   createdAt: string;
   /** 更新日時（ISO 8601形式）。 */
   updatedAt: string;
+  /** 作成したヘルプデスクスタッフの表示名。ヘルプデスク側一覧でのみ設定され、作成者不明（既存データ等）は`null`。 */
+  createdByName?: string | null;
   /** 直接アップロードされた添付ファイル（最大5件）。 */
   attachments: AnnouncementAttachment[];
   /** `documents-management`spec配下に登録済みのドキュメントへの参照ID（最大5件）。 */

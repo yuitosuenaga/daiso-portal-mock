@@ -44,6 +44,7 @@ type PrismaApplicantUserWithCompany = {
 type PrismaReadReceipt = {
   confirmedAt: Date | null;
   readReminderSentAt: Date | null;
+  confirmers?: { name: string; confirmedAt: Date }[];
 };
 
 export function mapTargeting(record: PrismaAnnouncement): AnnouncementTargeting {
@@ -134,6 +135,10 @@ export function mapUserReadStatusView(
     country: applicantUser.company.country,
     confirmedAt: status?.confirmedAt?.toISOString() ?? null,
     readReminderSentAt: status?.readReminderSentAt?.toISOString() ?? null,
+    confirmers: (status?.confirmers ?? []).map((confirmer) => ({
+      name: confirmer.name,
+      confirmedAt: confirmer.confirmedAt.toISOString(),
+    })),
   };
 }
 

@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
+  addAnnouncementConfirmerAction,
   completeAnnouncementAction,
   confirmAnnouncementAction,
 } from "@/lib/actions/announcement-tracking";
@@ -11,7 +13,10 @@ import {
   CompletedStatusBadge,
   ConfirmedStatusBadge,
 } from "@/components/features/announcements/SelfReportStatusBadges";
-import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
+import type {
+  AnnouncementConfirmerView,
+  AnnouncementSelfStatus,
+} from "@/types/announcement-recipient";
 
 export interface AnnouncementSelfReportPanelProps {
   announcementId: string;
@@ -19,6 +24,8 @@ export interface AnnouncementSelfReportPanelProps {
   actionRequired: boolean;
   /** サーバー側で取得済みの、当該お知らせに対する自社の最新状態 */
   initialStatus: AnnouncementSelfStatus;
+  /** 共有アカウントで確認した人として、既に記録されている氏名一覧 */
+  initialConfirmers: AnnouncementConfirmerView[];
 }
 
 /**
@@ -33,10 +40,15 @@ export function AnnouncementSelfReportPanel({
   announcementId,
   actionRequired,
   initialStatus,
+  initialConfirmers,
 }: AnnouncementSelfReportPanelProps) {
   const t = useTranslations("announcements.selfReport");
   const [status, setStatus] = useState(initialStatus);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmers, setConfirmers] = useState(initialConfirmers);
+  const [confirmerName, setConfirmerName] = useState("");
+  const [isAddingConfirmer, setIsAddingConfirmer] = useState(false);
+  const [confirmerError, setConfirmerError] = useState(false);
 
   useEffect(() => {
     if (initialStatus.confirmedAt !== null) {
@@ -64,23 +76,75 @@ export function AnnouncementSelfReportPanel({
     }
   }
 
+  async function handleAddConfirmer(event: React.FormEvent) {
+    event.preventDefault();
+    const name = confirmerName.trim();
+    if (name === "") {
+      return;
+    }
+    setIsAddingConfirmer(true);
+    setConfirmerError(false);
+    try {
+      setConfirmers(await addAnnouncementConfirmerAction(announcementId, name));
+      setConfirmerName("");
+      setStatus((current) => ({
+        ...current,
+        confirmedAt: current.confirmedAt ?? new Date().toISOString(),
+      }));
+    } catch {
+      setConfirmerError(true);
+    } finally {
+      setIsAddingConfirmer(false);
+    }
+  }
+
   const showCompleteButton = actionRequired && status.completedAt === null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ConfirmedStatusBadge isConfirmed={status.confirmedAt !== null} />
-      {actionRequired && (
-        <CompletedStatusBadge isCompleted={status.completedAt !== null} />
-      )}
-      {showCompleteButton && (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <ConfirmedStatusBadge isConfirmed={status.confirmedAt !== null} />
+        {actionRequired && (
+          <CompletedStatusBadge isCompleted={status.completedAt !== null} />
+        )}
+        {showCompleteButton && (
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleCompleteClick}
+            disabled={isSubmitting}
+          >
+            {t("completeButton")}
+          </Button>
+        )}
+      </div>
+      <form onSubmit={handleAddConfirmer} className="flex flex-wrap items-center gap-2">
+        <Input
+          value={confirmerName}
+          onChange={(event) => setConfirmerName(event.target.value)}
+          placeholder={t("confirmerPlaceholder")}
+          aria-label={t("confirmerLabel")}
+          maxLength={100}
+          className="max-w-xs"
+        />
         <Button
-          type="button"
+          type="submit"
           size="sm"
-          onClick={handleCompleteClick}
-          disabled={isSubmitting}
+          variant="outline"
+          disabled={isAddingConfirmer || confirmerName.trim() === ""}
         >
-          {t("completeButton")}
+          {t("confirmerAddButton")}
         </Button>
+      </form>
+      {confirmerError && (
+        <p role="alert" className="text-xs text-destructive">
+          {t("confirmerError")}
+        </p>
+      )}
+      {confirmers.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {t("confirmersLabel")}: {confirmers.map((confirmer) => confirmer.name).join(", ")}
+        </p>
       )}
     </div>
   );

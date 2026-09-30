@@ -164,10 +164,13 @@ export async function findAnnouncementVisibleToCountry(
 export async function listAllAnnouncements(): Promise<Announcement[]> {
   const records = await prisma.announcement.findMany({
     orderBy: ORDER_BY_CREATED_AT_DESC,
-    include: ANNOUNCEMENT_INCLUDE,
+    include: { ...ANNOUNCEMENT_INCLUDE, createdBy: { select: { displayName: true } } },
   });
 
-  return records.map(mapAnnouncement);
+  return records.map((record) => ({
+    ...mapAnnouncement(record),
+    createdByName: record.createdBy?.displayName ?? null,
+  }));
 }
 
 /** 配信対象による絞り込みを行わず、指定したIDのお知らせを1件取得する。 */
@@ -205,7 +208,8 @@ function dateOnlyToColumn(value: string | null | undefined): Date | null {
  * 「下書き」の場合、公開日時は未設定のまま保存する。
  */
 export async function createAnnouncementRecord(
-  input: CreateAnnouncementInput
+  input: CreateAnnouncementInput,
+  createdById?: string
 ): Promise<Announcement> {
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
 
@@ -215,6 +219,7 @@ export async function createAnnouncementRecord(
       body: input.body,
       category: input.category,
       status: input.status,
+      createdById,
       publishedAt: input.status === "published" ? new Date() : null,
       actionRequired: input.actionRequired,
       sendEmailNotification: input.sendEmailNotification,
@@ -397,7 +402,10 @@ export async function getAnnouncementUserReadStatuses(
     where: targetApplicantUsersWhere(announcement),
     include: {
       company: true,
-      announcementReadReceipts: { where: { announcementId } },
+      announcementReadReceipts: {
+        where: { announcementId },
+        include: { confirmers: { orderBy: { confirmedAt: "asc" } } },
+      },
     },
   });
 
@@ -442,6 +450,60 @@ export async function recordUserConfirmation(
     update: { confirmedAt: new Date() },
     create: { announcementId, applicantUserId, confirmedAt: new Date() },
   });
+}
+
+/**
+ * 共有アカウントで実際に確認した人の氏名を、本人（`ApplicantUser`）の受信レシートに追記する。
+ * 受信レシートが未確認の場合は同時に`confirmedAt`も記録する。氏名は前後空白を除去して保存し、
+ * 空文字の場合は何も記録しない。同一アカウント・同一お知らせで同名の重複登録はしない。
+ */
+export async function addUserConfirmer(
+  announcementId: string,
+  applicantUserId: string,
+  name: string
+): Promise<void> {
+  const trimmed = name.trim();
+  if (trimmed === "") {
+    return;
+  }
+
+  const now = new Date();
+  const receipt = await prisma.announcementReadReceipt.upsert({
+    where: { announcementId_applicantUserId: { announcementId, applicantUserId } },
+    update: {},
+    create: { announcementId, applicantUserId, confirmedAt: now },
+  });
+  if (!receipt.confirmedAt) {
+    await prisma.announcementReadReceipt.update({
+      where: { id: receipt.id },
+      data: { confirmedAt: now },
+    });
+  }
+
+  const duplicate = await prisma.announcementConfirmer.findFirst({
+    where: { receiptId: receipt.id, name: trimmed },
+  });
+  if (!duplicate) {
+    await prisma.announcementConfirmer.create({
+      data: { receiptId: receipt.id, name: trimmed, confirmedAt: now },
+    });
+  }
+}
+
+/** 指定`ApplicantUser`本人の、あるお知らせに対する確認者氏名一覧（古い順）を返す。 */
+export async function getUserConfirmers(
+  announcementId: string,
+  applicantUserId: string
+): Promise<{ name: string; confirmedAt: string }[]> {
+  const confirmers = await prisma.announcementConfirmer.findMany({
+    where: { receipt: { announcementId, applicantUserId } },
+    orderBy: { confirmedAt: "asc" },
+  });
+
+  return confirmers.map((confirmer) => ({
+    name: confirmer.name,
+    confirmedAt: confirmer.confirmedAt.toISOString(),
+  }));
 }
 
 /**
