@@ -240,7 +240,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
 
     const result = await createAnnouncement(input);
 
-    expect(createAnnouncementRecord).toHaveBeenCalledWith(input);
+    expect(createAnnouncementRecord).toHaveBeenCalledWith(input, "staff-1");
     expect(result.id).toBe("announcement-1");
   });
 
@@ -287,7 +287,7 @@ describe("createAnnouncement / updateAnnouncement / deleteAnnouncement", () => {
 
     const result = await createAnnouncement(inputWithNewFields);
 
-    expect(createAnnouncementRecord).toHaveBeenCalledWith(inputWithNewFields);
+    expect(createAnnouncementRecord).toHaveBeenCalledWith(inputWithNewFields, "staff-1");
     expect(result.publishStartDate).toBe("2026-08-01");
     expect(result.publishEndDate).toBe("2026-08-31");
     expect(result.dueDate).toBe("2026-08-15");

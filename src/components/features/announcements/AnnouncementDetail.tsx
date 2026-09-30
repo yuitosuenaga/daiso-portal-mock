@@ -1,6 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncementById } from "@/lib/api/announcements";
 import {
+  getAnnouncementConfirmersForCurrentUser,
   getAnnouncementSelfStatus,
   isReminderPendingForCompany,
 } from "@/lib/api/announcement-tracking";
@@ -61,9 +62,10 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     );
   }
 
-  const [isReminderPending, selfStatus, linkedDocumentResults] = await Promise.all([
+  const [isReminderPending, selfStatus, confirmers, linkedDocumentResults] = await Promise.all([
     isReminderPendingForCompany(announcement.id, companyCode),
     getAnnouncementSelfStatus(announcement.id),
+    getAnnouncementConfirmersForCurrentUser(announcement.id),
     Promise.all(
       announcement.linkedDocumentIds.map((documentId) =>
         getDocumentById(documentId, { locale })
@@ -135,6 +137,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
             announcementId={announcement.id}
             actionRequired={announcement.actionRequired}
             initialStatus={selfStatus}
+            initialConfirmers={confirmers}
           />
         </CardHeader>
         <CardContent className="space-y-4">

@@ -1,11 +1,13 @@
 import { requireApplicantSession, requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import {
+  addUserConfirmer as addUserConfirmerService,
   findAnnouncementVisibleToCountry,
   getAnnouncementRecipientStatuses as getAnnouncementRecipientStatusesService,
   getAnnouncementSelfStatusForCompany as getAnnouncementSelfStatusForCompanyService,
   getAnnouncementSelfStatuses as getAnnouncementSelfStatusesService,
   getAnnouncementTrackingSummary as getAnnouncementTrackingSummaryService,
   getAnnouncementUserReadStatuses as getAnnouncementUserReadStatusesService,
+  getUserConfirmers as getUserConfirmersService,
   getUserSelfConfirmation as getUserSelfConfirmationService,
   isReminderPendingForCompany as isReminderPendingForCompanyService,
   recordCompanyCompletion as recordCompanyCompletionService,
@@ -15,6 +17,7 @@ import {
 } from "@/lib/server/announcement-service";
 import type { Announcement } from "@/types/announcement";
 import type {
+  AnnouncementConfirmerView,
   AnnouncementRecipientStatusView,
   AnnouncementSelfStatus,
   AnnouncementTrackingSummary,
@@ -115,6 +118,34 @@ export async function confirmAnnouncementForCurrentCompany(
   }
 
   return getAnnouncementSelfStatus(id);
+}
+
+/**
+ * 申請者セッションのアカウントについて、実際に確認した人の氏名を追記し、最新の確認者一覧を返す。
+ * 共有アカウント運用向け。対象お知らせが下書き・配信対象外・公開期間外・存在しない場合は
+ * 何も記録しない。氏名は100文字までに切り詰める。
+ */
+export async function addAnnouncementConfirmerForCurrentUser(
+  id: string,
+  name: string
+): Promise<AnnouncementConfirmerView[]> {
+  const { claims } = await requireApplicantSession();
+
+  const announcement = await findAnnouncementVisibleToCountry(id, claims.country);
+  if (announcement) {
+    await addUserConfirmerService(id, claims.applicantUserId, name.trim().slice(0, 100));
+  }
+
+  return getUserConfirmersService(id, claims.applicantUserId);
+}
+
+/** 申請者セッションのアカウントで記録済みの確認者一覧を取得する。 */
+export async function getAnnouncementConfirmersForCurrentUser(
+  id: string
+): Promise<AnnouncementConfirmerView[]> {
+  const { claims } = await requireApplicantSession();
+
+  return getUserConfirmersService(id, claims.applicantUserId);
 }
 
 /**

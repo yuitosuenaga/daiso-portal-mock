@@ -33,6 +33,7 @@ const getAnnouncementSelfStatusMock = vi.fn(
 vi.mock("@/lib/api/announcement-tracking", () => ({
   isReminderPendingForCompany: async () => false,
   getAnnouncementSelfStatus: (id: string) => getAnnouncementSelfStatusMock(id),
+  getAnnouncementConfirmersForCurrentUser: async () => [],
 }));
 
 const confirmAnnouncementActionMock = vi.fn(
@@ -53,6 +54,7 @@ const completeAnnouncementActionMock = vi.fn(
 vi.mock("@/lib/actions/announcement-tracking", () => ({
   confirmAnnouncementAction: (id: string) => confirmAnnouncementActionMock(id),
   completeAnnouncementAction: (id: string) => completeAnnouncementActionMock(id),
+  addAnnouncementConfirmerAction: async () => [],
 }));
 
 const getDocumentByIdMock = vi.fn();

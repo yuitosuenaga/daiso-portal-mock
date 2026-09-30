@@ -99,9 +99,9 @@ export async function getAnnouncementByIdForHelpdesk(
 export async function createAnnouncement(
   input: CreateAnnouncementInput
 ): Promise<Announcement> {
-  await requireHelpdeskStaffSession();
+  const { claims } = await requireHelpdeskStaffSession();
 
-  return createAnnouncementRecord(input);
+  return createAnnouncementRecord(input, claims.id);
 }
 
 /**

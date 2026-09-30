@@ -138,6 +138,9 @@ export function AnnouncementManagementListClient({
                   ) : (
                     <span>—</span>
                   )}
+                  <span>
+                    {tList("createdBy")}: {announcement.createdByName ?? "—"}
+                  </span>
                   <span>{targetingLabel(announcement)}</span>
                   <span>{publishPeriodText(announcement)}</span>
                   {announcement.actionRequired && announcement.dueDate && (

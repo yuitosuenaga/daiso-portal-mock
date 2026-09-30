@@ -166,6 +166,7 @@
       "error": "Failed to load announcements",
       "addButton": "Create new announcement",
       "editLink": "Edit",
+      "createdBy": "Created by",
       "deleteButton": "Delete",
       "deleteConfirmTitle": "Delete Announcement",
       "deleteConfirm": "This will delete \"{title}\". This action cannot be undone. Are you sure?",
@@ -286,7 +287,12 @@
       "remindSuccessMessage": "Reminder sent",
       "remindErrorMessage": "Failed to send. Please try again later.",
       "alreadyRemindedLabel": "Sent",
-      "allRespondedMessage": "Everyone has responded"
+      "allRespondedMessage": "Everyone has responded",
+      "confirmersButton": "Confirmers",
+      "dialogTitleConfirmers": "Confirmers",
+      "confirmersEmptyMessage": "No confirmer names have been entered",
+      "columnConfirmerName": "Confirmer",
+      "columnConfirmedAt": "Confirmed at"
     }
   },
   "helpdeskInquiries": {
@@ -883,7 +889,12 @@
     "selfReport": {
       "confirmed": "Confirmed",
       "completeButton": "Mark as completed",
-      "completed": "Completed"
+      "completed": "Completed",
+      "confirmerLabel": "Confirmer name",
+      "confirmerPlaceholder": "Name of the person who confirmed",
+      "confirmerAddButton": "Record as confirmer",
+      "confirmerError": "Failed to record. Please try again later.",
+      "confirmersLabel": "Confirmed by"
     },
     "filter": {
       "keywordLabel": "Search title",
