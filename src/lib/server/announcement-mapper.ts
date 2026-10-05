@@ -166,8 +166,10 @@ export function resolveAnnouncementContent(
     return { title: announcement.title, body: announcement.body };
   }
 
-  // UI言語が`en`のままでも、閲覧者の国の言語に翻訳があればそれを本文として優先する。
-  const countryLanguage = country ? COUNTRY_CONTENT_LANGUAGE[country.toUpperCase()] : undefined;
+  // UI言語が`en`のままのときに限り、閲覧者の国の言語に翻訳があればそれを本文として優先する。
+  // `en`以外のUI言語（th・vi等）を選んでいる場合は、選択した言語を国の言語より優先する。
+  const countryLanguage =
+    country && locale === "en" ? COUNTRY_CONTENT_LANGUAGE[country.toUpperCase()] : undefined;
   if (countryLanguage) {
     const countryTranslation = announcement.translations.find(
       (item) => item.locale.toLowerCase() === countryLanguage.toLowerCase()
