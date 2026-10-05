@@ -47,8 +47,13 @@ export function StatsMetricTile({
   onSelect,
   href,
 }: StatsMetricTileProps) {
-  const valueClassName = cn(SIZE_CLASS[size], TONE_CLASS[tone]);
-  const valueContent = value === 0 && zeroLabel ? zeroLabel : value;
+  const isZeroLabel = value === 0 && Boolean(zeroLabel);
+  // 「本日の受付はありません」等の文章は、数字用の大きな文字サイズだと狭い幅で縦に折り返すため小さくする
+  const valueClassName = cn(
+    isZeroLabel ? "text-xl font-semibold break-words" : SIZE_CLASS[size],
+    TONE_CLASS[tone]
+  );
+  const valueContent = isZeroLabel ? zeroLabel : value;
 
   return (
     <div>
