@@ -7,6 +7,15 @@ const TranslationOutputSchema = z.object({
   body: z.string().min(1),
 });
 
+const FieldsOutputSchema = z.object({
+  translations: z.array(
+    z.object({
+      locale: z.string(),
+      fields: z.array(z.object({ key: z.string(), value: z.string() })),
+    }),
+  ),
+});
+
 export type TranslationErrorKind =
   | "not_configured"
   | "api_error"
@@ -37,8 +46,26 @@ export interface TranslateResult {
   model: string;
 }
 
+export interface TranslateFieldsInput {
+  /** 翻訳対象のフィールド（キー→原文）。空文字のフィールドは呼び出し側で除外しておく */
+  fields: Record<string, string>;
+  sourceLocale: string;
+  targetLocales: readonly string[];
+}
+
+export interface TranslateFieldsResult {
+  /** locale→（フィールドキー→訳文） */
+  translations: Record<string, Record<string, string>>;
+  model: string;
+}
+
 export interface Translator {
   translate(input: TranslateInput): Promise<TranslateResult>;
+}
+
+export interface FieldsTranslator {
+  /** 複数フィールドを複数言語へ1回のAPI呼び出しで翻訳する（全言語バックフィル用） */
+  translateFields(input: TranslateFieldsInput): Promise<TranslateFieldsResult>;
 }
 
 const DEFAULT_MODEL = "claude-haiku-4-5";
@@ -61,10 +88,17 @@ function buildUserMessage(input: TranslateInput): string {
   return `Translate from locale "${input.sourceLocale}" to locale "${input.targetLocale}".\n\n<source_title>\n${input.title}\n</source_title>\n<source_body>\n${input.body}\n</source_body>`;
 }
 
+function buildFieldsUserMessage(input: TranslateFieldsInput): string {
+  const sources = Object.entries(input.fields)
+    .map(([key, value]) => `<source_field key="${key}">\n${value}\n</source_field>`)
+    .join("\n");
+  return `Translate every field from locale "${input.sourceLocale}" into each of these locales: ${input.targetLocales.join(", ")}.\nReturn one entry per target locale, each containing every field key exactly as given.\n\n${sources}`;
+}
+
 export function createClaudeTranslator(options?: {
   apiKey?: string;
   model?: string;
-}): Translator {
+}): Translator & FieldsTranslator {
   const apiKey = options?.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new TranslationError("not_configured", "ANTHROPIC_API_KEY is not set");
@@ -74,6 +108,59 @@ export function createClaudeTranslator(options?: {
   const model = options?.model ?? process.env.TRANSLATION_MODEL ?? DEFAULT_MODEL;
 
   return {
+    async translateFields(input: TranslateFieldsInput): Promise<TranslateFieldsResult> {
+      let response;
+      try {
+        response = await client.messages.parse({
+          model,
+          max_tokens: 16384,
+          system: SYSTEM_PROMPT.replace(
+            "<source_title> and <source_body> tags",
+            "<source_field> tags",
+          ),
+          messages: [{ role: "user", content: buildFieldsUserMessage(input) }],
+          output_config: { format: zodOutputFormat(FieldsOutputSchema) },
+        });
+      } catch (error) {
+        throw new TranslationError(
+          "api_error",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+
+      if (response.stop_reason === "refusal") {
+        throw new TranslationError("refusal", "Translation request was refused");
+      }
+      if (response.stop_reason === "max_tokens") {
+        throw new TranslationError("truncated", "Translation output was truncated");
+      }
+      if (!response.parsed_output) {
+        throw new TranslationError(
+          "invalid_output",
+          "Translation response did not match the expected schema",
+        );
+      }
+
+      const translations: Record<string, Record<string, string>> = {};
+      for (const entry of response.parsed_output.translations) {
+        translations[entry.locale] = Object.fromEntries(
+          entry.fields.map((field) => [field.key, field.value]),
+        );
+      }
+      for (const locale of input.targetLocales) {
+        for (const key of Object.keys(input.fields)) {
+          if (typeof translations[locale]?.[key] !== "string") {
+            throw new TranslationError(
+              "invalid_output",
+              `Missing translation for locale "${locale}" field "${key}"`,
+            );
+          }
+        }
+      }
+
+      return { translations, model };
+    },
+
     async translate(input: TranslateInput): Promise<TranslateResult> {
       let response;
       try {
