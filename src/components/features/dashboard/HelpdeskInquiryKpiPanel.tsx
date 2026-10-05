@@ -210,7 +210,7 @@ export function HelpdeskInquiryKpiPanelSkeleton() {
           ))}
         </div>
         <div className="grid gap-6">
-          {Array.from({ length: 3 }, (_, index) => (
+          {Array.from({ length: 1 }, (_, index) => (
             <div key={index} className="space-y-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-16 w-full" />
