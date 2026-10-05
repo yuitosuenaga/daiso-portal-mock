@@ -206,7 +206,7 @@ export async function HelpdeskInquiryKpiPanel({
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-6">
           <StatsMetricTile
             label={t("unresolvedLabel")}
             value={stats.unresolved}
@@ -282,7 +282,7 @@ export async function HelpdeskInquiryKpiPanel({
           </Link>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6">
           <div>
             <h3 className="mb-2 text-xs font-medium text-muted-foreground">
               {tStats("statusBreakdownTitle")}
@@ -382,7 +382,7 @@ export function HelpdeskInquiryKpiPanelSkeleton() {
         <Skeleton className="h-5 w-32" />
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-6">
           {Array.from({ length: 4 }, (_, index) => (
             <div key={index} className="space-y-2">
               <Skeleton className="h-4 w-28" />
@@ -390,7 +390,7 @@ export function HelpdeskInquiryKpiPanelSkeleton() {
             </div>
           ))}
         </div>
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6">
           {Array.from({ length: 3 }, (_, index) => (
             <div key={index} className="space-y-2">
               <Skeleton className="h-4 w-24" />
