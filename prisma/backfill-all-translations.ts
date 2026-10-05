@@ -20,6 +20,8 @@ export const BACKFILL_TARGETS = [
   "faq",
   "manual",
   "linkCategory",
+  "link",
+  "replyTemplate",
   "inquiry",
 ] as const;
 export type BackfillTarget = (typeof BACKFILL_TARGETS)[number];
@@ -176,6 +178,46 @@ const DEFINITIONS: Record<BackfillTarget, TargetDefinition> = {
       await prisma.linkCategoryTranslation.upsert({
         where: { categoryId_locale: { categoryId: item.id, locale } },
         create: { categoryId: item.id, locale, name: values.name ?? "" },
+        update: {},
+      });
+    },
+  },
+  link: {
+    async load(prisma, limit) {
+      const rows = await prisma.link.findMany({
+        select: { id: true, title: true, description: true, translations: { select: { locale: true } } },
+        take: limit,
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        fields: compact({ title: row.title, description: row.description }),
+        existingLocales: row.translations.map((t) => t.locale),
+      }));
+    },
+    async save(prisma, item, locale, values) {
+      await prisma.linkTranslation.upsert({
+        where: { linkId_locale: { linkId: item.id, locale } },
+        create: { linkId: item.id, locale, title: values.title ?? "", description: values.description ?? null },
+        update: {},
+      });
+    },
+  },
+  replyTemplate: {
+    async load(prisma, limit) {
+      const rows = await prisma.replyTemplate.findMany({
+        select: { id: true, name: true, body: true, translations: { select: { locale: true } } },
+        take: limit,
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        fields: compact({ name: row.name, body: row.body }),
+        existingLocales: row.translations.map((t) => t.locale),
+      }));
+    },
+    async save(prisma, item, locale, values) {
+      await prisma.replyTemplateTranslation.upsert({
+        where: { templateId_locale: { templateId: item.id, locale } },
+        create: { templateId: item.id, locale, name: values.name ?? "", body: values.body ?? "" },
         update: {},
       });
     },

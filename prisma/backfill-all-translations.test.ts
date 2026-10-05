@@ -141,4 +141,63 @@ describe("backfillAllTranslations", () => {
     expect(result.documentCategory).toMatchObject({ failedItemCount: 1, translatedItemCount: 1 });
     expect(upsert).toHaveBeenCalledTimes(TRANSLATED_LOCALES.length);
   });
+
+  it("リンクのtitle/descriptionを全localeへ翻訳し、descriptionが空ならtitleのみ翻訳する", async () => {
+    const upsert = vi.fn();
+    const prisma = fakePrisma({
+      link: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "link-1", title: "社内ポータル", description: null, translations: [] },
+        ]),
+      },
+      linkTranslation: { upsert },
+    });
+    const translator = fakeTranslator();
+
+    const result = await backfillAllTranslations(prisma, translator, { targets: ["link"] });
+
+    expect(translator.translateFields).toHaveBeenCalledWith({
+      fields: { title: "社内ポータル" },
+      sourceLocale: "ja",
+      targetLocales: TRANSLATED_LOCALES,
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { linkId_locale: { linkId: "link-1", locale: "th" } },
+        create: { linkId: "link-1", locale: "th", title: "th:社内ポータル", description: null },
+        update: {},
+      }),
+    );
+    expect(result.link).toMatchObject({ translatedItemCount: 1, failedItemCount: 0 });
+  });
+
+  it("返信テンプレートのname/bodyを不足localeのみ翻訳する", async () => {
+    const upsert = vi.fn();
+    const prisma = fakePrisma({
+      replyTemplate: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "tpl-1", name: "受付", body: "受け付けました", translations: [{ locale: "en" }] },
+        ]),
+      },
+      replyTemplateTranslation: { upsert },
+    });
+    const translator = fakeTranslator();
+
+    const result = await backfillAllTranslations(prisma, translator, { targets: ["replyTemplate"] });
+
+    const expectedMissing = TRANSLATED_LOCALES.filter((l) => l !== "en");
+    expect(translator.translateFields).toHaveBeenCalledWith({
+      fields: { name: "受付", body: "受け付けました" },
+      sourceLocale: "ja",
+      targetLocales: expectedMissing,
+    });
+    expect(upsert).toHaveBeenCalledTimes(expectedMissing.length);
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { templateId_locale: { templateId: "tpl-1", locale: "vi" } },
+        create: { templateId: "tpl-1", locale: "vi", name: "vi:受付", body: "vi:受け付けました" },
+      }),
+    );
+    expect(result.replyTemplate).toMatchObject({ translatedItemCount: 1, failedItemCount: 0 });
+  });
 });
