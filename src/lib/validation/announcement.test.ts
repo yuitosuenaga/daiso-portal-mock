@@ -13,6 +13,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(true);
@@ -28,6 +29,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
       actionRequired: true,
+      sendEmailNotification: false,
       dueDate: "2026-08-01",
     });
 
@@ -42,6 +44,7 @@ describe("announcementFormSchema", () => {
       bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
+      sendEmailNotification: false,
       targeting: { scope: "all" },
       actionRequired: "yes",
     });
@@ -115,6 +118,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(true);
@@ -135,6 +139,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       publishStartDate: "2026-08-10",
       publishEndDate: "2026-08-01",
     });
@@ -152,6 +157,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       publishStartDate: "2026-08-01",
       publishEndDate: "2026-08-10",
     });
@@ -169,6 +175,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: true,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(false);
@@ -184,6 +191,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(true);
@@ -199,6 +207,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       dueDate: "2026-08-01",
     });
 
@@ -218,6 +227,7 @@ describe("announcementFormSchema", () => {
       status: "draft",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(true);
@@ -233,6 +243,7 @@ describe("announcementFormSchema", () => {
       status: "not-a-real-status",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(false);
@@ -247,6 +258,7 @@ describe("announcementFormSchema", () => {
       category: "maintenance",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(false);
@@ -262,6 +274,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(true);
@@ -289,6 +302,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       attachments,
     });
 
@@ -305,6 +319,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       attachments: [
         {
           id: "att-1",
@@ -329,6 +344,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       attachments: [
         {
           id: "att-1",
@@ -353,6 +369,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       linkedDocumentIds: ["1", "2", "3", "4", "5", "6"],
     });
 
@@ -369,6 +386,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       linkedDocumentIds: ["1", "2", "3", "4", "5"],
     });
 
@@ -385,6 +403,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(false);
@@ -400,6 +419,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(false);
@@ -415,6 +435,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
     });
 
     expect(result.success).toBe(true);
@@ -436,6 +457,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       translations: [{ locale: "th", title: "หัวข้อ", body: "เนื้อหา" }],
     });
 
@@ -458,6 +480,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       translations: [{ locale: "ja", title: "重複", body: "重複" }],
     });
 
@@ -474,6 +497,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       translations: [{ locale: "en", title: "重複", body: "重複" }],
     });
 
@@ -490,6 +514,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       translations: [
         { locale: "th", title: "1", body: "1" },
         { locale: "th", title: "2", body: "2" },
@@ -511,6 +536,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       translations: [{ locale: "th", title: "หัวข้อ", body: "เนื้อหา" }],
     });
 
@@ -539,6 +565,7 @@ describe("announcementFormSchema", () => {
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
+      sendEmailNotification: false,
       translations,
     });
 
