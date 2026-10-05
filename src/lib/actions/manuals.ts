@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/manuals";
 import { TRANSLATED_LOCALES } from "@/lib/constants/locales";
 import { autoTranslateFields } from "@/lib/server/auto-translation";
+import { ManualNotFoundError } from "@/lib/server/manual-service";
 import { manualFormSchema } from "@/lib/validation/manual";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type {
@@ -131,7 +132,7 @@ export async function retranslateManualAction(
 ): Promise<{ failedLocales: string[] }> {
   const existing = await getManualByIdForHelpdesk(id);
   if (!existing) {
-    throw new Error(`Manual not found: ${id}`);
+    throw new ManualNotFoundError(id);
   }
 
   const saved = new Set(existing.translations.map((translation) => translation.locale));

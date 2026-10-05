@@ -84,11 +84,6 @@ export default async function HelpdeskAnnouncementEditPage({
           errorMessage={tListLabels("deleteError")}
         />
       </div>
-      {searchParams?.translationFailed === "1" && (
-        <p role="alert" className="text-sm text-destructive">
-          {t("translationFailedDraft")}
-        </p>
-      )}
       <RetranslateAnnouncementButton
         announcementId={announcement.id}
         label={t("retranslateButton")}
@@ -96,6 +91,9 @@ export default async function HelpdeskAnnouncementEditPage({
         successMessage={t("retranslateSuccess")}
         failedMessage={t("retranslateFailed")}
         errorMessage={t("retranslateError")}
+        initialErrorMessage={
+          searchParams?.translationFailed === "1" ? t("translationFailedDraft") : undefined
+        }
       />
       <AnnouncementForm
         mode="edit"

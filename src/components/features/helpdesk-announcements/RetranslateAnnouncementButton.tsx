@@ -13,6 +13,8 @@ export interface RetranslateAnnouncementButtonProps {
   /** 一部のlocaleが翻訳に失敗したときの文言 */
   failedMessage: string;
   errorMessage: string;
+  /** 初期表示するエラー通知（作成時の翻訳失敗からの遷移など）。再実行すると新しい結果に置き換わる */
+  initialErrorMessage?: string;
 }
 
 /** 翻訳APIだけを再実行し、不足・失敗した言語を補う（公開状態は変更しない）。 */
@@ -23,9 +25,12 @@ export function RetranslateAnnouncementButton({
   successMessage,
   failedMessage,
   errorMessage,
+  initialErrorMessage,
 }: RetranslateAnnouncementButtonProps) {
   const [isPending, setIsPending] = useState(false);
-  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(
+    initialErrorMessage ? { text: initialErrorMessage, isError: true } : null
+  );
 
   async function handleClick() {
     setIsPending(true);
@@ -51,7 +56,7 @@ export function RetranslateAnnouncementButton({
       </Button>
       {message && (
         <span
-          role="status"
+          role={message.isError ? "alert" : "status"}
           className={`text-sm ${message.isError ? "text-destructive" : "text-muted-foreground"}`}
         >
           {message.text}
