@@ -53,7 +53,7 @@ describe("HelpdeskHomePage", () => {
   it("「対応業務」セクションに、問い合わせ一覧カードを含まない8枚のカードが指定順で表示される", async () => {
     const page = (await HelpdeskHomePage()) as ReactElement;
     const rootChildren = (page.props as { children: ReactElement[] }).children;
-    const supportSection = rootChildren[2];
+    const supportSection = rootChildren[1];
     const supportGrid = (supportSection.props as { children: ReactElement[] })
       .children[1];
     const gridChildren = (supportGrid.props as { children: ReactElement[] })
@@ -76,7 +76,7 @@ describe("HelpdeskHomePage", () => {
   it("「参考情報」セクションに、リンク・よくある質問の2枚が表示される", async () => {
     const page = (await HelpdeskHomePage()) as ReactElement;
     const rootChildren = (page.props as { children: ReactElement[] }).children;
-    const referenceSection = rootChildren[3];
+    const referenceSection = rootChildren[2];
     const referenceGrid = (
       referenceSection.props as { children: ReactElement[] }
     ).children[1];

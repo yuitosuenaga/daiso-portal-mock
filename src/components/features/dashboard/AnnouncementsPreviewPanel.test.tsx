@@ -79,7 +79,7 @@ describe("AnnouncementsPreviewPanel", () => {
     render(jsx);
 
     expect(getRecentAnnouncementsMock).toHaveBeenCalledWith({
-      limit: 5,
+      limit: 3,
       locale: "ja",
     });
     expect(screen.getByText("お知らせ1")).toBeTruthy();

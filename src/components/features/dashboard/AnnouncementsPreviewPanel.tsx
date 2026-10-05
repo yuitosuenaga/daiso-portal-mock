@@ -7,7 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { getRecentAnnouncements } from "@/lib/api/announcements";
 import type { Announcement } from "@/types/announcement";
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 3;
 const SKELETON_ITEM_COUNT = 3;
 
 export interface AnnouncementsPreviewPanelProps {
@@ -19,7 +19,7 @@ export interface AnnouncementsPreviewPanelProps {
  * 申請者側ダッシュボードのナビゲーションカード群下部に表示する
  * 「最新のお知らせ」プレビューパネル。
  *
- * 直近のお知らせを最大5件、公開日の降順で一覧表示し、末尾にお知らせ一覧ページへの
+ * 直近のお知らせを最大3件、公開日の降順で一覧表示し、末尾にお知らせ一覧ページへの
  * 導線リンクを表示する。データ取得に失敗した場合は例外を上位へ伝播させず、
  * パネル内にエラー状態を表示する。
  */

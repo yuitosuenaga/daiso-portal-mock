@@ -16,7 +16,6 @@ import {
   AnnouncementsPreviewPanel,
   AnnouncementsPreviewPanelSkeleton,
 } from "@/components/features/dashboard/AnnouncementsPreviewPanel";
-import { ReminderAnnouncementsPanel } from "@/components/features/dashboard/ReminderAnnouncementsPanel";
 import {
   AnnouncementSelfSummaryPanel,
   AnnouncementSelfSummaryPanelSkeleton,
@@ -33,10 +32,7 @@ export default async function DashboardPage() {
             <AnnouncementSelfSummaryPanel viewAllHref="/announcements" />
           </Suspense>
         </div>
-        <div className="space-y-6 lg:col-span-2 lg:col-start-1 lg:row-start-1">
-          <Suspense fallback={null}>
-            <ReminderAnnouncementsPanel />
-          </Suspense>
+        <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1">
           <Suspense fallback={<AnnouncementsPreviewPanelSkeleton />}>
             <AnnouncementsPreviewPanel viewAllHref="/announcements" />
           </Suspense>

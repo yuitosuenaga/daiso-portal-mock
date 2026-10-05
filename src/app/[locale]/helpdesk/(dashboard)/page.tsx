@@ -29,13 +29,18 @@ export default async function HelpdeskHomePage() {
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<HelpdeskInquiryKpiPanelSkeleton />}>
-        <HelpdeskInquiryKpiPanel listHref="/helpdesk/inquiries" />
-      </Suspense>
-
-      <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>
-        <PriorityInquiriesPreviewPanel viewAllHref="/helpdesk/inquiries" />
-      </Suspense>
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+        <div className="lg:col-start-3 lg:row-start-1">
+          <Suspense fallback={<HelpdeskInquiryKpiPanelSkeleton />}>
+            <HelpdeskInquiryKpiPanel listHref="/helpdesk/inquiries" />
+          </Suspense>
+        </div>
+        <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1">
+          <Suspense fallback={<PriorityInquiriesPreviewPanelSkeleton />}>
+            <PriorityInquiriesPreviewPanel viewAllHref="/helpdesk/inquiries" />
+          </Suspense>
+        </div>
+      </div>
 
       <section aria-labelledby="helpdesk-dashboard-support-heading">
         <h2
