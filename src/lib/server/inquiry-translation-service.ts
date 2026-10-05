@@ -2,11 +2,13 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import { getTranslator } from "@/lib/server/translation-service";
-import { routing } from "@/i18n/routing";
 import type { Translator } from "@/lib/translation/claude-translator";
 
+/** 問い合わせ本文の翻訳先。送信者の言語（原文）に加え、ヘルプデスク用のjaと共通語のenのみ保持する */
+const INQUIRY_CONTENT_LOCALES = ["ja", "en"] as const;
+
 function resolveTargetLocales(originalLanguage: string): string[] {
-  return routing.locales.filter((locale) => locale !== originalLanguage);
+  return INQUIRY_CONTENT_LOCALES.filter((locale) => locale !== originalLanguage);
 }
 
 /**

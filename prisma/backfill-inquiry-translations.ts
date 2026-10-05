@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
 import { createClaudeTranslator, type Translator } from "../src/lib/translation/claude-translator";
-import { routing } from "../src/i18n/routing";
+// 問い合わせ本文の翻訳先はja・enのみ（原文言語は除く）
+const INQUIRY_CONTENT_LOCALES = ["ja", "en"] as const;
 
 type BackfillPrismaClient = Pick<PrismaClient, "inquiry" | "inquiryTranslation">;
 
@@ -26,7 +27,7 @@ export async function backfillInquiryTranslations(
   let failedCount = 0;
 
   for (const inquiry of targets) {
-    const targetLocales = routing.locales.filter((locale) => locale !== inquiry.originalLanguage);
+    const targetLocales = INQUIRY_CONTENT_LOCALES.filter((locale) => locale !== inquiry.originalLanguage);
     if (targetLocales.length === 0) {
       await prisma.inquiry.update({ where: { id: inquiry.id }, data: { translationStatus: "completed" } });
       completedCount += 1;

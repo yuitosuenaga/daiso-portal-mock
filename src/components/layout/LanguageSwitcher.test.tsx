@@ -1,12 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { SUPPORTED_LOCALES } from "@/lib/constants/locales";
 import messages from "../../../messages/ja.json";
 
+const replace = vi.fn();
+
 vi.mock("@/i18n/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace }),
   usePathname: () => "/",
 }));
 
@@ -19,15 +22,20 @@ function renderSwitcher() {
 }
 
 describe("LanguageSwitcher", () => {
-  it("現在の言語ラベルはブランドカラーで強調表示される", () => {
+  it("対応する全言語を選択肢として表示する", () => {
     renderSwitcher();
-    const activeButton = screen.getByRole("button", { name: "日本語" });
-    expect(activeButton.className).toContain("text-primary");
+    const options = screen.getAllByRole("option").map((option) => (option as HTMLOptionElement).value);
+    expect(options).toEqual([...SUPPORTED_LOCALES]);
   });
 
-  it("非選択言語はブランドカラーで強調されない", () => {
+  it("現在の言語が選択されている", () => {
     renderSwitcher();
-    const inactiveButton = screen.getByRole("button", { name: "English" });
-    expect(inactiveButton.className).not.toContain("text-primary");
+    expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe("ja");
+  });
+
+  it("言語を選ぶと同じパスでロケールを切り替える", () => {
+    renderSwitcher();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "th" } });
+    expect(replace).toHaveBeenCalledWith("/", { locale: "th" });
   });
 });

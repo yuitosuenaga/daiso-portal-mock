@@ -14,6 +14,7 @@
     "db:backfill-announcement-en-translations": "tsx prisma/backfill-announcement-en-translations.ts",
     "db:backfill-inquiry-translations": "tsx prisma/backfill-inquiry-translations.ts",
     "db:backfill-all-translations": "tsx prisma/backfill-all-translations.ts",
+    "messages:translate": "tsx scripts/translate-messages.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
