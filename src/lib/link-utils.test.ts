@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   LINK_NEW_BADGE_DAYS,
+  resolveLinkContent,
   filterLinks,
   groupLinksByCategory,
   isRecentlyCreated,
@@ -176,5 +177,35 @@ describe("groupLinksByCategory", () => {
 
   it("該当リンクが1件も無いとき空配列を返す", () => {
     expect(groupLinksByCategory([], CATEGORIES, "未分類")).toEqual([]);
+  });
+});
+
+describe("resolveLinkContent", () => {
+  const link = {
+    title: "社内ポータル",
+    description: "説明",
+    translations: [
+      { locale: "en", title: "Portal", description: "Desc" },
+      { locale: "th", title: "พอร์ทัล", description: undefined },
+    ],
+  };
+
+  it("localeがjaなら親の値を返す", () => {
+    expect(resolveLinkContent(link, "ja")).toEqual({ title: "社内ポータル", description: "説明" });
+  });
+
+  it("locale一致の翻訳を返す", () => {
+    expect(resolveLinkContent(link, "th")).toEqual({ title: "พอร์ทัล", description: undefined });
+  });
+
+  it("翻訳が無いlocaleはenにフォールバックする", () => {
+    expect(resolveLinkContent(link, "vi")).toEqual({ title: "Portal", description: "Desc" });
+  });
+
+  it("翻訳が1件も無ければjaにフォールバックする", () => {
+    expect(resolveLinkContent({ title: "A", description: "B" }, "vi")).toEqual({
+      title: "A",
+      description: "B",
+    });
   });
 });

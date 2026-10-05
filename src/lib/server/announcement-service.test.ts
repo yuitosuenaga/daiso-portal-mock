@@ -1416,7 +1416,7 @@ describe("resolveAnnouncementContent", () => {
     });
   });
 
-  describe("country指定（UI言語enのまま国の言語で本文を解決）", () => {
+  describe("country指定（UI言語enのときのみ国の言語で本文を解決）", () => {
     const multi = {
       ...announcement,
       translations: [
@@ -1444,6 +1444,13 @@ describe("resolveAnnouncementContent", () => {
       expect(resolveAnnouncementContent(multi, "en", "VN")).toEqual({
         title: "English Title",
         body: "English Body",
+      });
+    });
+
+    it("en以外のUI言語を選んでいるときは、国の言語よりUI言語の翻訳を優先する", () => {
+      expect(resolveAnnouncementContent(multi, "zh-TW", "TH")).toEqual({
+        title: "繁體標題",
+        body: "繁體內文",
       });
     });
 

@@ -1,3 +1,5 @@
+import type { LinkWithTimestamp } from "@/types/link";
+
 /**
  * リンク集機能（申請者側一覧・ヘルプデスク側管理一覧）で共用する、
  * 新着判定・キーワード絞り込みのユーティリティ。
@@ -127,4 +129,26 @@ interface LinkCategorySummaryLike {
   id: string;
   name: string;
   subCategories: Array<{ id: string; name: string }>;
+}
+
+/**
+ * UI言語（`locale`）に合わせてリンクのタイトル・説明を解決する。
+ * フォールバック順序は他の翻訳対象（資料・FAQ等）と同一: `locale`一致 → `en` → 既定言語`ja`。
+ * `translations`が無い（旧データ・翻訳未保存）場合は`ja`（親の値）を返す。
+ */
+export function resolveLinkContent(
+  link: Pick<LinkWithTimestamp, "title" | "description" | "translations">,
+  locale: string
+): { title: string; description?: string } {
+  if (locale !== "ja") {
+    const translations = link.translations ?? [];
+    const match =
+      translations.find((item) => item.locale === locale) ??
+      translations.find((item) => item.locale === "en");
+    if (match) {
+      return { title: match.title, description: match.description };
+    }
+  }
+
+  return { title: link.title, description: link.description };
 }

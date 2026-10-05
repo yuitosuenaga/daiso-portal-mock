@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { filterLinks, groupLinksByCategory } from "@/lib/link-utils";
+import { filterLinks, groupLinksByCategory, resolveLinkContent } from "@/lib/link-utils";
 import { LinkSearchBar } from "@/components/features/links/LinkSearchBar";
 import { LinkCategoryGroup } from "@/components/features/links/LinkCategoryGroup";
 import type { LinkWithTimestamp } from "@/types/link";
@@ -40,7 +40,16 @@ export function LinkListClient({
   const tSearch = useTranslations("links.search");
   const [keyword, setKeyword] = useState("");
 
-  const filteredLinks = useMemo(() => filterLinks(links, keyword), [links, keyword]);
+  // UI言語に合わせたタイトル・説明へ解決してから検索・表示する（未翻訳はen→jaにフォールバック）
+  const localizedLinks = useMemo(
+    () => links.map((link) => ({ ...link, ...resolveLinkContent(link, locale) })),
+    [links, locale]
+  );
+
+  const filteredLinks = useMemo(
+    () => filterLinks(localizedLinks, keyword),
+    [localizedLinks, keyword]
+  );
 
   const groups = useMemo(
     () =>
