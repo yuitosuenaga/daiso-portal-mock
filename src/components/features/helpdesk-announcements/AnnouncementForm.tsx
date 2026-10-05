@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRouter } from "@/i18n/navigation";
@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   createAnnouncementAction,
-  translateAnnouncementDraftAction,
   updateAnnouncementAction,
 } from "@/lib/actions/announcements";
 import {
@@ -25,10 +24,6 @@ import {
   type AnnouncementSubmitValues,
 } from "@/lib/validation/announcement";
 import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
-import {
-  TRANSLATION_LANGUAGES,
-  translationLanguageLabel,
-} from "@/lib/constants/translation-languages";
 import type { Document } from "@/types/document";
 
 export interface AnnouncementFormProps {
@@ -43,13 +38,6 @@ export interface AnnouncementFormProps {
   titlePlaceholder: string;
   bodyLabel: string;
   bodyPlaceholder: string;
-  languageJaTabLabel: string;
-  languageEnTabLabel: string;
-  languageAddButtonLabel: string;
-  languageRemoveButtonLabel: string;
-  languageLocaleCodeLabel: string;
-  languageLocaleCodePlaceholder: string;
-  languageLocaleDuplicateErrorMessage: string;
   categoryLabel: string;
   categoryPlaceholder: string;
   statusLabel: string;
@@ -81,15 +69,11 @@ export interface AnnouncementFormProps {
   requiredErrorMessage: string;
   countriesRequiredErrorMessage: string;
   /** en欄が未入力の場合の補足文言（保存時に自動翻訳される旨） */
-  enAutoTranslateHint: string;
-  /** titleEn/bodyEnの片方だけが入力されている場合のエラー文言 */
-  enBothOrNeitherErrorMessage: string;
   /** 「日本語から自動翻訳」ボタンの文言 */
-  translateFromJaButtonLabel: string;
-  translateFromJaPendingLabel: string;
-  translateFromJaErrorMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
+  /** 翻訳失敗のため下書きとして保存された旨の通知文言 */
+  translationFailedDraftMessage: string;
   attachmentsLabel: string;
   attachmentsHint: string;
   attachmentsRemoveButtonLabel: string;
@@ -126,13 +110,6 @@ export function AnnouncementForm({
   titlePlaceholder,
   bodyLabel,
   bodyPlaceholder,
-  languageJaTabLabel,
-  languageEnTabLabel,
-  languageAddButtonLabel,
-  languageRemoveButtonLabel,
-  languageLocaleCodeLabel,
-  languageLocaleCodePlaceholder,
-  languageLocaleDuplicateErrorMessage,
   categoryLabel,
   categoryPlaceholder,
   statusLabel,
@@ -163,13 +140,9 @@ export function AnnouncementForm({
   submitButtonLabel,
   requiredErrorMessage,
   countriesRequiredErrorMessage,
-  enAutoTranslateHint,
-  enBothOrNeitherErrorMessage,
-  translateFromJaButtonLabel,
-  translateFromJaPendingLabel,
-  translateFromJaErrorMessage,
   requiredIndicator,
   submitErrorMessage,
+  translationFailedDraftMessage,
   attachmentsLabel,
   attachmentsHint,
   attachmentsRemoveButtonLabel,
@@ -194,9 +167,7 @@ export function AnnouncementForm({
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [hasTranslateError, setHasTranslateError] = useState(false);
-  const [activeLanguageTab, setActiveLanguageTab] = useState<string>("ja");
+  const [translationFailedNotice, setTranslationFailedNotice] = useState(false);
   const {
     register,
     handleSubmit,
@@ -209,9 +180,6 @@ export function AnnouncementForm({
     defaultValues: defaultValues ?? {
       title: "",
       body: "",
-      titleEn: "",
-      bodyEn: "",
-      translations: [],
       category: "" as unknown as AnnouncementFormValues["category"],
       status: "draft",
       targeting: { scope: "all" },
@@ -224,47 +192,6 @@ export function AnnouncementForm({
       linkedDocumentIds: [],
     },
   });
-  const {
-    fields: translationFields,
-    append: appendTranslation,
-    remove: removeTranslation,
-  } = useFieldArray({ control, name: "translations" });
-  const previousTranslationCountRef = useRef(translationFields.length);
-
-  // 言語を追加した直後、追加した行のタブへ自動的に切り替える。
-  useEffect(() => {
-    if (translationFields.length > previousTranslationCountRef.current) {
-      const lastField = translationFields[translationFields.length - 1];
-      if (lastField) {
-        setActiveLanguageTab(lastField.id);
-      }
-    }
-    previousTranslationCountRef.current = translationFields.length;
-  }, [translationFields]);
-
-  // 保存操作でja/en/追加言語のいずれかにエラーがある場合、そのタブへ自動的に切り替える
-  // （非表示タブのフィールドにエラーが出ていても、閲覧者が気づけるようにするため）。
-  useEffect(() => {
-    if (errors.title || errors.body) {
-      setActiveLanguageTab("ja");
-      return;
-    }
-    if (errors.titleEn || errors.bodyEn) {
-      setActiveLanguageTab("en");
-      return;
-    }
-    const translationErrors = errors.translations;
-    const translationErrorIndex = Array.isArray(translationErrors)
-      ? translationErrors.findIndex((entry) => entry)
-      : -1;
-    if (translationErrorIndex >= 0) {
-      const field = translationFields[translationErrorIndex];
-      if (field) {
-        setActiveLanguageTab(field.id);
-      }
-    }
-  }, [errors, translationFields]);
-
   const statusOptions: SelectOption[] = [
     { value: "draft", label: statusDraftOption },
     { value: "published", label: statusPublishedOption },
@@ -289,11 +216,22 @@ export function AnnouncementForm({
 
   async function onSubmit(values: AnnouncementSubmitValues) {
     setHasSubmitError(false);
+    setTranslationFailedNotice(false);
     try {
-      if (mode === "edit" && announcementId) {
-        await updateAnnouncementAction(announcementId, values);
-      } else {
-        await createAnnouncementAction(values);
+      const result =
+        mode === "edit" && announcementId
+          ? await updateAnnouncementAction(announcementId, values)
+          : await createAnnouncementAction(values);
+      if (result.failedLocales.length > 0) {
+        // 翻訳失敗: 下書きとして保存済み。フォームに通知し、状態表示も下書きに合わせる。
+        setValue("status", "draft");
+        setTranslationFailedNotice(true);
+        if (mode === "create") {
+          router.push(
+            `/helpdesk/announcements/${result.announcement.id}/edit?translationFailed=1`
+          );
+        }
+        return;
       }
       router.push("/helpdesk/announcements");
     } catch {
@@ -301,265 +239,38 @@ export function AnnouncementForm({
     }
   }
 
-  async function handleTranslateFromJa(translationIndex?: number) {
-    setHasTranslateError(false);
-    setIsTranslating(true);
-    try {
-      const targetLocale =
-        translationIndex === undefined ? "en" : watch(`translations.${translationIndex}.locale`);
-      const result = await translateAnnouncementDraftAction({
-        title: watch("title"),
-        body: watch("body"),
-        targetLocale,
-      });
-      if (translationIndex === undefined) {
-        setValue("titleEn", result.title, { shouldValidate: true });
-        setValue("bodyEn", result.body, { shouldValidate: true });
-        setActiveLanguageTab("en");
-      } else {
-        setValue(`translations.${translationIndex}.title`, result.title, {
-          shouldValidate: true,
-        });
-        setValue(`translations.${translationIndex}.body`, result.body, {
-          shouldValidate: true,
-        });
-      }
-    } catch {
-      setHasTranslateError(true);
-    } finally {
-      setIsTranslating(false);
-    }
-  }
-
-  const languageTabButtonClassName = (isActive: boolean) =>
-    `rounded-md border px-3 py-1.5 text-sm ${
-      isActive
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-input bg-background text-foreground"
-    }`;
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeLanguageTab === "ja"}
-            className={languageTabButtonClassName(activeLanguageTab === "ja")}
-            onClick={() => setActiveLanguageTab("ja")}
-          >
-            {languageJaTabLabel}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeLanguageTab === "en"}
-            className={languageTabButtonClassName(activeLanguageTab === "en")}
-            onClick={() => setActiveLanguageTab("en")}
-          >
-            {languageEnTabLabel}
-          </button>
-          {translationFields.map((field, index) => {
-            const locale = watch(`translations.${index}.locale`);
-            return (
-              <button
-                key={field.id}
-                type="button"
-                role="tab"
-                aria-selected={activeLanguageTab === field.id}
-                className={languageTabButtonClassName(activeLanguageTab === field.id)}
-                onClick={() => setActiveLanguageTab(field.id)}
-              >
-                {locale ? translationLanguageLabel(locale) : languageLocaleCodeLabel}
-              </button>
-            );
-          })}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              appendTranslation({ locale: "", title: "", body: "" });
-            }}
-          >
-            {languageAddButtonLabel}
-          </Button>
-        </div>
-
-        {activeLanguageTab === "ja" && (
-          <div className="flex flex-col gap-4">
-            <FormField
-              label={titleLabel}
-              required
-              requiredIndicator={requiredIndicator}
-              htmlFor="announcement-title"
-              error={errors.title ? requiredErrorMessage : undefined}
-            >
-              <Input
-                id="announcement-title"
-                placeholder={titlePlaceholder}
-                aria-invalid={errors.title ? true : undefined}
-                {...register("title")}
-              />
-            </FormField>
-            <FormField
-              label={bodyLabel}
-              required
-              requiredIndicator={requiredIndicator}
-              htmlFor="announcement-body"
-              error={errors.body ? requiredErrorMessage : undefined}
-            >
-              <Textarea
-                id="announcement-body"
-                placeholder={bodyPlaceholder}
-                rows={5}
-                aria-invalid={errors.body ? true : undefined}
-                {...register("body")}
-              />
-            </FormField>
-          </div>
-        )}
-
-        {activeLanguageTab === "en" && (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleTranslateFromJa()}
-                disabled={isTranslating}
-              >
-                {isTranslating ? translateFromJaPendingLabel : translateFromJaButtonLabel}
-              </Button>
-              {hasTranslateError && (
-                <span role="status" className="text-sm text-destructive">
-                  {translateFromJaErrorMessage}
-                </span>
-              )}
-            </div>
-            <FormField
-              label={titleLabel}
-              htmlFor="announcement-title-en"
-              hint={enAutoTranslateHint}
-              error={errors.titleEn ? enBothOrNeitherErrorMessage : undefined}
-            >
-              <Input
-                id="announcement-title-en"
-                placeholder={titlePlaceholder}
-                aria-invalid={errors.titleEn ? true : undefined}
-                {...register("titleEn")}
-              />
-            </FormField>
-            <FormField
-              label={bodyLabel}
-              htmlFor="announcement-body-en"
-              hint={enAutoTranslateHint}
-              error={errors.bodyEn ? enBothOrNeitherErrorMessage : undefined}
-            >
-              <Textarea
-                id="announcement-body-en"
-                placeholder={bodyPlaceholder}
-                rows={5}
-                aria-invalid={errors.bodyEn ? true : undefined}
-                {...register("bodyEn")}
-              />
-            </FormField>
-          </div>
-        )}
-
-        {translationFields.map((field, index) => {
-          if (activeLanguageTab !== field.id) {
-            return null;
-          }
-          const translationError = errors.translations?.[index];
-          return (
-            <div key={field.id} className="flex flex-col gap-4">
-              <FormField
-                label={languageLocaleCodeLabel}
-                required
-                requiredIndicator={requiredIndicator}
-                htmlFor={`announcement-translation-${index}-locale`}
-                error={
-                  translationError?.locale
-                    ? languageLocaleDuplicateErrorMessage
-                    : undefined
-                }
-              >
-                <Select
-                  id={`announcement-translation-${index}-locale`}
-                  placeholder={languageLocaleCodePlaceholder}
-                  options={TRANSLATION_LANGUAGES.filter(
-                    (language) =>
-                      !translationFields.some(
-                        (_, otherIndex) =>
-                          otherIndex !== index &&
-                          watch(`translations.${otherIndex}.locale`) === language.code
-                      )
-                  ).map((language) => ({ value: language.code, label: language.label }))}
-                  aria-invalid={translationError?.locale ? true : undefined}
-                  {...register(`translations.${index}.locale`)}
-                />
-              </FormField>
-              <FormField
-                label={titleLabel}
-                required
-                requiredIndicator={requiredIndicator}
-                htmlFor={`announcement-translation-${index}-title`}
-                error={translationError?.title ? requiredErrorMessage : undefined}
-              >
-                <Input
-                  id={`announcement-translation-${index}-title`}
-                  placeholder={titlePlaceholder}
-                  aria-invalid={translationError?.title ? true : undefined}
-                  {...register(`translations.${index}.title`)}
-                />
-              </FormField>
-              <FormField
-                label={bodyLabel}
-                required
-                requiredIndicator={requiredIndicator}
-                htmlFor={`announcement-translation-${index}-body`}
-                error={translationError?.body ? requiredErrorMessage : undefined}
-              >
-                <Textarea
-                  id={`announcement-translation-${index}-body`}
-                  placeholder={bodyPlaceholder}
-                  rows={5}
-                  aria-invalid={translationError?.body ? true : undefined}
-                  {...register(`translations.${index}.body`)}
-                />
-              </FormField>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-fit"
-                  onClick={() => handleTranslateFromJa(index)}
-                  disabled={isTranslating || !watch(`translations.${index}.locale`)}
-                >
-                  {isTranslating ? translateFromJaPendingLabel : translateFromJaButtonLabel}
-                </Button>
-                {hasTranslateError && (
-                  <p role="alert" className="text-xs text-destructive">
-                    {translateFromJaErrorMessage}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-fit"
-                onClick={() => {
-                  removeTranslation(index);
-                  setActiveLanguageTab("ja");
-                }}
-              >
-                {languageRemoveButtonLabel}
-              </Button>
-            </div>
-          );
-        })}
+      <div className="flex flex-col gap-4">
+        <FormField
+          label={titleLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          htmlFor="announcement-title"
+          error={errors.title ? requiredErrorMessage : undefined}
+        >
+          <Input
+            id="announcement-title"
+            placeholder={titlePlaceholder}
+            aria-invalid={errors.title ? true : undefined}
+            {...register("title")}
+          />
+        </FormField>
+        <FormField
+          label={bodyLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          htmlFor="announcement-body"
+          error={errors.body ? requiredErrorMessage : undefined}
+        >
+          <Textarea
+            id="announcement-body"
+            placeholder={bodyPlaceholder}
+            rows={5}
+            aria-invalid={errors.body ? true : undefined}
+            {...register("body")}
+          />
+        </FormField>
       </div>
 
       <FormField
@@ -881,6 +592,11 @@ export function AnnouncementForm({
         {hasSubmitError && (
           <span role="status" className="text-sm text-destructive">
             {submitErrorMessage}
+          </span>
+        )}
+        {translationFailedNotice && (
+          <span role="alert" className="text-sm text-destructive">
+            {translationFailedDraftMessage}
           </span>
         )}
       </div>

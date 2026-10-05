@@ -155,7 +155,10 @@
       "categoryLabel": "Danh mục chính",
       "categoryPlaceholderOption": "Vui lòng chọn",
       "subCategoryLabel": "Danh mục phụ",
-      "subCategoryNoneOption": "Không có"
+      "subCategoryNoneOption": "Không có",
+      "translationPartialFailed": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau.",
+      "retranslateButton": "Dịch lại",
+      "retranslateSuccess": "Đã dịch xong"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "Không có tài liệu đã đăng ký",
       "linkedDocumentsTargetingAllLabel": "Công khai toàn bộ",
       "linkedDocumentsTargetingCountriesPrefixLabel": "Quốc gia/vùng đích:",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "Công ty đích:"
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "Công ty đích:",
+      "translationFailedDraft": "Đã lưu dưới dạng bản nháp vì dịch thất bại.",
+      "retranslateButton": "Dịch lại",
+      "retranslatePending": "Đang dịch...",
+      "retranslateSuccess": "Đã lưu bản dịch",
+      "retranslateFailed": "Dịch thất bại ở một số ngôn ngữ. Vui lòng thử lại sau.",
+      "retranslateError": "Dịch lại thất bại. Vui lòng thử lại sau."
     },
     "tracking": {
       "confirmedCount": "Đã xác nhận {confirmed}/{total} người",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "Trường này là bắt buộc",
         "nameTooLong": "Tên mẫu phải được nhập trong vòng 40 ký tự"
-      }
+      },
+      "translationFailed": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau.",
+      "retranslateButton": "Dịch lại"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
       "validation": {
         "required": "Trường này là bắt buộc"
-      }
+      },
+      "translationFailed": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau.",
+      "retranslateButton": "Dịch lại"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "Trường này là bắt buộc",
         "invalidUrl": "Vui lòng nhập URL hợp lệ"
-      }
+      },
+      "translationFailed": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau.",
+      "retranslateButton": "Dịch lại"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "Xóa không thành công. Vui lòng thử lại sau một lúc.",
           "blockedByLinks": "Không thể xóa '{name}' vì nó có {count} liên kết được liên kết. Vui lòng thay đổi danh mục của các liên kết đó trước.",
           "blockedByChildren": "Không thể xóa '{name}' vì nó có {count} danh mục con. Vui lòng xóa các danh mục con trước."
-        }
+        },
+        "retranslateButton": "Dịch lại"
       },
       "form": {
         "createParentTitle": "Thêm danh mục chính",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "Trường này là bắt buộc",
           "nameConflict": "Danh mục có cùng tên đã tồn tại trong cùng một cấp"
-        }
+        },
+        "translationFailed": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau."
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "Danh mục cùng tên đã tồn tại trong cùng một cấp",
         "countriesRequired": "Vui lòng chọn một hoặc nhiều quốc gia/khu vực",
         "companiesRequired": "Vui lòng chọn một hoặc nhiều nhà phân phối"
-      }
+      },
+      "translationPartialFailed": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau.",
+      "retranslateButton": "Dịch lại",
+      "retranslateSuccess": "Đã dịch xong",
+      "closeButton": "Đóng"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "Không thể đọc tệp. Vui lòng thử lại.",
         "googleUrlInvalid": "Vui lòng nhập liên kết chia sẻ của Google Docs/Trang tính/Bài thuyết trình",
         "categoryRequired": "Vui lòng chọn danh mục"
-      }
+      },
+      "translationPartialFailure": "Dịch thất bại ở một số ngôn ngữ. Bạn có thể dịch lại sau.",
+      "retranslateButton": "Dịch lại",
+      "retranslateError": "Dịch lại thất bại. Vui lòng thử lại sau."
     },
     "delete": {
       "buttonLabel": "Xóa",

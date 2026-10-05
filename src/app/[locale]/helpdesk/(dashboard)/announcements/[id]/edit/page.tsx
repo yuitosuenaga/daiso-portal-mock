@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
+import { RetranslateAnnouncementButton } from "@/components/features/helpdesk-announcements/RetranslateAnnouncementButton";
 import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
 import { getAnnouncementByIdForHelpdesk } from "@/lib/api/announcements";
 import { getAllDocuments } from "@/lib/api/documents";
@@ -13,10 +14,14 @@ type HelpdeskAnnouncementEditPageProps = {
   params: {
     id: string;
   };
+  searchParams?: {
+    translationFailed?: string;
+  };
 };
 
 export default async function HelpdeskAnnouncementEditPage({
   params,
+  searchParams,
 }: HelpdeskAnnouncementEditPageProps) {
   const [t, tListLabels, tCategories, tCountries, tInquiryForm, tDocuments] =
     await Promise.all([
@@ -59,13 +64,6 @@ export default async function HelpdeskAnnouncementEditPage({
 
   const documentOptions = await getAllDocuments();
 
-  const enTranslation = announcement.translations.find(
-    (translation) => translation.locale === "en"
-  );
-  const additionalTranslations = announcement.translations.filter(
-    (translation) => translation.locale !== "en"
-  );
-
   return (
     <div className="max-w-2xl space-y-4">
       {backToListLink}
@@ -86,15 +84,23 @@ export default async function HelpdeskAnnouncementEditPage({
           errorMessage={tListLabels("deleteError")}
         />
       </div>
+      <RetranslateAnnouncementButton
+        announcementId={announcement.id}
+        label={t("retranslateButton")}
+        pendingLabel={t("retranslatePending")}
+        successMessage={t("retranslateSuccess")}
+        failedMessage={t("retranslateFailed")}
+        errorMessage={t("retranslateError")}
+        initialErrorMessage={
+          searchParams?.translationFailed === "1" ? t("translationFailedDraft") : undefined
+        }
+      />
       <AnnouncementForm
         mode="edit"
         announcementId={announcement.id}
         defaultValues={{
           title: announcement.title,
           body: announcement.body,
-          titleEn: enTranslation?.title ?? "",
-          bodyEn: enTranslation?.body ?? "",
-          translations: additionalTranslations,
           category: announcement.category,
           status: announcement.status,
           // `Announcement.targeting.countries`はドメイン型として`string[]`だが、
@@ -119,13 +125,6 @@ export default async function HelpdeskAnnouncementEditPage({
         titlePlaceholder={t("titlePlaceholder")}
         bodyLabel={t("bodyLabel")}
         bodyPlaceholder={t("bodyPlaceholder")}
-        languageJaTabLabel={t("language.jaTab")}
-        languageEnTabLabel={t("language.enTab")}
-        languageAddButtonLabel={t("language.addButton")}
-        languageRemoveButtonLabel={t("language.removeButton")}
-        languageLocaleCodeLabel={t("language.localeCodeLabel")}
-        languageLocaleCodePlaceholder={t("language.localeCodePlaceholder")}
-        languageLocaleDuplicateErrorMessage={t("language.localeDuplicateError")}
         categoryLabel={t("categoryLabel")}
         categoryPlaceholder={t("categoryPlaceholder")}
         statusLabel={t("statusLabel")}
@@ -156,13 +155,9 @@ export default async function HelpdeskAnnouncementEditPage({
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         countriesRequiredErrorMessage={t("validation.countriesRequired")}
-        enAutoTranslateHint={t("enAutoTranslateHint")}
-        enBothOrNeitherErrorMessage={t("validation.enBothOrNeither")}
-        translateFromJaButtonLabel={t("translateFromJaButton")}
-        translateFromJaPendingLabel={t("translateFromJaPending")}
-        translateFromJaErrorMessage={t("translateFromJaError")}
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
+        translationFailedDraftMessage={t("translationFailedDraft")}
         attachmentsLabel={t("attachmentsLabel")}
         attachmentsHint={t("attachmentsHint")}
         attachmentsRemoveButtonLabel={t("attachmentsRemoveButtonLabel")}

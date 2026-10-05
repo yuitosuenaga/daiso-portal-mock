@@ -1,230 +1,142 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/server/translation-service", () => ({
-  getTranslator: vi.fn(),
-}));
-vi.mock("@/lib/server/announcement-service", () => ({
-  findAnnouncementById: vi.fn(),
+vi.mock("@/lib/server/auto-translation", () => ({
+  autoTranslateFields: vi.fn(),
 }));
 
-import { getTranslator } from "@/lib/server/translation-service";
-import { findAnnouncementById } from "@/lib/server/announcement-service";
-import { ensureEnTranslation } from "@/lib/server/announcement-translation";
-import { TranslationError } from "@/lib/translation/claude-translator";
-import type { Announcement, CreateAnnouncementInput } from "@/types/announcement";
+import { autoTranslateFields } from "@/lib/server/auto-translation";
+import {
+  buildAnnouncementTranslations,
+  hashAnnouncementSource,
+} from "@/lib/server/announcement-translation";
+import { TRANSLATED_LOCALES } from "@/lib/constants/locales";
+import type { AnnouncementTranslationView } from "@/types/announcement";
 
-function baseInput(overrides: Partial<CreateAnnouncementInput> = {}): CreateAnnouncementInput {
-  return {
-    title: "お知らせタイトル",
-    body: "お知らせ本文",
-    category: "other",
-    status: "published",
-    targeting: { scope: "all" },
-    actionRequired: false,
-    sendEmailNotification: false,
-    attachments: [],
-    linkedDocumentIds: [],
-    translations: [],
-    ...overrides,
-  };
-}
+const SOURCE = { title: "お知らせタイトル", body: "お知らせ本文" };
+const HASH = hashAnnouncementSource(SOURCE.title, SOURCE.body);
 
-function baseAnnouncement(overrides: Partial<Announcement> = {}): Announcement {
+function successFor(locales: readonly string[]) {
   return {
-    id: "announcement-1",
-    title: "お知らせタイトル",
-    status: "published",
-    publishedAt: "2026-07-01T00:00:00.000Z",
-    category: "other",
-    body: "お知らせ本文",
-    targeting: { scope: "all" },
-    actionRequired: false,
-    sendEmailNotification: false,
-    createdAt: "2026-07-01T00:00:00.000Z",
-    updatedAt: "2026-07-01T00:00:00.000Z",
-    attachments: [],
-    linkedDocumentIds: [],
-    translations: [],
-    ...overrides,
+    translations: Object.fromEntries(
+      locales.map((locale) => [locale, { title: `T-${locale}`, body: `B-${locale}` }])
+    ),
+    failedLocales: [] as string[],
   };
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.mocked(autoTranslateFields).mockReset();
+  vi.mocked(autoTranslateFields).mockImplementation(async (_fields, options) =>
+    successFor(options?.locales ?? [])
+  );
 });
 
-describe("ensureEnTranslation", () => {
-  it("en行がない場合、Claude APIで自動翻訳しmachineとして補う", async () => {
-    vi.mocked(getTranslator).mockReturnValue({
-      translate: vi.fn().mockResolvedValue({ title: "Title", body: "Body", model: "claude-haiku-4-5" }),
+describe("buildAnnouncementTranslations", () => {
+  it("既存行が無ければ全対応言語を機械翻訳し、sourceHash付きで返す", async () => {
+    const result = await buildAnnouncementTranslations(SOURCE);
+
+    expect(result.failedLocales).toEqual([]);
+    expect(result.translations.map((row) => row.locale).sort()).toEqual(
+      [...TRANSLATED_LOCALES].sort()
+    );
+    expect(result.translations.every((row) => row.source === "machine")).toBe(true);
+    expect(result.translations.every((row) => row.sourceHash === HASH)).toBe(true);
+    expect(autoTranslateFields).toHaveBeenCalledWith(
+      { title: SOURCE.title, body: SOURCE.body },
+      { locales: [...TRANSLATED_LOCALES] }
+    );
+  });
+
+  it("jaが変わっていない最新のmachine行は再翻訳しない（全て最新ならAPIを呼ばない）", async () => {
+    const existing: AnnouncementTranslationView[] = TRANSLATED_LOCALES.map((locale) => ({
+      locale,
+      title: "old",
+      body: "old",
+      source: "machine",
+      sourceHash: HASH,
+    }));
+
+    const result = await buildAnnouncementTranslations(SOURCE, existing);
+
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+    expect(result.translations).toEqual(existing);
+    expect(result.failedLocales).toEqual([]);
+  });
+
+  it("jaが変わったmachine行だけ再翻訳し、manual行は上書きしない", async () => {
+    const existing: AnnouncementTranslationView[] = [
+      { locale: "en", title: "手動EN", body: "手動EN本文", source: "manual" },
+      { locale: "pt", title: "old", body: "old", source: "machine", sourceHash: "stale" },
+    ];
+
+    const result = await buildAnnouncementTranslations(SOURCE, existing);
+
+    const en = result.translations.find((row) => row.locale === "en");
+    expect(en).toEqual(existing[0]);
+    const pt = result.translations.find((row) => row.locale === "pt");
+    expect(pt).toMatchObject({ title: "T-pt", source: "machine", sourceHash: HASH });
+    expect(vi.mocked(autoTranslateFields).mock.calls[0][1]?.locales).not.toContain("en");
+  });
+
+  it("翻訳に失敗したlocaleはfailedLocalesに入り、保存対象から外れる（古い行も残さない）", async () => {
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: {},
+      failedLocales: [...TRANSLATED_LOCALES],
+    });
+    const existing: AnnouncementTranslationView[] = [
+      { locale: "th", title: "old", body: "old", source: "machine", sourceHash: "stale" },
+    ];
+
+    const result = await buildAnnouncementTranslations(SOURCE, existing);
+
+    expect(result.failedLocales.sort()).toEqual([...TRANSLATED_LOCALES].sort());
+    expect(result.translations).toEqual([]);
+  });
+
+  it("keepExistingOnFailureなら失敗したlocaleの既存行を残す", async () => {
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: {},
+      failedLocales: [...TRANSLATED_LOCALES],
+    });
+    const stale: AnnouncementTranslationView = {
+      locale: "th",
+      title: "old",
+      body: "old",
+      source: "machine",
+      sourceHash: "stale",
+    };
+
+    const result = await buildAnnouncementTranslations(SOURCE, [stale], {
+      keepExistingOnFailure: true,
     });
 
-    const result = await ensureEnTranslation(baseInput());
-
-    expect(result.translations).toEqual([
-      { locale: "en", title: "Title", body: "Body", source: "machine", sourceHash: expect.any(String) },
-    ]);
+    expect(result.translations).toEqual([stale]);
+    expect(result.failedLocales.length).toBe(TRANSLATED_LOCALES.length);
   });
 
-  it("titleEn/bodyEnが入力されている（新規作成）場合、manualとして扱い翻訳APIを呼ばない", async () => {
-    const translate = vi.fn();
-    vi.mocked(getTranslator).mockReturnValue({ translate });
-
-    const result = await ensureEnTranslation(
-      baseInput({ translations: [{ locale: "en", title: "Manual Title", body: "Manual Body" }] })
-    );
-
-    expect(translate).not.toHaveBeenCalled();
-    expect(result.translations).toEqual([
-      { locale: "en", title: "Manual Title", body: "Manual Body", source: "manual" },
-    ]);
-  });
-
-  it("翻訳APIが未設定（getTranslatorがnull）でen行もない場合、TranslationErrorを送出する", async () => {
-    vi.mocked(getTranslator).mockReturnValue(null);
-
-    await expect(ensureEnTranslation(baseInput())).rejects.toThrow(TranslationError);
-  });
-
-  it("更新時、既存en行がmachineかつ送信内容が既存と同一・ja本文が変わっている場合は再翻訳する", async () => {
-    vi.mocked(findAnnouncementById).mockResolvedValue(
-      baseAnnouncement({
-        title: "旧タイトル",
-        body: "旧本文",
-        translations: [
-          {
-            locale: "en",
-            title: "Old Title",
-            body: "Old Body",
-            source: "machine",
-            sourceHash: "stale-hash",
-          },
-        ],
-      })
-    );
-    const translate = vi.fn().mockResolvedValue({
-      title: "New Title",
-      body: "New Body",
-      model: "claude-haiku-4-5",
-    });
-    vi.mocked(getTranslator).mockReturnValue({ translate });
-
-    const result = await ensureEnTranslation(
-      baseInput({
-        title: "新タイトル",
-        body: "新本文",
-        translations: [{ locale: "en", title: "Old Title", body: "Old Body" }],
-      }),
-      "announcement-1"
-    );
-
-    expect(translate).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "新タイトル", body: "新本文", targetLocale: "en" })
-    );
-    expect(result.translations).toEqual([
-      { locale: "en", title: "New Title", body: "New Body", source: "machine", sourceHash: expect.any(String) },
-    ]);
-  });
-
-  it("更新時、既存en行がmachineでも送信内容がja本文とともに一致（未変更）なら再翻訳しない", async () => {
-    vi.mocked(findAnnouncementById).mockResolvedValue(
-      baseAnnouncement({
-        title: "タイトル",
-        body: "本文",
-        translations: [
-          {
-            locale: "en",
-            title: "Same Title",
-            body: "Same Body",
-            source: "machine",
-            sourceHash: "will-be-computed-to-match",
-          },
-        ],
-      })
-    );
-    vi.mocked(getTranslator).mockReturnValue({
-      translate: vi.fn().mockResolvedValue({ title: "x", body: "x", model: "claude-haiku-4-5" }),
+  it("一部のlocaleだけ失敗した場合、成功分は保存対象に含まれる", async () => {
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: { en: { title: "T", body: "B" } },
+      failedLocales: ["vi"],
     });
 
-    // ja本文が変わっていない（sourceHashが現在のtitle/bodyのハッシュと一致する）ケースを
-    // 検証するため、まず1回自動翻訳させてsourceHashを取得し、それを既存値として再利用する。
-    const first = await ensureEnTranslation(baseInput({ title: "タイトル", body: "本文" }));
-    const computedHash = first.translations[0]!.sourceHash!;
+    const result = await buildAnnouncementTranslations(SOURCE);
 
-    const translate = vi.fn();
-    vi.mocked(getTranslator).mockReturnValue({ translate });
-
-    vi.mocked(findAnnouncementById).mockResolvedValue(
-      baseAnnouncement({
-        title: "タイトル",
-        body: "本文",
-        translations: [
-          {
-            locale: "en",
-            title: "Auto Title",
-            body: "Auto Body",
-            source: "machine",
-            sourceHash: computedHash,
-          },
-        ],
-      })
-    );
-
-    const result = await ensureEnTranslation(
-      baseInput({
-        title: "タイトル",
-        body: "本文",
-        translations: [{ locale: "en", title: "Auto Title", body: "Auto Body" }],
-      }),
-      "announcement-1"
-    );
-
-    expect(translate).not.toHaveBeenCalled();
-    expect(result.translations).toEqual([
-      { locale: "en", title: "Auto Title", body: "Auto Body", source: "manual" },
-    ]);
+    expect(result.translations.map((row) => row.locale)).toContain("en");
+    expect(result.failedLocales).toContain("vi");
+    expect(result.translations.map((row) => row.locale)).not.toContain("vi");
   });
 
-  it("更新時、既存en行がmanualの場合は送信内容をそのままmanualとして使う（再翻訳しない）", async () => {
-    vi.mocked(findAnnouncementById).mockResolvedValue(
-      baseAnnouncement({
-        title: "旧タイトル",
-        body: "旧本文",
-        translations: [
-          { locale: "en", title: "Manual Title", body: "Manual Body", source: "manual" },
-        ],
-      })
-    );
-    const translate = vi.fn();
-    vi.mocked(getTranslator).mockReturnValue({ translate });
+  it("TRANSLATED_LOCALES外の既存行は変更せず残す", async () => {
+    const legacy: AnnouncementTranslationView = {
+      locale: "ko",
+      title: "k",
+      body: "k",
+      source: "manual",
+    };
 
-    const result = await ensureEnTranslation(
-      baseInput({
-        title: "新タイトル",
-        body: "新本文",
-        translations: [{ locale: "en", title: "Edited Title", body: "Manual Body" }],
-      }),
-      "announcement-1"
-    );
+    const result = await buildAnnouncementTranslations(SOURCE, [legacy]);
 
-    expect(translate).not.toHaveBeenCalled();
-    expect(result.translations).toEqual([
-      { locale: "en", title: "Edited Title", body: "Manual Body", source: "manual" },
-    ]);
-  });
-
-  it("en以外の追加言語（additionalTranslations）は変更せずそのまま残す", async () => {
-    vi.mocked(getTranslator).mockReturnValue({
-      translate: vi.fn().mockResolvedValue({ title: "Title", body: "Body", model: "claude-haiku-4-5" }),
-    });
-
-    const result = await ensureEnTranslation(
-      baseInput({ translations: [{ locale: "th", title: "หัวข้อ", body: "เนื้อหา" }] })
-    );
-
-    expect(result.translations).toEqual([
-      expect.objectContaining({ locale: "en" }),
-      { locale: "th", title: "หัวข้อ", body: "เนื้อหา" },
-    ]);
+    expect(result.translations).toContainEqual(legacy);
   });
 });

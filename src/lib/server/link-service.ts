@@ -3,7 +3,12 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { assertLinkCategoryPair } from "@/lib/server/link-category-service";
-import type { CreateLinkInput, Link, LinkWithTimestamp } from "@/types/link";
+import type {
+  CreateLinkInput,
+  Link,
+  LinkTranslationView,
+  LinkWithTimestamp,
+} from "@/types/link";
 
 export class LinkNotFoundError extends Error {
   constructor(linkId: string) {
@@ -27,6 +32,17 @@ interface LinkRecord {
   subCategoryId: string | null;
   description: string | null;
   createdAt: Date;
+  translations: { locale: string; title: string; description: string | null }[];
+}
+
+const LINK_INCLUDE = { translations: true } as const;
+
+function translationsToNestedCreate(translations: LinkTranslationView[]) {
+  return translations.map((translation) => ({
+    locale: translation.locale,
+    title: translation.title,
+    description: translation.description ?? null,
+  }));
 }
 
 function mapLink(record: LinkRecord): Link {
@@ -37,6 +53,11 @@ function mapLink(record: LinkRecord): Link {
     categoryId: record.categoryId,
     subCategoryId: record.subCategoryId,
     description: record.description ?? undefined,
+    translations: record.translations.map((translation) => ({
+      locale: translation.locale,
+      title: translation.title,
+      description: translation.description ?? undefined,
+    })),
   };
 }
 
@@ -54,6 +75,7 @@ function mapLinkWithTimestamp(record: LinkRecord): LinkWithTimestamp {
 export async function listLinks(): Promise<LinkWithTimestamp[]> {
   const records = await prisma.link.findMany({
     orderBy: { createdAt: "desc" },
+    include: LINK_INCLUDE,
   });
 
   return records.map(mapLinkWithTimestamp);
@@ -63,6 +85,7 @@ export async function listLinks(): Promise<LinkWithTimestamp[]> {
 export async function listLinksForHelpdesk(): Promise<LinkWithTimestamp[]> {
   const records = await prisma.link.findMany({
     orderBy: { createdAt: "desc" },
+    include: LINK_INCLUDE,
   });
 
   return records.map(mapLinkWithTimestamp);
@@ -70,7 +93,10 @@ export async function listLinksForHelpdesk(): Promise<LinkWithTimestamp[]> {
 
 /** 指定されたIDのリンクを1件取得する。存在しない場合はnullを返す。 */
 export async function findLinkById(id: string): Promise<Link | null> {
-  const record = await prisma.link.findUnique({ where: { id } });
+  const record = await prisma.link.findUnique({
+    where: { id },
+    include: LINK_INCLUDE,
+  });
 
   return record ? mapLink(record) : null;
 }
@@ -91,7 +117,11 @@ export async function createLinkRecord(input: CreateLinkInput): Promise<Link> {
       categoryId: input.categoryId,
       subCategoryId,
       description: input.description,
+      translations: {
+        create: translationsToNestedCreate(input.translations ?? []),
+      },
     },
+    include: LINK_INCLUDE,
   });
 
   return mapLink(record);
@@ -117,7 +147,17 @@ export async function updateLinkRecord(
         categoryId: input.categoryId,
         subCategoryId,
         description: input.description,
+        // 省略時（ja原文が変わっていない編集）は既存の翻訳行を変更しない
+        ...(input.translations
+          ? {
+              translations: {
+                deleteMany: {},
+                create: translationsToNestedCreate(input.translations),
+              },
+            }
+          : {}),
       },
+      include: LINK_INCLUDE,
     });
 
     return mapLink(record);
@@ -130,6 +170,37 @@ export async function updateLinkRecord(
     }
     throw error;
   }
+}
+
+/**
+ * 指定リンクへ、未保存のlocaleの翻訳のみを追加する（再翻訳用）。既存localeの行は上書きしない。
+ * 存在しない場合は`LinkNotFoundError`を送出する。
+ */
+export async function addLinkTranslations(
+  id: string,
+  translations: LinkTranslationView[]
+): Promise<Link> {
+  const existing = await prisma.link.findUnique({
+    where: { id },
+    include: LINK_INCLUDE,
+  });
+  if (!existing) {
+    throw new LinkNotFoundError(id);
+  }
+
+  const savedLocales = new Set(existing.translations.map((item) => item.locale));
+  const missing = translations.filter((item) => !savedLocales.has(item.locale));
+  if (missing.length === 0) {
+    return mapLink(existing);
+  }
+
+  const record = await prisma.link.update({
+    where: { id },
+    data: { translations: { create: translationsToNestedCreate(missing) } },
+    include: LINK_INCLUDE,
+  });
+
+  return mapLink(record);
 }
 
 /** リンクを削除する。存在しない場合は`LinkNotFoundError`を送出する。 */

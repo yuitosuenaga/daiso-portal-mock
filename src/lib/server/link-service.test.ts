@@ -27,6 +27,7 @@ vi.mock("@/lib/server/link-category-service", () => ({
 import { prisma } from "@/lib/db/prisma";
 import { assertLinkCategoryPair } from "@/lib/server/link-category-service";
 import {
+  addLinkTranslations,
   createLinkRecord,
   deleteLinkRecord,
   findLinkById,
@@ -45,6 +46,7 @@ function baseLinkRecord(
     subCategoryId: string | null;
     description: string | null;
     createdAt: Date;
+    translations: { locale: string; title: string; description: string | null }[];
   }> = {}
 ) {
   return {
@@ -55,6 +57,7 @@ function baseLinkRecord(
     subCategoryId: null,
     description: null,
     createdAt: new Date("2026-07-01T00:00:00.000Z"),
+    translations: [],
     ...overrides,
   };
 }
@@ -75,6 +78,7 @@ describe("listLinks", () => {
         subCategoryId: null,
         description: "説明1",
         createdAt: new Date("2026-07-02T00:00:00.000Z"),
+        translations: [],
       },
       {
         id: "2",
@@ -84,6 +88,7 @@ describe("listLinks", () => {
         subCategoryId: null,
         description: null,
         createdAt: new Date("2026-07-01T00:00:00.000Z"),
+        translations: [],
       },
     ] as never);
 
@@ -91,6 +96,7 @@ describe("listLinks", () => {
 
     expect(prisma.link.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: "desc" },
+      include: { translations: true },
     });
     expect(result).toEqual([
       {
@@ -101,6 +107,7 @@ describe("listLinks", () => {
         subCategoryId: null,
         description: "説明1",
         createdAt: "2026-07-02T00:00:00.000Z",
+        translations: [],
       },
       {
         id: "2",
@@ -110,6 +117,7 @@ describe("listLinks", () => {
         subCategoryId: null,
         description: undefined,
         createdAt: "2026-07-01T00:00:00.000Z",
+        translations: [],
       },
     ]);
   });
@@ -134,6 +142,7 @@ describe("listLinksForHelpdesk", () => {
 
     expect(prisma.link.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: "desc" },
+      include: { translations: true },
     });
     expect(result).toEqual([
       {
@@ -144,6 +153,7 @@ describe("listLinksForHelpdesk", () => {
         subCategoryId: null,
         description: undefined,
         createdAt: "2026-07-02T00:00:00.000Z",
+        translations: [],
       },
       {
         id: "2",
@@ -153,6 +163,7 @@ describe("listLinksForHelpdesk", () => {
         subCategoryId: null,
         description: undefined,
         createdAt: "2026-07-01T00:00:00.000Z",
+        translations: [],
       },
     ]);
   });
@@ -200,7 +211,9 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
         categoryId: "category-1",
         subCategoryId: null,
         description: "説明",
+        translations: { create: [] },
       },
+      include: { translations: true },
     });
     expect(result.id).toBe("1");
   });
@@ -242,8 +255,68 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
         subCategoryId: null,
         description: undefined,
       },
+      include: { translations: true },
     });
     expect(result.title).toBe("更新後");
+  });
+
+  it("作成時にtranslationsを渡すと翻訳行も作成する", async () => {
+    vi.mocked(prisma.link.create).mockResolvedValue(baseLinkRecord() as never);
+
+    await createLinkRecord({
+      title: "新規リンク",
+      url: "https://example.com",
+      categoryId: "category-1",
+      translations: [{ locale: "en", title: "New link", description: "Desc" }],
+    });
+
+    expect(prisma.link.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          translations: {
+            create: [{ locale: "en", title: "New link", description: "Desc" }],
+          },
+        }),
+      })
+    );
+  });
+
+  it("更新時にtranslationsを渡すと翻訳行を全置換し、省略すると変更しない", async () => {
+    vi.mocked(prisma.link.update).mockResolvedValue(baseLinkRecord() as never);
+    const base = { title: "t", url: "https://example.com", categoryId: "category-1" };
+
+    await updateLinkRecord("1", {
+      ...base,
+      translations: [{ locale: "en", title: "T" }],
+    });
+    expect(prisma.link.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          translations: {
+            deleteMany: {},
+            create: [{ locale: "en", title: "T", description: null }],
+          },
+        }),
+      })
+    );
+
+    await updateLinkRecord("1", base);
+    const data = vi.mocked(prisma.link.update).mock.calls.at(-1)?.[0].data;
+    expect(data).not.toHaveProperty("translations");
+  });
+
+  it("読み出し時にtranslationsをLinkへマップする", async () => {
+    vi.mocked(prisma.link.findUnique).mockResolvedValue(
+      baseLinkRecord({
+        translations: [{ locale: "en", title: "Title", description: null }],
+      }) as never
+    );
+
+    const result = await findLinkById("link-1");
+
+    expect(result?.translations).toEqual([
+      { locale: "en", title: "Title", description: undefined },
+    ]);
   });
 
   it("存在しないIDの更新はLinkNotFoundErrorを送出する", async () => {
@@ -288,5 +361,47 @@ describe("createLinkRecord / updateLinkRecord / deleteLinkRecord", () => {
     vi.mocked(prisma.link.delete).mockRejectedValue(new Error("connection lost"));
 
     await expect(deleteLinkRecord("1")).rejects.toThrow("connection lost");
+  });
+});
+
+describe("addLinkTranslations", () => {
+  it("未保存のlocaleだけを追加する", async () => {
+    vi.mocked(prisma.link.findUnique).mockResolvedValue(
+      baseLinkRecord({
+        translations: [{ locale: "en", title: "Title", description: null }],
+      }) as never
+    );
+    vi.mocked(prisma.link.update).mockResolvedValue(baseLinkRecord() as never);
+
+    await addLinkTranslations("link-1", [
+      { locale: "en", title: "Overwrite" },
+      { locale: "th", title: "ไทย" },
+    ]);
+
+    expect(prisma.link.update).toHaveBeenCalledWith({
+      where: { id: "link-1" },
+      data: {
+        translations: { create: [{ locale: "th", title: "ไทย", description: null }] },
+      },
+      include: { translations: true },
+    });
+  });
+
+  it("追加すべき翻訳が無ければ更新しない", async () => {
+    vi.mocked(prisma.link.findUnique).mockResolvedValue(
+      baseLinkRecord({
+        translations: [{ locale: "en", title: "Title", description: null }],
+      }) as never
+    );
+
+    await addLinkTranslations("link-1", [{ locale: "en", title: "X" }]);
+
+    expect(prisma.link.update).not.toHaveBeenCalled();
+  });
+
+  it("存在しないIDはLinkNotFoundErrorを送出する", async () => {
+    vi.mocked(prisma.link.findUnique).mockResolvedValue(null);
+
+    await expect(addLinkTranslations("x", [])).rejects.toBeInstanceOf(LinkNotFoundError);
   });
 });

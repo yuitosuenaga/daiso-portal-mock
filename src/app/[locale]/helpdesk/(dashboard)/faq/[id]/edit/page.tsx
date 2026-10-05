@@ -41,13 +41,6 @@ export default async function HelpdeskFaqEditPage({
     label: tCategories(code),
   }));
 
-  const enTranslation = faq.translations.find(
-    (translation) => translation.locale === "en"
-  );
-  const additionalTranslations = faq.translations.filter(
-    (translation) => translation.locale !== "en"
-  );
-
   return (
     <div className="max-w-2xl space-y-4">
       <BackLink href="/helpdesk/faq" label={t("backToList")} />
@@ -72,9 +65,6 @@ export default async function HelpdeskFaqEditPage({
           category: faq.category,
           question: faq.question,
           answer: faq.answer,
-          questionEn: enTranslation?.question ?? "",
-          answerEn: enTranslation?.answer ?? "",
-          translations: additionalTranslations,
         }}
         questionLabel={t("questionLabel")}
         questionPlaceholder={t("questionPlaceholder")}
@@ -82,16 +72,11 @@ export default async function HelpdeskFaqEditPage({
         categoryPlaceholder={t("categoryPlaceholder")}
         answerLabel={t("answerLabel")}
         answerPlaceholder={t("answerPlaceholder")}
-        languageJaTabLabel={t("language.jaTab")}
-        languageEnTabLabel={t("language.enTab")}
-        languageAddButtonLabel={t("language.addButton")}
-        languageRemoveButtonLabel={t("language.removeButton")}
-        languageLocaleCodeLabel={t("language.localeCodeLabel")}
-        languageLocaleCodePlaceholder={t("language.localeCodePlaceholder")}
-        languageLocaleDuplicateErrorMessage={t("language.localeDuplicateError")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         submitErrorMessage={t("submitError")}
+        translationFailedMessage={t("translationFailed")}
+        retranslateButtonLabel={t("retranslateButton")}
         categoryOptions={categoryOptions}
       />
     </div>

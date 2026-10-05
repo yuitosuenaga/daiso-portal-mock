@@ -32,6 +32,8 @@ export default async function HelpdeskTemplateNewPage() {
         requiredErrorMessage={t("validation.required")}
         nameTooLongErrorMessage={t("validation.nameTooLong")}
         submitErrorMessage={t("submitError")}
+        translationFailedMessage={t("translationFailed")}
+        retranslateButtonLabel={t("retranslateButton")}
         categoryOptions={categoryOptions}
       />
     </div>

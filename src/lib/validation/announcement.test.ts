@@ -7,8 +7,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -23,8 +21,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
@@ -40,8 +36,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       sendEmailNotification: false,
@@ -56,8 +50,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -70,8 +62,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -84,8 +74,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "not-a-real-category",
       status: "published",
       targeting: { scope: "all" },
@@ -98,8 +86,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "countries", countries: [] },
@@ -112,8 +98,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -133,8 +117,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -151,8 +133,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -169,8 +149,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -185,8 +163,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -201,8 +177,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -221,8 +195,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "draft",
       targeting: { scope: "all" },
@@ -237,8 +209,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "not-a-real-status",
       targeting: { scope: "all" },
@@ -253,8 +223,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       targeting: { scope: "all" },
       actionRequired: false,
@@ -268,8 +236,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -296,8 +262,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -313,8 +277,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -338,8 +300,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -363,8 +323,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -380,8 +338,6 @@ describe("announcementFormSchema", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -393,44 +349,13 @@ describe("announcementFormSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("titleEnが未入力の場合はエラーになる", () => {
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("bodyEnが未入力の場合はエラーになる", () => {
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("translationsが未指定の場合は空配列として検証を通過する", () => {
+  it("翻訳関連の入力（titleEn・bodyEn・translations）は無視され、出力に含まれない", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",
       body: "テスト本文",
       titleEn: "Test title (EN)",
       bodyEn: "Test body (EN)",
+      translations: [{ locale: "th", title: "a", body: "b" }],
       category: "maintenance",
       status: "published",
       targeting: { scope: "all" },
@@ -440,135 +365,8 @@ describe("announcementFormSchema", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      // `en`は必須のため常に1件（titleEn/bodyEnから合成）存在する。
-      expect(result.data.translations).toEqual([
-        { locale: "en", title: "Test title (EN)", body: "Test body (EN)" },
-      ]);
+      expect(result.data).not.toHaveProperty("translations");
+      expect(result.data).not.toHaveProperty("titleEn");
     }
-  });
-
-  it("追加言語（ja/en以外）を1件以上指定していれば検証を通過し、en行と合成される", () => {
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-      translations: [{ locale: "th", title: "หัวข้อ", body: "เนื้อหา" }],
-    });
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.translations).toEqual([
-        { locale: "en", title: "Test title (EN)", body: "Test body (EN)" },
-        { locale: "th", title: "หัวข้อ", body: "เนื้อหา" },
-      ]);
-    }
-  });
-
-  it("追加言語にjaを指定した場合はエラーになる", () => {
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-      translations: [{ locale: "ja", title: "重複", body: "重複" }],
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("追加言語にenを指定した場合はエラーになる", () => {
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-      translations: [{ locale: "en", title: "重複", body: "重複" }],
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("追加言語同士で言語コードが重複している場合はエラーになる", () => {
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-      translations: [
-        { locale: "th", title: "1", body: "1" },
-        { locale: "th", title: "2", body: "2" },
-      ],
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it("サーバーアクション側の再検証（titleEn/bodyEn省略、translationsにen行を含む）でも検証を通過する（冪等性）", () => {
-    // フォーム送信後の値（titleEn/bodyEnが既にtranslationsへ合成済み）をもう一度
-    // このスキーマでparseしても、同じ結果になることを検証する（多重防御としての再検証を想定）。
-    const firstPass = announcementFormSchema.parse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-      translations: [{ locale: "th", title: "หัวข้อ", body: "เนื้อหา" }],
-    });
-
-    const secondPass = announcementFormSchema.safeParse(firstPass);
-
-    expect(secondPass.success).toBe(true);
-    if (secondPass.success) {
-      expect(secondPass.data.translations).toEqual(firstPass.translations);
-      expect(secondPass.data.title).toBe(firstPass.title);
-    }
-  });
-
-  it("追加言語が21件以上の場合はエラーになる", () => {
-    const translations = Array.from({ length: 21 }, (_, i) => ({
-      locale: `l${i}`,
-      title: `title-${i}`,
-      body: `body-${i}`,
-    }));
-
-    const result = announcementFormSchema.safeParse({
-      title: "テストタイトル",
-      body: "テスト本文",
-      titleEn: "Test title (EN)",
-      bodyEn: "Test body (EN)",
-      category: "maintenance",
-      status: "published",
-      targeting: { scope: "all" },
-      actionRequired: false,
-      sendEmailNotification: false,
-      translations,
-    });
-
-    expect(result.success).toBe(false);
   });
 });

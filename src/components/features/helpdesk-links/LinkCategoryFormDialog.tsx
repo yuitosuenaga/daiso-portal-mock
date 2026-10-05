@@ -14,6 +14,7 @@ export interface LinkCategoryFormDialogProps {
   state: LinkCategoryDialogState | null;
   onClose: () => void;
   onSaved: () => void;
+  retranslateButtonLabel: string;
 }
 
 /**
@@ -24,6 +25,7 @@ export function LinkCategoryFormDialog({
   state,
   onClose,
   onSaved,
+  retranslateButtonLabel,
 }: LinkCategoryFormDialogProps) {
   return (
     <Dialog open={state !== null} onOpenChange={(open) => !open && onClose()}>
@@ -35,6 +37,7 @@ export function LinkCategoryFormDialog({
             category={state.category}
             onSaved={onSaved}
             onCancel={onClose}
+            retranslateButtonLabel={retranslateButtonLabel}
           />
         )}
       </DialogContent>

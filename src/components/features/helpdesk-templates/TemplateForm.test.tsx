@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TemplateForm } from "@/components/features/helpdesk-templates/TemplateForm";
 import { TEMPLATE_NAME_MAX_LENGTH } from "@/lib/validation/reply-template";
 
-const createReplyTemplateActionMock = vi.fn().mockResolvedValue({ id: "new-id" });
-const updateReplyTemplateActionMock = vi.fn().mockResolvedValue({ id: "existing-id" });
+const createReplyTemplateActionMock = vi.fn();
+const updateReplyTemplateActionMock = vi.fn();
+const retranslateReplyTemplateActionMock = vi.fn();
 const pushMock = vi.fn();
 
 vi.mock("@/lib/actions/helpdesk", () => ({
@@ -13,6 +14,8 @@ vi.mock("@/lib/actions/helpdesk", () => ({
     createReplyTemplateActionMock(...args),
   updateReplyTemplateAction: (...args: unknown[]) =>
     updateReplyTemplateActionMock(...args),
+  retranslateReplyTemplateAction: (...args: unknown[]) =>
+    retranslateReplyTemplateActionMock(...args),
 }));
 
 vi.mock("@/i18n/navigation", () => ({
@@ -20,9 +23,16 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 beforeEach(() => {
-  createReplyTemplateActionMock.mockClear();
-  updateReplyTemplateActionMock.mockClear();
-  pushMock.mockClear();
+  vi.resetAllMocks();
+  createReplyTemplateActionMock.mockResolvedValue({
+    template: { id: "new-id" },
+    failedLocales: [],
+  });
+  updateReplyTemplateActionMock.mockResolvedValue({
+    template: { id: "existing-id" },
+    failedLocales: [],
+  });
+  retranslateReplyTemplateActionMock.mockResolvedValue({ failedLocales: [] });
 });
 
 const labels = {
@@ -36,6 +46,8 @@ const labels = {
   requiredErrorMessage: "この項目は必須です",
   nameTooLongErrorMessage: "テンプレート名は40文字以内で入力してください",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
+  translationFailedMessage: "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+  retranslateButtonLabel: "再翻訳",
 };
 
 describe("TemplateForm", () => {
@@ -155,5 +167,42 @@ describe("TemplateForm", () => {
         body: "編集後の本文",
       });
     });
+  });
+
+  it("一部言語の翻訳に失敗した場合はメッセージと再翻訳ボタンを表示し、再翻訳成功で一覧へ遷移する", async () => {
+    createReplyTemplateActionMock.mockResolvedValueOnce({
+      template: { id: "new-id" },
+      failedLocales: ["th"],
+    });
+    render(<TemplateForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("テンプレート名"), {
+      target: { value: "新規テンプレート名" },
+    });
+    fireEvent.change(screen.getByLabelText("案件種別"), { target: { value: "defect" } });
+    fireEvent.change(screen.getByLabelText("本文"), {
+      target: { value: "新規テンプレート本文" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("一部の言語の翻訳に失敗しました。後から再翻訳できます")
+      ).toBeTruthy();
+    });
+    expect(pushMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "再翻訳" }));
+
+    await waitFor(() => {
+      expect(retranslateReplyTemplateActionMock).toHaveBeenCalledWith("new-id");
+    });
+    expect(pushMock).toHaveBeenCalledWith("/helpdesk/templates");
+  });
+
+  it("新規作成直後は再翻訳ボタンを表示しない", () => {
+    render(<TemplateForm mode="create" {...labels} />);
+
+    expect(screen.queryByRole("button", { name: "再翻訳" })).toBeNull();
   });
 });

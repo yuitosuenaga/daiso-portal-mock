@@ -155,7 +155,10 @@
       "categoryLabel": "Major category",
       "categoryPlaceholderOption": "Please select",
       "subCategoryLabel": "Subcategory",
-      "subCategoryNoneOption": "None"
+      "subCategoryNoneOption": "None",
+      "translationPartialFailed": "Translation failed for some languages. You can retranslate later.",
+      "retranslateButton": "Retranslate",
+      "retranslateSuccess": "Translation completed"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "No documents are registered",
       "linkedDocumentsTargetingAllLabel": "All companies",
       "linkedDocumentsTargetingCountriesPrefixLabel": "Countries:",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "Companies:"
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "Companies:",
+      "translationFailedDraft": "Saved as a draft because translation failed.",
+      "retranslateButton": "Retranslate",
+      "retranslatePending": "Translating...",
+      "retranslateSuccess": "Translation saved",
+      "retranslateFailed": "Translation failed for some languages. Please try again later.",
+      "retranslateError": "Retranslation failed. Please try again later."
     },
     "tracking": {
       "confirmedCount": "Confirmed {confirmed}/{total} people",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "This field is required",
         "nameTooLong": "Template name must be 40 characters or less"
-      }
+      },
+      "translationFailed": "Translation failed for some languages. You can retranslate later.",
+      "retranslateButton": "Retranslate"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "Failed to save. Please try again later.",
       "validation": {
         "required": "This field is required"
-      }
+      },
+      "translationFailed": "Translation failed for some languages. You can retranslate later.",
+      "retranslateButton": "Retranslate"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "This field is required",
         "invalidUrl": "Please enter a valid URL"
-      }
+      },
+      "translationFailed": "Translation failed for some languages. You can retranslate later.",
+      "retranslateButton": "Retranslate"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "Failed to delete. Please try again later.",
           "blockedByLinks": "\"{name}\" cannot be deleted because {count} link(s) are still assigned to it. Please reassign those links first.",
           "blockedByChildren": "\"{name}\" cannot be deleted because it has {count} subcategory(ies). Please delete the subcategories first."
-        }
+        },
+        "retranslateButton": "Retranslate"
       },
       "form": {
         "createParentTitle": "Add Major Category",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "This field is required",
           "nameConflict": "A category with this name already exists at this level"
-        }
+        },
+        "translationFailed": "Translation failed for some languages. You can retranslate later."
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "A category with this name already exists at this level",
         "countriesRequired": "Select at least one country or region",
         "companiesRequired": "Select at least one company"
-      }
+      },
+      "translationPartialFailed": "Translation failed for some languages. You can retranslate later.",
+      "retranslateButton": "Retranslate",
+      "retranslateSuccess": "Translation completed",
+      "closeButton": "Close"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "Failed to read the file. Please try again.",
         "googleUrlInvalid": "Enter a Google Docs/Sheets/Slides share link.",
         "categoryRequired": "Please select a category."
-      }
+      },
+      "translationPartialFailure": "Translation failed for some languages. You can retranslate later.",
+      "retranslateButton": "Retranslate",
+      "retranslateError": "Retranslation failed. Please try again later."
     },
     "delete": {
       "buttonLabel": "Delete",

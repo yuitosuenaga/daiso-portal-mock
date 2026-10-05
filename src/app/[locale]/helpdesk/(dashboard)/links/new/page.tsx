@@ -33,6 +33,9 @@ export default async function HelpdeskLinkNewPage() {
         requiredErrorMessage={t("validation.required")}
         invalidUrlErrorMessage={t("validation.invalidUrl")}
         submitErrorMessage={t("submitError")}
+        translationFailedMessage={t("translationFailed")}
+        retranslateButtonLabel={t("retranslateButton")}
+        backToListLabel={t("backToList")}
         categoryOptions={categoryOptions}
       />
     </div>

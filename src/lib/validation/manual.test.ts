@@ -9,7 +9,6 @@ function buildValidUploadInput(overrides: Record<string, unknown> = {}) {
   return {
     sourceType: "upload",
     title: "テストタイトル",
-    titleEn: "Test title",
     category: "storeOperations",
     year: 2026,
     month: 9,
@@ -26,7 +25,6 @@ function buildValidGoogleInput(overrides: Record<string, unknown> = {}) {
   return {
     sourceType: "google",
     title: "テストタイトル",
-    titleEn: "Test title",
     category: "accounting",
     year: 2026,
     month: 9,
@@ -170,62 +168,31 @@ describe("manualFormSchema", () => {
     });
   });
 
-  describe("多言語対応（タイトル・説明、ja/en固定）", () => {
-    it("titleEnが未入力の場合はエラーになる（アップロード方式）", () => {
-      const input = buildValidUploadInput();
-      delete (input as Record<string, unknown>).titleEn;
-
-      const result = manualFormSchema.safeParse(input);
-
-      expect(result.success).toBe(false);
+  describe("多言語対応（jaのみ入力、翻訳はサーバー側で自動付与）", () => {
+    it("英語タイトルが無くても検証を通過する", () => {
+      expect(manualFormSchema.safeParse(buildValidUploadInput()).success).toBe(true);
+      expect(manualFormSchema.safeParse(buildValidGoogleInput()).success).toBe(true);
     });
 
-    it("titleEnが未入力の場合はエラーになる（Google方式）", () => {
-      const input = buildValidGoogleInput();
-      delete (input as Record<string, unknown>).titleEn;
-
-      const result = manualFormSchema.safeParse(input);
-
-      expect(result.success).toBe(false);
-    });
-
-    it("titleEnが入力されていれば検証を通過し、transformでtranslationsのen行へ合成される", () => {
-      const result = manualFormSchema.safeParse(
-        buildValidUploadInput({ titleEn: "English Title", descriptionEn: "English description" })
-      );
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.translations).toEqual([
-          { locale: "en", title: "English Title", description: "English description" },
-        ]);
-        expect("titleEn" in result.data).toBe(false);
-        expect("descriptionEn" in result.data).toBe(false);
-      }
-    });
-
-    it("titleEnが未指定でもtranslationsにen行が含まれていれば検証を通過する（二重パース時の冪等性）", () => {
+    it("クライアントから送られた翻訳関連フィールドは出力から除去される", () => {
       const result = manualFormSchema.safeParse(
         buildValidUploadInput({
-          titleEn: undefined,
-          translations: [{ locale: "en", title: "既存の英語タイトル" }],
+          titleEn: "English Title",
+          descriptionEn: "English description",
+          translations: [{ locale: "en", title: "x" }],
         })
       );
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.translations).toEqual([
-          { locale: "en", title: "既存の英語タイトル", description: undefined },
-        ]);
+        expect("titleEn" in result.data).toBe(false);
+        expect("descriptionEn" in result.data).toBe(false);
+        expect("translations" in result.data).toBe(false);
       }
     });
 
-    it("descriptionは全言語で任意である", () => {
-      const result = manualFormSchema.safeParse(
-        buildValidUploadInput({ titleEn: "English Title" })
-      );
-
-      expect(result.success).toBe(true);
+    it("descriptionは任意である", () => {
+      expect(manualFormSchema.safeParse(buildValidUploadInput()).success).toBe(true);
     });
   });
 });

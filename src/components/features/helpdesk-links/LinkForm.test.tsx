@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LinkForm } from "@/components/features/helpdesk-links/LinkForm";
 
-const createLinkActionMock = vi.fn().mockResolvedValue({ id: "new-id" });
-const updateLinkActionMock = vi.fn().mockResolvedValue({ id: "existing-id" });
+const createLinkActionMock = vi.fn().mockResolvedValue({ link: { id: "new-id" }, failedLocales: [] });
+const updateLinkActionMock = vi.fn().mockResolvedValue({ link: { id: "existing-id" }, failedLocales: [] });
+const retranslateLinkActionMock = vi.fn();
 const pushMock = vi.fn();
 
 vi.mock("@/lib/actions/links", () => ({
   createLinkAction: (...args: unknown[]) => createLinkActionMock(...args),
   updateLinkAction: (...args: unknown[]) => updateLinkActionMock(...args),
+  retranslateLinkAction: (...args: unknown[]) => retranslateLinkActionMock(...args),
 }));
 
 vi.mock("@/i18n/navigation", () => ({
@@ -38,6 +40,9 @@ const labels = {
   requiredErrorMessage: "この項目は必須です",
   invalidUrlErrorMessage: "有効なURLを入力してください",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
+  translationFailedMessage: "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+  retranslateButtonLabel: "再翻訳",
+  backToListLabel: "一覧へ戻る",
   categoryOptions: [{ id: "category-other", name: "その他", subCategories: [] }],
 };
 
@@ -248,6 +253,41 @@ describe("LinkForm", () => {
         subCategoryId: null,
         description: "編集前の説明",
       });
+    });
+  });
+
+  it("一部言語の翻訳に失敗したときは遷移せず案内と再翻訳ボタンを表示し、再翻訳成功で一覧へ遷移する", async () => {
+    createLinkActionMock.mockResolvedValueOnce({
+      link: { id: "new-id" },
+      failedLocales: ["th"],
+    });
+    retranslateLinkActionMock.mockResolvedValueOnce({
+      link: { id: "new-id" },
+      failedLocales: [],
+    });
+    render(<LinkForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("タイトル"), { target: { value: "テスト" } });
+    fireEvent.change(screen.getByLabelText("URL"), {
+      target: { value: "https://example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-other" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("一部の言語の翻訳に失敗しました。後から再翻訳できます")
+      ).toBeTruthy();
+    });
+    expect(pushMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "再翻訳" }));
+
+    await waitFor(() => {
+      expect(retranslateLinkActionMock).toHaveBeenCalledWith("new-id");
+      expect(pushMock).toHaveBeenCalledWith("/helpdesk/links");
     });
   });
 });

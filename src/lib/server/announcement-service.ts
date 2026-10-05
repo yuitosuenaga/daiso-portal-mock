@@ -344,6 +344,24 @@ export async function updateAnnouncementRecord(
 }
 
 /**
+ * お知らせの翻訳行のみを全置換で保存する（タイトル・本文・公開状態・通知には一切触れない）。
+ * 存在しない場合は`AnnouncementNotFoundError`を送出する。
+ */
+export async function replaceAnnouncementTranslations(
+  id: string,
+  translations: Announcement["translations"]
+): Promise<void> {
+  const current = await prisma.announcement.findUnique({ where: { id }, select: { id: true } });
+  if (!current) {
+    throw new AnnouncementNotFoundError(id);
+  }
+  await prisma.announcement.update({
+    where: { id },
+    data: { translations: translationsToNestedWrite(translations) },
+  });
+}
+
+/**
  * お知らせを削除する。存在しない場合は`AnnouncementNotFoundError`を送出する。
  * 確認済み・実施済み・リマインド送信状態（`AnnouncementRecipientStatus`）は
  * `onDelete: Restrict`のため、削除前に関連レコードを同一トランザクションで先に削除する。

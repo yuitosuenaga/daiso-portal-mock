@@ -3,13 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ManualForm } from "@/components/features/helpdesk-manuals/ManualForm";
 
-const createManualActionMock = vi.fn().mockResolvedValue({ id: "new-id" });
-const updateManualActionMock = vi.fn().mockResolvedValue({ id: "existing-id" });
+const createManualActionMock = vi
+  .fn()
+  .mockResolvedValue({ manual: { id: "new-id" }, failedLocales: [] });
+const updateManualActionMock = vi
+  .fn()
+  .mockResolvedValue({ manual: { id: "existing-id" }, failedLocales: [] });
+const retranslateManualActionMock = vi.fn().mockResolvedValue({ failedLocales: [] });
 const pushMock = vi.fn();
 
 vi.mock("@/lib/actions/manuals", () => ({
   createManualAction: (...args: unknown[]) => createManualActionMock(...args),
   updateManualAction: (...args: unknown[]) => updateManualActionMock(...args),
+  retranslateManualAction: (...args: unknown[]) => retranslateManualActionMock(...args),
 }));
 
 vi.mock("@/i18n/navigation", () => ({
@@ -19,6 +25,9 @@ vi.mock("@/i18n/navigation", () => ({
 beforeEach(() => {
   createManualActionMock.mockClear();
   updateManualActionMock.mockClear();
+  retranslateManualActionMock.mockClear();
+  createManualActionMock.mockResolvedValue({ manual: { id: "new-id" }, failedLocales: [] });
+  retranslateManualActionMock.mockResolvedValue({ failedLocales: [] });
   pushMock.mockClear();
 });
 
@@ -40,8 +49,6 @@ const labels = {
   titlePlaceholder: "タイトルを入力してください",
   descriptionLabel: "説明",
   descriptionPlaceholder: "説明を入力してください",
-  languageJaTabLabel: "日本語",
-  languageEnTabLabel: "English",
   yearLabel: "年",
   monthLabel: "月",
   targetingLabel: "公開範囲",
@@ -70,6 +77,10 @@ const labels = {
   googleUrlInvalidMessage: "Googleドキュメントの共有リンクを入力してください",
   requiredIndicator: "*",
   submitErrorMessage: "保存に失敗しました",
+  translationPartialFailureMessage:
+    "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+  retranslateButtonLabel: "再翻訳する",
+  retranslateErrorMessage: "再翻訳に失敗しました",
 };
 
 describe("ManualForm", () => {
@@ -119,10 +130,6 @@ describe("ManualForm", () => {
     fireEvent.change(screen.getByLabelText(/タイトル/), {
       target: { value: "新規マニュアル" },
     });
-    fireEvent.click(screen.getByRole("tab", { name: "English" }));
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "New Manual" },
-    });
     fireEvent.change(screen.getByLabelText(/^カテゴリ/), {
       target: { value: "accounting" },
     });
@@ -148,11 +155,92 @@ describe("ManualForm", () => {
           category: "accounting",
           year: 2027,
           month: 9,
-          translations: [{ locale: "en", title: "New Manual", description: "" }],
         })
       );
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/manuals");
+  });
+
+  it("言語タブや英語入力欄は表示されない（jaのみ入力）", () => {
+    render(<ManualForm mode="create" {...labels} />);
+
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getAllByLabelText(/タイトル/)).toHaveLength(1);
+  });
+
+  async function submitValidGoogleForm() {
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規マニュアル" },
+    });
+    fireEvent.change(screen.getByLabelText("登録方法"), {
+      target: { value: "google" },
+    });
+    fireEvent.change(screen.getByLabelText("Googleドキュメントの共有リンク"), {
+      target: { value: "https://docs.google.com/document/d/abc123/edit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+  }
+
+  it("一部言語の翻訳に失敗した場合は遷移せず、警告と再翻訳ボタンを表示する", async () => {
+    createManualActionMock.mockResolvedValue({
+      manual: { id: "new-id" },
+      failedLocales: ["th"],
+    });
+    render(<ManualForm mode="create" {...labels} />);
+
+    await submitValidGoogleForm();
+
+    expect(
+      await screen.findByText("一部の言語の翻訳に失敗しました。後から再翻訳できます")
+    ).toBeTruthy();
+    expect(pushMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "再翻訳する" }));
+
+    await waitFor(() => {
+      expect(retranslateManualActionMock).toHaveBeenCalledWith("new-id");
+    });
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/helpdesk/manuals");
+    });
+  });
+
+  it("再翻訳でも失敗が残る場合はエラーを表示し遷移しない", async () => {
+    createManualActionMock.mockResolvedValue({
+      manual: { id: "new-id" },
+      failedLocales: ["th"],
+    });
+    retranslateManualActionMock.mockResolvedValue({ failedLocales: ["th"] });
+    render(<ManualForm mode="create" {...labels} />);
+
+    await submitValidGoogleForm();
+    fireEvent.click(await screen.findByRole("button", { name: "再翻訳する" }));
+
+    expect(await screen.findByText("再翻訳に失敗しました")).toBeTruthy();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("編集モードで翻訳が不足している場合は初期表示から再翻訳ボタンを表示する", () => {
+    render(
+      <ManualForm
+        mode="edit"
+        manualId="existing-id"
+        missingTranslationLocales={["th"]}
+        defaultValues={{
+          sourceType: "google",
+          title: "既存",
+          category: "storeOperations",
+          year: 2025,
+          month: 1,
+          googleUrl: "https://docs.google.com/document/d/abc123/edit",
+          googleEmbedUrl: "https://docs.google.com/document/d/abc123/preview",
+          targeting: { scope: "all" },
+        }}
+        {...labels}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "再翻訳する" })).toBeTruthy();
   });
 
   it("編集モードでは登録済みのカテゴリ・年月が初期選択として表示される", () => {
@@ -163,7 +251,6 @@ describe("ManualForm", () => {
         defaultValues={{
           sourceType: "upload",
           title: "既存マニュアル",
-          titleEn: "Existing Manual",
           category: "storeOperations",
           year: 2025,
           month: 1,

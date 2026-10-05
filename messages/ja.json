@@ -155,7 +155,10 @@
       "categoryLabel": "大分類",
       "categoryPlaceholderOption": "選択してください",
       "subCategoryLabel": "中分類",
-      "subCategoryNoneOption": "なし"
+      "subCategoryNoneOption": "なし",
+      "translationPartialFailed": "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+      "retranslateButton": "翻訳を再実行",
+      "retranslateSuccess": "翻訳が完了しました"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "登録済みのドキュメントはありません",
       "linkedDocumentsTargetingAllLabel": "全体公開",
       "linkedDocumentsTargetingCountriesPrefixLabel": "対象国:",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "対象会社:"
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "対象会社:",
+      "translationFailedDraft": "翻訳に失敗したため下書きとして保存しました",
+      "retranslateButton": "翻訳を再実行",
+      "retranslatePending": "翻訳中...",
+      "retranslateSuccess": "翻訳を保存しました",
+      "retranslateFailed": "一部の言語で翻訳に失敗しました。時間を置いて再度お試しください。",
+      "retranslateError": "翻訳の再実行に失敗しました。時間をおいて再度お試しください"
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "この項目は必須です",
         "nameTooLong": "テンプレート名は40文字以内で入力してください"
-      }
+      },
+      "translationFailed": "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+      "retranslateButton": "翻訳を再実行"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
       "validation": {
         "required": "この項目は必須です"
-      }
+      },
+      "translationFailed": "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+      "retranslateButton": "翻訳を再実行"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "この項目は必須です",
         "invalidUrl": "有効なURLを入力してください"
-      }
+      },
+      "translationFailed": "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+      "retranslateButton": "翻訳を再実行"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "削除に失敗しました。時間を置いて再度お試しください。",
           "blockedByLinks": "『{name}』には{count}件のリンクが紐づいているため削除できません。先に対象リンクのカテゴリを変更してください。",
           "blockedByChildren": "『{name}』には{count}件の中分類が存在するため削除できません。先に中分類を削除してください。"
-        }
+        },
+        "retranslateButton": "翻訳を再実行"
       },
       "form": {
         "createParentTitle": "大分類の追加",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "この項目は必須です",
           "nameConflict": "同じ階層に同名のカテゴリが既に存在します"
-        }
+        },
+        "translationFailed": "一部の言語の翻訳に失敗しました。後から再翻訳できます"
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "同じ階層に同名のカテゴリが既に存在します",
         "countriesRequired": "1つ以上の国・地域を選択してください",
         "companiesRequired": "1つ以上の販社を選択してください"
-      }
+      },
+      "translationPartialFailed": "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+      "retranslateButton": "翻訳を再実行",
+      "retranslateSuccess": "翻訳が完了しました",
+      "closeButton": "閉じる"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
         "googleUrlInvalid": "Googleドキュメント/スプレッドシート/スライドの共有リンクを入力してください",
         "categoryRequired": "カテゴリを選択してください"
-      }
+      },
+      "translationPartialFailure": "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+      "retranslateButton": "翻訳を再実行",
+      "retranslateError": "翻訳の再実行に失敗しました。時間をおいて再度お試しください"
     },
     "delete": {
       "buttonLabel": "削除",

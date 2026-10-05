@@ -67,3 +67,12 @@ export interface DocumentSubCategoryOption {
   id: string;
   name: string;
 }
+
+/** カテゴリのフォーム入力（日本語名称のみ）。翻訳はServer Actionが自動生成する。 */
+export type DocumentCategoryFormInput = Omit<CreateDocumentCategoryInput, "translations">;
+
+/** カテゴリ保存系Server Actionの戻り値。`failedLocales`が空でなければ一部言語の翻訳に失敗している。 */
+export interface DocumentCategorySaveResult {
+  category: DocumentCategory;
+  failedLocales: string[];
+}

@@ -5,6 +5,7 @@ import { ManualForm } from "@/components/features/helpdesk-manuals/ManualForm";
 import { getManualByIdForHelpdesk } from "@/lib/api/manuals";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
+import { TRANSLATED_LOCALES } from "@/lib/constants/locales";
 import { MANUAL_CATEGORIES } from "@/lib/constants/manual";
 import { buildMonthOptions } from "@/lib/category-year-month-filter";
 import type { ManualFormValues } from "@/lib/validation/manual";
@@ -45,8 +46,11 @@ export default async function HelpdeskManualEditPage({
     );
   }
 
-  const enTranslation = manual.translations.find(
-    (translation) => translation.locale === "en"
+  const savedTranslationLocales = new Set(
+    manual.translations.map((translation) => translation.locale)
+  );
+  const missingTranslationLocales = TRANSLATED_LOCALES.filter(
+    (translationLocale) => !savedTranslationLocales.has(translationLocale)
   );
 
   const defaultValues: ManualFormValues =
@@ -55,8 +59,6 @@ export default async function HelpdeskManualEditPage({
           sourceType: "google",
           title: manual.title,
           description: manual.description,
-          titleEn: enTranslation?.title,
-          descriptionEn: enTranslation?.description,
           category: manual.category,
           year: manual.year,
           month: manual.month,
@@ -71,8 +73,6 @@ export default async function HelpdeskManualEditPage({
           sourceType: "upload",
           title: manual.title,
           description: manual.description,
-          titleEn: enTranslation?.title,
-          descriptionEn: enTranslation?.description,
           category: manual.category,
           year: manual.year,
           month: manual.month,
@@ -109,6 +109,7 @@ export default async function HelpdeskManualEditPage({
       <h1 className="text-2xl font-semibold text-foreground">{t("editTitle")}</h1>
       <ManualForm
         mode="edit"
+        missingTranslationLocales={missingTranslationLocales}
         manualId={manual.id}
         defaultValues={defaultValues}
         countryOptions={countryOptions}
@@ -122,8 +123,6 @@ export default async function HelpdeskManualEditPage({
         titlePlaceholder={t("titlePlaceholder")}
         descriptionLabel={t("descriptionLabel")}
         descriptionPlaceholder={t("descriptionPlaceholder")}
-        languageJaTabLabel={t("language.jaTab")}
-        languageEnTabLabel={t("language.enTab")}
         yearLabel={t("yearLabel")}
         monthLabel={t("monthLabel")}
         targetingLabel={t("targetingLabel")}
@@ -152,6 +151,9 @@ export default async function HelpdeskManualEditPage({
         googleUrlInvalidMessage={t("validation.googleUrlInvalid")}
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
+        translationPartialFailureMessage={t("translationPartialFailure")}
+        retranslateButtonLabel={t("retranslateButton")}
+        retranslateErrorMessage={t("retranslateError")}
       />
     </div>
   );
