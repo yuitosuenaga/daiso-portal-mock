@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LinkCategoryGroup } from "@/components/features/links/LinkCategoryGroup";
-import { groupLinksByCategory } from "@/lib/link-utils";
+import { groupLinksByCategory, resolveLinkContent } from "@/lib/link-utils";
 import type { LinkWithTimestamp } from "@/types/link";
 import type { LinkCategorySummary } from "@/types/link-category";
 
@@ -58,8 +58,13 @@ export function LinkPreviewPanelClient({
 
   const groups = useMemo(
     () =>
-      groupLinksByCategory(links, activeData.categories, activeData.uncategorizedLabel),
-    [links, activeData]
+      groupLinksByCategory(
+        // 選択中のタブの言語でタイトル・説明を解決する（申請者側の表示と一致させる）
+        links.map((link) => ({ ...link, ...resolveLinkContent(link, activeLocale) })),
+        activeData.categories,
+        activeData.uncategorizedLabel
+      ),
+    [links, activeData, activeLocale]
   );
 
   return (

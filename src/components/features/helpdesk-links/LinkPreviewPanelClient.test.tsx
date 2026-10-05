@@ -99,6 +99,43 @@ describe("LinkPreviewPanelClient", () => {
     expect(screen.queryByText("社内システム")).toBeNull();
   });
 
+  it("英語タブへ切り替えると、リンクのタイトルも英語の翻訳に切り替わる", () => {
+    render(
+      <LinkPreviewPanelClient
+        {...baseProps}
+        links={[
+          makeLink({
+            translations: [{ locale: "en", title: "Company Portal", description: undefined }],
+          }),
+        ]}
+        hasError={false}
+        dataByLocale={{
+          ja: {
+            categories: makeCategories("社内システム"),
+            opensInNewTabLabel: "新しいタブで開きます",
+            newBadgeLabel: "新着",
+            uncategorizedLabel: "未分類",
+            emptyLabel: "リンクはありません",
+          },
+          en: {
+            categories: makeCategories("Internal System"),
+            opensInNewTabLabel: "Opens in a new tab",
+            newBadgeLabel: "New",
+            uncategorizedLabel: "Uncategorized",
+            emptyLabel: "No links",
+          },
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "プレビューを開く" }));
+    expect(screen.getByText("社内ポータル")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
+    expect(screen.getByText("Company Portal")).toBeTruthy();
+    expect(screen.queryByText("社内ポータル")).toBeNull();
+  });
+
   it("データ取得に失敗したとき、エラーメッセージを表示する", () => {
     render(
       <LinkPreviewPanelClient
