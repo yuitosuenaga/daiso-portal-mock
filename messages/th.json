@@ -1,0 +1,1505 @@
+{
+  "login": {
+    "applicantTitle": "ล็อกอินตัวแทนจำหน่ายต่างประเทศ",
+    "helpdeskTitle": "ล็อกอินด้าน Daiso Japan",
+    "emailLabel": "ที่อยู่อีเมล",
+    "emailPlaceholder": "กรุณากรอกที่อยู่อีเมล",
+    "passwordLabel": "รหัสผ่าน",
+    "passwordPlaceholder": "กรุณากรอกรหัสผ่าน",
+    "submit": "ล็อกอิน",
+    "submitting": "กำลังล็อกอิน…",
+    "errorInvalidCredentials": "ที่อยู่อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "validation": {
+      "emailRequired": "กรุณากรอกที่อยู่อีเมล",
+      "passwordRequired": "กรุณากรอกรหัสผ่าน"
+    },
+    "switchToHelpdeskLogin": "ไปยังการล็อกอินด้าน Daiso Japan",
+    "switchToApplicantLogin": "ไปยังการล็อกอินตัวแทนจำหน่ายต่างประเทศ"
+  },
+  "header": {
+    "portalName": "พอร์ทัลการดำเนินการต่างประเทศ",
+    "screenName": "หน้าจอตัวแทนจำหน่ายต่างประเทศ",
+    "logout": "ล็อกเอาท์"
+  },
+  "helpdeskHeader": {
+    "portalName": "พอร์ทัลการดำเนินการต่างประเทศ",
+    "screenName": "หน้าจอด้าน Daiso Japan",
+    "logout": "ล็อกเอาท์"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "การนำทางศูนย์ช่วยเหลือ",
+    "openMenu": "เปิดเมนู",
+    "closeMenu": "ปิดเมนู",
+    "home": "แดชบอร์ด",
+    "inquiryForm": "คำถาม",
+    "inquiries": "การจัดการคำถาม",
+    "templates": "การจัดการแม่แบบ",
+    "links": "คลังลิงก์",
+    "faq": "คำถามที่พบบ่อย",
+    "announcements": "การจัดการประกาศ",
+    "documents": "การจัดการเอกสาร",
+    "companies": "การจัดการตัวแทนจำหน่าย",
+    "salesFloorMeeting": "การประชุมพื้นขาย (วิดีโอ)",
+    "pop": "POP",
+    "manuals": "คู่มือ"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "การจัดการเอกสาร",
+      "description": "คุณสามารถอัปโหลด แก้ไข และลบเอกสารธุรกิจ (PDF) สำหรับตัวแทนจำหน่ายต่างประเทศ",
+      "empty": "ไม่มีเอกสาร",
+      "error": "การดึงข้อมูลเอกสารล้มเหลว",
+      "addButton": "เพิ่มเอกสารใหม่",
+      "editLink": "แก้ไข",
+      "deleteButton": "ลบ",
+      "deleteConfirmTitle": "ลบเอกสาร",
+      "deleteConfirm": "จะลบ『{title}』 การดำเนินการนี้ไม่สามารถยกเลิกได้ คุณต้องการดำเนินการต่อไปหรือไม่?",
+      "deleteConfirmButton": "ลบ",
+      "deleteCancelButton": "ยกเลิก",
+      "deleteError": "การลบล้มเหลว โปรดลองอีกครั้งในภายหลัง",
+      "targetingAllLabel": "เปิดเผยแบบสาธารณะทั้งหมด",
+      "targetingCountriesLabel": "ประเทศและภูมิภาคเป้าหมาย",
+      "targetingCompaniesLabel": "บริษัทจัดจำหน่ายเป้าหมาย",
+      "fileSizeLabel": "ขนาดไฟล์",
+      "uploadedAtLabel": "วันที่อัปโหลด",
+      "sourceTypeUploadBadge": "อัปโหลด",
+      "sourceTypeGoogleBadge": "ลิงก์ Google",
+      "statusDraftBadge": "ร่าง",
+      "statusPublishedBadge": "เผยแพร่",
+      "filter": {
+        "keywordLabel": "ค้นหาด้วยคำสำคัญ",
+        "keywordPlaceholder": "คำที่รวมอยู่ในชื่อเรื่องหรือคำอธิบาย",
+        "sourceTypeLabel": "วิธีการลงทะเบียน",
+        "sourceTypeAll": "วิธีการลงทะเบียนทั้งหมด",
+        "sourceTypeUpload": "อัปโหลด",
+        "sourceTypeGoogle": "ลิงก์ Google",
+        "scopeLabel": "ช่วงการเปิดเผย",
+        "scopeAll": "ช่วงการเปิดเผยทั้งหมด",
+        "scopeAllScope": "เปิดเผยแบบสาธารณะทั้งหมด",
+        "scopeCountries": "ตามประเทศ",
+        "scopeCompanies": "ตามบริษัทจัดจำหน่าย",
+        "clearButton": "ล้างเงื่อนไข",
+        "noResults": "ไม่มีเอกสารที่ตรงกัน",
+        "categoryLabel": "หมวดหมู่หลัก",
+        "categoryAll": "หมวดหมู่หลักทั้งหมด",
+        "categoryUnassigned": "ไม่ได้ตั้งค่า",
+        "subCategoryLabel": "หมวดหมู่ย่อย",
+        "subCategoryAll": "หมวดหมู่ย่อยทั้งหมด"
+      },
+      "pagination": {
+        "previousLabel": "ก่อนหน้า",
+        "nextLabel": "ถัดไป",
+        "pageStatus": "{current} / {total} หน้า"
+      },
+      "categoryLabel": "หมวดหมู่หลัก",
+      "subCategoryLabel": "หมวดหมู่ย่อย",
+      "categoryUnassigned": "ไม่ได้ตั้งค่า",
+      "manageCategoriesLink": "จัดการหมวดหมู่"
+    },
+    "form": {
+      "createTitle": "สร้างเอกสารใหม่",
+      "editTitle": "แก้ไขเอกสาร",
+      "notFound": "ไม่พบเอกสาร",
+      "backToList": "กลับไปยังรายการ",
+      "titleLabel": "ชื่อเรื่อง",
+      "titlePlaceholder": "กรุณากรอกชื่อเรื่องของเอกสาร",
+      "descriptionLabel": "คำอธิบาย",
+      "descriptionPlaceholder": "กรุณากรอกคำอธิบายเพิ่มเติม（ไม่บังคับ）",
+      "language": {
+        "jaTab": "ภาษาญี่ปุ่น",
+        "enTab": "English",
+        "addButton": "เพิ่มภาษา",
+        "removeButton": "ลบภาษานี้",
+        "localeCodeLabel": "รหัสภาษา",
+        "localeCodePlaceholder": "ตัวอย่าง: th, vi, zh",
+        "localeDuplicateError": "กรุณากรอกรหัสภาษาที่ไม่ซ้ำกับภาษาอื่น"
+      },
+      "statusLabel": "สถานะการเผยแพร่",
+      "statusDraftOption": "ร่างเอกสาร",
+      "statusPublishedOption": "เผยแพร่",
+      "targetingLabel": "ช่วงการเผยแพร่",
+      "targetingAllOption": "เผยแพร่สาธารณะ",
+      "targetingCountriesOption": "ระบุประเทศ/ภูมิภาคเฉพาะ",
+      "targetingCompaniesOption": "ระบุบริษัทจำหน่ายเฉพาะ",
+      "countriesLabel": "ประเทศ/ภูมิภาค（สามารถเลือกได้หลายรายการ）",
+      "companiesLabel": "บริษัทจำหน่าย（สามารถเลือกได้หลายรายการ）",
+      "sourceTypeLabel": "วิธีการลงทะเบียน",
+      "sourceTypeUploadOption": "อัปโหลดไฟล์",
+      "sourceTypeGoogleOption": "ลงทะเบียนลิงก์แชร์ Google เอกสาร",
+      "fileLabel": "ไฟล์ PDF",
+      "fileHint": "สามารถอัปโหลด PDF เท่านั้น ขนาดสูงสุด 20MB",
+      "currentFileLabel": "ไฟล์ที่ลงทะเบียน",
+      "removeButtonLabel": "ลบ",
+      "googleUrlLabel": "ลิงก์แชร์ Google เอกสาร",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "กรุณาตั้งค่าการแชร์ของ Google Docs/สเปรดชีต/สไลด์เป็น \"ทุกคนที่มีลิงก์สามารถดู\" ก่อนลงทะเบียน",
+      "submitButton": "บันทึก",
+      "submitError": "การบันทึกล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "validation": {
+        "required": "นี่คือช่องที่จำเป็น",
+        "countriesRequired": "กรุณาเลือกประเทศ/ภูมิภาคอย่างน้อยหนึ่งแห่ง",
+        "companiesRequired": "กรุณาเลือกบริษัทจำหน่ายอย่างน้อยหนึ่งแห่ง",
+        "fileRequired": "กรุณาเลือกไฟล์ PDF",
+        "sizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (20MB)",
+        "typeNotAllowed": "รูปแบบไฟล์ไม่ได้รับอนุญาต (เฉพาะ PDF)",
+        "readFailed": "การอ่านไฟล์ล้มเหลว กรุณาลองอีกครั้ง",
+        "googleUrlInvalid": "กรุณากรอกลิงก์แชร์ของ Google Docs/Sheets/Slides",
+        "categoryRequired": "กรุณาเลือกหมวดหมู่หลัก",
+        "categoryPairInvalid": "หมวดหมู่ย่อยที่เลือกไม่ตรงกับหมวดหมู่หลัก"
+      },
+      "detailTitle": "รายละเอียดเอกสาร",
+      "editButton": "แก้ไข",
+      "cancelButton": "ยกเลิก",
+      "downloadLink": "ดาวน์โหลด",
+      "openOriginalLink": "เปิดเอกสารต้นฉบับ",
+      "categoryLabel": "หมวดหมู่หลัก",
+      "categoryPlaceholderOption": "กรุณาเลือก",
+      "subCategoryLabel": "หมวดหมู่ย่อย",
+      "subCategoryNoneOption": "ไม่มี"
+    }
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "การจัดการประกาศ",
+      "description": "คุณสามารถสร้าง แก้ไข และลบประกาศสำหรับบริษัทจำหน่ายต่างประเทศได้",
+      "empty": "ไม่มีประกาศ",
+      "error": "การดึงข้อมูลประกาศล้มเหลว",
+      "addButton": "สร้างประกาศใหม่",
+      "editLink": "แก้ไข",
+      "createdBy": "สร้างโดย",
+      "deleteButton": "ลบ",
+      "deleteConfirmTitle": "การลบประกาศ",
+      "deleteConfirm": "ลบ『{title}』 การดำเนินการนี้ไม่สามารถย้อนกลับได้ คุณแน่ใจหรือไม่",
+      "deleteConfirmButton": "ลบ",
+      "deleteCancelButton": "ยกเลิก",
+      "deleteError": "การลบล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "targetingAllLabel": "ทั้งหมดสม่ำเสมอ",
+      "targetingCountriesLabel": "ประเทศที่นำส่ง",
+      "actionRequiredBadge": "ต้องดำเนินการ",
+      "publishPeriodAlwaysLabel": "เปิดให้บริการตลอดเวลา",
+      "publishPeriodLabel": "ระยะเวลาเผยแพร่",
+      "publishPeriodToSeparator": "〜",
+      "dueDateLabel": "กำหนดเวลาการดำเนินการ",
+      "statusBadgeDraft": "ร่าง",
+      "filter": {
+        "keywordLabel": "ค้นหาตามชื่อเรื่อง",
+        "keywordPlaceholder": "วลีที่อยู่ในชื่อเรื่อง",
+        "categoryLabel": "ประเภท",
+        "categoryAll": "ทุกประเภท",
+        "actionRequiredLabel": "จำเป็นต้องดำเนินการ",
+        "actionRequiredAll": "ทั้งหมด",
+        "actionRequiredTrue": "เฉพาะที่ต้องดำเนินการ",
+        "actionRequiredFalse": "เฉพาะที่ไม่ต้องดำเนินการ",
+        "statusLabel": "สถานะการเผยแพร่",
+        "statusAll": "ทั้งหมด",
+        "statusDraft": "ร่างเอกสาร",
+        "statusPublished": "เผยแพร่",
+        "clearButton": "ล้าง",
+        "noResults": "ไม่มีประกาศที่ตรงกัน"
+      }
+    },
+    "form": {
+      "createTitle": "สร้างประกาศใหม่",
+      "editTitle": "แก้ไขประกาศ",
+      "notFound": "ไม่พบประกาศ",
+      "backToList": "กลับไปยังรายการ",
+      "titleLabel": "ชื่อเรื่อง",
+      "titlePlaceholder": "กรุณาป้อนชื่อเรื่องของประกาศ",
+      "bodyLabel": "เนื้อหา",
+      "bodyPlaceholder": "กรุณาป้อนเนื้อหาของประกาศ",
+      "language": {
+        "jaTab": "ภาษาญี่ปุ่น",
+        "enTab": "English",
+        "addButton": "เพิ่มภาษา",
+        "removeButton": "ลบภาษานี้",
+        "localeCodeLabel": "รหัสภาษา",
+        "localeCodePlaceholder": "ตัวอย่าง: th, vi, zh",
+        "localeDuplicateError": "กรุณาป้อนรหัสภาษาที่ไม่ซ้ำกับภาษาอื่น"
+      },
+      "categoryLabel": "ประเภท",
+      "categoryPlaceholder": "กรุณาเลือกประเภท",
+      "statusLabel": "สถานะการเผยแพร่",
+      "statusDraftOption": "ร่างเอกสาร",
+      "statusPublishedOption": "เผยแพร่",
+      "targetingLabel": "เป้าหมายการจัดส่ง",
+      "targetingAllOption": "สม่ำเสมอทั่วไป",
+      "targetingCountriesOption": "ระบุประเทศ/เขตข้อมูลเฉพาะ",
+      "countriesLabel": "ประเทศ/เขตข้อมูล (สามารถเลือกได้หลายรายการ)",
+      "countriesSearchPlaceholder": "ค้นหาด้วยชื่อประเทศ",
+      "countriesSelectAllButtonLabel": "เลือกทั้งหมด",
+      "countriesClearAllButtonLabel": "ยกเลิกการเลือกทั้งหมด",
+      "countriesSelectedCountLabel": "เลือก {count} รายการ",
+      "countriesNoResultsMessage": "ไม่มีประเทศ/เขตข้อมูลที่ตรงกัน",
+      "countriesRemoveChipButtonLabel": "ลบ",
+      "submitButton": "บันทึก",
+      "submitError": "บันทึกล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "enAutoTranslateHint": "หากไม่ได้ป้อนข้อมูล ระบบจะแปลอัตโนมัติจากภาษาญี่ปุ่นเมื่อบันทึก",
+      "translateFromJaButton": "แปลอัตโนมัติจากภาษาญี่ปุ่น",
+      "translateFromJaPending": "กำลังแปล...",
+      "translateFromJaError": "การแปลอัตโนมัติล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "validation": {
+        "required": "จำเป็นต้องมีรายการนี้",
+        "countriesRequired": "โปรดเลือกประเทศหรือภูมิภาคอย่างน้อยหนึ่งแห่ง",
+        "enBothOrNeither": "โปรดป้อนชื่อเรื่องและเนื้อหาภาษาอังกฤษทั้งคู่ หรือไม่ป้อนทั้งคู่",
+        "publishEndDateBeforeStart": "โปรดระบุวันสิ้นสุดเป็นวันที่อยู่หลังวันเริ่มต้นหรือต่อมา",
+        "dueDateRequired": "หากจำเป็นต้องดำเนินการ โปรดป้อนกำหนดการ",
+        "attachmentsSizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (5MB)",
+        "attachmentsTypeNotAllowed": "รูปแบบไฟล์ที่ไม่อนุญาต (รูปภาพหรือ PDF เท่านั้น)",
+        "attachmentsCountExceeded": "เกินจำนวนไฟล์ที่สามารถแนบได้ (สูงสุด 5 ไฟล์)",
+        "attachmentsReadFailed": "การอ่านไฟล์ล้มเหลว โปรดลองอีกครั้ง"
+      },
+      "actionRequiredLabel": "ความจำเป็นในการดำเนินการ",
+      "actionRequiredTrueOption": "ต้องดำเนินการ",
+      "actionRequiredFalseOption": "ไม่ต้องดำเนินการ",
+      "sendEmailNotificationLabel": "ส่งอีเมล",
+      "sendEmailNotificationTrueOption": "ส่งอีเมล",
+      "sendEmailNotificationFalseOption": "อย่าส่งอีเมล",
+      "publishStartDateLabel": "วันที่เริ่มเผยแพร่",
+      "publishEndDateLabel": "วันที่สิ้นสุดการเผยแพร่",
+      "publishPeriodHint": "หากไม่ได้ป้อนข้อมูล ระบบจะเผยแพร่ตลอดเวลา",
+      "dueDateLabel": "กำหนดการ",
+      "attachmentsLabel": "ไฟล์แนบ",
+      "attachmentsHint": "คุณสามารถอัปโหลดรูปภาพหรือ PDF ได้โดยตรง ไฟล์ละ 5MB สูงสุด 5 ไฟล์",
+      "attachmentsRemoveButtonLabel": "ลบ",
+      "linkedDocumentsLabel": "การเชื่อมโยงเอกสาร",
+      "linkedDocumentsPickButtonLabel": "เลือกจากเอกสาร",
+      "linkedDocumentsEmptyMessage": "ไม่มีเอกสารที่เชื่อมโยง",
+      "linkedDocumentRemoveButtonLabel": "ลบ",
+      "linkedDocumentsDialogTitle": "เลือกเอกสาร",
+      "linkedDocumentsDialogConfirmLabel": "ยืนยันการเลือก",
+      "linkedDocumentsDialogCancelLabel": "ยกเลิก",
+      "linkedDocumentsDialogNoDocumentsMessage": "ไม่มีเอกสารที่ลงทะเบียนไว้",
+      "linkedDocumentsTargetingAllLabel": "เผยแพร่สาธารณะทั่วไป",
+      "linkedDocumentsTargetingCountriesPrefixLabel": "ประเทศเป้าหมาย:",
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "บริษัทเป้าหมาย:"
+    },
+    "tracking": {
+      "confirmedCount": "ยืนยันแล้ว {confirmed}/{total} คน",
+      "completedCount": "ดำเนินการแล้ว {completed}/{total} บริษัท",
+      "dialogTitleConfirmed": "ผู้ประสานงานที่ยังไม่ยืนยัน",
+      "dialogTitleCompleted": "บริษัทที่ยังไม่ดำเนินการ",
+      "columnContact": "ชื่อผู้ประสานงาน",
+      "columnEmail": "ที่อยู่อีเมล",
+      "columnCompany": "บริษัท",
+      "columnCountry": "ประเทศ/地域",
+      "remindButton": "ส่งข้อความเตือน",
+      "remindAllButton": "ส่งข้อความเตือนให้ทั้งหมด",
+      "remindSuccessMessage": "ส่งข้อความเตือนแล้ว",
+      "remindErrorMessage": "ส่งล้มเหลว โปรดลองใหม่หลังจากผ่านไประยะหนึ่ง",
+      "alreadyRemindedLabel": "ส่งแล้ว",
+      "allRespondedMessage": "ทุกคนได้ดำเนินการตามแล้ว",
+      "confirmersButton": "รายชื่อผู้ยืนยัน",
+      "dialogTitleConfirmers": "รายชื่อผู้ยืนยัน",
+      "confirmersEmptyMessage": "ไม่มีผู้ยืนยันที่มีชื่อผู้ยืนยันป้อนเข้ามา",
+      "columnConfirmerName": "ชื่อผู้ยืนยัน",
+      "columnConfirmedAt": "วันที่และเวลาที่ยืนยัน"
+    }
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "การจัดการข้อเรียนรองราคา",
+      "description": "คุณสามารถตรวจสอบข้อเรียนรองราคาของทุกบริษัทตามสถานะการตอบสนองและระดับความเร่งด่วน",
+      "empty": "ไม่มีข้อเรียนรองราคา",
+      "error": "ล้มเหลวในการดึงข้อเรียนรองราคา",
+      "noResults": "ไม่มีข้อเรียนรองราคาที่ตรงกับเงื่อนไข",
+      "untitled": "(ไม่ได้ตั้งชื่อ)"
+    },
+    "detail": {
+      "notFound": "ไม่พบข้อเรียนรองราคา",
+      "error": "ล้มเหลวในการดึงข้อเรียนรองราคา",
+      "backToList": "กลับไปที่รายการ",
+      "attachmentsLabel": "ไฟล์แนบ",
+      "translatedTextLabel": "การแปล (การแปลอัตโนมัติ)",
+      "originalTextLabel": "ข้อความต้นฉบับ",
+      "translationUnavailable": "การแปลอัตโนมัติล้มเหลวหรือยังไม่ดำเนินการ โปรดตรวจสอบข้อความต้นฉบับด้านล่าง",
+      "retryTranslationButton": "แปลใหม่",
+      "retryTranslationError": "การแปลใหม่ล้มเหลว โปรดลองใหม่หลังจากผ่านไประยะหนึ่ง",
+      "untitled": "(ไม่ได้ตั้งชื่อ)"
+    },
+    "filter": {
+      "companyLabel": "ชื่อบริษัท",
+      "companyPlaceholder": "กรองตามชื่อบริษัท",
+      "keywordLabel": "คำหลัก",
+      "keywordPlaceholder": "กรองตามคำหลักที่รวมอยู่ในเนื้อหา",
+      "countryLabel": "ประเทศ",
+      "countryAll": "ทุกประเทศ",
+      "categoryLabel": "ประเภทเรื่อง",
+      "categoryAll": "ประเภททั้งหมด",
+      "statusLabel": "สถานะการจัดการ",
+      "statusAll": "สถานะการจัดการทั้งหมด",
+      "urgencyLabel": "ระดับเร่งด่วน",
+      "urgencyAll": "ระดับเร่งด่วนทั้งหมด",
+      "unclaimedOnlyLabel": "เฉพาะที่ยังไม่ได้เริ่มดำเนิน",
+      "claimedByLabel": "ผู้จัดการ",
+      "claimedByAll": "ผู้จัดการทั้งหมด",
+      "clearButton": "ล้างเงื่อนไข"
+    },
+    "claim": {
+      "inProgressBadge": "กำลังจัดการ",
+      "claimButton": "ตั้งเป็นกำลังจัดการ",
+      "releaseButton": "ยกเลิกการจัดการ",
+      "claimedByLabel": "ผู้จัดการ",
+      "error": "การดำเนินการล้มเหลว กรุณาลองใหม่อีกครั้งในภายหลัง",
+      "notOwnerErrorMessage": "ไม่สามารถยกเลิกได้เนื่องจากผู้จัดการคนอื่นกำลังจัดการอยู่"
+    },
+    "stats": {
+      "title": "สรุปสถานะการจัดการ",
+      "scopeAll": "ใช้กับเรื่องทั้งหมด",
+      "scopeFiltered": "ใช้กับ {count} เรื่องที่กำลังแสดง",
+      "unclaimedLabel": "ยังไม่ได้เริ่มดำเนิน",
+      "unclaimedCaption": "จำนวนเรื่องที่ยังไม่มีใครเริ่มดำเนิน",
+      "unclaimedNone": "ผู้จัดการได้รับมอบหมายในเรื่องที่ยังไม่ได้ดำเนินการทั้งหมดแล้ว",
+      "highUrgencyAlert": "ระดับเร่งด่วน \"สูง\" จำนวน {count} เรื่อง",
+      "staleUnclaimedAlert": "{count} เรื่องยังไม่ได้เริ่มดำเนินมานานกว่า 24 ชั่วโมง",
+      "mineLabel": "เรื่องของฉัน",
+      "mineCaption": "จำนวนเรื่องที่ฉันกำลังจัดการที่ยังไม่ได้แก้ไข",
+      "statusBreakdownTitle": "รายละเอียดสถานะการจัดการ",
+      "staffLoadTitle": "จำนวนเรื่องตามผู้จัดการ",
+      "staffLoadEmpty": "ไม่มีเรื่องที่กำลังจัดการ",
+      "staffOthers": "อีก {count} คน",
+      "unit": "เรื่อง",
+      "percent": "{value}%",
+      "tableToggle": "ดูในรูปตาราง",
+      "tableHeaderItem": "รายการ",
+      "tableHeaderCount": "จำนวน",
+      "tableHeaderShare": "สัดส่วน"
+    },
+    "status": {
+      "sectionTitle": "เปลี่ยนสถานะการจัดการ",
+      "label": "สถานะการจัดการ",
+      "error": "การเปลี่ยนสถานะการจัดการล้มเหลว กรุณาลองใหม่อีกครั้งในภายหลัง"
+    },
+    "reply": {
+      "sectionTitle": "ตอบกลับ",
+      "templateLabel": "เทมเพลต",
+      "templatePlaceholder": "เลือกเทมเพลต",
+      "noTemplates": "ไม่มีเทมเพลตสำหรับหมวดหมู่นี้",
+      "bodyLabel": "เนื้อหาการตอบกลับ",
+      "bodyPlaceholder": "กรุณากรอกเนื้อหาการตอบกลับ",
+      "submitButton": "ส่ง",
+      "submitting": "กำลังส่ง...",
+      "successMessage": "บันทึกการตอบกลับแล้ว",
+      "error": "ไม่สามารถส่งได้ กรุณาลองใหม่อีกครั้งหลังจากผ่านไปสักครู่",
+      "attachments": {
+        "label": "ไฟล์แนบ",
+        "hint": "สามารถแนบรูปภาพหรือไฟล์ PDF ได้ สูงสุด 5 MB ต่อไฟล์ และสูงสุด 5 ไฟล์",
+        "removeButton": "ลบ",
+        "sizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (5 MB)",
+        "typeNotAllowed": "ไม่อนุญาตให้ใช้รูปแบบไฟล์นี้ (เฉพาะรูปภาพหรือ PDF)",
+        "countExceeded": "จำนวนไฟล์ที่แนบเกินขีดจำกัด (5 ไฟล์)",
+        "readFailed": "ไม่สามารถอ่านไฟล์ได้ กรุณาลองใหม่อีกครั้ง"
+      }
+    },
+    "history": {
+      "sectionTitle": "ประวัติการจัดการ",
+      "empty": "ไม่มีประวัติการจัดการ",
+      "types": {
+        "claimed": "เริ่มการจัดการ",
+        "released": "ยกเลิกการจัดการ",
+        "status_changed": "เปลี่ยนสถานะการจัดการ",
+        "reply_sent": "ส่งการตอบกลับแล้ว",
+        "requester_message": "ข้อความจากผู้ขอ"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "การจัดการเทมเพลต",
+      "description": "สามารถลงทะเบียนและจัดการเทมเพลตการตอบกลับหลายรายการตามหมวดหมู่ได้",
+      "addButton": "เพิ่มเทมเพลตใหม่",
+      "editLink": "แก้ไข",
+      "empty": "ไม่มีเทมเพลต",
+      "templateCount": "{count} รายการ"
+    },
+    "form": {
+      "createTitle": "สร้างเทมเพลตใหม่",
+      "editTitle": "แก้ไขเทมเพลต",
+      "notFound": "ไม่พบเทมเพลต",
+      "nameLabel": "ชื่อเทมเพลต",
+      "namePlaceholder": "กรุณากรอกชื่อเทมเพลต",
+      "categoryLabel": "ประเภทปัญหา",
+      "categoryPlaceholder": "กรุณาเลือกประเภทปัญหา",
+      "bodyLabel": "เนื้อหา",
+      "bodyPlaceholder": "กรุณากรอกเนื้อหาเทมเพลต",
+      "submitButton": "บันทึก",
+      "backToList": "กลับไปที่รายการ",
+      "submitError": "การบันทึกล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "validation": {
+        "required": "ข้อมูลนี้เป็นสิ่งจำเป็น",
+        "nameTooLong": "โปรดป้อนชื่อเทมเพลตในจำนวน 40 อักขระหรือน้อยกว่า"
+      }
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "การจัดการ FAQ",
+      "description": "คุณสามารถลงทะเบียน แก้ไข และลบคำถามและคำตอบที่พบบ่อยสำหรับตัวแทนจำหน่ายในต่างประเทศ",
+      "empty": "ไม่มี FAQ",
+      "error": "การดึงข้อมูล FAQ ล้มเหลว",
+      "addButton": "เพิ่ม FAQ ใหม่",
+      "editLink": "แก้ไข",
+      "deleteButton": "ลบ",
+      "deleteConfirmTitle": "ลบ FAQ",
+      "deleteConfirm": "จะลบ『{question}』 การดำเนินการนี้ไม่สามารถยกเลิกได้ คุณแน่ใจหรือไม่",
+      "deleteConfirmButton": "ลบ",
+      "deleteCancelButton": "ยกเลิก",
+      "deleteError": "การลบล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "filter": {
+        "keywordLabel": "ค้นหาคำสำคัญ",
+        "keywordPlaceholder": "คำศัพท์ที่อยู่ในคำถามหรือคำตอบ",
+        "categoryLabel": "หมวดหมู่",
+        "categoryAll": "ทั้งหมด",
+        "clearButton": "ล้างเงื่อนไข",
+        "noResults": "ไม่มี FAQ ที่ตรงกัน"
+      },
+      "pagination": {
+        "previousLabel": "ก่อนหน้า",
+        "nextLabel": "ถัดไป",
+        "pageStatus": "{current} / {total} หน้า"
+      }
+    },
+    "form": {
+      "createTitle": "สร้าง FAQ ใหม่",
+      "editTitle": "แก้ไข FAQ",
+      "notFound": "ไม่พบ FAQ",
+      "questionLabel": "คำถาม",
+      "questionPlaceholder": "โปรดป้อนคำถาม",
+      "categoryLabel": "หมวดหมู่",
+      "categoryPlaceholder": "โปรดเลือกหมวดหมู่",
+      "answerLabel": "คำตอบ",
+      "answerPlaceholder": "โปรดป้อนคำตอบ",
+      "language": {
+        "jaTab": "ภาษาญี่ปุ่น",
+        "enTab": "English",
+        "addButton": "เพิ่มภาษา",
+        "removeButton": "ลบภาษานี้",
+        "localeCodeLabel": "รหัสภาษา",
+        "localeCodePlaceholder": "ตัวอย่าง: th, vi, zh",
+        "localeDuplicateError": "โปรดป้อนรหัสภาษาที่ไม่ซ้ำกับภาษาอื่น"
+      },
+      "submitButton": "บันทึก",
+      "backToList": "กลับไปยังรายการ",
+      "submitError": "การบันทึกล้มเหลว โปรดลองอีกครั้งหลังจากนั้น",
+      "validation": {
+        "required": "ช่องนี้เป็นบังคับ"
+      }
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "การจัดการลิงก์",
+      "description": "คุณสามารถลงทะเบียน แก้ไข และลบลิงก์ธุรกิจสำหรับผู้จัดจำหน่ายในต่างประเทศได้",
+      "empty": "ไม่มีลิงก์",
+      "error": "การดึงลิงก์ล้มเหลว",
+      "addButton": "เพิ่มลิงก์ใหม่",
+      "editLink": "แก้ไข",
+      "deleteButton": "ลบ",
+      "deleteConfirmTitle": "การลบลิงก์",
+      "deleteConfirm": "ลบ '{title}' คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้ ซึ่งไม่สามารถยกเลิกได้",
+      "deleteConfirmButton": "ลบ",
+      "deleteCancelButton": "ยกเลิก",
+      "deleteError": "การลบล้มเหลว โปรดลองอีกครั้งหลังจากนั้น",
+      "categoryUnset": "ยังไม่ได้ตั้งค่า",
+      "manageCategoriesLink": "การจัดการหมวดหมู่",
+      "filter": {
+        "keywordLabel": "ค้นหาด้วยคำหลัก",
+        "keywordPlaceholder": "คำศัพท์ที่รวมอยู่ในชื่อเรื่อง URL หรือคำอธิบาย",
+        "categoryLabel": "หมวดหมู่หลัก",
+        "categoryAll": "หมวดหมู่หลักทั้งหมด",
+        "categoryUnsetOption": "ยังไม่ได้ตั้งค่า (ไม่ได้กำหนดหมวดหมู่)",
+        "subCategoryLabel": "หมวดหมู่ย่อย",
+        "subCategoryAll": "หมวดหมู่ย่อยทั้งหมด",
+        "clearButton": "ล้างเงื่อนไข",
+        "noResults": "ไม่มีลิงก์ที่ตรงกัน"
+      },
+      "pagination": {
+        "previousLabel": "ก่อนหน้า",
+        "nextLabel": "ถัดไป",
+        "pageStatus": "{current} / {total} หน้า"
+      }
+    },
+    "form": {
+      "createTitle": "สร้างลิงก์ใหม่",
+      "editTitle": "แก้ไขลิงก์",
+      "notFound": "ไม่พบลิงก์",
+      "titleLabel": "ชื่อเรื่อง",
+      "titlePlaceholder": "โปรดป้อนชื่อเรื่อง",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "หมวดหมู่หลัก",
+      "categoryPlaceholder": "โปรดเลือกหมวดหมู่หลัก",
+      "subCategoryLabel": "หมวดหมู่ย่อย (ไม่บังคับ)",
+      "subCategoryPlaceholder": "กรุณาเลือกหมวดหมู่ย่อย",
+      "subCategoryNoneOption": "ไม่มีหมวดหมู่ย่อย",
+      "descriptionLabel": "คำอธิบาย（ไม่บังคับ）",
+      "descriptionPlaceholder": "กรุณากรอกคำอธิบายเพิ่มเติม",
+      "submitButton": "บันทึก",
+      "backToList": "กลับไปยังรายการ",
+      "submitError": "บันทึกล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+      "validation": {
+        "required": "ช่องนี้เป็นข้อมูลที่จำเป็น",
+        "invalidUrl": "กรุณากรอก URL ที่ถูกต้อง"
+      }
+    },
+    "categories": {
+      "list": {
+        "title": "การจัดการหมวดหมู่ลิงค์",
+        "description": "คุณสามารถเพิ่ม แก้ไข ลบ และเรียงลำดับหมวดหมู่หลักและหมวดหมู่ย่อยของลิงค์ได้",
+        "backToLinks": "กลับไปยังการจัดการคอลเลกชันลิงค์",
+        "empty": "ไม่มีหมวดหมู่",
+        "error": "ไม่สามารถดึงหมวดหมู่ได้",
+        "addParentButton": "เพิ่มหมวดหมู่หลัก",
+        "addChildButton": "เพิ่มหมวดหมู่ย่อย",
+        "editButton": "แก้ไข",
+        "moveUpButton": "ขึ้น",
+        "moveDownButton": "ลง",
+        "linkCountLabel": "จำนวนลิงค์: {count}รายการ",
+        "subCategoryCountLabel": "จำนวนหมวดหมู่ย่อย: {count}รายการ",
+        "delete": {
+          "buttonLabel": "ลบ",
+          "confirmTitle": "ลบหมวดหมู่",
+          "confirmMessage": "จะลบ『{name}』ออก การดำเนินการนี้ไม่สามารถยกเลิกได้ คุณแน่ใจหรือไม่",
+          "confirmButtonLabel": "ลบออก",
+          "cancelButtonLabel": "ยกเลิก",
+          "errorMessage": "ลบล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+          "blockedByLinks": "ไม่สามารถลบ『{name}』ได้เพราะมี{count}ลิงค์ที่เชื่อมโยง โปรดเปลี่ยนหมวดหมู่ของลิงค์ที่เกี่ยวข้องก่อน",
+          "blockedByChildren": "ไม่สามารถลบ『{name}』ได้เพราะมีหมวดหมู่ย่อย{count}หมวดหมู่อยู่ โปรดลบหมวดหมู่ย่อยก่อน"
+        }
+      },
+      "form": {
+        "createParentTitle": "เพิ่มหมวดหมู่หลัก",
+        "createChildTitle": "เพิ่มหมวดหมู่ย่อย",
+        "editTitle": "แก้ไขหมวดหมู่",
+        "nameLabel": "ชื่อ",
+        "namePlaceholder": "กรุณากรอกชื่อหมวดหมู่",
+        "submitButton": "บันทึก",
+        "cancelButton": "ยกเลิก",
+        "submitError": "บันทึกล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
+        "language": {
+          "jaTab": "ภาษาญี่ปุ่น",
+          "enTab": "English",
+          "addButton": "เพิ่มภาษา",
+          "removeButton": "ลบภาษานี้",
+          "localeCodeLabel": "รหัสภาษา",
+          "localeCodePlaceholder": "ตัวอย่าง: th, vi, zh",
+          "localeDuplicateError": "โปรดป้อนรหัสภาษาที่ไม่ซ้ำกับภาษาอื่น"
+        },
+        "validation": {
+          "required": "จำเป็นต้องกรอกข้อมูลในช่องนี้",
+          "nameConflict": "มีหมวดหมู่ที่มีชื่อเดียวกันอยู่แล้วในลำดับชั้นเดียวกัน"
+        }
+      }
+    },
+    "preview": {
+      "triggerButton": "ตรวจสอบการแสดงผลของผู้ยื่นคำขอ",
+      "dialogTitle": "ตัวอย่างการแสดงผล: รายการลิงก์สำหรับผู้ยื่นคำขอ",
+      "localeTabJa": "ภาษาญี่ปุ่น",
+      "localeTabEn": "English",
+      "error": "ไม่สามารถรับตัวอย่างการแสดงผลได้"
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "การจัดการสัตหนี",
+      "description": "คุณสามารถตรวจสอบสัตหนีต่างประเทศที่ลงทะเบียนและจัดการบัญชีผู้ยื่นคำขอ",
+      "empty": "ไม่มีการลงทะเบียนสัตหนี",
+      "noResults": "ไม่พบสัตหนีที่เกี่ยวข้อง",
+      "error": "ไม่สามารถรับข้อมูลสัตหนีได้",
+      "addButton": "เพิ่มสัตหนีใหม่",
+      "searchLabel": "ค้นหาตามชื่อบริษัท/รหัสสัตหนี",
+      "searchPlaceholder": "โปรดป้อนชื่อบริษัทหรือรหัสสัตหนี",
+      "nameHeader": "ชื่อบริษัท",
+      "countryHeader": "ประเทศ",
+      "companyCodeHeader": "รหัสสัตหนี",
+      "applicantUserCountHeader": "จำนวนบัญชีผู้ยื่นคำขอ",
+      "detailLink": "รายละเอียด",
+      "detailLinkLabel": "แสดงรายละเอียดของ {name}"
+    },
+    "form": {
+      "createTitle": "สร้างสัตหนีใหม่",
+      "editTitle": "แก้ไขสัตหนี",
+      "notFound": "ไม่พบบริษัท",
+      "backToList": "กลับไปยังรายการ",
+      "nameLabel": "ชื่อบริษัท",
+      "namePlaceholder": "โปรดป้อนชื่อบริษัท",
+      "countryLabel": "ประเทศ",
+      "countryPlaceholder": "โปรดเลือกประเทศ",
+      "companyCodeLabel": "รหัสสัตหนี",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "โปรดป้อนในรูปแบบ \"รหัสประเทศ ISO ตัวพิมพ์เล็ก 2 หลัก-daiso-ชื่อประเทศ (ตัวพิมพ์เล็ก คั่นด้วยเครื่องหมายขีดกลาง)\" (ตัวอย่าง: vn-daiso-vietnam) สามารถใช้เฉพาะตัวอักษรภาษาอังกฤษตัวพิมพ์เล็ก ตัวเลข และเครื่องหมายขีดกลางเท่านั้น และรหัสต้องไม่ซ้ำกับสัตหนีอื่น",
+      "submitButton": "บันทึก",
+      "submitError": "บันทึกไม่สำเร็จ โปรดรอสักครู่แล้วลองใหม่",
+      "validation": {
+        "required": "จำเป็นต้องกรอกข้อมูลในช่องนี้",
+        "companyCodeFormat": "ใช้เฉพาะตัวอักษรภาษาอังกฤษตัวพิมพ์เล็ก ตัวเลข และเครื่องหมายขีดกลางเท่านั้น ห้ามใช้เครื่องหมายขีดกลางที่จุดเริ่มต้น จุดสิ้นสุด หรือเครื่องหมายขีดกลางที่ต่อเนื่องกัน (ตัวอย่าง: vn-daiso-vietnam)",
+        "companyCodeDuplicate": "รหัสบริษัทนี้ถูกใช้งานแล้ว"
+      }
+    },
+    "detail": {
+      "backToList": "กลับไปที่รายการ",
+      "editButton": "แก้ไขข้อมูลบริษัท",
+      "countryLabel": "ประเทศ",
+      "companyCodeLabel": "รหัสบริษัท",
+      "applicantUsersTitle": "บัญชีผู้สมัคร",
+      "addApplicantUserButton": "เพิ่มบัญชีผู้สมัคร",
+      "applicantUsersEmpty": "ไม่มีบัญชีผู้สมัครที่ลงทะเบียน",
+      "emailHeader": "ที่อยู่อีเมล",
+      "displayNameHeader": "ชื่อที่แสดง",
+      "statusHeader": "สถานะการทำงาน",
+      "activeStatus": "ทำงาน",
+      "inactiveStatus": "ไม่ทำงาน",
+      "editLink": "แก้ไข"
+    },
+    "applicantUserForm": {
+      "createTitle": "สร้างบัญชีผู้สมัครใหม่",
+      "editTitle": "แก้ไขบัญชีผู้สมัคร",
+      "notFound": "ไม่พบบัญชี",
+      "backToDetail": "กลับไปที่รายละเอียดบริษัท",
+      "emailLabel": "ที่อยู่อีเมล",
+      "emailPlaceholder": "กรุณากรอกที่อยู่อีเมล",
+      "displayNameLabel": "ชื่อที่แสดง",
+      "displayNamePlaceholder": "กรุณากรอกชื่อที่แสดง",
+      "passwordLabel": "รหัสผ่าน",
+      "passwordCreatePlaceholder": "กรุณากรอกรหัสผ่านเริ่มต้น (8 ตัวอักษรขึ้นไป)",
+      "passwordEditPlaceholder": "กรุณากรอกเฉพาะเมื่อต้องการเปลี่ยน (8 ตัวอักษรขึ้นไป)",
+      "passwordCreateHint": "เจ้าหน้าที่ helpdesk จะตั้งรหัสผ่านเริ่มต้นโดยตรง",
+      "passwordEditHint": "หากบันทึกโดยปล่อยให้ว่างเปล่า รหัสผ่านที่มีอยู่จะไม่ถูกเปลี่ยน",
+      "preferredLocaleLabel": "ภาษาการแจ้งเตือน",
+      "preferredLocaleOptions": {
+        "en": "ภาษาอังกฤษ",
+        "ja": "ภาษาญี่ปุ่น",
+        "zh": "ภาษาจีน",
+        "ko": "ภาษาเกาหลี",
+        "th": "ภาษาไทย",
+        "vi": "ภาษาเวียดนาม",
+        "id": "ภาษาอินโดนีเซีย",
+        "ms": "ภาษามลายู",
+        "tl": "ภาษาตากาล็อก"
+      },
+      "submitButton": "บันทึก",
+      "submitError": "การบันทึกล้มเหลว กรุณาลองใหม่อีกครั้งหลังจากรอสักครู่",
+      "validation": {
+        "required": "จำเป็นต้องกรอกรายการนี้",
+        "emailInvalid": "กรุณาป้อนที่อยู่อีเมลที่ถูกต้อง",
+        "emailDuplicate": "ที่อยู่อีเมลนี้ถูกใช้งานแล้ว",
+        "passwordTooShort": "กรุณาป้อนรหัสผ่านอย่างน้อย 8 ตัวอักษร"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "ปิดใช้งาน",
+      "activateButton": "เปิดใช้งานอีกครั้ง",
+      "deactivateConfirmTitle": "ปิดใช้งานบัญชี",
+      "activateConfirmTitle": "เปิดใช้งานบัญชีอีกครั้ง",
+      "deactivateConfirm": "จะปิดใช้งาน『{name}』 เมื่อปิดใช้งานแล้ว จะไม่สามารถเข้าสู่ระบบด้วยบัญชีนี้ได้ คุณแน่ใจหรือไม่",
+      "activateConfirm": "จะเปิดใช้งาน『{name}』อีกครั้ง เมื่อเปิดใช้งานแล้ว จะสามารถเข้าสู่ระบบได้อีกครั้ง คุณแน่ใจหรือไม่",
+      "deactivateConfirmButton": "ดำเนินการปิดใช้งาน",
+      "activateConfirmButton": "ดำเนินการเปิดใช้งานอีกครั้ง",
+      "cancelButton": "ยกเลิก",
+      "toggleError": "การอัปเดตล้มเหลว กรุณารอสักครู่แล้วลองอีกครั้ง"
+    },
+    "import": {
+      "title": "การลงทะเบียนผู้จัดจำหน่ายเป็นกลุ่มใน CSV",
+      "description": "อัปโหลดไฟล์ CSV ที่มี 3 คอลัมน์ \"name,country,companyCode\" (บรรทัดแรกคือบรรทัดส่วนหัว) แล้วคุณจะสามารถยืนยันผลลัพธ์การตรวจสอบของแต่ละบรรทัดก่อนการลงทะเบียน หากมีข้อผิดพลาดในแม้แต่บรรทัดเดียว จะไม่มีการลงทะเบียนใดๆ",
+      "backToList": "กลับไปยังรายการ",
+      "templateDownloadLabel": "ดาวน์โหลดแม่แบบ CSV",
+      "fileInputLabel": "เลือกไฟล์ CSV",
+      "uploadButtonLabel": "ตรวจสอบและอัปโหลด",
+      "uploadingLabel": "กำลังตรวจสอบ...",
+      "resultsHeading": "ผลลัพธ์การตรวจสอบ",
+      "rowNumberHeader": "เลขที่บรรทัด",
+      "rowNameHeader": "ชื่อบริษัท",
+      "rowCompanyCodeHeader": "รหัสผู้จัดจำหน่าย",
+      "rowStatusHeader": "ผลการตัดสิน",
+      "rowErrorsHeader": "รายละเอียดข้อผิดพลาด",
+      "statusOk": "สามารถลงทะเบียนได้",
+      "statusError": "ข้อผิดพลาด",
+      "successMessage": "ลงทะเบียน '{count}' บริษัทแล้ว",
+      "noFileSelected": "กรุณาเลือกไฟล์ CSV",
+      "genericError": "การตรวจสอบและลงทะเบียนล้มเหลว กรุณารอสักครู่แล้วลองอีกครั้ง",
+      "errors": {
+        "required": "ชื่อบริษัท ประเทศ และรหัสผู้จัดจำหน่ายเป็นข้อมูลที่จำเป็น",
+        "companyCodeFormat": "รูปแบบรหัสผู้จัดจำหน่ายไม่ถูกต้อง (อนุญาตเฉพาะอักษรต่ำ ตัวเลข และเครื่องหมายขีด ห้ามใช้เครื่องหมายขีดที่จุดเริ่มต้น จุดสิ้นสุด หรือติดต่อกัน)",
+        "invalidCountry": "รหัสประเทศไม่ถูกต้อง",
+        "companyCodeDuplicate": "รหัสผู้จัดจำหน่ายนี้ลงทะเบียนแล้ว",
+        "duplicateInFile": "รหัสผู้จัดจำหน่ายซ้ำกันในไฟล์ CSV นี้"
+      },
+      "fileErrors": {
+        "empty": "ไฟล์ CSV ว่างเปล่า",
+        "headerMismatch": "บรรทัดส่วนหัวไม่ตรงกับ \"name,country,companyCode\"",
+        "noDataRows": "ไม่มีแถวข้อมูล"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "เลือกทั้งหมด",
+      "selectRowLabel": "เลือก '{name}'",
+      "selectedCount": "เลือก '{count}' บริษัท",
+      "bulkDeactivateButton": "ปิดใช้งานบริษัทจำหน่ายที่เลือกไว้เป็นชุด",
+      "confirmTitle": "ปิดใช้งานบริษัทจำหน่ายเป็นชุด",
+      "confirmMessage": "จะปิดใช้งานบัญชีผู้สมัครที่มีผลบังคับใช้ทั้งหมด '{userCount}' บัญชีที่เป็นของ '{companyCount}' บริษัทที่เลือกไว้ บัญชีที่ปิดใช้งานจะไม่สามารถเข้าสู่ระบบได้อีกต่อไป ยืนยันหรือไม่",
+      "confirmButton": "ดำเนินการปิดใช้งานเป็นชุด",
+      "cancelButton": "ยกเลิก",
+      "successMessage": "ปิดใช้งานบัญชีผู้สมัคร '{count}' บัญชีแล้ว",
+      "errorMessage": "การปิดใช้งานเป็นชุดล้มเหลว โปรดลองอีกครั้งหลังจากนั้น"
+    }
+  },
+  "dashboard": {
+    "inquiryForm": {
+      "title": "การสอบถาม",
+      "description": "ส่งการสอบถามใหม่"
+    },
+    "inquiryList": {
+      "title": "รายการการสอบถาม",
+      "description": "คุณสามารถยืนยันสถานะของการสอบถามที่บริษัทของคุณส่งไป"
+    },
+    "documents": {
+      "title": "แบ่งปันเอกสาร",
+      "description": "คุณสามารถยืนยันเอกสารงานที่เผยแพร่โดยสำนักงานใหญ่"
+    },
+    "salesFloorMeeting": {
+      "title": "ประชุมพื้นขาย (วิดีโอ)",
+      "description": "คุณสามารถยืนยันวัสดุวิดีโอของการประชุมพื้นขาย"
+    },
+    "manuals": {
+      "title": "คู่มือ",
+      "description": "คุณสามารถยืนยันคู่มือการปฏิบัติงาน"
+    },
+    "pop": {
+      "title": "POP",
+      "description": "คุณสามารถยืนยันเอกสาร POP ที่จุดขาย"
+    },
+    "links": {
+      "title": "ลิงก์",
+      "description": "คุณสามารถยืนยันลิงก์ไปยังเว็บไซต์ภายในและภายนอกที่ใช้ในงาน"
+    },
+    "faq": {
+      "title": "คำถามที่พบบ่อย",
+      "description": "คุณสามารถยืนยันคำถามที่พบบ่อยและคำตอบ"
+    },
+    "announcementsPreview": {
+      "title": "ข่าวสารล่าสุด",
+      "empty": "ไม่มีข่าวสารที่สามารถแสดงได้",
+      "error": "ล้มเหลวในการดึงข่าวสาร",
+      "viewAll": "ดูรายการข่าวสารทั้งหมด"
+    },
+    "announcementSummary": {
+      "title": "สถานะการตอบสนองต่อข่าวสาร",
+      "unconfirmedLabel": "ยังไม่ได้ยืนยัน",
+      "actionPendingLabel": "ยืนยันแล้ว ยังไม่จำหน่ายผลิตภัณฑ์",
+      "confirmedCompleteLabel": "ยืนยันแล้ว การจำหน่ายสมบูรณ์",
+      "categoryBreakdownTitle": "จำนวนตามประเภท",
+      "unit": "รายการ",
+      "totalCaption": "ข่าวสารที่เกี่ยวข้อง {count} รายการ",
+      "empty": "ไม่มีข่าวสารที่สามารถแสดงได้",
+      "error": "ล้มเหลวในการดึงสถานะการตอบสนองต่อข่าวสาร",
+      "viewAll": "ดูรายการข่าวสารทั้งหมด"
+    },
+    "reminderAnnouncements": {
+      "title": "การเตือนจากฝั่งญี่ปุ่น"
+    },
+    "priorityInquiriesPreview": {
+      "title": "การสอบถามที่จำเป็นต้องตอบสนอง",
+      "empty": "ไม่มีการสอบถามที่จำเป็นต้องตอบสนอง",
+      "error": "ล้มเหลวในการดึงข้อมูลการสอบถาม",
+      "viewAll": "ดูรายการสอบถามทั้งหมด"
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "งานสนับสนุน",
+      "reference": "ข้อมูลอ้างอิง"
+    },
+    "kpi": {
+      "title": "สถานะการสอบถาม",
+      "unresolvedLabel": "จำนวนเคสที่ยังไม่ได้แก้ไขทั้งบริษัท",
+      "unclaimedLabel": "ยังไม่ได้เริ่มดำเนินการ",
+      "todayLabel": "รับวันนี้",
+      "todayUnresolvedCaption": "ซึ่ง {count} เคสยังไม่ได้แก้ไข",
+      "todayNone": "ไม่มีการรับสอบถามวันนี้",
+      "none": "ไม่มีเคสที่ยังไม่ได้แก้ไข",
+      "viewAll": "ดูรายการสอบถามทั้งหมด",
+      "error": "ล้มเหลวในการดึงข้อมูลจำนวนเคสที่ยังไม่ได้แก้ไข"
+    },
+    "companies": {
+      "description": "คุณสามารถจัดการรายการของบริษัทจำหน่ายต่างประเทศที่ลงทะเบียนและบัญชีผู้สมัคร"
+    },
+    "salesFloorMeeting": {
+      "description": "คุณสามารถจัดการเอกสารการประชุมพื้นขายรายเดือน"
+    },
+    "pop": {
+      "description": "คุณสามารถจัดการเอกสาร POP รายเดือน"
+    },
+    "templates": {
+      "title": "การจัดการแม่แบบ",
+      "description": "คุณสามารถจัดการแม่แบบที่ใช้สำหรับการตอบกลับ"
+    },
+    "announcements": {
+      "title": "การจัดการข้อมูลสารสนเทศ",
+      "description": "คุณสามารถดูรายการ สร้าง แก้ไข และลบข้อมูลสารสนเทศได้"
+    },
+    "documents": {
+      "title": "การจัดการเอกสาร",
+      "description": "คุณสามารถดูรายการ สร้าง แก้ไข และลบเอกสารได้"
+    },
+    "manuals": {
+      "title": "คู่มือ",
+      "description": "คุณสามารถดูคู่มือการทำงานได้"
+    },
+    "inquiryForm": {
+      "title": "การสอบถาม",
+      "description": "คุณสามารถสร้างการสอบถามใหม่ได้"
+    },
+    "links": {
+      "title": "ลิงก์",
+      "description": "คุณสามารถดูลิงก์ไปยังเว็บไซต์ภายในและภายนอกที่ใช้ในการทำงาน"
+    },
+    "faq": {
+      "title": "คำถามที่พบบ่อย",
+      "description": "คุณสามารถดูคำถามที่พบบ่อยและคำตอบได้"
+    }
+  },
+  "common": {
+    "comingSoon": "กำลังเตรียมการ"
+  },
+  "announcements": {
+    "list": {
+      "title": "ข้อมูลสารสนเทศ",
+      "description": "คุณสามารถดูรายการประกาศจากสำนักงานใหญ่ได้",
+      "empty": "ไม่มีข้อมูลสารสนเทศ",
+      "error": "ล้มเหลวในการดึงข้อมูลสารสนเทศ",
+      "noResults": "ไม่มีข้อมูลสารสนเทศที่ตรงกัน"
+    },
+    "categories": {
+      "maintenance": "บำรุงรักษา",
+      "policy": "การเปลี่ยนแปลงนโยบาย",
+      "incident": "ข้อมูลความผิดพลาด",
+      "other": "อื่นๆ"
+    },
+    "detail": {
+      "publishedAtLabel": "วันที่เผยแพร่",
+      "categoryLabel": "ประเภท",
+      "notFound": "ไม่พบประกาศ",
+      "error": "ไม่สามารถดึงข้อมูลประกาศได้",
+      "backToList": "กลับไปที่รายการ",
+      "attachmentsSectionTitle": "ไฟล์แนบ"
+    },
+    "actionRequiredBadge": "ต้องดำเนินการ",
+    "reminderBadge": "ได้รับการแจ้งเตือน",
+    "dueDateLabel": "กำหนดเวลาดำเนินการ",
+    "overdueBadge": "เกินกำหนด",
+    "selfReport": {
+      "confirmed": "ยืนยันแล้ว",
+      "completeButton": "ทำเครื่องหมายว่าดำเนินการเสร็จสิ้น",
+      "completed": "ดำเนินการเสร็จสิ้น",
+      "confirmerLabel": "ชื่อผู้ยืนยัน",
+      "confirmerPlaceholder": "ชื่อของผู้ยืนยัน",
+      "confirmerAddButton": "บันทึกเป็นผู้ยืนยัน",
+      "confirmerError": "บันทึกไม่สำเร็จ โปรดลองใหม่อีกครั้งในภายหลัง",
+      "confirmersLabel": "ผู้ยืนยัน"
+    },
+    "filter": {
+      "keywordLabel": "ค้นหาตามชื่อเรื่อง",
+      "keywordPlaceholder": "คำศัพท์ที่อยู่ในชื่อเรื่อง",
+      "categoryLabel": "ประเภท",
+      "categoryAll": "ทุกประเภท",
+      "actionRequiredLabel": "ต้องการดำเนินการหรือไม่",
+      "actionRequiredAll": "ทั้งหมด",
+      "actionRequiredTrue": "เฉพาะที่ต้องดำเนินการ",
+      "clearButton": "ล้าง"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "เอกสาร",
+      "description": "คุณสามารถตรวจสอบเอกสารธุรกิจที่สำนักงานใหญ่เผยแพร่ได้",
+      "empty": "ไม่มีเอกสาร",
+      "error": "ไม่สามารถดึงข้อมูลเอกสารได้",
+      "downloadLink": "ดาวน์โหลด",
+      "openOriginalLink": "เปิดเอกสารต้นฉบับ",
+      "fileSizeLabel": "ขนาดไฟล์",
+      "uploadedAtLabel": "วันที่อัปโหลด",
+      "newBadge": "ใหม่",
+      "googlePreviewError": "ไม่สามารถแสดงตัวอย่างได้",
+      "googlePreviewHint": "หากไม่สามารถแสดงตัวอย่างได้ โปรดเปิดเอกสารต้นฉบับ"
+    },
+    "search": {
+      "keywordLabel": "ค้นหาตามคำสำคัญ",
+      "keywordPlaceholder": "วลีที่มีอยู่ในชื่อหรือคำอธิบาย",
+      "clearButton": "ล้างเงื่อนไข",
+      "noResults": "ไม่มีเอกสารที่ตรงกัน",
+      "subCategoryLabel": "กรองตามหมวดหมู่รอง",
+      "subCategoryAll": "หมวดหมู่รองทั้งหมด"
+    },
+    "categories": {
+      "documentCount": "{count}รายการ"
+    },
+    "category": {
+      "notFound": "ไม่พบเอกสาร",
+      "backToCategories": "กลับไปยังรายการหมวดหมู่หลัก"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "การประชุมพื้นที่ขาย (วิดีโอ)",
+      "pageDescription": "คุณสามารถดูเอกสารการประชุมพื้นที่ขายของแต่ละเดือน"
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "คุณสามารถดูเอกสาร POP ของแต่ละเดือน"
+    },
+    "departments": {
+      "seasonalEvent": "ฤดูกาล/กิจกรรมพิเศษ",
+      "storage": "ที่เก็บของ/การจัดระเบียบ",
+      "kitchen": "ครัว/เครื่องใช้ในครัว",
+      "cleaning": "การทำความสะอาด/การซัก",
+      "beautyHealth": "ความงาม/สุขภาพ",
+      "stationery": "เครื่องเขียน/สำนักงาน",
+      "interior": "ตกแต่งภายใน/สินค้าขนาดเล็ก",
+      "craftDiy": "งานหัตถกรรม/DIY",
+      "food": "อาหาร/ขนมหวาน",
+      "other": "อื่นๆ",
+      "localPopsList": "Local POPs List",
+      "globalPopsList": "Global POPs List",
+      "endPopsList": "End POPs List"
+    },
+    "filter": {
+      "departmentLabel": "กรองตามหมวดหมู่",
+      "departmentAll": "หมวดหมู่ทั้งหมด",
+      "yearLabel": "กรองตามปี",
+      "yearAll": "ทุกปี",
+      "monthLabel": "กรองตามเดือน",
+      "monthAll": "ทุกเดือน",
+      "clearButton": "ล้างเงื่อนไข",
+      "noResults": "ไม่มีเอกสารที่ตรงกัน"
+    },
+    "list": {
+      "error": "ไม่สามารถดึงเอกสารได้",
+      "empty": "ไม่มีเอกสาร",
+      "downloadLink": "ดาวน์โหลด",
+      "openOriginalLink": "เปิดเอกสารต้นฉบับ",
+      "googlePreviewError": "ไม่สามารถแสดงตัวอย่างได้",
+      "googlePreviewHint": "หากไม่แสดงตัวอย่าง โปรดเปิดเอกสารต้นฉบับ",
+      "addButton": "เพิ่มใหม่",
+      "editButton": "แก้ไข",
+      "expandButton": "ขยายการแสดงผล"
+    },
+    "delete": {
+      "buttonLabel": "ลบ",
+      "confirmTitle": "ลบเอกสาร",
+      "confirmMessage": "จะลบเอกสาร『{heading}』 การดำเนินการนี้ไม่สามารถยกเลิกได้ คุณแน่ใจหรือไม่?",
+      "confirmButton": "ลบ",
+      "cancelButton": "ยกเลิก",
+      "errorMessage": "การลบล้มเหลว โปรดลองอีกครั้งหลังจากผ่านไประยะเวลาสักครู่"
+    },
+    "form": {
+      "departmentLabel": "หมวดหมู่",
+      "yearLabel": "ปี",
+      "monthLabel": "เดือน",
+      "sourceTypeLabel": "วิธีการลงทะเบียน",
+      "sourceTypeUploadOption": "อัปโหลดไฟล์",
+      "sourceTypeGoogleOption": "ลงทะเบียนลิงก์การแชร์ Google เอกสาร",
+      "fileLabel": "ไฟล์",
+      "fileHint": "โปรดเลือกไฟล์ PDF (สูงสุด 20MB)",
+      "removeFileButtonLabel": "ลบ",
+      "googleUrlLabel": "URL ลิงก์การแชร์",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "วางลิงก์การแชร์เอกสาร/สเปรดชีต/สไลด์ Google",
+      "targetingLabel": "ขอบเขตการเผยแพร่",
+      "targetingAllOption": "เผยแพร่ต่อสาธารณะทั่วไป",
+      "targetingCountriesOption": "ระบุประเทศ/ภูมิภาคเฉพาะ",
+      "targetingCompaniesOption": "ระบุตัวแทนจำหน่ายเฉพาะ",
+      "countriesLabel": "ประเทศ/ภูมิภาคที่เป้าหมาย",
+      "companiesLabel": "ตัวแทนจำหน่ายที่เป้าหมาย",
+      "submitButton": "บันทึก",
+      "cancelButton": "ยกเลิก",
+      "requiredError": "นี่คือฟิลด์ที่จำเป็น",
+      "countriesRequiredError": "โปรดเลือกอย่างน้อย 1 รายการ",
+      "companiesRequiredError": "โปรดเลือกอย่างน้อย 1 รายการ",
+      "fileRequiredError": "โปรดเลือกไฟล์",
+      "sizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (20MB)",
+      "typeNotAllowed": "ไม่สามารถลงทะเบียนไฟล์นอก PDF ได้",
+      "readFailed": "การอ่านไฟล์ล้มเหลว",
+      "googleUrlInvalid": "โปรดป้อนลิงก์การแชร์เอกสาร/สเปรดชีต/สไลด์ Google ที่ถูกต้อง",
+      "requiredIndicator": "จำเป็น",
+      "submitError": "การบันทึกล้มเหลว โปรดลองอีกครั้งหลังจากผ่านไประยะเวลาสักครู่"
+    }
+  },
+  "inquiryForm": {
+    "title": "แบบฟอร์มการสอบถาม",
+    "description": "โปรดกรอกรายการแบบเลือกและข้อความอิสระ จากนั้นส่งการสอบถาม",
+    "requiredMark": "จำเป็น",
+    "backToList": "กลับไปยังรายการ",
+    "loadError": "ล้มเหลวในการรับข้อมูลที่จำเป็นสำหรับการแสดงแบบฟอร์ม โปรดลองใหม่อีกครั้งหลังจากผ่านไประยะเวลาหนึ่ง",
+    "fields": {
+      "title": {
+        "label": "ชื่อเรื่อง",
+        "placeholder": "โปรดป้อนชื่อเรื่อง (หัวข้อ)"
+      },
+      "category": {
+        "label": "ประเภทโครงการ",
+        "placeholder": "โปรดเลือกประเภทโครงการ"
+      },
+      "urgency": {
+        "label": "ระดับเร่งด่วน",
+        "placeholder": "โปรดเลือกระดับเร่งด่วน"
+      },
+      "storeRegion": {
+        "label": "ร้านค้า/地域",
+        "placeholder": "โปรดป้อนร้านค้า/地域"
+      },
+      "originalText": {
+        "label": "เนื้อหาของการสอบถาม (คำอธิบายอิสระ)",
+        "placeholder": "โปรดป้อนเนื้อหาของการสอบถาม",
+        "remainingCharacters": "เหลือ {count} อักขระ"
+      },
+      "originalLanguage": {
+        "label": "ภาษาดั้งเดิม",
+        "placeholder": "โปรดเลือกภาษาของข้อความต้นฉบับ"
+      },
+      "companyName": {
+        "label": "ชื่อบริษัท",
+        "placeholder": "โปรดป้อนชื่อบริษัท"
+      },
+      "country": {
+        "label": "ประเทศ",
+        "placeholder": "โปรดเลือกประเทศ"
+      },
+      "targetCompany": {
+        "label": "บริษัทที่ต้องการ",
+        "placeholder": "โปรดเลือกบริษัทที่จะลงทะเบียนการสอบถาม",
+        "empty": "ไม่มีบริษัทที่สามารถเลือกได้ที่ลงทะเบียน โปรดติดต่อผู้ดูแลระบบ"
+      },
+      "attachments": {
+        "label": "ไฟล์แนบ",
+        "hint": "คุณสามารถแนบไฟล์รูปภาพหรือ PDF ได้ สูงสุด 5MB ต่อไฟล์ และสูงสุด 5 ไฟล์",
+        "removeButton": "ลบ"
+      }
+    },
+    "options": {
+      "category": {
+        "defect": "ข้อบกพร่อง",
+        "order": "เกี่ยวกับการสั่งซื้อ",
+        "system": "เกี่ยวกับระบบ",
+        "other": "อื่น ๆ"
+      },
+      "urgency": {
+        "high": "สูง",
+        "medium": "กลาง",
+        "low": "ต่ำ"
+      },
+      "country": {
+        "JP": "ญี่ปุ่น",
+        "US": "สหรัฐอเมริกา",
+        "CN": "จีน",
+        "KR": "เกาหลี",
+        "TH": "ไทย",
+        "VN": "เวียดนาม",
+        "ID": "อินโดนีเซีย",
+        "PH": "ฟิลิปปินส์",
+        "MY": "มาเลเซีย",
+        "SG": "สิงคโปร์",
+        "IN": "อินเดีย",
+        "TW": "ไต้หวัน",
+        "HK": "ฮ่องกง",
+        "GB": "สหราชอาณาจักร",
+        "FR": "ฝรั่งเศส",
+        "DE": "เยอรมนี",
+        "IT": "อิตาลี",
+        "ES": "สเปน",
+        "AU": "ออสเตรเลีย",
+        "BR": "บราซิล",
+        "MX": "เม็กซิโก",
+        "CA": "แคนาดา",
+        "AE": "สหรัฐอเมริกาแห่งเอมิเรตส์"
+      },
+      "originalLanguage": {
+        "ja": "ภาษาญี่ปุ่น",
+        "en": "ภาษาอังกฤษ",
+        "zh": "ภาษาจีน",
+        "ko": "ภาษาเกาหลี",
+        "th": "ภาษาไทย",
+        "vi": "ภาษาเวียดนาม",
+        "id": "ภาษาอินโดนีเซีย",
+        "ms": "ภาษามลายู",
+        "tl": "ภาษาตากาล็อก",
+        "hi": "ภาษาฮินดี",
+        "fr": "ภาษาฝรั่งเศส",
+        "de": "ภาษาเยอรมัน",
+        "es": "ภาษาสเปน",
+        "pt": "ภาษาโปรตุเกส",
+        "ar": "ภาษาอาหรับ"
+      }
+    },
+    "validation": {
+      "required": "จำเป็นต้องกรอกรายการนี้",
+      "maxLength": "เกินขีดจำกัดจำนวนตัวอักษร",
+      "targetCompanyRequired": "โปรดเลือกบริษัทเป้าหมาย",
+      "attachments": {
+        "sizeExceeded": "ขนาดไฟล์เกิน 5MB",
+        "typeNotAllowed": "รูปแบบไฟล์ไม่ได้รับอนุญาต (รูปภาพหรือ PDF เท่านั้น)",
+        "countExceeded": "เกินขีดจำกัดจำนวนไฟล์ที่สามารถแนบได้ (5 ไฟล์)",
+        "readFailed": "ไม่สามารถอ่านไฟล์ได้ โปรดลองอีกครั้ง"
+      }
+    },
+    "submit": {
+      "button": "ส่ง",
+      "submitting": "กำลังส่ง...",
+      "successTitle": "ส่งเสร็จเรียบร้อยแล้ว",
+      "successDescription": "เราได้รับคำสอบถามของคุณแล้ว",
+      "errorTitle": "ส่งไม่สำเร็จ",
+      "errorDescription": "กรุณารอสักครู่แล้วลองใหม่อีกครั้ง",
+      "viewInquiryListLink": "ดูรายการสอบถาม"
+    }
+  },
+  "inquiryList": {
+    "list": {
+      "title": "รายการสอบถาม",
+      "description": "คุณสามารถยืนยันรายการและสถานะการตอบสนองของคำสอบถามที่บริษัทของคุณส่งแล้ว",
+      "empty": "ไม่มีคำสอบถาม",
+      "error": "ไม่สามารถดึงข้อมูลคำสอบถาม",
+      "untitled": "(ไม่มีชื่อเรื่อง)",
+      "newBadge": "ใหม่"
+    },
+    "status": {
+      "new": "ใหม่",
+      "in_progress": "กำลังดำเนินการ",
+      "resolved": "แก้ไขแล้ว"
+    },
+    "detail": {
+      "createdAtLabel": "วันที่และเวลาที่ส่ง",
+      "categoryLabel": "ประเภทของเรื่อง",
+      "urgencyLabel": "ระดับความเร่งด่วน",
+      "storeRegionLabel": "พื้นที่",
+      "statusLabel": "สถานะการตอบสนอง",
+      "originalTextLabel": "คำอธิบายเพิ่มเติม",
+      "translatedTextLabel": "คำอธิบายเพิ่มเติม (แปล / แปลอัตโนมัติ)",
+      "translationUnavailable": "การแปลอัตโนมัติล้มเหลวหรือยังไม่ได้ดำเนินการ ด้านล่างนี้คือข้อความต้นฉบับ",
+      "submittedByLabel": "ข้อมูลผู้ยื่น",
+      "notFound": "ไม่พบคำสอบถาม",
+      "error": "ไม่สามารถดึงข้อมูลคำสอบถาม",
+      "backToList": "กลับไปยังรายการ",
+      "inProgressBadge": "กำลังดำเนินการ",
+      "attachmentsLabel": "ไฟล์แนบ",
+      "untitled": "(ไม่มีชื่อเรื่อง)"
+    },
+    "history": {
+      "title": "ประวัติการตอบสนอง",
+      "empty": "ยังไม่มีประวัติการตอบสนอง",
+      "error": "ไม่สามารถดึงข้อมูลประวัติการตอบสนอง",
+      "replyLabel": "ตอบกลับ",
+      "claimedLabel": "เริ่มการตอบสนอง",
+      "claimedMessage": "กำลังดำเนินการ",
+      "releasedLabel": "ยกเลิกการตอบสนอง",
+      "releasedMessage": "ยกเลิกสถานะการตอบสนองแล้ว",
+      "statusChangedLabel": "เปลี่ยนสถานะ",
+      "requesterMessageLabel": "ข้อความที่ส่ง"
+    },
+    "message": {
+      "sectionTitle": "ส่งข้อความเพิ่มเติม",
+      "bodyLabel": "เนื้อหาข้อความ",
+      "bodyPlaceholder": "กรุณากรอกข้อความ",
+      "submitButton": "ส่ง",
+      "submitting": "กำลังส่ง...",
+      "successMessage": "ส่งข้อความเรียบร้อย",
+      "error": "การส่งล้มเหลว โปรดลองใหม่หลังจากรอสักครู่",
+      "attachments": {
+        "label": "ไฟล์แนบ",
+        "hint": "สามารถแนบรูปภาพหรือ PDF ได้สูงสุด 5 MB ต่อไฟล์ และสูงสุด 5 ไฟล์",
+        "removeButton": "ลบ",
+        "sizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (5 MB)",
+        "typeNotAllowed": "ไฟล์ชนิดนี้ไม่อนุญาต (เฉพาะรูปภาพหรือ PDF)",
+        "countExceeded": "จำนวนไฟล์แนบเกินขีดจำกัด (5 ไฟล์)",
+        "readFailed": "ไม่สามารถอ่านไฟล์ได้ โปรดลองใหม่"
+      }
+    },
+    "filter": {
+      "keywordLabel": "ค้นหาตามคำสำคัญ",
+      "keywordPlaceholder": "คำศัพท์ที่อยู่ในชื่อหรือคำอธิบาย",
+      "statusLabel": "สถานะการดำเนิน",
+      "statusAll": "สถานะการดำเนินทั้งหมด",
+      "categoryLabel": "ประเภทเรื่อง",
+      "categoryAll": "ประเภทเรื่องทั้งหมด",
+      "urgencyLabel": "ระดับความเร่งด่วน",
+      "urgencyAll": "ระดับความเร่งด่วนทั้งหมด",
+      "unreadOnlyLabel": "เฉพาะรายการใหม่",
+      "clearButton": "ล้าง",
+      "noResults": "ไม่มีการสอบถามที่ตรงกัน"
+    },
+    "stats": {
+      "title": "สรุปสถานะการดำเนิน",
+      "scopeAll": "มีข้อมูลทั้งหมด",
+      "scopeFiltered": "{count} รายการที่ถูกกรองเป็นเป้าหมาย",
+      "unreadLabel": "รายการใหม่ที่ยังไม่ได้ตรวจสอบ",
+      "unreadCaption": "จำนวนรายการที่ยังไม่ได้ตรวจสอบการตอบกลับหรือการเปลี่ยนแปลงสถานะจาก Help Desk",
+      "unreadNone": "ไม่มีการอัปเดตที่ยังไม่ได้ตรวจสอบ",
+      "highUrgencyAlert": "มี {count} รายการที่ยังไม่ได้แก้ไขและมีระดับความเร่งด่วน \"สูง\"",
+      "awaitingResponseLabel": "รอคำตอบ",
+      "awaitingResponseCaption": "จำนวนรายการที่รอการตอบกลับหรือเริ่มการดำเนิน",
+      "staleAwaitingResponseAlert": "{count} รายการรอคำตอบมากกว่า 72 ชั่วโมง",
+      "unresolvedLabel": "ยังไม่ได้แก้ไข",
+      "unresolvedCaption": "จำนวนรายการที่มีสถานะ \"ใหม่\" หรือ \"กำลังดำเนิน\"",
+      "statusBreakdownTitle": "รายละเอียดสถานะการดำเนิน",
+      "urgencyBreakdownTitle": "จำนวนรายการที่ยังไม่ได้แก้ไขตามระดับความเร่งด่วน",
+      "urgencyBreakdownEmpty": "ไม่มีการสอบถามที่ยังไม่ได้แก้ไข",
+      "unit": "รายการ",
+      "percent": "{value}%",
+      "tableToggle": "ดูในตาราง",
+      "tableHeaderItem": "รายการ",
+      "tableHeaderCount": "จำนวน",
+      "tableHeaderShare": "อัตราส่วน"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "เวลาที่ค้างคำขอที่ยังไม่แก้ไข",
+      "lt24h": "ภายใน 24 ชั่วโมง",
+      "h24to72": "24 ถึง 72 ชั่วโมง",
+      "d3to7": "3 ถึง 7 วัน",
+      "gte7d": "7 วันขึ้นไป",
+      "over24h": "มากกว่า 24 ชั่วโมง",
+      "over72h": "มากกว่า 72 ชั่วโมง",
+      "empty": "ไม่มีคำขอที่ยังไม่แก้ไข",
+      "oldest": "คำขอที่เก่าที่สุดที่ยังไม่แก้ไข: {hours} ชั่วโมงหลังจากได้รับ"
+    },
+    "category": {
+      "title": "การแบ่งประเภทคำขอ",
+      "empty": "ไม่มีคำขอที่เกี่ยวข้อง"
+    },
+    "country": {
+      "title": "จำนวนคำขอที่ยังไม่แก้ไขตามประเทศ",
+      "others": "อีก {count} ประเทศ",
+      "empty": "ไม่มีคำขอที่ยังไม่แก้ไข"
+    },
+    "intake": {
+      "receivedTitle": "จำนวนคำขอที่รับในช่วง 7 วันที่ผ่านมา",
+      "submittedTitle": "จำนวนคำขอที่ส่งในช่วง 7 วันที่ผ่านมา",
+      "empty": "ไม่มีคำขอที่เกี่ยวข้องในช่วง 7 วันที่ผ่านมา",
+      "columnLabel": "{date}: {count} คำขอ"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "เฉพาะคำขอที่ยังไม่แก้ไข",
+      "agingLabel": "เวลาที่ค้าง",
+      "agingAll": "เวลาที่ค้างทั้งหมด",
+      "receivedOnLabel": "วันที่รับ"
+    }
+  },
+  "links": {
+    "list": {
+      "title": "รวมลิงก์",
+      "description": "คุณสามารถตรวจสอบลิงก์ไปยังไซต์ภายในและภายนอกที่ใช้ในการดำเนินงานตามหมวดหมู่",
+      "empty": "ไม่มีลิงก์",
+      "error": "ล้มเหลวในการรับลิงก์"
+    },
+    "uncategorized": "ยังไม่มีการจัดหมวดหมู่",
+    "item": {
+      "opensInNewTab": "(เปิดในแท็บใหม่)",
+      "newBadge": "ใหม่"
+    },
+    "search": {
+      "keywordLabel": "ค้นหาด้วยคำหลัก",
+      "keywordPlaceholder": "คำศัพท์ที่รวมอยู่ในชื่อ คำอธิบาย หรือ URL",
+      "clearButton": "ล้างเงื่อนไข",
+      "noResults": "ไม่พบลิงก์ที่สอดคล้องกัน"
+    }
+  },
+  "faq": {
+    "list": {
+      "title": "คำถามที่พบบ่อย",
+      "description": "คุณสามารถตรวจสอบคำถามที่พบบ่อยและคำตอบตามหมวดหมู่",
+      "empty": "ไม่มี FAQ",
+      "error": "ไม่สามารถดึง FAQ ได้",
+      "updatedLabel": "วันที่อัปเดต",
+      "newBadge": "ใหม่"
+    },
+    "categories": {
+      "inquiry_method": "วิธีการติดต่อ",
+      "form_input": "กรอกแบบฟอร์ม",
+      "status": "สถานะการตอบสนอง",
+      "other": "อื่นๆ"
+    },
+    "search": {
+      "keywordLabel": "ค้นหาตามคำหลัก",
+      "keywordPlaceholder": "วลีที่รวมอยู่ในคำถามหรือคำตอบ",
+      "noResults": "ไม่มี FAQ ที่ตรงกัน",
+      "clearButton": "ล้างเงื่อนไข"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "การจัดการหมวดหมู่เอกสาร",
+      "description": "คุณสามารถเพิ่ม แก้ไข ลบ และจัดเรียงหมวดหมู่หลัก/รองของเอกสารได้",
+      "backToDocuments": "กลับไปที่การจัดการเอกสาร",
+      "empty": "ไม่มีหมวดหมู่",
+      "error": "ไม่สามารถดึงหมวดหมู่ได้",
+      "addParentButton": "เพิ่มหมวดหมู่หลัก",
+      "addChildButton": "เพิ่มหมวดหมู่รอง",
+      "editButton": "แก้ไข",
+      "moveUpButton": "ขึ้น",
+      "moveDownButton": "ลง",
+      "documentCountLabel": "จำนวนเอกสาร: {count}รายการ",
+      "subCategoryCountLabel": "จำนวนหมวดหมู่รอง: {count}รายการ",
+      "targetingAllLabel": "เปิดเผยสู่สาธารณะทั่วไป",
+      "targetingCountriesLabel": "ประเทศและภูมิภาคเป้าหมาย",
+      "targetingCompaniesLabel": "บริษัทจำหน่ายเป้าหมาย",
+      "delete": {
+        "buttonLabel": "ลบ",
+        "confirmTitle": "ลบหมวดหมู่",
+        "confirmMessage": "จะลบ『{name}』ปฏิบัติการนี้ไม่สามารถคืนค่าได้ คุณแน่ใจหรือไม่",
+        "confirmButtonLabel": "ลบ",
+        "cancelButtonLabel": "ยกเลิก",
+        "errorMessage": "ไม่สามารถลบได้ โปรดลองใหม่อีกครั้งหลังจากรอสักครู่",
+        "blockedByDocuments": "ไม่สามารถลบ『{name}』ได้เนื่องจากมีเอกสาร {count}รายการเชื่อมโยง โปรดเปลี่ยนหมวดหมู่ของเอกสารเป้าหมายก่อน",
+        "blockedByChildren": "ไม่สามารถลบ『{name}』ได้เนื่องจากมีหมวดหมู่รอง {count}รายการ โปรดลบหมวดหมู่รองก่อน"
+      }
+    },
+    "form": {
+      "createParentTitle": "เพิ่มหมวดหมู่หลัก",
+      "createChildTitle": "เพิ่มหมวดหมู่รอง",
+      "editTitle": "แก้ไขหมวดหมู่",
+      "nameLabel": "ชื่อ",
+      "namePlaceholder": "กรุณาป้อนชื่อหมวดหมู่",
+      "targetingLabel": "ช่วงการเปิดเผย",
+      "targetingAllOption": "เปิดเผยต่อสาธารณะทั่วไป",
+      "targetingCountriesOption": "ระบุประเทศ/ภูมิภาคเฉพาะ",
+      "targetingCompaniesOption": "ระบุบริษัทจำหน่ายเฉพาะ",
+      "countriesLabel": "ประเทศ/ภูมิภาค（สามารถเลือกหลายรายการ）",
+      "companiesLabel": "บริษัทจำหน่าย（สามารถเลือกหลายรายการ）",
+      "submitButton": "บันทึก",
+      "cancelButton": "ยกเลิก",
+      "submitError": "การบันทึกล้มเหลว กรุณารอสักครู่แล้วลองใหม่",
+      "language": {
+        "jaTab": "ภาษาญี่ปุ่น",
+        "enTab": "English",
+        "addButton": "เพิ่มภาษา",
+        "removeButton": "ลบภาษานี้",
+        "localeCodeLabel": "รหัสภาษา",
+        "localeCodePlaceholder": "ตัวอย่าง: th, vi, zh",
+        "localeDuplicateError": "กรุณากรอกรหัสภาษาที่ไม่ซ้ำกับภาษาอื่น"
+      },
+      "validation": {
+        "required": "項目นี้เป็นสิ่งจำเป็น",
+        "nameConflict": "มีหมวดหมู่ที่มีชื่อเดียวกันอยู่แล้วในชั้นเดียวกัน",
+        "countriesRequired": "กรุณาเลือกอย่างน้อยหนึ่งประเทศ/ภูมิภาค",
+        "companiesRequired": "กรุณาเลือกอย่างน้อยหนึ่งบริษัทจำหน่าย"
+      }
+    }
+  },
+  "manuals": {
+    "list": {
+      "title": "คู่มือ",
+      "description": "คุณสามารถค้นหาและตรวจสอบคู่มือการดำเนินงานตามหมวดหมู่และวันที่",
+      "empty": "ไม่มีคู่มือ",
+      "error": "ไม่สามารถดึงข้อมูลคู่มือได้",
+      "downloadLink": "ดาวน์โหลด",
+      "openOriginalLink": "เปิดเอกสารต้นฉบับ",
+      "revisionLabel": "วันที่ปรับปรุง"
+    },
+    "categories": {
+      "storeOperations": "การดำเนินงานร้านค้า",
+      "registerPayment": "เครื่องคิดเงิน/การชำระเงิน",
+      "inventoryOrdering": "การสั่งซื้อ/การจัดการสินค้าคงคลัง",
+      "salesFloorDisplay": "การสร้างพื้นที่ขาย/การจัดวางสินค้า",
+      "promotion": "การส่งเสริมการขาย/การดำเนินการ POP",
+      "safetyHygiene": "ความปลอดภัย/อนามัย/การป้องกันภัยพิบัติ",
+      "hrTraining": "บุคลากร/แรงงาน/การฝึกอบรม",
+      "systemOperation": "การดำเนินงานระบบ",
+      "accounting": "การบัญชี",
+      "other": "อื่น ๆ"
+    },
+    "filter": {
+      "keywordLabel": "ค้นหาโดยคำหลัก",
+      "keywordPlaceholder": "วลีที่มีอยู่ในชื่อหรือคำอธิบาย",
+      "categoryLabel": "หมวดหมู่",
+      "categoryAll": "หมวดหมู่ทั้งหมด",
+      "yearLabel": "ปี",
+      "yearAll": "ทุกปี",
+      "monthLabel": "เดือน",
+      "monthAll": "ทุกเดือน",
+      "clearButton": "ล้างเงื่อนไข",
+      "noResults": "ไม่มีคู่มือที่ตรงกัน"
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "การจัดการคู่มือ",
+      "description": "คุณสามารถอัปโหลด แก้ไข และลบคู่มือการทำงาน (PDF) สำหรับตัวแทนจำหน่ายต่างประเทศ",
+      "newButton": "เพิ่มคู่มือใหม่",
+      "editLink": "แก้ไข",
+      "empty": "ไม่มีคู่มือ",
+      "error": "ล้มเหลวในการรับคู่มือ",
+      "categoryLabel": "หมวดหมู่",
+      "revisionLabel": "วันที่แก้ไข",
+      "sourceTypeUploadBadge": "อัปโหลด",
+      "sourceTypeGoogleBadge": "ลิงก์ Google",
+      "targetingAllLabel": "เปิดเผยต่อสาธารณะทั่วไป",
+      "targetingCountriesLabel": "ประเทศ/অঞ्চลที่กำหนดเป้าหมาย",
+      "targetingCompaniesLabel": "ตัวแทนจำหน่ายที่กำหนดเป้าหมาย",
+      "filter": {
+        "keywordLabel": "ค้นหาคำหลัก",
+        "keywordPlaceholder": "คำศัพท์ที่รวมอยู่ในชื่อเรื่องหรือคำอธิบาย",
+        "categoryLabel": "หมวดหมู่",
+        "categoryAll": "หมวดหมู่ทั้งหมด",
+        "yearLabel": "ปี",
+        "yearAll": "ทุกปี",
+        "monthLabel": "เดือน",
+        "monthAll": "ทุกเดือน",
+        "clearButton": "ล้างเงื่อนไข",
+        "noResults": "ไม่มีคู่มือที่ตรงกัน"
+      }
+    },
+    "form": {
+      "createTitle": "สร้างคู่มือใหม่",
+      "editTitle": "แก้ไขคู่มือ",
+      "notFound": "ไม่พบคู่มือ",
+      "backToList": "กลับไปยังรายการ",
+      "titleLabel": "ชื่อเรื่อง",
+      "titlePlaceholder": "กรุณาใส่ชื่อเรื่องของคู่มือ",
+      "descriptionLabel": "คำอธิบาย",
+      "descriptionPlaceholder": "ป้อนคำอธิบายเพิ่มเติม (ไม่บังคับ)",
+      "language": {
+        "jaTab": "ภาษาญี่ปุ่น",
+        "enTab": "English"
+      },
+      "categoryLabel": "หมวดหมู่",
+      "categoryPlaceholderOption": "โปรดเลือก",
+      "yearLabel": "ปี",
+      "monthLabel": "เดือน",
+      "sourceTypeLabel": "วิธีการลงทะเบียน",
+      "sourceTypeUploadOption": "อัปโหลดไฟล์",
+      "sourceTypeGoogleOption": "ลงทะเบียนลิงก์แชร์เอกสาร Google",
+      "fileLabel": "ไฟล์ PDF",
+      "fileHint": "สามารถอัปโหลดไฟล์ PDF เท่านั้น สูงสุด 20MB",
+      "removeButtonLabel": "ลบ",
+      "googleUrlLabel": "ลิงก์แชร์เอกสาร Google",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "โปรดตั้งค่าการแชร์เอกสาร/สเปรดชีต/สไลด์ Google เป็น \"ผู้ที่มีลิงก์สามารถดูได้\" ก่อนลงทะเบียน",
+      "targetingLabel": "ขอบเขตการเผยแพร่",
+      "targetingAllOption": "เผยแพร่สาธารณะทั่วไป",
+      "targetingCountriesOption": "ระบุประเทศ/地域เฉพาะ",
+      "targetingCompaniesOption": "ระบุผู้จัดจำหน่ายเฉพาะ",
+      "countriesLabel": "ประเทศ/เขตพื้นที่ (เลือกหลายรายการได้)",
+      "companiesLabel": "ผู้จัดจำหน่าย (เลือกหลายรายการได้)",
+      "submitButton": "บันทึก",
+      "submitError": "การบันทึกล้มเหลว โปรดลองใหม่อีกครั้งในภายหลัง",
+      "requiredIndicator": "จำเป็น",
+      "validation": {
+        "required": "ฟิลด์นี้จำเป็น",
+        "countriesRequired": "โปรดเลือกประเทศ/เขตพื้นที่อย่างน้อยหนึ่งแห่ง",
+        "companiesRequired": "โปรดเลือกผู้จัดจำหน่ายอย่างน้อยหนึ่งราย",
+        "fileRequired": "โปรดเลือกไฟล์ PDF",
+        "sizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (20MB)",
+        "typeNotAllowed": "รูปแบบไฟล์ที่ไม่อนุญาต (เฉพาะ PDF เท่านั้น)",
+        "readFailed": "การอ่านไฟล์ล้มเหลว โปรดลองใหม่อีกครั้ง",
+        "googleUrlInvalid": "โปรดป้อนลิงก์แชร์เอกสาร/สเปรดชีต/สไลด์ Google",
+        "categoryRequired": "โปรดเลือกหมวดหมู่"
+      }
+    },
+    "delete": {
+      "buttonLabel": "ลบ",
+      "confirmTitle": "ลบคู่มือ",
+      "confirmMessage": "จะลบ '{title}' คุณแน่ใจหรือว่าต้องการดำเนินการนี้ ซึ่งไม่สามารถยกเลิกได้?",
+      "confirmButton": "ลบ",
+      "cancelButton": "ยกเลิก",
+      "errorMessage": "การลบล้มเหลว โปรดลองใหม่อีกครั้งในภายหลัง"
+    }
+  }
+}

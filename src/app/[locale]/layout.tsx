@@ -13,7 +13,7 @@ export default async function LocaleLayout({
   params,
 }: LocaleLayoutProps) {
   const { locale } = await params;
-  if (!routing.locales.includes(locale as "ja" | "en")) {
+  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
     notFound();
   }
   const messages = await getMessages({ locale });

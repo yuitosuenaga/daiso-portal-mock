@@ -2,13 +2,20 @@
 
 import { useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
+import type { SupportedLocale } from "@/lib/constants/locales";
 
-type SupportedLocale = "ja" | "en";
+/** 各言語の自称表記。UIの翻訳対象ではなく、どの言語を選んでいても同じ表記で並べる */
+export const LOCALE_LABELS: Record<SupportedLocale, string> = {
+  ja: "日本語",
+  en: "English",
+  pt: "Português",
+  th: "ไทย",
+  "zh-TW": "繁體中文",
+  zh: "简体中文",
+  vi: "Tiếng Việt",
+};
 
-const LOCALES: { value: SupportedLocale; label: string }[] = [
-  { value: "ja", label: "日本語" },
-  { value: "en", label: "English" },
-];
+const LOCALES = Object.entries(LOCALE_LABELS) as [SupportedLocale, string][];
 
 export function LanguageSwitcher() {
   const locale = useLocale() as SupportedLocale;
@@ -20,25 +27,17 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div className="flex items-center gap-1">
-      {LOCALES.map((item, index) => (
-        <span key={item.value} className="flex items-center">
-          {index > 0 && (
-            <span className="mx-1 text-muted-foreground text-base">|</span>
-          )}
-          <button
-            onClick={() => handleChange(item.value)}
-            className={`text-base px-1 py-0.5 rounded transition-colors ${
-              locale === item.value
-                ? "font-semibold text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            aria-pressed={locale === item.value}
-          >
-            {item.label}
-          </button>
-        </span>
+    <select
+      value={locale}
+      onChange={(event) => handleChange(event.target.value as SupportedLocale)}
+      aria-label="Language"
+      className="text-base px-1 py-0.5 rounded border border-border bg-background font-semibold text-primary cursor-pointer"
+    >
+      {LOCALES.map(([value, label]) => (
+        <option key={value} value={value} lang={value}>
+          {label}
+        </option>
       ))}
-    </div>
+    </select>
   );
 }

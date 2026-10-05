@@ -222,12 +222,19 @@ describe("notifyAnnouncementPublished", () => {
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
       { email: "a@example.com", preferredLocale: "ja" },
       { email: "b@example.com", preferredLocale: "en" },
-      { email: "c@example.com", preferredLocale: "th" },
+      { email: "c@example.com", preferredLocale: "ko" },
+      { email: "d@example.com", preferredLocale: "th" },
     ] as never);
     vi.mocked(sendMail).mockResolvedValue(undefined);
 
     await notifyAnnouncementPublished("announcement-1");
 
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "d@example.com",
+        text: expect.stringContaining("http://localhost:3000/th/announcements/announcement-1"),
+      })
+    );
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "a@example.com",
@@ -240,7 +247,7 @@ describe("notifyAnnouncementPublished", () => {
         text: expect.stringContaining("http://localhost:3000/en/announcements/announcement-1"),
       })
     );
-    // "th"はUIルーティング上のロケールではないため、en（20か国以上の受信者にとっての共通語）のパスにフォールバックする
+    // "ko"はUIルーティング上のロケールではないため、en（20か国以上の受信者にとっての共通語）のパスにフォールバックする
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "c@example.com",
@@ -249,7 +256,7 @@ describe("notifyAnnouncementPublished", () => {
     );
   });
 
-  it("en翻訳のみ登録されたお知らせのpreferredLocale: th宛通知は、en本文・enの詳細リンクで送信される", async () => {
+  it("en翻訳のみ登録されたお知らせのpreferredLocale: th宛通知は、en本文・thの詳細リンクで送信される", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
       announcementRecord({
         translations: [
@@ -274,7 +281,7 @@ describe("notifyAnnouncementPublished", () => {
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "c@example.com",
-        text: expect.stringContaining("http://localhost:3000/en/announcements/announcement-1"),
+        text: expect.stringContaining("http://localhost:3000/th/announcements/announcement-1"),
       })
     );
   });

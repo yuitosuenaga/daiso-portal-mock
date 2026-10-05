@@ -1,0 +1,1505 @@
+{
+  "login": {
+    "applicantTitle": "Đăng nhập Đại lý bán hàng nước ngoài",
+    "helpdeskTitle": "Đăng nhập phía Daiso Nhật Bản",
+    "emailLabel": "Địa chỉ email",
+    "emailPlaceholder": "Vui lòng nhập địa chỉ email",
+    "passwordLabel": "Mật khẩu",
+    "passwordPlaceholder": "Vui lòng nhập mật khẩu",
+    "submit": "Đăng nhập",
+    "submitting": "Đang đăng nhập…",
+    "errorInvalidCredentials": "Địa chỉ email hoặc mật khẩu không chính xác.",
+    "validation": {
+      "emailRequired": "Vui lòng nhập địa chỉ email",
+      "passwordRequired": "Vui lòng nhập mật khẩu"
+    },
+    "switchToHelpdeskLogin": "Chuyển sang đăng nhập phía Daiso Nhật Bản",
+    "switchToApplicantLogin": "Chuyển sang đăng nhập Đại lý bán hàng nước ngoài"
+  },
+  "header": {
+    "portalName": "Cổng thông tin vận hành nước ngoài",
+    "screenName": "Màn hình Đại lý bán hàng nước ngoài",
+    "logout": "Đăng xuất"
+  },
+  "helpdeskHeader": {
+    "portalName": "Cổng thông tin vận hành nước ngoài",
+    "screenName": "Màn hình phía Daiso Nhật Bản",
+    "logout": "Đăng xuất"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "Điều hướng Bàn trợ giúp",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "home": "Bảng điều khiển",
+    "inquiryForm": "Liên hệ",
+    "inquiries": "Quản lý liên hệ",
+    "templates": "Quản lý mẫu",
+    "links": "Bộ sưu tập liên kết",
+    "faq": "Câu hỏi thường gặp",
+    "announcements": "Quản lý thông báo",
+    "documents": "Quản lý tài liệu",
+    "companies": "Quản lý nhà phân phối",
+    "salesFloorMeeting": "Cuộc họp khu bán hàng (Video)",
+    "pop": "POP",
+    "manuals": "Hướng dẫn sử dụng"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "Quản lý tài liệu",
+      "description": "Bạn có thể tải lên, chỉnh sửa và xóa các tài liệu công việc (PDF) cho các nhà phân phối nước ngoài.",
+      "empty": "Không có tài liệu nào",
+      "error": "Không thể tải các tài liệu",
+      "addButton": "Thêm tài liệu mới",
+      "editLink": "Chỉnh sửa",
+      "deleteButton": "Xóa",
+      "deleteConfirmTitle": "Xóa tài liệu",
+      "deleteConfirm": "Xóa ''{title}''. Hành động này không thể hoàn tác. Bạn có chắc chắn không?",
+      "deleteConfirmButton": "Xóa",
+      "deleteCancelButton": "Hủy",
+      "deleteError": "Xóa không thành công. Vui lòng thử lại sau.",
+      "targetingAllLabel": "Công khai toàn bộ",
+      "targetingCountriesLabel": "Quốc gia/khu vực đích",
+      "targetingCompaniesLabel": "Công ty phân phối đích",
+      "fileSizeLabel": "Kích thước tệp",
+      "uploadedAtLabel": "Ngày tải lên",
+      "sourceTypeUploadBadge": "Tải lên",
+      "sourceTypeGoogleBadge": "Liên kết Google",
+      "statusDraftBadge": "Bản nháp",
+      "statusPublishedBadge": "Đã công khai",
+      "filter": {
+        "keywordLabel": "Tìm kiếm từ khóa",
+        "keywordPlaceholder": "Từ có trong tiêu đề hoặc mô tả",
+        "sourceTypeLabel": "Phương thức đăng ký",
+        "sourceTypeAll": "Tất cả phương thức đăng ký",
+        "sourceTypeUpload": "Tải lên",
+        "sourceTypeGoogle": "Liên kết Google",
+        "scopeLabel": "Phạm vi công khai",
+        "scopeAll": "Tất cả phạm vi công khai",
+        "scopeAllScope": "Công khai toàn bộ",
+        "scopeCountries": "Theo quốc gia",
+        "scopeCompanies": "Theo công ty phân phối",
+        "clearButton": "Xóa điều kiện",
+        "noResults": "Không có tài liệu phù hợp",
+        "categoryLabel": "Phân loại chính",
+        "categoryAll": "Tất cả phân loại chính",
+        "categoryUnassigned": "Chưa được đặt",
+        "subCategoryLabel": "Phân loại phụ",
+        "subCategoryAll": "Tất cả phân loại phụ"
+      },
+      "pagination": {
+        "previousLabel": "Trước",
+        "nextLabel": "Tiếp theo",
+        "pageStatus": "{current} / {total} trang"
+      },
+      "categoryLabel": "Phân loại chính",
+      "subCategoryLabel": "Phân loại phụ",
+      "categoryUnassigned": "Chưa được đặt",
+      "manageCategoriesLink": "Quản lý danh mục"
+    },
+    "form": {
+      "createTitle": "Tạo tài liệu mới",
+      "editTitle": "Chỉnh sửa tài liệu",
+      "notFound": "Không tìm thấy tài liệu",
+      "backToList": "Quay lại danh sách",
+      "titleLabel": "Tiêu đề",
+      "titlePlaceholder": "Nhập tiêu đề tài liệu",
+      "descriptionLabel": "Mô tả",
+      "descriptionPlaceholder": "Nhập mô tả bổ sung (tùy chọn)",
+      "language": {
+        "jaTab": "Tiếng Nhật",
+        "enTab": "English",
+        "addButton": "Thêm ngôn ngữ",
+        "removeButton": "Xóa ngôn ngữ này",
+        "localeCodeLabel": "Mã ngôn ngữ",
+        "localeCodePlaceholder": "Ví dụ: th, vi, zh",
+        "localeDuplicateError": "Nhập mã ngôn ngữ không trùng với các ngôn ngữ khác"
+      },
+      "statusLabel": "Trạng thái công bố",
+      "statusDraftOption": "Bản nháp",
+      "statusPublishedOption": "Công bố",
+      "targetingLabel": "Phạm vi công bố",
+      "targetingAllOption": "Công bố cho tất cả",
+      "targetingCountriesOption": "Chỉ định các quốc gia/khu vực cụ thể",
+      "targetingCompaniesOption": "Chỉ định các công ty bán hàng cụ thể",
+      "countriesLabel": "Quốc gia/Khu vực (có thể chọn nhiều)",
+      "companiesLabel": "Công ty bán hàng (có thể chọn nhiều)",
+      "sourceTypeLabel": "Phương pháp đăng ký",
+      "sourceTypeUploadOption": "Tải lên tệp",
+      "sourceTypeGoogleOption": "Đăng ký liên kết chia sẻ Google Docs",
+      "fileLabel": "Tệp PDF",
+      "fileHint": "Chỉ hỗ trợ PDF, tối đa 20MB có thể tải lên.",
+      "currentFileLabel": "Tệp đã đăng ký",
+      "removeButtonLabel": "Xóa",
+      "googleUrlLabel": "Liên kết chia sẻ Google Docs",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Vui lòng đặt cài đặt chia sẻ của Google Docs/Bảng tính/Trang trình bày thành \"Bất kỳ ai có liên kết đều có thể xem\" trước khi đăng ký.",
+      "submitButton": "Lưu",
+      "submitError": "Lưu thất bại. Vui lòng chờ một lúc rồi thử lại.",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "countriesRequired": "Vui lòng chọn ít nhất một quốc gia/khu vực",
+        "companiesRequired": "Vui lòng chọn ít nhất một công ty bán hàng",
+        "fileRequired": "Vui lòng chọn tệp PDF",
+        "sizeExceeded": "Kích thước tệp vượt quá giới hạn (20MB)",
+        "typeNotAllowed": "Định dạng tệp không được phép (chỉ PDF)",
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại.",
+        "googleUrlInvalid": "Vui lòng nhập liên kết chia sẻ của Google Docs/Sheets/Slides",
+        "categoryRequired": "Vui lòng chọn danh mục chính",
+        "categoryPairInvalid": "Danh mục phụ được chọn không khớp với danh mục chính"
+      },
+      "detailTitle": "Chi tiết tài liệu",
+      "editButton": "Chỉnh sửa",
+      "cancelButton": "Hủy",
+      "downloadLink": "Tải xuống",
+      "openOriginalLink": "Mở tài liệu gốc",
+      "categoryLabel": "Danh mục chính",
+      "categoryPlaceholderOption": "Vui lòng chọn",
+      "subCategoryLabel": "Danh mục phụ",
+      "subCategoryNoneOption": "Không có"
+    }
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "Quản lý thông báo",
+      "description": "Bạn có thể tạo, chỉnh sửa và xóa thông báo cho các nhà phân phối nước ngoài.",
+      "empty": "Không có thông báo",
+      "error": "Không thể lấy thông báo",
+      "addButton": "Tạo thông báo mới",
+      "editLink": "Chỉnh sửa",
+      "createdBy": "Người tạo",
+      "deleteButton": "Xóa",
+      "deleteConfirmTitle": "Xóa thông báo",
+      "deleteConfirm": "Xóa『{title}』. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
+      "deleteConfirmButton": "Xóa",
+      "deleteCancelButton": "Hủy",
+      "deleteError": "Xóa không thành công. Vui lòng thử lại sau.",
+      "targetingAllLabel": "Thống nhất cho tất cả",
+      "targetingCountriesLabel": "Quốc gia nhận phân phối",
+      "actionRequiredBadge": "Yêu cầu xử lý",
+      "publishPeriodAlwaysLabel": "Luôn công khai",
+      "publishPeriodLabel": "Thời gian công khai",
+      "publishPeriodToSeparator": "~",
+      "dueDateLabel": "Hạn xử lý",
+      "statusBadgeDraft": "Bản nháp",
+      "filter": {
+        "keywordLabel": "Tìm kiếm theo tiêu đề",
+        "keywordPlaceholder": "Cụm từ chứa trong tiêu đề",
+        "categoryLabel": "Loại",
+        "categoryAll": "Tất cả các loại",
+        "actionRequiredLabel": "Cần hành động hay không",
+        "actionRequiredAll": "Tất cả",
+        "actionRequiredTrue": "Chỉ những mục cần hành động",
+        "actionRequiredFalse": "Chỉ những mục không cần hành động",
+        "statusLabel": "Trạng thái công bố",
+        "statusAll": "Tất cả",
+        "statusDraft": "Bản nháp",
+        "statusPublished": "Đã công bố",
+        "clearButton": "Xóa",
+        "noResults": "Không có thông báo nào phù hợp"
+      }
+    },
+    "form": {
+      "createTitle": "Tạo thông báo mới",
+      "editTitle": "Chỉnh sửa thông báo",
+      "notFound": "Không tìm thấy thông báo",
+      "backToList": "Quay lại danh sách",
+      "titleLabel": "Tiêu đề",
+      "titlePlaceholder": "Nhập tiêu đề thông báo",
+      "bodyLabel": "Nội dung",
+      "bodyPlaceholder": "Nhập nội dung thông báo",
+      "language": {
+        "jaTab": "Tiếng Nhật",
+        "enTab": "English",
+        "addButton": "Thêm ngôn ngữ",
+        "removeButton": "Xóa ngôn ngữ này",
+        "localeCodeLabel": "Mã ngôn ngữ",
+        "localeCodePlaceholder": "Ví dụ: th, vi, zh",
+        "localeDuplicateError": "Nhập mã ngôn ngữ không trùng lặp với các ngôn ngữ khác"
+      },
+      "categoryLabel": "Loại",
+      "categoryPlaceholder": "Chọn loại",
+      "statusLabel": "Trạng thái công bố",
+      "statusDraftOption": "Bản nháp",
+      "statusPublishedOption": "Đã công bố",
+      "targetingLabel": "Đối tượng gửi",
+      "targetingAllOption": "Toàn bộ thống nhất",
+      "targetingCountriesOption": "Chỉ định quốc gia/khu vực cụ thể",
+      "countriesLabel": "Quốc gia/Khu vực (có thể chọn nhiều)",
+      "countriesSearchPlaceholder": "Tìm kiếm theo tên quốc gia",
+      "countriesSelectAllButtonLabel": "Chọn tất cả",
+      "countriesClearAllButtonLabel": "Bỏ chọn tất cả",
+      "countriesSelectedCountLabel": " {count} mục đã chọn",
+      "countriesNoResultsMessage": "Không có quốc gia/khu vực nào phù hợp",
+      "countriesRemoveChipButtonLabel": "Xóa",
+      "submitButton": "Lưu",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "enAutoTranslateHint": "Nếu không nhập, sẽ được dịch tự động từ tiếng Nhật khi lưu.",
+      "translateFromJaButton": "Dịch tự động từ tiếng Nhật",
+      "translateFromJaPending": "Đang dịch...",
+      "translateFromJaError": "Dịch tự động không thành công. Vui lòng thử lại sau.",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "countriesRequired": "Vui lòng chọn một hoặc nhiều quốc gia/vùng",
+        "enBothOrNeither": "Vui lòng nhập cả tiêu đề và nội dung tiếng Anh, hoặc để trống cả hai",
+        "publishEndDateBeforeStart": "Ngày kết thúc phải là ngày sau hoặc bằng ngày bắt đầu",
+        "dueDateRequired": "Vui lòng nhập hạn xử lý nếu cần xử lý",
+        "attachmentsSizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
+        "attachmentsTypeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
+        "attachmentsCountExceeded": "Số lượng tệp đính kèm vượt quá giới hạn (5 tệp)",
+        "attachmentsReadFailed": "Không thể đọc tệp. Vui lòng thử lại."
+      },
+      "actionRequiredLabel": "Cần xử lý hay không",
+      "actionRequiredTrueOption": "Cần xử lý",
+      "actionRequiredFalseOption": "Không cần xử lý",
+      "sendEmailNotificationLabel": "Gửi email",
+      "sendEmailNotificationTrueOption": "Gửi email",
+      "sendEmailNotificationFalseOption": "Không gửi email",
+      "publishStartDateLabel": "Ngày bắt đầu công khai",
+      "publishEndDateLabel": "Ngày kết thúc công khai",
+      "publishPeriodHint": "Nếu không nhập, sẽ được công khai mọi lúc",
+      "dueDateLabel": "Hạn xử lý",
+      "attachmentsLabel": "Tệp đính kèm",
+      "attachmentsHint": "Bạn có thể tải lên trực tiếp hình ảnh hoặc PDF, tối đa 5MB cho mỗi tệp, tối đa 5 tệp.",
+      "attachmentsRemoveButtonLabel": "Xóa",
+      "linkedDocumentsLabel": "Liên kết tài liệu",
+      "linkedDocumentsPickButtonLabel": "Chọn từ tài liệu",
+      "linkedDocumentsEmptyMessage": "Không có tài liệu được liên kết",
+      "linkedDocumentRemoveButtonLabel": "Xóa",
+      "linkedDocumentsDialogTitle": "Chọn tài liệu",
+      "linkedDocumentsDialogConfirmLabel": "Xác nhận lựa chọn",
+      "linkedDocumentsDialogCancelLabel": "Hủy",
+      "linkedDocumentsDialogNoDocumentsMessage": "Không có tài liệu đã đăng ký",
+      "linkedDocumentsTargetingAllLabel": "Công khai toàn bộ",
+      "linkedDocumentsTargetingCountriesPrefixLabel": "Quốc gia/vùng đích:",
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "Công ty đích:"
+    },
+    "tracking": {
+      "confirmedCount": "Đã xác nhận {confirmed}/{total} người",
+      "completedCount": "Đã thực hiện {completed}/{total} công ty",
+      "dialogTitleConfirmed": "Người phụ trách chưa xác nhận",
+      "dialogTitleCompleted": "Công ty chưa thực hiện",
+      "columnContact": "Tên người phụ trách",
+      "columnEmail": "Địa chỉ email",
+      "columnCompany": "Công ty",
+      "columnCountry": "Quốc gia/Khu vực",
+      "remindButton": "Nhắc nhở",
+      "remindAllButton": "Nhắc nhở tất cả",
+      "remindSuccessMessage": "Đã gửi nhắc nhở",
+      "remindErrorMessage": "Gửi thất bại. Vui lòng thử lại sau.",
+      "alreadyRemindedLabel": "Đã gửi",
+      "allRespondedMessage": "Tất cả mọi người đã xử lý",
+      "confirmersButton": "Danh sách người xác nhận",
+      "dialogTitleConfirmers": "Danh sách người xác nhận",
+      "confirmersEmptyMessage": "Không có người xác nhận nào đã nhập tên",
+      "columnConfirmerName": "Tên người xác nhận",
+      "columnConfirmedAt": "Ngày giờ xác nhận"
+    }
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "Quản lý yêu cầu hỗ trợ",
+      "description": "Bạn có thể xem các yêu cầu hỗ trợ từ tất cả các công ty theo tình trạng xử lý và độ ưu tiên.",
+      "empty": "Không có yêu cầu hỗ trợ",
+      "error": "Không thể lấy yêu cầu hỗ trợ",
+      "noResults": "Không có yêu cầu hỗ trợ nào phù hợp với điều kiện",
+      "untitled": "(Chưa đặt tiêu đề)"
+    },
+    "detail": {
+      "notFound": "Không tìm thấy yêu cầu hỗ trợ",
+      "error": "Không thể lấy yêu cầu hỗ trợ",
+      "backToList": "Quay lại danh sách",
+      "attachmentsLabel": "Tệp đính kèm",
+      "translatedTextLabel": "Bản dịch (Dịch tự động)",
+      "originalTextLabel": "Văn bản gốc",
+      "translationUnavailable": "Dịch tự động thất bại hoặc chưa được thực hiện. Vui lòng kiểm tra văn bản gốc dưới đây.",
+      "retryTranslationButton": "Dịch lại",
+      "retryTranslationError": "Dịch lại thất bại. Vui lòng thử lại sau.",
+      "untitled": "(Chưa đặt tiêu đề)"
+    },
+    "filter": {
+      "companyLabel": "Tên công ty",
+      "companyPlaceholder": "Lọc theo tên công ty",
+      "keywordLabel": "Từ khóa",
+      "keywordPlaceholder": "Lọc theo từ khóa có trong nội dung",
+      "countryLabel": "Quốc gia",
+      "countryAll": "Tất cả các quốc gia",
+      "categoryLabel": "Loại vấn đề",
+      "categoryAll": "Tất cả các loại",
+      "statusLabel": "Tình trạng xử lý",
+      "statusAll": "Tất cả tình trạng xử lý",
+      "urgencyLabel": "Mức độ khẩn cấp",
+      "urgencyAll": "Tất cả mức độ khẩn cấp",
+      "unclaimedOnlyLabel": "Chỉ những vấn đề chưa được xử lý",
+      "claimedByLabel": "Người xử lý",
+      "claimedByAll": "Tất cả người xử lý",
+      "clearButton": "Xóa bộ lọc"
+    },
+    "claim": {
+      "inProgressBadge": "Đang xử lý",
+      "claimButton": "Bắt đầu xử lý",
+      "releaseButton": "Hủy xử lý",
+      "claimedByLabel": "Người xử lý",
+      "error": "Thao tác không thành công. Vui lòng thử lại sau.",
+      "notOwnerErrorMessage": "Không thể hủy vì người xử lý khác đang xử lý"
+    },
+    "stats": {
+      "title": "Tóm tắt tình trạng xử lý",
+      "scopeAll": "Áp dụng cho tất cả",
+      "scopeFiltered": "Áp dụng cho {count} vấn đề được lọc",
+      "unclaimedLabel": "Chưa được xử lý",
+      "unclaimedCaption": "Số lượng vấn đề chưa có ai bắt đầu xử lý",
+      "unclaimedNone": "Tất cả các vấn đề chưa được giải quyết đều có người xử lý",
+      "highUrgencyAlert": "{count} vấn đề có mức độ khẩn cấp \"Cao\"",
+      "staleUnclaimedAlert": "{count} vấn đề chưa được xử lý trong 24 giờ hoặc lâu hơn",
+      "mineLabel": "Vấn đề của tôi",
+      "mineCaption": "Số vấn đề chưa giải quyết đang được tôi xử lý",
+      "statusBreakdownTitle": "Phân tích tình trạng xử lý",
+      "staffLoadTitle": "Số vấn đề theo người xử lý",
+      "staffLoadEmpty": "Không có vấn đề nào đang được xử lý",
+      "staffOthers": "Còn {count} người khác",
+      "unit": "vấn đề",
+      "percent": "{value}%",
+      "tableToggle": "Xem dạng bảng",
+      "tableHeaderItem": "Mục",
+      "tableHeaderCount": "Số lượng",
+      "tableHeaderShare": "Tỷ lệ"
+    },
+    "status": {
+      "sectionTitle": "Thay đổi tình trạng xử lý",
+      "label": "Tình trạng xử lý",
+      "error": "Không thể thay đổi tình trạng xử lý. Vui lòng thử lại sau."
+    },
+    "reply": {
+      "sectionTitle": "Trả lời",
+      "templateLabel": "Mẫu",
+      "templatePlaceholder": "Chọn mẫu",
+      "noTemplates": "Không có mẫu cho danh mục này",
+      "bodyLabel": "Nội dung trả lời",
+      "bodyPlaceholder": "Vui lòng nhập nội dung trả lời",
+      "submitButton": "Gửi",
+      "submitting": "Đang gửi...",
+      "successMessage": "Đã ghi lại trả lời",
+      "error": "Gửi không thành công. Vui lòng thử lại sau.",
+      "attachments": {
+        "label": "Tệp đính kèm",
+        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB mỗi tệp, tối đa 5 tệp.",
+        "removeButton": "Xóa",
+        "sizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
+        "typeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
+        "countExceeded": "Vượt quá số lượng tệp tối đa có thể đính kèm (5 tệp)",
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại."
+      }
+    },
+    "history": {
+      "sectionTitle": "Lịch sử xử lý",
+      "empty": "Không có lịch sử xử lý",
+      "types": {
+        "claimed": "Đã đặt thành đang xử lý",
+        "released": "Đã hủy xử lý",
+        "status_changed": "Đã thay đổi trạng thái xử lý",
+        "reply_sent": "Đã gửi trả lời",
+        "requester_message": "Tin nhắn từ người yêu cầu"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "Quản lý mẫu",
+      "description": "Có thể đăng ký và quản lý nhiều mẫu trả lời theo danh mục.",
+      "addButton": "Thêm mẫu mới",
+      "editLink": "Chỉnh sửa",
+      "empty": "Không có mẫu",
+      "templateCount": "{count}"
+    },
+    "form": {
+      "createTitle": "Tạo mẫu mới",
+      "editTitle": "Chỉnh sửa mẫu",
+      "notFound": "Không tìm thấy mẫu",
+      "nameLabel": "Tên mẫu",
+      "namePlaceholder": "Vui lòng nhập tên mẫu",
+      "categoryLabel": "Loại vấn đề",
+      "categoryPlaceholder": "Vui lòng chọn loại vấn đề",
+      "bodyLabel": "Nội dung",
+      "bodyPlaceholder": "Vui lòng nhập nội dung mẫu",
+      "submitButton": "Lưu",
+      "backToList": "Quay lại danh sách",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "nameTooLong": "Tên mẫu phải được nhập trong vòng 40 ký tự"
+      }
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "Quản lý Câu hỏi thường gặp",
+      "description": "Bạn có thể đăng ký, chỉnh sửa và xóa các câu hỏi thường gặp và câu trả lời cho các nhà phân phối nước ngoài.",
+      "empty": "Không có câu hỏi thường gặp",
+      "error": "Không thể tải câu hỏi thường gặp",
+      "addButton": "Thêm câu hỏi thường gặp mới",
+      "editLink": "Chỉnh sửa",
+      "deleteButton": "Xóa",
+      "deleteConfirmTitle": "Xóa câu hỏi thường gặp",
+      "deleteConfirm": "Xóa『{question}』. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
+      "deleteConfirmButton": "Xóa",
+      "deleteCancelButton": "Hủy",
+      "deleteError": "Xóa không thành công. Vui lòng thử lại sau.",
+      "filter": {
+        "keywordLabel": "Tìm kiếm từ khóa",
+        "keywordPlaceholder": "Các từ có trong câu hỏi hoặc câu trả lời",
+        "categoryLabel": "Danh mục",
+        "categoryAll": "Tất cả",
+        "clearButton": "Xóa điều kiện",
+        "noResults": "Không có câu hỏi thường gặp phù hợp"
+      },
+      "pagination": {
+        "previousLabel": "Trước",
+        "nextLabel": "Tiếp theo",
+        "pageStatus": "{current} / {total} trang"
+      }
+    },
+    "form": {
+      "createTitle": "Tạo câu hỏi thường gặp mới",
+      "editTitle": "Chỉnh sửa câu hỏi thường gặp",
+      "notFound": "Không tìm thấy câu hỏi thường gặp",
+      "questionLabel": "Câu hỏi",
+      "questionPlaceholder": "Nhập câu hỏi",
+      "categoryLabel": "Danh mục",
+      "categoryPlaceholder": "Chọn danh mục",
+      "answerLabel": "Câu trả lời",
+      "answerPlaceholder": "Nhập câu trả lời",
+      "language": {
+        "jaTab": "Tiếng Nhật",
+        "enTab": "English",
+        "addButton": "Thêm ngôn ngữ",
+        "removeButton": "Xóa ngôn ngữ này",
+        "localeCodeLabel": "Mã ngôn ngữ",
+        "localeCodePlaceholder": "Ví dụ: th, vi, zh",
+        "localeDuplicateError": "Nhập mã ngôn ngữ không trùng lặp với các ngôn ngữ khác"
+      },
+      "submitButton": "Lưu",
+      "backToList": "Quay lại danh sách",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "validation": {
+        "required": "Trường này là bắt buộc"
+      }
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "Quản lý bộ sưu tập liên kết",
+      "description": "Bạn có thể đăng ký, chỉnh sửa và xóa các liên kết kinh doanh cho các nhà phân phối nước ngoài.",
+      "empty": "Không có liên kết",
+      "error": "Không thể tải các liên kết",
+      "addButton": "Thêm liên kết mới",
+      "editLink": "Chỉnh sửa",
+      "deleteButton": "Xóa",
+      "deleteConfirmTitle": "Xóa liên kết",
+      "deleteConfirm": "Sẽ xóa '{title}'. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
+      "deleteConfirmButton": "Xóa",
+      "deleteCancelButton": "Hủy",
+      "deleteError": "Xóa không thành công. Vui lòng thử lại sau.",
+      "categoryUnset": "Chưa được đặt",
+      "manageCategoriesLink": "Quản lý danh mục",
+      "filter": {
+        "keywordLabel": "Tìm kiếm theo từ khóa",
+        "keywordPlaceholder": "Từ hoặc cụm từ có trong tiêu đề, URL hoặc mô tả",
+        "categoryLabel": "Danh mục chính",
+        "categoryAll": "Tất cả các danh mục chính",
+        "categoryUnsetOption": "Chưa được đặt (danh mục chưa được gán)",
+        "subCategoryLabel": "Danh mục phụ",
+        "subCategoryAll": "Tất cả các danh mục phụ",
+        "clearButton": "Xóa điều kiện",
+        "noResults": "Không tìm thấy liên kết nào"
+      },
+      "pagination": {
+        "previousLabel": "Trước",
+        "nextLabel": "Tiếp",
+        "pageStatus": "{current} / {total} trang"
+      }
+    },
+    "form": {
+      "createTitle": "Tạo liên kết mới",
+      "editTitle": "Chỉnh sửa liên kết",
+      "notFound": "Không tìm thấy liên kết",
+      "titleLabel": "Tiêu đề",
+      "titlePlaceholder": "Vui lòng nhập tiêu đề",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "Danh mục chính",
+      "categoryPlaceholder": "Vui lòng chọn danh mục chính",
+      "subCategoryLabel": "Danh mục phụ (tùy chọn)",
+      "subCategoryPlaceholder": "Vui lòng chọn danh mục con",
+      "subCategoryNoneOption": "Không có danh mục con",
+      "descriptionLabel": "Mô tả (tùy chọn)",
+      "descriptionPlaceholder": "Vui lòng nhập mô tả bổ sung",
+      "submitButton": "Lưu",
+      "backToList": "Quay lại danh sách",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau một lúc.",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "invalidUrl": "Vui lòng nhập URL hợp lệ"
+      }
+    },
+    "categories": {
+      "list": {
+        "title": "Quản lý danh mục liên kết",
+        "description": "Bạn có thể thêm, chỉnh sửa, xóa và sắp xếp lại danh mục chính và danh mục con của liên kết.",
+        "backToLinks": "Quay lại quản lý bộ sưu tập liên kết",
+        "empty": "Không có danh mục",
+        "error": "Không thể tải danh mục",
+        "addParentButton": "Thêm danh mục chính",
+        "addChildButton": "Thêm danh mục con",
+        "editButton": "Chỉnh sửa",
+        "moveUpButton": "Lên",
+        "moveDownButton": "Xuống",
+        "linkCountLabel": "Số lượng liên kết: {count}",
+        "subCategoryCountLabel": "Số lượng danh mục con: {count}",
+        "delete": {
+          "buttonLabel": "Xóa",
+          "confirmTitle": "Xóa danh mục",
+          "confirmMessage": "Xóa '{name}'. Thao tác này không thể hoàn tác. Bạn có chắc chắn không?",
+          "confirmButtonLabel": "Xóa",
+          "cancelButtonLabel": "Hủy",
+          "errorMessage": "Xóa không thành công. Vui lòng thử lại sau một lúc.",
+          "blockedByLinks": "Không thể xóa '{name}' vì nó có {count} liên kết được liên kết. Vui lòng thay đổi danh mục của các liên kết đó trước.",
+          "blockedByChildren": "Không thể xóa '{name}' vì nó có {count} danh mục con. Vui lòng xóa các danh mục con trước."
+        }
+      },
+      "form": {
+        "createParentTitle": "Thêm danh mục chính",
+        "createChildTitle": "Thêm danh mục con",
+        "editTitle": "Chỉnh sửa danh mục",
+        "nameLabel": "Tên",
+        "namePlaceholder": "Vui lòng nhập tên danh mục",
+        "submitButton": "Lưu",
+        "cancelButton": "Hủy",
+        "submitError": "Lưu không thành công. Vui lòng thử lại sau một lúc.",
+        "language": {
+          "jaTab": "Tiếng Nhật",
+          "enTab": "English",
+          "addButton": "Thêm ngôn ngữ",
+          "removeButton": "Xóa ngôn ngữ này",
+          "localeCodeLabel": "Mã ngôn ngữ",
+          "localeCodePlaceholder": "Ví dụ: th, vi, zh",
+          "localeDuplicateError": "Vui lòng nhập mã ngôn ngữ không trùng lặp với các ngôn ngữ khác"
+        },
+        "validation": {
+          "required": "Trường này là bắt buộc",
+          "nameConflict": "Danh mục có cùng tên đã tồn tại trong cùng một cấp"
+        }
+      }
+    },
+    "preview": {
+      "triggerButton": "Xem cách hiển thị bên phía người yêu cầu",
+      "dialogTitle": "Xem trước: Danh sách liên kết bên phía người yêu cầu",
+      "localeTabJa": "日本語",
+      "localeTabEn": "English",
+      "error": "Không thể tải xem trước"
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "Quản lý nhà phân phối",
+      "description": "Xem các nhà phân phối nước ngoài đã đăng ký và quản lý tài khoản người yêu cầu.",
+      "empty": "Chưa có nhà phân phối nào được đăng ký",
+      "noResults": "Không tìm thấy nhà phân phối phù hợp",
+      "error": "Không thể tải danh sách nhà phân phối",
+      "addButton": "Thêm nhà phân phối mới",
+      "searchLabel": "Tìm kiếm theo tên công ty hoặc mã nhà phân phối",
+      "searchPlaceholder": "Vui lòng nhập tên công ty hoặc mã nhà phân phối",
+      "nameHeader": "Tên công ty",
+      "countryHeader": "Quốc gia",
+      "companyCodeHeader": "Mã nhà phân phối",
+      "applicantUserCountHeader": "Số tài khoản người yêu cầu",
+      "detailLink": "Chi tiết",
+      "detailLinkLabel": "Hiển thị chi tiết của {name}"
+    },
+    "form": {
+      "createTitle": "Tạo nhà phân phối mới",
+      "editTitle": "Chỉnh sửa nhà phân phối",
+      "notFound": "Không tìm thấy công ty",
+      "backToList": "Quay lại danh sách",
+      "nameLabel": "Tên công ty",
+      "namePlaceholder": "Vui lòng nhập tên công ty",
+      "countryLabel": "Quốc gia",
+      "countryPlaceholder": "Vui lòng chọn quốc gia",
+      "companyCodeLabel": "Mã nhà phân phối",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "Vui lòng nhập theo định dạng \"ISO mã quốc gia chữ thường 2 chữ số-daiso-tên quốc gia (chữ thường, phân cách bằng dấu gạch ngang)\" (ví dụ: vn-daiso-vietnam). Chỉ có thể sử dụng chữ cái tiếng Anh viết thường, số và dấu gạch ngang, và mã phải duy nhất trên tất cả các nhà phân phối.",
+      "submitButton": "Lưu",
+      "submitError": "Lưu thất bại. Vui lòng thử lại sau.",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "companyCodeFormat": "Chỉ sử dụng chữ cái tiếng Anh viết thường, số và dấu gạch ngang, không được phép có dấu gạch ngang ở đầu, cuối hoặc liên tiếp (ví dụ: vn-daiso-vietnam)",
+        "companyCodeDuplicate": "Mã công ty này đã được sử dụng"
+      }
+    },
+    "detail": {
+      "backToList": "Quay lại danh sách",
+      "editButton": "Chỉnh sửa thông tin công ty",
+      "countryLabel": "Quốc gia",
+      "companyCodeLabel": "Mã công ty",
+      "applicantUsersTitle": "Tài khoản người yêu cầu",
+      "addApplicantUserButton": "Thêm tài khoản người yêu cầu",
+      "applicantUsersEmpty": "Không có tài khoản người yêu cầu được đăng ký",
+      "emailHeader": "Địa chỉ email",
+      "displayNameHeader": "Tên hiển thị",
+      "statusHeader": "Trạng thái kích hoạt",
+      "activeStatus": "Kích hoạt",
+      "inactiveStatus": "Vô hiệu",
+      "editLink": "Chỉnh sửa"
+    },
+    "applicantUserForm": {
+      "createTitle": "Tạo tài khoản người yêu cầu mới",
+      "editTitle": "Chỉnh sửa tài khoản người yêu cầu",
+      "notFound": "Không tìm thấy tài khoản",
+      "backToDetail": "Quay lại chi tiết công ty",
+      "emailLabel": "Địa chỉ email",
+      "emailPlaceholder": "Nhập địa chỉ email",
+      "displayNameLabel": "Tên hiển thị",
+      "displayNamePlaceholder": "Nhập tên hiển thị",
+      "passwordLabel": "Mật khẩu",
+      "passwordCreatePlaceholder": "Nhập mật khẩu ban đầu (8 ký tự trở lên)",
+      "passwordEditPlaceholder": "Chỉ nhập nếu muốn thay đổi (8 ký tự trở lên)",
+      "passwordCreateHint": "Nhân viên helpdesk sẽ đặt mật khẩu ban đầu trực tiếp.",
+      "passwordEditHint": "Nếu lưu để trống, mật khẩu hiện tại sẽ không thay đổi.",
+      "preferredLocaleLabel": "Ngôn ngữ thông báo",
+      "preferredLocaleOptions": {
+        "en": "Tiếng Anh",
+        "ja": "Tiếng Nhật",
+        "zh": "Tiếng Trung Quốc",
+        "ko": "Tiếng Hàn",
+        "th": "Tiếng Thái",
+        "vi": "Tiếng Việt",
+        "id": "Tiếng Indonesia",
+        "ms": "Tiếng Malay",
+        "tl": "Tiếng Tagalog"
+      },
+      "submitButton": "Lưu",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "emailInvalid": "Vui lòng nhập một địa chỉ email hợp lệ",
+        "emailDuplicate": "Địa chỉ email này đã được sử dụng",
+        "passwordTooShort": "Vui lòng nhập mật khẩu từ 8 ký tự trở lên"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "Vô hiệu hóa",
+      "activateButton": "Kích hoạt lại",
+      "deactivateConfirmTitle": "Vô hiệu hóa tài khoản",
+      "activateConfirmTitle": "Kích hoạt lại tài khoản",
+      "deactivateConfirm": "Sẽ vô hiệu hóa ''{name}''. Sau khi vô hiệu hóa, bạn sẽ không thể đăng nhập bằng tài khoản này. Bạn có chắc chắn không?",
+      "activateConfirm": "Sẽ kích hoạt lại ''{name}''. Sau khi kích hoạt lại, bạn sẽ có thể đăng nhập lại. Bạn có chắc chắn không?",
+      "deactivateConfirmButton": "Thực hiện vô hiệu hóa",
+      "activateConfirmButton": "Thực hiện kích hoạt lại",
+      "cancelButton": "Hủy",
+      "toggleError": "Cập nhật không thành công. Vui lòng thử lại sau."
+    },
+    "import": {
+      "title": "Đăng ký hàng loạt CSV của nhà phân phối",
+      "description": "Tải lên tệp CSV chứa 3 cột \"name,country,companyCode\" (hàng đầu tiên là hàng tiêu đề) để kiểm tra kết quả xác thực của tất cả các hàng trước khi đăng ký. Nếu bất kỳ hàng nào có lỗi, không có mục nào được đăng ký.",
+      "backToList": "Quay lại danh sách",
+      "templateDownloadLabel": "Tải xuống mẫu CSV",
+      "fileInputLabel": "Chọn tệp CSV",
+      "uploadButtonLabel": "Xác thực và tải lên",
+      "uploadingLabel": "Đang xác thực…",
+      "resultsHeading": "Kết quả xác thực",
+      "rowNumberHeader": "Số hàng",
+      "rowNameHeader": "Tên công ty",
+      "rowCompanyCodeHeader": "Mã nhà phân phối",
+      "rowStatusHeader": "Đánh giá",
+      "rowErrorsHeader": "Nội dung lỗi",
+      "statusOk": "Có thể đăng ký",
+      "statusError": "Lỗi",
+      "successMessage": "Đã đăng ký ''{count}'' công ty",
+      "noFileSelected": "Vui lòng chọn tệp CSV",
+      "genericError": "Xác thực và đăng ký không thành công. Vui lòng thử lại sau.",
+      "errors": {
+        "required": "Tên công ty, quốc gia và mã nhà phân phối là bắt buộc",
+        "companyCodeFormat": "Định dạng mã nhà phân phối không chính xác (chỉ cho phép chữ cái tiếng Anh viết thường, chữ số và dấu gạch ngang; không được phép sử dụng dấu gạch ngang ở đầu, cuối hoặc liên tiếp)",
+        "invalidCountry": "Mã quốc gia không hợp lệ",
+        "companyCodeDuplicate": "Mã nhà phân phối này đã được đăng ký",
+        "duplicateInFile": "Mã nhà phân phối bị trùng lặp trong CSV này"
+      },
+      "fileErrors": {
+        "empty": "Tệp CSV trống",
+        "headerMismatch": "Hàng tiêu đề không khớp với \"name,country,companyCode\"",
+        "noDataRows": "Không có hàng dữ liệu"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "Chọn tất cả",
+      "selectRowLabel": "Chọn '{name}'",
+      "selectedCount": "Đang chọn '{count}' công ty",
+      "bulkDeactivateButton": "Vô hiệu hóa hàng loạt các nhà phân phối đã chọn",
+      "confirmTitle": "Vô hiệu hóa hàng loạt nhà phân phối",
+      "confirmMessage": "Sẽ vô hiệu hóa tổng cộng '{userCount}' tài khoản người yêu cầu hợp lệ thuộc '{companyCount}' công ty đã chọn. Các tài khoản đã vô hiệu hóa sẽ không thể đăng nhập nữa. Bạn có chắc chắn không?",
+      "confirmButton": "Thực hiện vô hiệu hóa hàng loạt",
+      "cancelButton": "Hủy",
+      "successMessage": "Đã vô hiệu hóa '{count}' tài khoản người yêu cầu",
+      "errorMessage": "Vô hiệu hóa hàng loạt không thành công. Vui lòng chờ một lát rồi thử lại."
+    }
+  },
+  "dashboard": {
+    "inquiryForm": {
+      "title": "Thắc mắc",
+      "description": "Gửi một thắc mắc mới."
+    },
+    "inquiryList": {
+      "title": "Danh sách thắc mắc",
+      "description": "Bạn có thể kiểm tra tình trạng của các thắc mắc mà công ty của bạn đã gửi."
+    },
+    "documents": {
+      "title": "Chia sẻ tài liệu",
+      "description": "Bạn có thể xem các tài liệu kinh doanh mà trụ sở chính đã công bố."
+    },
+    "salesFloorMeeting": {
+      "title": "Cuộc họp khu bán hàng (Video)",
+      "description": "Bạn có thể xem tài liệu video của cuộc họp khu bán hàng."
+    },
+    "manuals": {
+      "title": "Hướng dẫn",
+      "description": "Bạn có thể xem hướng dẫn hoạt động kinh doanh."
+    },
+    "pop": {
+      "title": "POP",
+      "description": "Bạn có thể xem tài liệu POP tại cửa hàng."
+    },
+    "links": {
+      "title": "Liên kết",
+      "description": "Bạn có thể xem các liên kết đến các trang web nội bộ và bên ngoài được sử dụng trong hoạt động kinh doanh."
+    },
+    "faq": {
+      "title": "Câu hỏi thường gặp",
+      "description": "Bạn có thể xem các câu hỏi thường gặp và câu trả lời."
+    },
+    "announcementsPreview": {
+      "title": "Thông báo mới nhất",
+      "empty": "Không có thông báo nào để hiển thị.",
+      "error": "Không thể truy xuất thông báo.",
+      "viewAll": "Xem tất cả thông báo"
+    },
+    "announcementSummary": {
+      "title": "Tình trạng xử lý thông báo",
+      "unconfirmedLabel": "Chưa xác nhận",
+      "actionPendingLabel": "Đã xác nhận · Chưa hoàn thành xử lý",
+      "confirmedCompleteLabel": "Đã xác nhận · Hoàn thành xử lý",
+      "categoryBreakdownTitle": "Số lượng theo loại",
+      "unit": "mục",
+      "totalCaption": "Thông báo mục tiêu {count} mục",
+      "empty": "Không có thông báo nào để hiển thị.",
+      "error": "Không thể truy xuất tình trạng xử lý thông báo.",
+      "viewAll": "Xem tất cả thông báo"
+    },
+    "reminderAnnouncements": {
+      "title": "Nhắc nhở từ phía Nhật Bản"
+    },
+    "priorityInquiriesPreview": {
+      "title": "Các yêu cầu cần xử lý",
+      "empty": "Không có yêu cầu cần xử lý.",
+      "error": "Không thể lấy yêu cầu.",
+      "viewAll": "Xem danh sách yêu cầu"
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "Công việc hỗ trợ",
+      "reference": "Thông tin tham khảo"
+    },
+    "kpi": {
+      "title": "Tình trạng yêu cầu",
+      "unresolvedLabel": "Số lượng yêu cầu chưa xử lý của toàn công ty",
+      "unclaimedLabel": "Chưa bắt đầu",
+      "todayLabel": "Nhận được hôm nay",
+      "todayUnresolvedCaption": "Trong đó chưa xử lý {count} trường hợp",
+      "todayNone": "Không có yêu cầu nào được nhận hôm nay",
+      "none": "Không có yêu cầu chưa xử lý",
+      "viewAll": "Xem danh sách yêu cầu",
+      "error": "Không thể lấy số lượng yêu cầu chưa xử lý"
+    },
+    "companies": {
+      "description": "Có thể quản lý danh sách các công ty phân phối nước ngoài đã đăng ký và tài khoản người nộp đơn."
+    },
+    "salesFloorMeeting": {
+      "description": "Có thể quản lý tài liệu họp kiểm tra bán hàng hàng tháng."
+    },
+    "pop": {
+      "description": "Có thể quản lý tài liệu POP hàng tháng."
+    },
+    "templates": {
+      "title": "Quản lý mẫu",
+      "description": "Có thể quản lý mẫu được sử dụng để trả lời."
+    },
+    "announcements": {
+      "title": "Quản lý thông báo",
+      "description": "Có thể xem danh sách, tạo, chỉnh sửa và xóa thông báo."
+    },
+    "documents": {
+      "title": "Quản lý tài liệu",
+      "description": "Có thể xem danh sách, tạo, chỉnh sửa và xóa tài liệu."
+    },
+    "manuals": {
+      "title": "Hướng dẫn",
+      "description": "Có thể xem hướng dẫn công việc."
+    },
+    "inquiryForm": {
+      "title": "Yêu cầu",
+      "description": "Có thể tạo yêu cầu mới."
+    },
+    "links": {
+      "title": "Liên kết",
+      "description": "Có thể xem liên kết đến các trang web nội bộ và bên ngoài được sử dụng trong công việc."
+    },
+    "faq": {
+      "title": "Câu hỏi thường gặp",
+      "description": "Có thể xem các câu hỏi thường gặp và câu trả lời."
+    }
+  },
+  "common": {
+    "comingSoon": "Chuẩn bị sắp ra mắt"
+  },
+  "announcements": {
+    "list": {
+      "title": "Thông báo",
+      "description": "Có thể xem danh sách các vấn đề được thông báo từ văn phòng chính.",
+      "empty": "Không có thông báo",
+      "error": "Không thể lấy thông báo",
+      "noResults": "Không có thông báo nào phù hợp"
+    },
+    "categories": {
+      "maintenance": "Bảo trì",
+      "policy": "Thay đổi chính sách",
+      "incident": "Thông tin sự cố",
+      "other": "Khác"
+    },
+    "detail": {
+      "publishedAtLabel": "Ngày công bố",
+      "categoryLabel": "Loại",
+      "notFound": "Không tìm thấy thông báo",
+      "error": "Không thể lấy thông báo",
+      "backToList": "Quay lại danh sách",
+      "attachmentsSectionTitle": "Tệp đính kèm"
+    },
+    "actionRequiredBadge": "Cần thực hiện",
+    "reminderBadge": "Đã nhận nhắc nhở",
+    "dueDateLabel": "Hạn chót",
+    "overdueBadge": "Quá hạn",
+    "selfReport": {
+      "confirmed": "Đã xác nhận",
+      "completeButton": "Đánh dấu hoàn thành",
+      "completed": "Hoàn thành",
+      "confirmerLabel": "Tên người xác nhận",
+      "confirmerPlaceholder": "Tên của người xác nhận",
+      "confirmerAddButton": "Ghi lại là người xác nhận",
+      "confirmerError": "Không thể ghi lại. Vui lòng thử lại sau.",
+      "confirmersLabel": "Người xác nhận"
+    },
+    "filter": {
+      "keywordLabel": "Tìm kiếm theo tiêu đề",
+      "keywordPlaceholder": "Cụm từ trong tiêu đề",
+      "categoryLabel": "Loại",
+      "categoryAll": "Tất cả loại",
+      "actionRequiredLabel": "Cần thực hiện hay không",
+      "actionRequiredAll": "Tất cả",
+      "actionRequiredTrue": "Chỉ những cần thực hiện",
+      "clearButton": "Xóa"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "Tài liệu",
+      "description": "Bạn có thể kiểm tra các tài liệu công việc do công ty chính công bố.",
+      "empty": "Không có tài liệu",
+      "error": "Không thể lấy tài liệu",
+      "downloadLink": "Tải xuống",
+      "openOriginalLink": "Mở tài liệu gốc",
+      "fileSizeLabel": "Kích thước tệp",
+      "uploadedAtLabel": "Ngày tải lên",
+      "newBadge": "Mới nhất",
+      "googlePreviewError": "Không thể hiển thị bản xem trước",
+      "googlePreviewHint": "Nếu không hiển thị bản xem trước, hãy mở tài liệu gốc"
+    },
+    "search": {
+      "keywordLabel": "Tìm kiếm từ khóa",
+      "keywordPlaceholder": "Cụm từ có trong tiêu đề hoặc mô tả",
+      "clearButton": "Xóa điều kiện",
+      "noResults": "Không có tài liệu phù hợp",
+      "subCategoryLabel": "Lọc theo danh mục con",
+      "subCategoryAll": "Tất cả các danh mục con"
+    },
+    "categories": {
+      "documentCount": "{count}mục"
+    },
+    "category": {
+      "notFound": "Không tìm thấy tài liệu",
+      "backToCategories": "Quay lại danh sách danh mục chính"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "Cuộc họp khu bán hàng (Video)",
+      "pageDescription": "Bạn có thể xem tài liệu cuộc họp khu bán hàng hàng tháng."
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "Bạn có thể xem tài liệu POP hàng tháng."
+    },
+    "departments": {
+      "seasonalEvent": "Sự kiện theo mùa",
+      "storage": "Lưu trữ và tổ chức",
+      "kitchen": "Nhà bếp và đồ ăn",
+      "cleaning": "Vệ sinh và giặt",
+      "beautyHealth": "Sắc đẹp và sức khỏe",
+      "stationery": "Văn phòng phẩm",
+      "interior": "Nội thất và đồ dùng",
+      "craftDiy": "Thủ công và DIY",
+      "food": "Thực phẩm và kẹo",
+      "other": "Khác",
+      "localPopsList": "Local POPs List",
+      "globalPopsList": "Global POPs List",
+      "endPopsList": "End POPs List"
+    },
+    "filter": {
+      "departmentLabel": "Lọc theo danh mục",
+      "departmentAll": "Tất cả các danh mục",
+      "yearLabel": "Lọc theo năm",
+      "yearAll": "Tất cả các năm",
+      "monthLabel": "Lọc theo tháng",
+      "monthAll": "Tất cả các tháng",
+      "clearButton": "Xóa điều kiện",
+      "noResults": "Không có tài liệu phù hợp"
+    },
+    "list": {
+      "error": "Không thể tải tài liệu",
+      "empty": "Không có tài liệu",
+      "downloadLink": "Tải xuống",
+      "openOriginalLink": "Mở tài liệu gốc",
+      "googlePreviewError": "Không thể hiển thị bản xem trước",
+      "googlePreviewHint": "Nếu bản xem trước không được hiển thị, vui lòng mở tài liệu gốc",
+      "addButton": "Thêm mới",
+      "editButton": "Chỉnh sửa",
+      "expandButton": "Xem phóng to"
+    },
+    "delete": {
+      "buttonLabel": "Xóa",
+      "confirmTitle": "Xóa tài liệu",
+      "confirmMessage": "Bạn sắp xóa tài liệu của '{heading}'. Không thể hoàn tác hành động này. Bạn có chắc chắn không?",
+      "confirmButton": "Xóa",
+      "cancelButton": "Hủy",
+      "errorMessage": "Xóa không thành công. Vui lòng thử lại sau một lúc."
+    },
+    "form": {
+      "departmentLabel": "Danh mục",
+      "yearLabel": "Năm",
+      "monthLabel": "Tháng",
+      "sourceTypeLabel": "Phương thức đăng ký",
+      "sourceTypeUploadOption": "Tải lên tệp",
+      "sourceTypeGoogleOption": "Đăng ký liên kết chia sẻ Google Docs",
+      "fileLabel": "Tệp",
+      "fileHint": "Vui lòng chọn tệp PDF (tối đa 20MB)",
+      "removeFileButtonLabel": "Xóa",
+      "googleUrlLabel": "URL liên kết chia sẻ",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "Dán liên kết chia sẻ của Google Docs/Sheets/Slides",
+      "targetingLabel": "Phạm vi công khai",
+      "targetingAllOption": "Công khai toàn bộ",
+      "targetingCountriesOption": "Chỉ định quốc gia/khu vực cụ thể",
+      "targetingCompaniesOption": "Chỉ định các công ty phân phối cụ thể",
+      "countriesLabel": "Quốc gia/khu vực đích",
+      "companiesLabel": "Công ty phân phối đích",
+      "submitButton": "Lưu",
+      "cancelButton": "Hủy",
+      "requiredError": "Đây là một trường bắt buộc",
+      "countriesRequiredError": "Vui lòng chọn ít nhất 1 mục",
+      "companiesRequiredError": "Vui lòng chọn ít nhất 1 mục",
+      "fileRequiredError": "Vui lòng chọn một tệp",
+      "sizeExceeded": "Kích thước tệp vượt quá giới hạn (20MB)",
+      "typeNotAllowed": "Không thể đăng ký các tệp không phải PDF",
+      "readFailed": "Không thể đọc tệp",
+      "googleUrlInvalid": "Vui lòng nhập liên kết chia sẻ hợp lệ của Google Docs/Sheets/Slides",
+      "requiredIndicator": "Bắt buộc",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau một lúc."
+    }
+  },
+  "inquiryForm": {
+    "title": "Biểu mẫu truy vấn",
+    "description": "Nhập các mục lựa chọn và mô tả tự do, sau đó gửi truy vấn.",
+    "requiredMark": "Bắt buộc",
+    "backToList": "Quay lại danh sách",
+    "loadError": "Không thể lấy thông tin cần thiết để hiển thị biểu mẫu. Vui lòng thử lại sau.",
+    "fields": {
+      "title": {
+        "label": "Tiêu đề",
+        "placeholder": "Vui lòng nhập tiêu đề (chủ đề)"
+      },
+      "category": {
+        "label": "Loại vấn đề",
+        "placeholder": "Vui lòng chọn loại vấn đề"
+      },
+      "urgency": {
+        "label": "Mức độ khẩn cấp",
+        "placeholder": "Vui lòng chọn mức độ khẩn cấp"
+      },
+      "storeRegion": {
+        "label": "Cửa hàng/Khu vực",
+        "placeholder": "Vui lòng nhập cửa hàng/khu vực"
+      },
+      "originalText": {
+        "label": "Nội dung truy vấn (Tự do)",
+        "placeholder": "Vui lòng nhập nội dung truy vấn",
+        "remainingCharacters": "Còn lại {count} ký tự"
+      },
+      "originalLanguage": {
+        "label": "Ngôn ngữ gốc",
+        "placeholder": "Vui lòng chọn ngôn ngữ gốc"
+      },
+      "companyName": {
+        "label": "Tên công ty",
+        "placeholder": "Vui lòng nhập tên công ty"
+      },
+      "country": {
+        "label": "Quốc gia",
+        "placeholder": "Vui lòng chọn quốc gia"
+      },
+      "targetCompany": {
+        "label": "Công ty đích",
+        "placeholder": "Vui lòng chọn công ty để đăng ký truy vấn",
+        "empty": "Không có công ty nào có sẵn để chọn. Vui lòng liên hệ với quản trị viên."
+      },
+      "attachments": {
+        "label": "Tệp đính kèm",
+        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB cho mỗi tệp, tối đa 5 tệp.",
+        "removeButton": "Xóa"
+      }
+    },
+    "options": {
+      "category": {
+        "defect": "Lỗi",
+        "order": "Liên quan đến đặt hàng",
+        "system": "Liên quan đến hệ thống",
+        "other": "Khác"
+      },
+      "urgency": {
+        "high": "Cao",
+        "medium": "Trung bình",
+        "low": "Thấp"
+      },
+      "country": {
+        "JP": "Nhật Bản",
+        "US": "Hoa Kỳ",
+        "CN": "Trung Quốc",
+        "KR": "Hàn Quốc",
+        "TH": "Thái Lan",
+        "VN": "Việt Nam",
+        "ID": "Indonesia",
+        "PH": "Philipinas",
+        "MY": "Malaysia",
+        "SG": "Singapore",
+        "IN": "Ấn Độ",
+        "TW": "Đài Loan",
+        "HK": "Hồng Kông",
+        "GB": "Vương quốc Anh",
+        "FR": "Pháp",
+        "DE": "Đức",
+        "IT": "Ý",
+        "ES": "Tây Ban Nha",
+        "AU": "Úc",
+        "BR": "Brazil",
+        "MX": "Mexico",
+        "CA": "Canada",
+        "AE": "Các Tiểu vương quốc Ả Rập Thống nhất"
+      },
+      "originalLanguage": {
+        "ja": "Tiếng Nhật",
+        "en": "Tiếng Anh",
+        "zh": "Tiếng Trung",
+        "ko": "Tiếng Hàn",
+        "th": "Tiếng Thái",
+        "vi": "Tiếng Việt",
+        "id": "Tiếng Indonesia",
+        "ms": "Tiếng Malay",
+        "tl": "Tiếng Tagalog",
+        "hi": "Tiếng Hindi",
+        "fr": "Tiếng Pháp",
+        "de": "Tiếng Đức",
+        "es": "Tiếng Tây Ban Nha",
+        "pt": "Tiếng Bồ Đào Nha",
+        "ar": "Tiếng Ả Rập"
+      }
+    },
+    "validation": {
+      "required": "Trường này là bắt buộc",
+      "maxLength": "Đã vượt quá giới hạn số ký tự",
+      "targetCompanyRequired": "Vui lòng chọn công ty đích",
+      "attachments": {
+        "sizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
+        "typeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
+        "countExceeded": "Đã vượt quá giới hạn số tệp có thể đính kèm (5 tệp)",
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại."
+      }
+    },
+    "submit": {
+      "button": "Gửi",
+      "submitting": "Đang gửi...",
+      "successTitle": "Gửi thành công",
+      "successDescription": "Chúng tôi đã nhận được yêu cầu của bạn.",
+      "errorTitle": "Gửi thất bại",
+      "errorDescription": "Vui lòng chờ một lúc rồi thử lại.",
+      "viewInquiryListLink": "Xem danh sách yêu cầu"
+    }
+  },
+  "inquiryList": {
+    "list": {
+      "title": "Danh sách yêu cầu",
+      "description": "Bạn có thể kiểm tra danh sách các yêu cầu được gửi bởi công ty của mình và tình trạng xử lý.",
+      "empty": "Không có yêu cầu nào",
+      "error": "Không thể tải danh sách yêu cầu",
+      "untitled": "(Chưa đặt tiêu đề)",
+      "newBadge": "Mới"
+    },
+    "status": {
+      "new": "Mới",
+      "in_progress": "Đang xử lý",
+      "resolved": "Đã giải quyết"
+    },
+    "detail": {
+      "createdAtLabel": "Ngày giờ gửi",
+      "categoryLabel": "Loại yêu cầu",
+      "urgencyLabel": "Mức độ khẩn cấp",
+      "storeRegionLabel": "Khu vực",
+      "statusLabel": "Tình trạng xử lý",
+      "originalTextLabel": "Mô tả tự do",
+      "translatedTextLabel": "Mô tả tự do (Dịch/Dịch tự động)",
+      "translationUnavailable": "Dịch tự động thất bại hoặc chưa được thực hiện. Dưới đây là văn bản gốc.",
+      "submittedByLabel": "Thông tin người yêu cầu",
+      "notFound": "Không tìm thấy yêu cầu",
+      "error": "Không thể tải yêu cầu",
+      "backToList": "Quay lại danh sách",
+      "inProgressBadge": "Đang xử lý",
+      "attachmentsLabel": "Tệp đính kèm",
+      "untitled": "(Chưa đặt tiêu đề)"
+    },
+    "history": {
+      "title": "Lịch sử xử lý",
+      "empty": "Chưa có lịch sử xử lý",
+      "error": "Không thể tải lịch sử xử lý",
+      "replyLabel": "Trả lời",
+      "claimedLabel": "Bắt đầu xử lý",
+      "claimedMessage": "Đã chuyển sang trạng thái đang xử lý",
+      "releasedLabel": "Hủy xử lý",
+      "releasedMessage": "Đã hủy trạng thái đang xử lý",
+      "statusChangedLabel": "Thay đổi trạng thái",
+      "requesterMessageLabel": "Tin nhắn đã gửi"
+    },
+    "message": {
+      "sectionTitle": "Gửi tin nhắn bổ sung",
+      "bodyLabel": "Nội dung tin nhắn",
+      "bodyPlaceholder": "Vui lòng nhập tin nhắn",
+      "submitButton": "Gửi",
+      "submitting": "Đang gửi...",
+      "successMessage": "Tin nhắn đã được gửi",
+      "error": "Gửi không thành công. Vui lòng thử lại sau.",
+      "attachments": {
+        "label": "Tệp đính kèm",
+        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB mỗi tệp, tối đa 5 tệp.",
+        "removeButton": "Xóa",
+        "sizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
+        "typeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
+        "countExceeded": "Vượt quá giới hạn số lượng tệp có thể đính kèm (5 tệp)",
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại."
+      }
+    },
+    "filter": {
+      "keywordLabel": "Tìm kiếm theo từ khóa",
+      "keywordPlaceholder": "Các từ có trong tiêu đề hoặc mô tả tự do",
+      "statusLabel": "Tình trạng xử lý",
+      "statusAll": "Tất cả tình trạng xử lý",
+      "categoryLabel": "Loại vấn đề",
+      "categoryAll": "Tất cả loại vấn đề",
+      "urgencyLabel": "Mức độ ưu tiên",
+      "urgencyAll": "Tất cả mức độ ưu tiên",
+      "unreadOnlyLabel": "Chỉ những cái mới",
+      "clearButton": "Xóa",
+      "noResults": "Không có yêu cầu hỗ trợ nào phù hợp"
+    },
+    "stats": {
+      "title": "Tóm tắt tình trạng xử lý",
+      "scopeAll": "Tất cả các yêu cầu đều được xem xét",
+      "scopeFiltered": "{count} yêu cầu được lọc là trong phạm vi",
+      "unreadLabel": "Cập nhật mới chưa xem",
+      "unreadCaption": "Số lượng yêu cầu chưa xem phản hồi từ helpdesk hoặc thay đổi tình trạng",
+      "unreadNone": "Không có cập nhật chưa xem",
+      "highUrgencyAlert": "{count} yêu cầu mức độ ưu tiên \"Cao\" chưa được giải quyết",
+      "awaitingResponseLabel": "Chờ câu trả lời",
+      "awaitingResponseCaption": "Số lượng yêu cầu chờ phản hồi từ helpdesk hoặc chờ bắt đầu xử lý",
+      "staleAwaitingResponseAlert": "{count} yêu cầu đã chờ trả lời trên 72 giờ",
+      "unresolvedLabel": "Chưa được giải quyết",
+      "unresolvedCaption": "Số lượng yêu cầu có tình trạng \"Mới\" hoặc \"Đang xử lý\"",
+      "statusBreakdownTitle": "Phân tích chi tiết tình trạng xử lý",
+      "urgencyBreakdownTitle": "Số lượng yêu cầu chưa giải quyết theo mức độ ưu tiên",
+      "urgencyBreakdownEmpty": "Không có yêu cầu hỗ trợ chưa được giải quyết",
+      "unit": "yêu cầu",
+      "percent": "{value}%",
+      "tableToggle": "Xem theo bảng",
+      "tableHeaderItem": "Mục",
+      "tableHeaderCount": "Số lượng",
+      "tableHeaderShare": "Tỷ lệ"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "Thời gian tồn đọng chưa giải quyết",
+      "lt24h": "Trong 24 giờ",
+      "h24to72": "24 đến 72 giờ",
+      "d3to7": "3 đến 7 ngày",
+      "gte7d": "7 ngày trở lên",
+      "over24h": "Đã trôi qua hơn 24 giờ",
+      "over72h": "Đã trôi qua hơn 72 giờ",
+      "empty": "Không có thắc mắc chưa giải quyết",
+      "oldest": "Thắc mắc chưa giải quyết lâu nhất: {hours} giờ kể từ khi tiếp nhận"
+    },
+    "category": {
+      "title": "Phân loại theo loại vấn đề",
+      "empty": "Không có thắc mắc phù hợp"
+    },
+    "country": {
+      "title": "Số lượng vấn đề chưa giải quyết theo quốc gia",
+      "others": "Và {count} quốc gia khác",
+      "empty": "Không có thắc mắc chưa giải quyết"
+    },
+    "intake": {
+      "receivedTitle": "Số lượng thắc mắc được tiếp nhận trong 7 ngày gần đây",
+      "submittedTitle": "Số lượng thắc mắc được gửi trong 7 ngày gần đây",
+      "empty": "Không có thắc mắc phù hợp trong 7 ngày gần đây",
+      "columnLabel": "{date}: {count} mục"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "Chỉ các mục chưa giải quyết",
+      "agingLabel": "Thời gian tồn đọng",
+      "agingAll": "Tất cả thời gian tồn đọng",
+      "receivedOnLabel": "Ngày tiếp nhận"
+    }
+  },
+  "links": {
+    "list": {
+      "title": "Tổng hợp liên kết",
+      "description": "Bạn có thể xem các liên kết đến trang web nội bộ và bên ngoài được sử dụng trong hoạt động kinh doanh được phân loại theo danh mục.",
+      "empty": "Không có liên kết",
+      "error": "Không thể lấy liên kết"
+    },
+    "uncategorized": "Chưa phân loại",
+    "item": {
+      "opensInNewTab": "(Mở trong tab mới)",
+      "newBadge": "Mới"
+    },
+    "search": {
+      "keywordLabel": "Tìm kiếm theo từ khóa",
+      "keywordPlaceholder": "Các thuật ngữ có trong tiêu đề, mô tả hoặc URL",
+      "clearButton": "Xóa điều kiện",
+      "noResults": "Không có liên kết phù hợp"
+    }
+  },
+  "faq": {
+    "list": {
+      "title": "Câu hỏi thường gặp",
+      "description": "Bạn có thể xem các câu hỏi thường gặp và câu trả lời được phân loại theo danh mục.",
+      "empty": "Không có FAQ",
+      "error": "Không thể lấy FAQ",
+      "updatedLabel": "Ngày cập nhật",
+      "newBadge": "Mới"
+    },
+    "categories": {
+      "inquiry_method": "Phương pháp liên hệ",
+      "form_input": "Nhập biểu mẫu",
+      "status": "Tình trạng xử lý",
+      "other": "Khác"
+    },
+    "search": {
+      "keywordLabel": "Tìm kiếm theo từ khóa",
+      "keywordPlaceholder": "Từ hoặc cụm từ có trong câu hỏi hoặc câu trả lời",
+      "noResults": "Không có FAQ phù hợp",
+      "clearButton": "Xóa điều kiện"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "Quản lý danh mục tài liệu",
+      "description": "Bạn có thể thêm, chỉnh sửa, xóa và sắp xếp lại các danh mục chính và danh mục phụ của tài liệu.",
+      "backToDocuments": "Quay lại quản lý tài liệu",
+      "empty": "Không có danh mục",
+      "error": "Không thể lấy danh mục",
+      "addParentButton": "Thêm danh mục chính",
+      "addChildButton": "Thêm danh mục phụ",
+      "editButton": "Chỉnh sửa",
+      "moveUpButton": "Lên",
+      "moveDownButton": "Xuống",
+      "documentCountLabel": "Số tài liệu: {count} mục",
+      "subCategoryCountLabel": "Số danh mục phụ: {count} mục",
+      "targetingAllLabel": "Công khai toàn bộ",
+      "targetingCountriesLabel": "Quốc gia/Khu vực đích",
+      "targetingCompaniesLabel": "Công ty phân phối đích",
+      "delete": {
+        "buttonLabel": "Xóa",
+        "confirmTitle": "Xóa danh mục",
+        "confirmMessage": "Xóa '{name}'. Thao tác này không thể được hoàn tác. Bạn có chắc chắn không?",
+        "confirmButtonLabel": "Xóa",
+        "cancelButtonLabel": "Hủy",
+        "errorMessage": "Xóa không thành công. Vui lòng thử lại sau.",
+        "blockedByDocuments": "Không thể xóa '{name}' vì có {count} tài liệu liên kết. Vui lòng thay đổi danh mục của các tài liệu đích trước.",
+        "blockedByChildren": "Không thể xóa '{name}' vì có {count} danh mục phụ tồn tại. Vui lòng xóa danh mục phụ trước."
+      }
+    },
+    "form": {
+      "createParentTitle": "Thêm danh mục chính",
+      "createChildTitle": "Thêm danh mục phụ",
+      "editTitle": "Chỉnh sửa danh mục",
+      "nameLabel": "Tên",
+      "namePlaceholder": "Vui lòng nhập tên danh mục",
+      "targetingLabel": "Phạm vi công khai",
+      "targetingAllOption": "Công khai toàn bộ",
+      "targetingCountriesOption": "Chỉ định quốc gia/khu vực cụ thể",
+      "targetingCompaniesOption": "Chỉ định nhà phân phối cụ thể",
+      "countriesLabel": "Quốc gia/Khu vực (Có thể chọn nhiều)",
+      "companiesLabel": "Nhà phân phối (Có thể chọn nhiều)",
+      "submitButton": "Lưu",
+      "cancelButton": "Hủy",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "language": {
+        "jaTab": "Tiếng Nhật",
+        "enTab": "English",
+        "addButton": "Thêm ngôn ngữ",
+        "removeButton": "Xóa ngôn ngữ này",
+        "localeCodeLabel": "Mã ngôn ngữ",
+        "localeCodePlaceholder": "Ví dụ: th, vi, zh",
+        "localeDuplicateError": "Vui lòng nhập mã ngôn ngữ không trùng lặp với các ngôn ngữ khác"
+      },
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "nameConflict": "Danh mục cùng tên đã tồn tại trong cùng một cấp",
+        "countriesRequired": "Vui lòng chọn một hoặc nhiều quốc gia/khu vực",
+        "companiesRequired": "Vui lòng chọn một hoặc nhiều nhà phân phối"
+      }
+    }
+  },
+  "manuals": {
+    "list": {
+      "title": "Hướng dẫn sử dụng",
+      "description": "Bạn có thể tìm kiếm và xem hướng dẫn công việc theo danh mục và tháng năm.",
+      "empty": "Không có hướng dẫn sử dụng",
+      "error": "Không thể lấy hướng dẫn sử dụng",
+      "downloadLink": "Tải xuống",
+      "openOriginalLink": "Mở tài liệu gốc",
+      "revisionLabel": "Tháng năm sửa đổi"
+    },
+    "categories": {
+      "storeOperations": "Quản lý cửa hàng",
+      "registerPayment": "Quầy tính tiền/Thanh toán",
+      "inventoryOrdering": "Đặt hàng/Quản lý kho",
+      "salesFloorDisplay": "Tạo khu bán hàng/Trưng bày",
+      "promotion": "Khuyến mại/Vận hành POP",
+      "safetyHygiene": "An toàn/Vệ sinh/Phòng chống thảm họa",
+      "hrTraining": "Nhân sự/Lao động/Đào tạo",
+      "systemOperation": "Hoạt động hệ thống",
+      "accounting": "Kế toán",
+      "other": "Khác"
+    },
+    "filter": {
+      "keywordLabel": "Tìm kiếm theo từ khóa",
+      "keywordPlaceholder": "Từ hoặc cụm từ có trong tiêu đề hoặc mô tả",
+      "categoryLabel": "Danh mục",
+      "categoryAll": "Tất cả các danh mục",
+      "yearLabel": "Năm",
+      "yearAll": "Tất cả các năm",
+      "monthLabel": "Tháng",
+      "monthAll": "Tất cả các tháng",
+      "clearButton": "Xóa điều kiện",
+      "noResults": "Không có hướng dẫn phù hợp"
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "Quản lý hướng dẫn",
+      "description": "Tải lên, chỉnh sửa và xóa hướng dẫn kinh doanh (PDF) cho các nhà phân phối nước ngoài.",
+      "newButton": "Thêm hướng dẫn mới",
+      "editLink": "Chỉnh sửa",
+      "empty": "Không có hướng dẫn",
+      "error": "Không thể lấy hướng dẫn",
+      "categoryLabel": "Danh mục",
+      "revisionLabel": "Năm tháng sửa đổi",
+      "sourceTypeUploadBadge": "Tải lên",
+      "sourceTypeGoogleBadge": "Liên kết Google",
+      "targetingAllLabel": "Công khai toàn cộng",
+      "targetingCountriesLabel": "Quốc gia/Khu vực đích",
+      "targetingCompaniesLabel": "Nhà phân phối đích",
+      "filter": {
+        "keywordLabel": "Tìm kiếm từ khóa",
+        "keywordPlaceholder": "Các từ được bao gồm trong tiêu đề hoặc mô tả",
+        "categoryLabel": "Danh mục",
+        "categoryAll": "Tất cả các danh mục",
+        "yearLabel": "Năm",
+        "yearAll": "Tất cả các năm",
+        "monthLabel": "Tháng",
+        "monthAll": "Tất cả các tháng",
+        "clearButton": "Xóa điều kiện",
+        "noResults": "Không có hướng dẫn phù hợp"
+      }
+    },
+    "form": {
+      "createTitle": "Tạo hướng dẫn mới",
+      "editTitle": "Chỉnh sửa hướng dẫn",
+      "notFound": "Không tìm thấy hướng dẫn",
+      "backToList": "Quay lại danh sách",
+      "titleLabel": "Tiêu đề",
+      "titlePlaceholder": "Nhập tiêu đề của hướng dẫn",
+      "descriptionLabel": "Mô tả",
+      "descriptionPlaceholder": "Nhập mô tả bổ sung (tùy chọn)",
+      "language": {
+        "jaTab": "Tiếng Nhật",
+        "enTab": "English"
+      },
+      "categoryLabel": "Danh mục",
+      "categoryPlaceholderOption": "Vui lòng chọn",
+      "yearLabel": "Năm",
+      "monthLabel": "Tháng",
+      "sourceTypeLabel": "Phương pháp đăng ký",
+      "sourceTypeUploadOption": "Tải lên tệp",
+      "sourceTypeGoogleOption": "Đăng ký liên kết chia sẻ Google Docs",
+      "fileLabel": "Tệp PDF",
+      "fileHint": "Chỉ có thể tải lên PDF, tối đa 20MB.",
+      "removeButtonLabel": "Xóa",
+      "googleUrlLabel": "Liên kết chia sẻ Google Docs",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Vui lòng đặt cài đặt chia sẻ của Google Docs/Trang tính/Bài thuyết trình thành \"Bất kỳ ai có liên kết đều có thể xem\" trước khi đăng ký.",
+      "targetingLabel": "Phạm vi công khai",
+      "targetingAllOption": "Công khai cho tất cả",
+      "targetingCountriesOption": "Chỉ định các quốc gia/khu vực cụ thể",
+      "targetingCompaniesOption": "Chỉ định các công ty phân phối cụ thể",
+      "countriesLabel": "Quốc gia/Khu vực (Có thể chọn nhiều)",
+      "companiesLabel": "Công ty phân phối (Có thể chọn nhiều)",
+      "submitButton": "Lưu",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "requiredIndicator": "Bắt buộc",
+      "validation": {
+        "required": "Trường này là bắt buộc",
+        "countriesRequired": "Vui lòng chọn ít nhất một quốc gia/khu vực",
+        "companiesRequired": "Vui lòng chọn ít nhất một công ty phân phối",
+        "fileRequired": "Vui lòng chọn tệp PDF",
+        "sizeExceeded": "Kích thước tệp vượt quá giới hạn (20MB)",
+        "typeNotAllowed": "Định dạng tệp không được phép (chỉ PDF)",
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại.",
+        "googleUrlInvalid": "Vui lòng nhập liên kết chia sẻ của Google Docs/Trang tính/Bài thuyết trình",
+        "categoryRequired": "Vui lòng chọn danh mục"
+      }
+    },
+    "delete": {
+      "buttonLabel": "Xóa",
+      "confirmTitle": "Xóa hướng dẫn",
+      "confirmMessage": "Xóa '{title}'. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
+      "confirmButton": "Xóa",
+      "cancelButton": "Hủy",
+      "errorMessage": "Xóa không thành công. Vui lòng thử lại sau."
+    }
+  }
+}

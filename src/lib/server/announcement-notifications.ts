@@ -54,8 +54,8 @@ function resolveAppBaseUrl(): string {
 /**
  * 宛先の`preferredLocale`から、詳細リンクに用いるUIロケール（`next-intl`の`routing.locales`）
  * を解決する。`ApplicantUser.preferredLocale`はメール本文の言語選択用の自由入力に近い値
- * （`th`・`vi`等も許容）だが、ポータルのURLパスは`ja`/`en`の2ロケールしかルーティングされて
- * いないため、それ以外の値は`en`（20か国以上の受信者にとっての共通語。`resolveAnnouncementContent`
+ * （`ko`・`id`等も許容）だが、ポータルのURLパスは`routing.locales`の7ロケールしかルーティング
+ * されていないため、それ以外の値は`en`（20か国以上の受信者にとっての共通語。`resolveAnnouncementContent`
  * の`en`優先フォールバックと整合させる）にフォールバックする（要件36.6）。
  */
 function resolveUiLocale(preferredLocale: string): string {
