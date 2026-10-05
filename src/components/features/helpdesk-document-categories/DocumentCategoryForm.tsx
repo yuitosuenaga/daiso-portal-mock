@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useFieldArray, useForm, Controller, type Resolver } from "react-hook-form";
+import { useState } from "react";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 
@@ -18,9 +18,10 @@ import {
   type DocumentCategoryFormValues,
   type DocumentCategorySubmitValues,
 } from "@/lib/validation/document-category";
+import { RetranslateDocumentCategoryButton } from "@/components/features/helpdesk-document-categories/RetranslateDocumentCategoryButton";
 import type {
-  CreateDocumentCategoryInput,
   DocumentCategory,
+  DocumentCategoryFormInput,
 } from "@/types/document-category";
 
 export interface DocumentCategoryFormProps {
@@ -41,17 +42,9 @@ function toDefaultValues(
   category: DocumentCategory | undefined
 ): DocumentCategoryFormValues {
   if (category) {
-    const enTranslation = category.translations.find(
-      (translation) => translation.locale === "en"
-    );
-    const additionalTranslations = category.translations.filter(
-      (translation) => translation.locale !== "en"
-    );
     return {
       parentId: category.parentId,
       name: category.name,
-      nameEn: enTranslation?.name ?? "",
-      translations: additionalTranslations,
       // 保存済みデータは常に`documentCategoryFormSchema`で検証済みのため、
       // フォームの厳密な型へ安全に絞り込める（`DocumentDetailPanel`と同じ扱い）。
       targeting: category.targeting as DocumentCategoryFormValues["targeting"],
@@ -61,8 +54,6 @@ function toDefaultValues(
   return {
     parentId: mode === "createChild" ? (parentId ?? null) : null,
     name: "",
-    nameEn: "",
-    translations: [],
     targeting: { scope: "all" },
   };
 }
@@ -85,7 +76,9 @@ export function DocumentCategoryForm({
   const tInquiryForm = useTranslations("inquiryForm");
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [nameConflictError, setNameConflictError] = useState(false);
-  const [activeLanguageTab, setActiveLanguageTab] = useState("ja");
+  // 保存後に一部言語の翻訳が失敗した場合の状態。保存済みIDを保持し、再送信で二重作成しない。
+  const [savedCategoryId, setSavedCategoryId] = useState<string | undefined>(category?.id);
+  const [translationFailed, setTranslationFailed] = useState(false);
 
   const {
     register,
@@ -101,51 +94,6 @@ export function DocumentCategoryForm({
     >,
     defaultValues: toDefaultValues(mode, parentId, category),
   });
-  const {
-    fields: translationFields,
-    append: appendTranslation,
-    remove: removeTranslation,
-  } = useFieldArray({ control, name: "translations" });
-  const previousTranslationCountRef = useRef(translationFields.length);
-
-  useEffect(() => {
-    if (translationFields.length > previousTranslationCountRef.current) {
-      const lastField = translationFields[translationFields.length - 1];
-      if (lastField) {
-        setActiveLanguageTab(lastField.id);
-      }
-    }
-    previousTranslationCountRef.current = translationFields.length;
-  }, [translationFields]);
-
-  useEffect(() => {
-    if (errors.name) {
-      setActiveLanguageTab("ja");
-      return;
-    }
-    if (errors.nameEn) {
-      setActiveLanguageTab("en");
-      return;
-    }
-    const translationErrors = errors.translations;
-    const translationErrorIndex = Array.isArray(translationErrors)
-      ? translationErrors.findIndex((entry) => entry)
-      : -1;
-    if (translationErrorIndex >= 0) {
-      const field = translationFields[translationErrorIndex];
-      if (field) {
-        setActiveLanguageTab(field.id);
-      }
-    }
-  }, [errors, translationFields]);
-
-  const languageTabButtonClassName = (isActive: boolean) =>
-    `rounded-md border px-3 py-1.5 text-sm ${
-      isActive
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-input bg-background text-foreground"
-    }`;
-
   const scopeOptions: SelectOption[] = [
     { value: "all", label: t("targetingAllOption") },
     { value: "countries", label: t("targetingCountriesOption") },
@@ -163,15 +111,21 @@ export function DocumentCategoryForm({
   async function onSubmit(values: DocumentCategorySubmitValues) {
     setHasSubmitError(false);
     setNameConflictError(false);
+    setTranslationFailed(false);
     try {
-      if (mode === "edit" && category) {
+      let result;
+      if (savedCategoryId) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { parentId, ...updateInput } = values;
-        await updateDocumentCategoryAction(category.id, updateInput);
+        result = await updateDocumentCategoryAction(savedCategoryId, updateInput);
       } else {
-        await createDocumentCategoryAction(
-          values as unknown as CreateDocumentCategoryInput
-        );
+        result = await createDocumentCategoryAction(values as DocumentCategoryFormInput);
+      }
+      if (result.failedLocales.length > 0) {
+        // 保存は完了しているため、ダイアログを閉じず再翻訳を案内する。
+        setSavedCategoryId(result.category.id);
+        setTranslationFailed(true);
+        return;
       }
       onSaved();
     } catch (error) {
@@ -190,140 +144,20 @@ export function DocumentCategoryForm({
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-foreground">{formTitle}</h2>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeLanguageTab === "ja"}
-              className={languageTabButtonClassName(activeLanguageTab === "ja")}
-              onClick={() => setActiveLanguageTab("ja")}
-            >
-              {t("language.jaTab")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeLanguageTab === "en"}
-              className={languageTabButtonClassName(activeLanguageTab === "en")}
-              onClick={() => setActiveLanguageTab("en")}
-            >
-              {t("language.enTab")}
-            </button>
-            {translationFields.map((field, index) => {
-              const locale = watch(`translations.${index}.locale`);
-              return (
-                <button
-                  key={field.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeLanguageTab === field.id}
-                  className={languageTabButtonClassName(
-                    activeLanguageTab === field.id
-                  )}
-                  onClick={() => setActiveLanguageTab(field.id)}
-                >
-                  {locale || t("language.localeCodeLabel")}
-                </button>
-              );
-            })}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => appendTranslation({ locale: "", name: "" })}
-            >
-              {t("language.addButton")}
-            </Button>
-          </div>
-
-          {activeLanguageTab === "ja" && (
-            <FormField
-              label={t("nameLabel")}
-              required
-              requiredIndicator={tInquiryForm("requiredMark")}
-              htmlFor="document-category-name"
-              error={errors.name ? t("validation.required") : undefined}
-            >
-              <Input
-                id="document-category-name"
-                placeholder={t("namePlaceholder")}
-                aria-invalid={errors.name ? true : undefined}
-                {...register("name")}
-              />
-            </FormField>
-          )}
-
-          {activeLanguageTab === "en" && (
-            <FormField
-              label={t("nameLabel")}
-              required
-              requiredIndicator={tInquiryForm("requiredMark")}
-              htmlFor="document-category-name-en"
-              error={errors.nameEn ? t("validation.required") : undefined}
-            >
-              <Input
-                id="document-category-name-en"
-                placeholder={t("namePlaceholder")}
-                aria-invalid={errors.nameEn ? true : undefined}
-                {...register("nameEn")}
-              />
-            </FormField>
-          )}
-
-          {translationFields.map((field, index) => {
-            if (activeLanguageTab !== field.id) {
-              return null;
-            }
-            const translationError = errors.translations?.[index];
-            return (
-              <div key={field.id} className="flex flex-col gap-4">
-                <FormField
-                  label={t("language.localeCodeLabel")}
-                  required
-                  requiredIndicator={tInquiryForm("requiredMark")}
-                  htmlFor={`document-category-translation-${index}-locale`}
-                  error={
-                    translationError?.locale
-                      ? t("language.localeDuplicateError")
-                      : undefined
-                  }
-                >
-                  <Input
-                    id={`document-category-translation-${index}-locale`}
-                    placeholder={t("language.localeCodePlaceholder")}
-                    aria-invalid={translationError?.locale ? true : undefined}
-                    {...register(`translations.${index}.locale`)}
-                  />
-                </FormField>
-                <FormField
-                  label={t("nameLabel")}
-                  required
-                  requiredIndicator={tInquiryForm("requiredMark")}
-                  htmlFor={`document-category-translation-${index}-name`}
-                  error={translationError?.name ? t("validation.required") : undefined}
-                >
-                  <Input
-                    id={`document-category-translation-${index}-name`}
-                    placeholder={t("namePlaceholder")}
-                    aria-invalid={translationError?.name ? true : undefined}
-                    {...register(`translations.${index}.name`)}
-                  />
-                </FormField>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-fit"
-                  onClick={() => {
-                    removeTranslation(index);
-                    setActiveLanguageTab("ja");
-                  }}
-                >
-                  {t("language.removeButton")}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
+        <FormField
+          label={t("nameLabel")}
+          required
+          requiredIndicator={tInquiryForm("requiredMark")}
+          htmlFor="document-category-name"
+          error={errors.name ? t("validation.required") : undefined}
+        >
+          <Input
+            id="document-category-name"
+            placeholder={t("namePlaceholder")}
+            aria-invalid={errors.name ? true : undefined}
+            {...register("name")}
+          />
+        </FormField>
 
         <FormField label={t("targetingLabel")} htmlFor="document-category-targeting-scope">
           <Controller
@@ -432,6 +266,35 @@ export function DocumentCategoryForm({
             </span>
           )}
         </div>
+
+        {translationFailed && savedCategoryId && (
+          <div className="flex flex-col gap-2 rounded-md border border-input p-3">
+            <p role="status" className="text-sm text-destructive">
+              {t("translationPartialFailed")}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <RetranslateDocumentCategoryButton
+                categoryId={savedCategoryId}
+                label={t("retranslateButton")}
+                successMessage={t("retranslateSuccess")}
+                failureMessage={t("translationPartialFailed")}
+                onCompleted={onSaved}
+              />
+              <Button type="button" variant="outline" onClick={onSaved}>
+                {t("closeButton")}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {mode === "edit" && category && !translationFailed && (
+          <RetranslateDocumentCategoryButton
+            categoryId={category.id}
+            label={t("retranslateButton")}
+            successMessage={t("retranslateSuccess")}
+            failureMessage={t("translationPartialFailed")}
+          />
+        )}
       </form>
     </div>
   );

@@ -259,6 +259,33 @@ export async function updateDocumentCategoryRecord(
 }
 
 /**
+ * 指定した言語の翻訳行のみを追加・更新する（他言語の行は触らない）。再翻訳で不足言語だけを
+ * 補うために使う。存在しない場合は`DocumentCategoryNotFoundError`を送出する。
+ */
+export async function upsertDocumentCategoryTranslations(
+  id: string,
+  translations: DocumentCategoryTranslationView[]
+): Promise<void> {
+  const exists = await prisma.documentCategory.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!exists) {
+    throw new DocumentCategoryNotFoundError(id);
+  }
+
+  await prisma.$transaction(
+    translations.map((translation) =>
+      prisma.documentCategoryTranslation.upsert({
+        where: { categoryId_locale: { categoryId: id, locale: translation.locale } },
+        create: { categoryId: id, locale: translation.locale, name: translation.name },
+        update: { name: translation.name },
+      })
+    )
+  );
+}
+
+/**
  * カテゴリを削除する。削除直前に「当該カテゴリに紐づくドキュメント件数」
  * （大分類は`categoryId`一致、中分類は`subCategoryId`一致）と「配下の中分類件数」を
  * 再取得し、いずれかが1件以上なら`DocumentCategoryInUseError`（件数を保持）を送出して

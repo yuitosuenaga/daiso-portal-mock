@@ -155,7 +155,10 @@
       "categoryLabel": "主分类",
       "categoryPlaceholderOption": "请选择",
       "subCategoryLabel": "中分类",
-      "subCategoryNoneOption": "无"
+      "subCategoryNoneOption": "无",
+      "translationPartialFailed": "部分语言翻译失败，稍后可以重新翻译。",
+      "retranslateButton": "重新翻译",
+      "retranslateSuccess": "翻译完成"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "没有已注册的文档",
       "linkedDocumentsTargetingAllLabel": "全体公开",
       "linkedDocumentsTargetingCountriesPrefixLabel": "目标国家：",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "目标公司："
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "目标公司：",
+      "translationFailedDraft": "因翻译失败，已保存为草稿。",
+      "retranslateButton": "重新翻译",
+      "retranslatePending": "翻译中...",
+      "retranslateSuccess": "已保存翻译",
+      "retranslateFailed": "部分语言翻译失败，请稍后再试。",
+      "retranslateError": "重新翻译失败，请稍后再试。"
     },
     "tracking": {
       "confirmedCount": "已确认 {confirmed}/{total}人",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "此项为必填项",
         "nameTooLong": "模板名称应在40个字符以内"
-      }
+      },
+      "translationFailed": "部分语言翻译失败，稍后可以重新翻译。",
+      "retranslateButton": "重新翻译"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "保存失败。请稍后重试。",
       "validation": {
         "required": "此项为必填项"
-      }
+      },
+      "translationFailed": "部分语言翻译失败，稍后可以重新翻译。",
+      "retranslateButton": "重新翻译"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "此项目为必填项",
         "invalidUrl": "请输入有效的URL"
-      }
+      },
+      "translationFailed": "部分语言翻译失败，稍后可以重新翻译。",
+      "retranslateButton": "重新翻译"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "删除失败。请稍后重试。",
           "blockedByLinks": "『{name}』已关联{count}个链接，无法删除。请先更改相应链接的分类。",
           "blockedByChildren": "『{name}』存在{count}个中分类，无法删除。请先删除中分类。"
-        }
+        },
+        "retranslateButton": "重新翻译"
       },
       "form": {
         "createParentTitle": "添加大分类",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "此项为必填项",
           "nameConflict": "同一层级中已存在同名的分类"
-        }
+        },
+        "translationFailed": "部分语言翻译失败，稍后可以重新翻译。"
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "同一层级中已存在同名的分类",
         "countriesRequired": "请选择至少一个国家·地区",
         "companiesRequired": "请选择至少一个销售公司"
-      }
+      },
+      "translationPartialFailed": "部分语言翻译失败，稍后可以重新翻译。",
+      "retranslateButton": "重新翻译",
+      "retranslateSuccess": "翻译完成",
+      "closeButton": "关闭"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "文件读取失败。请重试。",
         "googleUrlInvalid": "请输入Google文档/表格/幻灯片的共享链接",
         "categoryRequired": "请选择分类"
-      }
+      },
+      "translationPartialFailure": "部分语言翻译失败，稍后可以重新翻译。",
+      "retranslateButton": "重新翻译",
+      "retranslateError": "重新翻译失败，请稍后再试。"
     },
     "delete": {
       "buttonLabel": "删除",

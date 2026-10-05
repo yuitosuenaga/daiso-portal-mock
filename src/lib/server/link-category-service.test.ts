@@ -27,6 +27,7 @@ import {
   LinkCategoryNotFoundError,
   LinkCategoryPairError,
   assertLinkCategoryPair,
+  addLinkCategoryTranslations,
   createLinkCategoryRecord,
   deleteLinkCategoryRecord,
   getLinkCategoriesForApplicant,
@@ -152,6 +153,21 @@ describe("updateLinkCategoryRecord", () => {
         }),
       })
     );
+  });
+
+  it("translationsを省略すると既存の翻訳行を変更しない", async () => {
+    vi.mocked(prisma.linkCategory.findUnique).mockResolvedValue(
+      baseCategoryRecord({ id: "category-1" }) as never
+    );
+    vi.mocked(prisma.linkCategory.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.linkCategory.update).mockResolvedValue(
+      baseCategoryRecord({ id: "category-1" }) as never
+    );
+
+    await updateLinkCategoryRecord("category-1", { name: "更新後" });
+
+    const data = vi.mocked(prisma.linkCategory.update).mock.calls[0][0].data;
+    expect(data).not.toHaveProperty("translations");
   });
 
   it("存在しないIDの更新はLinkCategoryNotFoundErrorを送出する", async () => {
@@ -451,5 +467,33 @@ describe("getLinkCategoriesForApplicant", () => {
         ],
       },
     ]);
+  });
+});
+
+describe("addLinkCategoryTranslations", () => {
+  it("未保存のlocaleだけを追加する", async () => {
+    vi.mocked(prisma.linkCategory.findUnique).mockResolvedValue(
+      baseCategoryRecord({ translations: [{ locale: "en", name: "A" }] }) as never
+    );
+    vi.mocked(prisma.linkCategory.update).mockResolvedValue(baseCategoryRecord() as never);
+
+    await addLinkCategoryTranslations("category-1", [
+      { locale: "en", name: "Overwrite" },
+      { locale: "th", name: "ไทย" },
+    ]);
+
+    expect(prisma.linkCategory.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { translations: { create: [{ locale: "th", name: "ไทย" }] } },
+      })
+    );
+  });
+
+  it("存在しないIDはLinkCategoryNotFoundErrorを送出する", async () => {
+    vi.mocked(prisma.linkCategory.findUnique).mockResolvedValue(null);
+
+    await expect(addLinkCategoryTranslations("x", [])).rejects.toThrow(
+      LinkCategoryNotFoundError
+    );
   });
 });

@@ -49,8 +49,6 @@ export default async function HelpdeskManualNewPage() {
         titlePlaceholder={t("titlePlaceholder")}
         descriptionLabel={t("descriptionLabel")}
         descriptionPlaceholder={t("descriptionPlaceholder")}
-        languageJaTabLabel={t("language.jaTab")}
-        languageEnTabLabel={t("language.enTab")}
         yearLabel={t("yearLabel")}
         monthLabel={t("monthLabel")}
         targetingLabel={t("targetingLabel")}
@@ -79,6 +77,9 @@ export default async function HelpdeskManualNewPage() {
         googleUrlInvalidMessage={t("validation.googleUrlInvalid")}
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
+        translationPartialFailureMessage={t("translationPartialFailure")}
+        retranslateButtonLabel={t("retranslateButton")}
+        retranslateErrorMessage={t("retranslateError")}
       />
     </div>
   );

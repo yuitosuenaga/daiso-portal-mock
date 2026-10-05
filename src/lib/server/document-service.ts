@@ -223,6 +223,35 @@ export async function updateDocumentRecord(
   }
 }
 
+/**
+ * 指定した言語の翻訳行のみを追加・更新する（他言語の行は触らない）。再翻訳で不足言語だけを
+ * 補うために使う。存在しない場合は`DocumentNotFoundError`を送出する。
+ */
+export async function upsertDocumentTranslations(
+  id: string,
+  translations: Document["translations"]
+): Promise<void> {
+  const exists = await prisma.document.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) {
+    throw new DocumentNotFoundError(id);
+  }
+
+  await prisma.$transaction(
+    translations.map((translation) =>
+      prisma.documentTranslation.upsert({
+        where: { documentId_locale: { documentId: id, locale: translation.locale } },
+        create: {
+          documentId: id,
+          locale: translation.locale,
+          title: translation.title,
+          description: translation.description,
+        },
+        update: { title: translation.title, description: translation.description ?? null },
+      })
+    )
+  );
+}
+
 /** ドキュメントを削除する。存在しない場合は`DocumentNotFoundError`を送出する。 */
 export async function deleteDocumentRecord(id: string): Promise<void> {
   try {

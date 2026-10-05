@@ -8,9 +8,13 @@ import {
   updateAnnouncement,
 } from "@/lib/api/announcements";
 import { announcementFormSchema } from "@/lib/validation/announcement";
-import { ensureEnTranslation } from "@/lib/server/announcement-translation";
+import { buildAnnouncementTranslations } from "@/lib/server/announcement-translation";
+import {
+  AnnouncementNotFoundError,
+  findAnnouncementById,
+  replaceAnnouncementTranslations,
+} from "@/lib/server/announcement-service";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
-import { getTranslator } from "@/lib/server/translation-service";
 import type { Announcement, CreateAnnouncementInput } from "@/types/announcement";
 
 const HELPDESK_ANNOUNCEMENT_LIST_PATH = "/[locale]/helpdesk/announcements";
@@ -27,60 +31,95 @@ function revalidateAnnouncementRoutes() {
   revalidatePath(DASHBOARD_PATH, "page");
 }
 
+/** フォームから受け取る入力。翻訳は保存時にjaから自動生成するため`translations`は含まない。 */
+export type AnnouncementActionInput = Omit<CreateAnnouncementInput, "translations">;
+
+export interface AnnouncementSaveResult {
+  announcement: Announcement;
+  /** 自動翻訳に失敗したlocale。空なら全言語の翻訳が保存済み */
+  failedLocales: string[];
+  /** 翻訳失敗のため、指定された公開状態に関わらず下書きとして保存した場合に真 */
+  forcedDraft: boolean;
+}
+
+/**
+ * ja本文から全対応言語の翻訳を組み立て、1言語でも失敗したら公開状態を強制的に下書きにする
+ * （下書きなら公開通知は送られない）。
+ */
+async function withAutoTranslations(
+  parsed: ReturnType<typeof announcementFormSchema.parse>,
+  existingId?: string
+): Promise<{ input: CreateAnnouncementInput; failedLocales: string[]; forcedDraft: boolean }> {
+  const values = parsed;
+  const existing = existingId ? await findAnnouncementById(existingId) : null;
+  const { translations, failedLocales } = await buildAnnouncementTranslations(
+    { title: values.title, body: values.body },
+    existing?.translations ?? []
+  );
+  const forcedDraft = failedLocales.length > 0 && values.status === "published";
+
+  return {
+    input: { ...values, status: failedLocales.length > 0 ? "draft" : values.status, translations },
+    failedLocales,
+    forcedDraft,
+  };
+}
+
 /**
  * お知らせを新規作成し、ヘルプデスク側・申請者側・ダッシュボードのルートを再検証する。
  * 不正な入力（タイトル・本文・種別の未入力、配信対象の国0件選択）は保存せず例外を送出する。
+ * 翻訳に失敗した場合は下書きとして保存する（`failedLocales`・`forcedDraft`で通知）。
  */
 export async function createAnnouncementAction(
-  input: CreateAnnouncementInput
-): Promise<Announcement> {
+  input: AnnouncementActionInput
+): Promise<AnnouncementSaveResult> {
   const parsed = announcementFormSchema.parse(input);
-  const withEnTranslation = await ensureEnTranslation(parsed);
-  const created = await createAnnouncement(withEnTranslation);
+  const { input: prepared, failedLocales, forcedDraft } = await withAutoTranslations(parsed);
+  const created = await createAnnouncement(prepared);
   revalidateAnnouncementRoutes();
 
-  return created;
+  return { announcement: created, failedLocales, forcedDraft };
 }
 
 /**
  * 既存お知らせの内容を更新し、ヘルプデスク側・申請者側・ダッシュボードのルートを再検証する。
- * 不正な入力は保存せず例外を送出する。
+ * 不正な入力は保存せず例外を送出する。jaのタイトル・本文が変わった場合のみ再翻訳する。
  */
 export async function updateAnnouncementAction(
   id: string,
-  input: CreateAnnouncementInput
-): Promise<Announcement> {
+  input: AnnouncementActionInput
+): Promise<AnnouncementSaveResult> {
   const parsed = announcementFormSchema.parse(input);
-  const withEnTranslation = await ensureEnTranslation(parsed, id);
-  const updated = await updateAnnouncement(id, withEnTranslation);
+  const { input: prepared, failedLocales, forcedDraft } = await withAutoTranslations(parsed, id);
+  const updated = await updateAnnouncement(id, prepared);
   revalidateAnnouncementRoutes();
 
-  return updated;
+  return { announcement: updated, failedLocales, forcedDraft };
 }
 
 /**
- * フォーム編集中のja本文をClaude APIで即時翻訳し、英語欄（または`targetLocale`の追加言語欄）に反映するための下書き翻訳。
- * 保存は行わない（フォームの「日本語から自動翻訳」ボタン用）。
+ * 翻訳APIだけを再実行する。不足・古い・失敗したlocaleのみ翻訳して保存し、
+ * 公開状態・通知には触れない。翻訳に失敗したlocaleの既存行は残す。
  */
-export async function translateAnnouncementDraftAction(input: {
-  title: string;
-  body: string;
-  /** 翻訳先の言語コード。省略時は`en`。 */
-  targetLocale?: string;
-}): Promise<{ title: string; body: string }> {
+export async function retranslateAnnouncementAction(
+  id: string
+): Promise<{ failedLocales: string[] }> {
   await requireHelpdeskStaffSession();
 
-  const translator = getTranslator();
-  if (!translator) {
-    throw new Error("Automatic translation is not configured");
+  const current = await findAnnouncementById(id);
+  if (!current) {
+    throw new AnnouncementNotFoundError(id);
   }
 
-  return translator.translate({
-    title: input.title,
-    body: input.body,
-    sourceLocale: "ja",
-    targetLocale: input.targetLocale ?? "en",
-  });
+  const { translations, failedLocales } = await buildAnnouncementTranslations(
+    { title: current.title, body: current.body },
+    current.translations,
+    { keepExistingOnFailure: true }
+  );
+  await replaceAnnouncementTranslations(id, translations);
+  revalidateAnnouncementRoutes();
+
+  return { failedLocales };
 }
 
 /**

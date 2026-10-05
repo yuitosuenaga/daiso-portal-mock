@@ -19,6 +19,7 @@ vi.mock("@/lib/actions/documents", () => ({
   createDocumentAction: vi.fn(),
   updateDocumentAction: vi.fn(),
   deleteDocumentAction: vi.fn(),
+  retranslateDocumentAction: vi.fn(),
 }));
 
 const DOCUMENT: Document = {
@@ -96,13 +97,6 @@ const BASE_PROPS = {
     titlePlaceholder: "",
     descriptionLabel: "説明",
     descriptionPlaceholder: "",
-    languageJaTabLabel: "日本語",
-    languageEnTabLabel: "English",
-    languageAddButtonLabel: "言語を追加",
-    languageRemoveButtonLabel: "この言語を削除",
-    languageLocaleCodeLabel: "言語コード",
-    languageLocaleCodePlaceholder: "例: th, vi, zh",
-    languageLocaleDuplicateErrorMessage: "他の言語と重複しない言語コードを入力してください",
     statusLabel: "公開状態",
     statusDraftOption: "下書き",
     statusPublishedOption: "公開",
@@ -134,6 +128,10 @@ const BASE_PROPS = {
       "Googleドキュメント/スプレッドシート/スライドの共有リンクを入力してください",
     requiredIndicator: "*",
     submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
+    translationPartialFailedMessage: "一部の言語の翻訳に失敗しました。後から再翻訳できます",
+    retranslateButtonLabel: "翻訳を再実行",
+    retranslateSuccessMessage: "翻訳が完了しました",
+    backToListButtonLabel: "一覧へ戻る",
   },
 };
 
@@ -189,15 +187,5 @@ describe("DocumentDetailPanel", () => {
     expect(screen.getByText("元のドキュメントを開く")).toBeTruthy();
     expect(screen.getByText("登録方法: Googleリンク")).toBeTruthy();
     expect(screen.getByText("公開状態: 下書き")).toBeTruthy();
-  });
-
-  it("編集モードで英語タブに切り替えると登録済みのen翻訳が初期値として復元される", () => {
-    render(<DocumentDetailPanel {...BASE_PROPS} document={GOOGLE_DOCUMENT} />);
-
-    fireEvent.click(screen.getByRole("tab", { name: "English" }));
-
-    expect(
-      (screen.getByLabelText(/タイトル/) as HTMLInputElement).value
-    ).toBe("Google Document");
   });
 });

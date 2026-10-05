@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
 
-const createAnnouncementActionMock = vi.fn().mockResolvedValue({ id: "new-id" });
-const updateAnnouncementActionMock = vi.fn().mockResolvedValue({ id: "existing-id" });
-const translateAnnouncementDraftActionMock = vi
-  .fn()
-  .mockResolvedValue({ title: "Translated Title", body: "Translated Body" });
+const saveResult = (id: string) => ({
+  announcement: { id },
+  failedLocales: [] as string[],
+  forcedDraft: false,
+});
+const createAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("new-id"));
+const updateAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("existing-id"));
 const pushMock = vi.fn();
 
 vi.mock("@/lib/actions/announcements", () => ({
@@ -15,14 +17,11 @@ vi.mock("@/lib/actions/announcements", () => ({
     createAnnouncementActionMock(...args),
   updateAnnouncementAction: (...args: unknown[]) =>
     updateAnnouncementActionMock(...args),
-  translateAnnouncementDraftAction: (...args: unknown[]) =>
-    translateAnnouncementDraftActionMock(...args),
 }));
 
 beforeEach(() => {
   createAnnouncementActionMock.mockClear();
   updateAnnouncementActionMock.mockClear();
-  translateAnnouncementDraftActionMock.mockClear();
   pushMock.mockClear();
 });
 
@@ -35,13 +34,6 @@ const labels = {
   titlePlaceholder: "タイトルを入力してください",
   bodyLabel: "本文",
   bodyPlaceholder: "本文を入力してください",
-  languageJaTabLabel: "日本語",
-  languageEnTabLabel: "English",
-  languageAddButtonLabel: "言語を追加",
-  languageRemoveButtonLabel: "この言語を削除",
-  languageLocaleCodeLabel: "言語コード",
-  languageLocaleCodePlaceholder: "例: th, vi, zh",
-  languageLocaleDuplicateErrorMessage: "他の言語と重複しない言語コードを入力してください",
   categoryLabel: "種別",
   categoryPlaceholder: "種別を選択してください",
   statusLabel: "公開状態",
@@ -74,11 +66,7 @@ const labels = {
   countriesRequiredErrorMessage: "1つ以上の国・地域を選択してください",
   requiredIndicator: "必須",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
-  enAutoTranslateHint: "未入力の場合、保存時に日本語から自動翻訳されます。",
-  enBothOrNeitherErrorMessage: "英語のタイトル・本文は両方入力するか、両方未入力にしてください",
-  translateFromJaButtonLabel: "日本語から自動翻訳",
-  translateFromJaPendingLabel: "翻訳中...",
-  translateFromJaErrorMessage: "自動翻訳に失敗しました。時間を置いて再度お試しください。",
+  translationFailedDraftMessage: "翻訳に失敗したため下書きとして保存しました",
   categoryOptions: [
     { value: "maintenance", label: "メンテナンス" },
     { value: "policy", label: "制度変更" },
@@ -113,18 +101,6 @@ const labels = {
   linkedDocumentsTargetingCompaniesPrefixLabel: "対象会社:",
 };
 
-/** en タブに切り替えてtitleEn/bodyEnを入力し、jaタブへ戻る。 */
-function fillEnFields(titleEn: string, bodyEn: string) {
-  fireEvent.click(screen.getByRole("tab", { name: "English" }));
-  fireEvent.change(screen.getByLabelText(/タイトル/), {
-    target: { value: titleEn },
-  });
-  fireEvent.change(screen.getByLabelText(/本文/), {
-    target: { value: bodyEn },
-  });
-  fireEvent.click(screen.getByRole("tab", { name: "日本語" }));
-}
-
 describe("AnnouncementForm", () => {
   it("必須項目が未入力のまま送信するとcreateAnnouncementActionが呼ばれない", async () => {
     render(<AnnouncementForm mode="create" {...labels} />);
@@ -146,7 +122,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -166,7 +141,6 @@ describe("AnnouncementForm", () => {
         dueDate: null,
         attachments: [],
         linkedDocumentIds: [],
-        translations: [{ locale: "en", title: "New announcement", body: "Body text" }],
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
@@ -185,7 +159,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -210,7 +183,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -236,7 +208,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -263,7 +234,6 @@ describe("AnnouncementForm", () => {
         dueDate: null,
         attachments: [],
         linkedDocumentIds: [],
-        translations: [{ locale: "en", title: "New announcement", body: "Body text" }],
       });
     });
   });
@@ -276,9 +246,6 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
-          titleEn: "Existing title (EN)",
-          bodyEn: "Existing body (EN)",
-          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -314,9 +281,6 @@ describe("AnnouncementForm", () => {
           dueDate: null,
           attachments: [],
           linkedDocumentIds: [],
-          translations: [
-            { locale: "en", title: "Existing title (EN)", body: "Existing body (EN)" },
-          ],
         }
       );
     });
@@ -330,9 +294,6 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
-          titleEn: "Existing title (EN)",
-          bodyEn: "Existing body (EN)",
-          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -365,7 +326,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -403,7 +363,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -425,7 +384,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -445,93 +403,6 @@ describe("AnnouncementForm", () => {
     expect(createAnnouncementActionMock).not.toHaveBeenCalled();
   });
 
-  it("enタブが両方未入力のまま送信できる（保存時に自動翻訳される想定でブロックしない）", async () => {
-    render(<AnnouncementForm mode="create" {...labels} />);
-
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "新規お知らせ" },
-    });
-    fireEvent.change(screen.getByLabelText(/本文/), {
-      target: { value: "本文テキスト" },
-    });
-    fireEvent.change(screen.getByLabelText(/種別/), {
-      target: { value: "maintenance" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
-
-    await waitFor(() => {
-      expect(createAnnouncementActionMock).toHaveBeenCalled();
-    });
-    const submitted = createAnnouncementActionMock.mock.calls[0]?.[0];
-    expect(submitted.translations).toEqual([]);
-  });
-
-  it("titleEnのみ入力しbodyEnが未入力のまま送信すると送信がブロックされる", async () => {
-    render(<AnnouncementForm mode="create" {...labels} />);
-
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "新規お知らせ" },
-    });
-    fireEvent.change(screen.getByLabelText(/本文/), {
-      target: { value: "本文テキスト" },
-    });
-    fireEvent.change(screen.getByLabelText(/種別/), {
-      target: { value: "maintenance" },
-    });
-    fireEvent.click(screen.getByRole("tab", { name: "English" }));
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "New announcement" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("英語のタイトル・本文は両方入力するか、両方未入力にしてください")
-      ).toBeTruthy();
-    });
-    expect(createAnnouncementActionMock).not.toHaveBeenCalled();
-  });
-
-  it("言語を追加ボタンで追加言語のタブが表示され、入力した内容が送信される", async () => {
-    render(<AnnouncementForm mode="create" {...labels} />);
-
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "新規お知らせ" },
-    });
-    fireEvent.change(screen.getByLabelText(/本文/), {
-      target: { value: "本文テキスト" },
-    });
-    fillEnFields("New announcement", "Body text");
-    fireEvent.change(screen.getByLabelText(/種別/), {
-      target: { value: "maintenance" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "言語を追加" }));
-    fireEvent.click(screen.getByRole("tab", { name: "言語コード" }));
-    fireEvent.change(screen.getByLabelText(/言語コード/), {
-      target: { value: "th" },
-    });
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "หัวข้อ" },
-    });
-    fireEvent.change(screen.getByLabelText(/本文/), {
-      target: { value: "เนื้อหา" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
-
-    await waitFor(() => {
-      expect(createAnnouncementActionMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          translations: [
-            { locale: "en", title: "New announcement", body: "Body text" },
-            { locale: "th", title: "หัวข้อ", body: "เนื้อหา" },
-          ],
-        })
-      );
-    });
-  });
-
   it("直接アップロードのPDF添付はPdfViewerでプレビュー表示され、画像添付は表示されない", async () => {
     render(
       <AnnouncementForm
@@ -540,9 +411,6 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
-          titleEn: "Existing title (EN)",
-          bodyEn: "Existing body (EN)",
-          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -582,9 +450,6 @@ describe("AnnouncementForm", () => {
         defaultValues={{
           title: "既存タイトル",
           body: "既存本文",
-          titleEn: "Existing title (EN)",
-          bodyEn: "Existing body (EN)",
-          translations: [],
           category: "policy",
           status: "published",
           targeting: { scope: "all" },
@@ -627,7 +492,6 @@ describe("AnnouncementForm", () => {
     fireEvent.change(screen.getByLabelText(/本文/), {
       target: { value: "本文テキスト" },
     });
-    fillEnFields("New announcement", "Body text");
     fireEvent.change(screen.getByLabelText(/種別/), {
       target: { value: "maintenance" },
     });
@@ -641,32 +505,62 @@ describe("AnnouncementForm", () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it("「日本語から自動翻訳」ボタンを押すとtranslateAnnouncementDraftActionを呼び英語欄に反映する", async () => {
+  it("翻訳失敗で下書き保存された場合、編集モードでは通知文言を表示し一覧へ遷移しない", async () => {
+    updateAnnouncementActionMock.mockResolvedValueOnce({
+      announcement: { id: "existing-id" },
+      failedLocales: ["en"],
+      forcedDraft: true,
+    });
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "all" },
+          actionRequired: false,
+          sendEmailNotification: false,
+        }}
+        {...labels}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("翻訳に失敗したため下書きとして保存しました")).toBeTruthy();
+    });
+    expect((screen.getByLabelText("公開状態") as HTMLSelectElement).value).toBe("draft");
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("翻訳失敗で下書き保存された場合、作成モードでは編集画面へ遷移する", async () => {
+    createAnnouncementActionMock.mockResolvedValueOnce({
+      announcement: { id: "created-id" },
+      failedLocales: ["en"],
+      forcedDraft: true,
+    });
     render(<AnnouncementForm mode="create" {...labels} />);
 
-    fireEvent.change(screen.getByLabelText(/タイトル/), {
-      target: { value: "新規お知らせ" },
-    });
-    fireEvent.change(screen.getByLabelText(/本文/), {
-      target: { value: "本文テキスト" },
-    });
-    fireEvent.click(screen.getByRole("tab", { name: "English" }));
-    fireEvent.click(screen.getByRole("button", { name: "日本語から自動翻訳" }));
+    fireEvent.change(screen.getByLabelText(/タイトル/), { target: { value: "新規お知らせ" } });
+    fireEvent.change(screen.getByLabelText(/本文/), { target: { value: "本文テキスト" } });
+    fireEvent.change(screen.getByLabelText(/種別/), { target: { value: "maintenance" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
 
     await waitFor(() => {
-      expect(translateAnnouncementDraftActionMock).toHaveBeenCalledWith({
-        title: "新規お知らせ",
-        body: "本文テキスト",
-        targetLocale: "en",
-      });
-    });
-    await waitFor(() => {
-      expect((screen.getByLabelText(/タイトル/) as HTMLInputElement).value).toBe(
-        "Translated Title"
+      expect(pushMock).toHaveBeenCalledWith(
+        "/helpdesk/announcements/created-id/edit?translationFailed=1"
       );
     });
-    expect((screen.getByLabelText(/本文/) as HTMLTextAreaElement).value).toBe(
-      "Translated Body"
-    );
+  });
+
+  it("言語タブ・英語入力欄は表示されない（日本語のみ入力）", () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getAllByLabelText(/タイトル/)).toHaveLength(1);
   });
 });

@@ -63,3 +63,22 @@ export type Document =
 export type CreateDocumentInput =
   | Omit<Extract<Document, { sourceType: "upload" }>, "id" | "uploadedAt">
   | Omit<Extract<Document, { sourceType: "google" }>, "id" | "uploadedAt">;
+
+/**
+ * ヘルプデスクのフォームから受け取る入力（日本語のみ）。他言語の`translations`は
+ * Server Actionが自動翻訳で生成するため、クライアント入力には含めない。
+ */
+export type DocumentFormInput =
+  | Omit<Extract<CreateDocumentInput, { sourceType: "upload" }>, "translations">
+  | Omit<Extract<CreateDocumentInput, { sourceType: "google" }>, "translations">;
+
+/** 保存系Server Actionの戻り値。`failedLocales`が空でなければ一部言語の自動翻訳に失敗している。 */
+export interface DocumentSaveResult {
+  document: Document;
+  failedLocales: string[];
+}
+
+/** 再翻訳Server Actionの戻り値。 */
+export interface RetranslateResult {
+  failedLocales: string[];
+}

@@ -15,7 +15,11 @@ import {
   type LinkFormValues,
   type LinkSubmitValues,
 } from "@/lib/validation/link";
-import { createLinkAction, updateLinkAction } from "@/lib/actions/links";
+import {
+  createLinkAction,
+  retranslateLinkAction,
+  updateLinkAction,
+} from "@/lib/actions/links";
 
 /** 大分類1件分の選択肢（`getAllLinkCategories()`の大分類一覧、中分類を含む）。 */
 export interface LinkCategoryFormOption {
@@ -43,6 +47,12 @@ export interface LinkFormProps {
   requiredErrorMessage: string;
   invalidUrlErrorMessage: string;
   submitErrorMessage: string;
+  /** 一部の言語の翻訳に失敗したときの案内（保存自体は完了している） */
+  translationFailedMessage: string;
+  /** 「再翻訳」ボタンのラベル */
+  retranslateButtonLabel: string;
+  /** 翻訳失敗の案内表示中に一覧へ戻るボタンのラベル */
+  backToListLabel: string;
   /** 大分類の選択肢（`getAllLinkCategories()`の大分類一覧、`links-management`要件12.5） */
   categoryOptions: LinkCategoryFormOption[];
 }
@@ -72,10 +82,15 @@ export function LinkForm({
   requiredErrorMessage,
   invalidUrlErrorMessage,
   submitErrorMessage,
+  translationFailedMessage,
+  retranslateButtonLabel,
+  backToListLabel,
   categoryOptions,
 }: LinkFormProps) {
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
+  const [translationFailedLinkId, setTranslationFailedLinkId] = useState<string | null>(null);
+  const [isRetranslating, setIsRetranslating] = useState(false);
   const {
     register,
     handleSubmit,
@@ -117,14 +132,33 @@ export function LinkForm({
   async function onSubmit(values: LinkSubmitValues) {
     setHasSubmitError(false);
     try {
-      if (mode === "edit" && linkId) {
-        await updateLinkAction(linkId, values);
-      } else {
-        await createLinkAction(values);
+      const result =
+        mode === "edit" && linkId
+          ? await updateLinkAction(linkId, values)
+          : await createLinkAction(values);
+      if (result.failedLocales.length > 0) {
+        // 保存は完了している。再翻訳できるよう、遷移せずに案内する
+        setTranslationFailedLinkId(result.link.id);
+        return;
       }
       router.push("/helpdesk/links");
     } catch {
       setHasSubmitError(true);
+    }
+  }
+
+  async function handleRetranslate() {
+    if (!translationFailedLinkId) return;
+    setIsRetranslating(true);
+    try {
+      const result = await retranslateLinkAction(translationFailedLinkId);
+      if (result.failedLocales.length === 0) {
+        router.push("/helpdesk/links");
+      }
+    } catch {
+      // 失敗時は案内メッセージを表示したままにする
+    } finally {
+      setIsRetranslating(false);
     }
   }
 
@@ -206,7 +240,7 @@ export function LinkForm({
       </FormField>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || translationFailedLinkId !== null}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (
@@ -215,6 +249,28 @@ export function LinkForm({
           </span>
         )}
       </div>
+      {translationFailedLinkId && (
+        <div role="status" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+          <span>{translationFailedMessage}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isRetranslating}
+            onClick={handleRetranslate}
+          >
+            {retranslateButtonLabel}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/helpdesk/links")}
+          >
+            {backToListLabel}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

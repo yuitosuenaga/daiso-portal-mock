@@ -3,6 +3,13 @@
 // （2026-07-29改訂: 固定4値enumから、ヘルプデスク担当者が管理画面で追加・編集できる
 // 階層カテゴリへ変更した。旧`LinkCategory`型（固定4値union）は撤去した）。
 
+/** リンクの言語別（`ja`以外）の内容。`ja`は`Link.title`/`description`が正。 */
+export interface LinkTranslationView {
+  locale: string;
+  title: string;
+  description?: string;
+}
+
 export interface Link {
   id: string;
   title: string;
@@ -13,6 +20,14 @@ export interface Link {
   subCategoryId: string | null;
   /** 補足説明（フェーズ1は任意項目） */
   description?: string;
+  /** 自動翻訳による`ja`以外の内容。読み出し時は常に配列だが、書き込み入力では省略可（省略時は変更しない） */
+  translations?: LinkTranslationView[];
+}
+
+/** 作成・更新・再翻訳アクションの結果。`failedLocales`が空でなければ一部言語が未翻訳。 */
+export interface LinkSaveResult {
+  link: Link;
+  failedLocales: string[];
 }
 
 /**

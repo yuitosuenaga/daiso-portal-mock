@@ -15,14 +15,18 @@ import {
   type DocumentFileValue,
 } from "@/components/features/helpdesk-documents/DocumentFileField";
 import { DocumentGoogleLinkField } from "@/components/features/helpdesk-documents/DocumentGoogleLinkField";
-import { createManualAction, updateManualAction } from "@/lib/actions/manuals";
+import {
+  createManualAction,
+  retranslateManualAction,
+  updateManualAction,
+} from "@/lib/actions/manuals";
 import {
   manualFormSchema,
   type ManualFormValues,
   type ManualSubmitValues,
 } from "@/lib/validation/manual";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
-import type { CreateManualInput, ManualCategory } from "@/types/manual";
+import type { ManualCategory, ManualFormInput } from "@/types/manual";
 
 type UploadFormValues = Extract<ManualFormValues, { sourceType: "upload" }>;
 
@@ -30,15 +34,13 @@ type UploadFormValues = Extract<ManualFormValues, { sourceType: "upload" }>;
  * `react-hook-form`が扱う内部フォーム状態の型。`manualFormSchema`（`sourceType`による
  * 判別可能ユニオン型）をそのまま`useForm`のジェネリクスに使うと`watch`/`errors`が分岐後の
  * フィールドにアクセスできなくなるため、両分岐のフィールドを常に保持するフラットな型を用いる
- * （`DocumentForm.tsx`の`DocumentFormFieldValues`と同型の対処）。マニュアルはja/en固定の
- * 2言語のみのため、`documents`specの`translations`（任意追加言語）配列は持たない。
+ * （`DocumentForm.tsx`の`DocumentFormFieldValues`と同型の対処）。入力は日本語のみで、
+ * 他言語の翻訳は保存時にサーバーアクションが自動翻訳する。
  */
 interface ManualFormFieldValues {
   sourceType: "upload" | "google";
   title: string;
   description?: string;
-  titleEn: string;
-  descriptionEn?: string;
   category: ManualCategory;
   year: number;
   month: number;
@@ -67,8 +69,6 @@ function toFieldValues(values: ManualFormValues): ManualFormFieldValues {
   const base = {
     title: values.title,
     description: values.description,
-    titleEn: values.titleEn ?? "",
-    descriptionEn: values.descriptionEn,
     category: values.category as ManualCategory,
     year: values.year,
     month: values.month,
@@ -111,8 +111,6 @@ export interface ManualFormProps {
   titlePlaceholder: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
-  languageJaTabLabel: string;
-  languageEnTabLabel: string;
   yearLabel: string;
   monthLabel: string;
   targetingLabel: string;
@@ -141,10 +139,16 @@ export interface ManualFormProps {
   googleUrlInvalidMessage: string;
   requiredIndicator: string;
   submitErrorMessage: string;
+  /** 一部言語の自動翻訳に失敗したことを伝える文言（「後から再翻訳できます」を含む） */
+  translationPartialFailureMessage: string;
+  retranslateButtonLabel: string;
+  retranslateErrorMessage: string;
+  /** 編集時、翻訳が未保存の対応言語（空でなければ初期表示から再翻訳ボタンを出す） */
+  missingTranslationLocales?: string[];
 }
 
 /**
- * マニュアルの新規作成・編集で共用するフォーム。タイトル・説明（ja/en）、カテゴリ、対象年月、
+ * マニュアルの新規作成・編集で共用するフォーム。タイトル・説明（日本語のみ。他言語は保存時に自動翻訳）、カテゴリ、対象年月、
  * 登録方式（ファイルをアップロード/Googleドキュメントの共有リンクを登録）に応じたファイル選択
  * またはURL入力、公開範囲の選択を含む（`documents`specの`DocumentForm`・`monthly-material`specの
  * `MonthlyMaterialForm`を組み合わせた構成）。
@@ -164,8 +168,6 @@ export function ManualForm({
   titlePlaceholder,
   descriptionLabel,
   descriptionPlaceholder,
-  languageJaTabLabel,
-  languageEnTabLabel,
   yearLabel,
   monthLabel,
   targetingLabel,
@@ -194,10 +196,19 @@ export function ManualForm({
   googleUrlInvalidMessage,
   requiredIndicator,
   submitErrorMessage,
+  translationPartialFailureMessage,
+  retranslateButtonLabel,
+  retranslateErrorMessage,
+  missingTranslationLocales = [],
 }: ManualFormProps) {
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
-  const [activeLanguageTab, setActiveLanguageTab] = useState<"ja" | "en">("ja");
+  // 保存後に一部言語の翻訳が失敗していた場合の再翻訳対象ID（新規作成時は保存結果のIDを使う）
+  const [retranslateTargetId, setRetranslateTargetId] = useState<string | null>(
+    mode === "edit" && manualId && missingTranslationLocales.length > 0 ? manualId : null
+  );
+  const [isRetranslating, setIsRetranslating] = useState(false);
+  const [hasRetranslateError, setHasRetranslateError] = useState(false);
   const {
     register,
     handleSubmit,
@@ -221,8 +232,6 @@ export function ManualForm({
             sourceType: "upload",
             title: "",
             description: "",
-            titleEn: "",
-            descriptionEn: "",
             category: categoryOptions[0]?.value as ManualCategory,
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
@@ -293,11 +302,15 @@ export function ManualForm({
     try {
       // `manualFormSchema`が`sourceType`に応じて正しい形へ再検証・整形するため、変換済みの
       // フォーム値をそのまま渡してよい（サーバー側でも同一スキーマで再検証する）。
-      const input = values as unknown as CreateManualInput;
-      if (mode === "edit" && manualId) {
-        await updateManualAction(manualId, input);
-      } else {
-        await createManualAction(input);
+      const input = values as unknown as ManualFormInput;
+      const result =
+        mode === "edit" && manualId
+          ? await updateManualAction(manualId, input)
+          : await createManualAction(input);
+      if (result.failedLocales.length > 0) {
+        // 保存自体は成功しているため、画面に留まり再翻訳を促す
+        setRetranslateTargetId(result.manual.id);
+        return;
       }
       router.push("/helpdesk/manuals");
     } catch {
@@ -305,91 +318,48 @@ export function ManualForm({
     }
   }
 
-  const languageTabButtonClassName = (isActive: boolean) =>
-    `rounded-md border px-3 py-1.5 text-sm ${
-      isActive
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-input bg-background text-foreground"
-    }`;
+  async function handleRetranslate() {
+    if (!retranslateTargetId) return;
+    setHasRetranslateError(false);
+    setIsRetranslating(true);
+    try {
+      const { failedLocales } = await retranslateManualAction(retranslateTargetId);
+      if (failedLocales.length > 0) {
+        setHasRetranslateError(true);
+        return;
+      }
+      router.push("/helpdesk/manuals");
+    } catch {
+      setHasRetranslateError(true);
+    } finally {
+      setIsRetranslating(false);
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeLanguageTab === "ja"}
-            className={languageTabButtonClassName(activeLanguageTab === "ja")}
-            onClick={() => setActiveLanguageTab("ja")}
-          >
-            {languageJaTabLabel}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeLanguageTab === "en"}
-            className={languageTabButtonClassName(activeLanguageTab === "en")}
-            onClick={() => setActiveLanguageTab("en")}
-          >
-            {languageEnTabLabel}
-          </button>
-        </div>
-
-        {activeLanguageTab === "ja" && (
-          <div className="flex flex-col gap-4">
-            <FormField
-              label={titleLabel}
-              required
-              requiredIndicator={requiredIndicator}
-              htmlFor="manual-title"
-              error={errors.title ? requiredErrorMessage : undefined}
-            >
-              <Input
-                id="manual-title"
-                placeholder={titlePlaceholder}
-                aria-invalid={errors.title ? true : undefined}
-                {...register("title")}
-              />
-            </FormField>
-            <FormField label={descriptionLabel} htmlFor="manual-description">
-              <Textarea
-                id="manual-description"
-                placeholder={descriptionPlaceholder}
-                rows={3}
-                {...register("description")}
-              />
-            </FormField>
-          </div>
-        )}
-
-        {activeLanguageTab === "en" && (
-          <div className="flex flex-col gap-4">
-            <FormField
-              label={titleLabel}
-              required
-              requiredIndicator={requiredIndicator}
-              htmlFor="manual-title-en"
-              error={errors.titleEn ? requiredErrorMessage : undefined}
-            >
-              <Input
-                id="manual-title-en"
-                placeholder={titlePlaceholder}
-                aria-invalid={errors.titleEn ? true : undefined}
-                {...register("titleEn")}
-              />
-            </FormField>
-            <FormField label={descriptionLabel} htmlFor="manual-description-en">
-              <Textarea
-                id="manual-description-en"
-                placeholder={descriptionPlaceholder}
-                rows={3}
-                {...register("descriptionEn")}
-              />
-            </FormField>
-          </div>
-        )}
-      </div>
+      <FormField
+        label={titleLabel}
+        required
+        requiredIndicator={requiredIndicator}
+        htmlFor="manual-title"
+        error={errors.title ? requiredErrorMessage : undefined}
+      >
+        <Input
+          id="manual-title"
+          placeholder={titlePlaceholder}
+          aria-invalid={errors.title ? true : undefined}
+          {...register("title")}
+        />
+      </FormField>
+      <FormField label={descriptionLabel} htmlFor="manual-description">
+        <Textarea
+          id="manual-description"
+          placeholder={descriptionPlaceholder}
+          rows={3}
+          {...register("description")}
+        />
+      </FormField>
 
       <FormField
         label={categoryLabel}
@@ -606,6 +576,26 @@ export function ManualForm({
           </span>
         )}
       </div>
+
+      {retranslateTargetId && (
+        <div
+          role="status"
+          className="flex flex-col items-start gap-2 rounded-md border border-input p-3 text-sm"
+        >
+          <p>{translationPartialFailureMessage}</p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isRetranslating}
+            onClick={handleRetranslate}
+          >
+            {retranslateButtonLabel}
+          </Button>
+          {hasRetranslateError && (
+            <p className="text-destructive">{retranslateErrorMessage}</p>
+          )}
+        </div>
+      )}
     </form>
   );
 }

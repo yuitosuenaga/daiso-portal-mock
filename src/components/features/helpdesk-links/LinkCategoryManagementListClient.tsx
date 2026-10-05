@@ -165,6 +165,7 @@ export function LinkCategoryManagementListClient({
         state={dialogState}
         onClose={handleClosed}
         onSaved={handleSaved}
+        retranslateButtonLabel={t("retranslateButton")}
       />
     </div>
   );

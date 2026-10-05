@@ -116,13 +116,6 @@ export default async function HelpdeskDocumentEditPage({
           titlePlaceholder: t("titlePlaceholder"),
           descriptionLabel: t("descriptionLabel"),
           descriptionPlaceholder: t("descriptionPlaceholder"),
-          languageJaTabLabel: t("language.jaTab"),
-          languageEnTabLabel: t("language.enTab"),
-          languageAddButtonLabel: t("language.addButton"),
-          languageRemoveButtonLabel: t("language.removeButton"),
-          languageLocaleCodeLabel: t("language.localeCodeLabel"),
-          languageLocaleCodePlaceholder: t("language.localeCodePlaceholder"),
-          languageLocaleDuplicateErrorMessage: t("language.localeDuplicateError"),
           statusLabel: t("statusLabel"),
           statusDraftOption: t("statusDraftOption"),
           statusPublishedOption: t("statusPublishedOption"),
@@ -152,6 +145,10 @@ export default async function HelpdeskDocumentEditPage({
           googleUrlInvalidMessage: t("validation.googleUrlInvalid"),
           requiredIndicator: tInquiryForm("requiredMark"),
           submitErrorMessage: t("submitError"),
+          translationPartialFailedMessage: t("translationPartialFailed"),
+          retranslateButtonLabel: t("retranslateButton"),
+          retranslateSuccessMessage: t("retranslateSuccess"),
+          backToListButtonLabel: t("backToList"),
         }}
       />
     </div>

@@ -30,29 +30,9 @@ export const manualTargetingSchema = z.discriminatedUnion("scope", [
   }),
 ]);
 
-/**
- * `en`翻訳1件分の検証スキーマ。マニュアルはja/enの2言語のみ対応し、`documents`specのような
- * 任意追加言語（`vi`等）の機能は持たないため、`locale`は`en`固定で受け取る
- * （`documentFormSchema`の`translations`と異なり、フォーム側からの二重パース時に
- * `en`行を復元できるようにするための内部表現）。
- */
-const manualTranslationSchema = z.object({
-  locale: z.string().trim().min(2).max(10),
-  title: z.string().trim().min(1),
-  description: z.string().trim().optional(),
-});
-
 const manualSharedFields = {
   title: z.string().trim().min(1),
   description: z.string().trim().optional(),
-  // `titleEn`は型としては任意（`optional`）だが、`superRefine`で実質必須として検証する。
-  // これは、サービス層に渡す出力（`translations`に`en`行を合成済み）を本スキーマで再検証
-  // （サーバーアクション側の多重防御）した場合に、既に`en`が`translations`側へ合成されていて
-  // `titleEn`が存在しない状態でも冪等に検証を通せるようにするため
-  // （`documentFormSchema`の`titleEn`と同型の対処）。
-  titleEn: z.string().trim().min(1).optional(),
-  descriptionEn: z.string().trim().optional(),
-  translations: z.array(manualTranslationSchema).default([]),
   category: z.enum(MANUAL_CATEGORIES),
   year: z.number().int().min(MANUAL_MIN_YEAR).max(MANUAL_MAX_YEAR),
   month: z.number().int().min(1).max(12),
@@ -80,9 +60,8 @@ const manualGoogleSchema = z.object({
  * 公開範囲は登録方式によらず必須とし、登録方式（`sourceType`）に応じてアップロード方式
  * （ファイル形式・サイズ）またはGoogle方式（共有リンクURLの形式）を検証する
  * （`documentFormSchema`・`monthlyMaterialFormSchema`と同型）。
- * タイトル・説明は言語別（`ja`は`title`/`description`、`en`は`titleEn`/`descriptionEn`）に
- * 入力し、`en`のタイトルは実質必須とする。`documents`specと異なり、ja/en以外の追加言語は
- * 対応しない。
+ * タイトル・説明は日本語（`ja`）のみ入力し、他言語の翻訳はサーバーアクションが保存時に
+ * 自動翻訳して付与するため、本スキーマは翻訳フィールドを受け付けない（送られても除去する）。
  */
 export const manualFormSchema = z
   .discriminatedUnion("sourceType", [manualUploadSchema, manualGoogleSchema])
@@ -94,33 +73,6 @@ export const manualFormSchema = z
         path: ["googleUrl"],
       });
     }
-
-    const enFromTranslations = data.translations.find(
-      (translation) => translation.locale === "en"
-    );
-    const effectiveTitleEn = data.titleEn ?? enFromTranslations?.title;
-    if (!effectiveTitleEn) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["titleEn"],
-        message: "titleEn is required",
-      });
-    }
-  })
-  .transform((data) => {
-    const { titleEn, descriptionEn, translations, ...rest } = data;
-    const enFromTranslations = translations.find(
-      (translation) => translation.locale === "en"
-    );
-    const resolvedTitleEn = titleEn ?? enFromTranslations?.title ?? "";
-    const resolvedDescriptionEn = descriptionEn ?? enFromTranslations?.description;
-
-    return {
-      ...rest,
-      translations: [
-        { locale: "en", title: resolvedTitleEn, description: resolvedDescriptionEn },
-      ],
-    };
   });
 
 /**

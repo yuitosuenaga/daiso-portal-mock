@@ -18,6 +18,7 @@ import {
   listReplyTemplates,
   listReplyTemplatesByCategory,
   updateReplyTemplateRecord,
+  upsertReplyTemplateTranslations,
 } from "@/lib/server/reply-template-service";
 
 function baseTemplateRecord(overrides: Partial<{
@@ -50,6 +51,7 @@ describe("listReplyTemplates / listReplyTemplatesByCategory", () => {
     const result = await listReplyTemplates();
 
     expect(result.map((t) => t.id)).toEqual(["1", "2"]);
+    expect(result[0].translations).toEqual([]);
   });
 
   it("指定カテゴリのみを取得する", async () => {
@@ -61,6 +63,7 @@ describe("listReplyTemplates / listReplyTemplatesByCategory", () => {
 
     expect(prisma.replyTemplate.findMany).toHaveBeenCalledWith({
       where: { category: "defect" },
+      include: { translations: true },
     });
     expect(result.every((t) => t.category === "defect")).toBe(true);
   });
@@ -86,10 +89,17 @@ describe("createReplyTemplateRecord / updateReplyTemplateRecord", () => {
       category: "system",
       name: "新規テンプレート",
       body: "本文",
+      translations: [{ locale: "en", name: "New", body: "Body" }],
     });
 
     expect(prisma.replyTemplate.create).toHaveBeenCalledWith({
-      data: { category: "system", name: "新規テンプレート", body: "本文" },
+      data: {
+        category: "system",
+        name: "新規テンプレート",
+        body: "本文",
+        translations: { create: [{ locale: "en", name: "New", body: "Body" }] },
+      },
+      include: { translations: true },
     });
     expect(result.id).toBe("1");
   });
@@ -108,7 +118,63 @@ describe("createReplyTemplateRecord / updateReplyTemplateRecord", () => {
     expect(prisma.replyTemplate.update).toHaveBeenCalledWith({
       where: { id: "1" },
       data: { category: "other", name: "更新後", body: "本文" },
+      include: { translations: true },
     });
     expect(result.name).toBe("更新後");
+  });
+
+  it("translationsを指定した更新は既存の翻訳を全置換する", async () => {
+    vi.mocked(prisma.replyTemplate.update).mockResolvedValue(baseTemplateRecord() as never);
+
+    await updateReplyTemplateRecord("1", {
+      category: "other",
+      name: "名",
+      body: "本文",
+      translations: [{ locale: "th", name: "ชื่อ", body: "เนื้อหา" }],
+    });
+
+    expect(prisma.replyTemplate.update).toHaveBeenCalledWith({
+      where: { id: "1" },
+      data: {
+        category: "other",
+        name: "名",
+        body: "本文",
+        translations: {
+          deleteMany: {},
+          create: [{ locale: "th", name: "ชื่อ", body: "เนื้อหา" }],
+        },
+      },
+      include: { translations: true },
+    });
+  });
+});
+
+describe("upsertReplyTemplateTranslations", () => {
+  it("指定localeだけをupsertし、翻訳付きで返す", async () => {
+    vi.mocked(prisma.replyTemplate.update).mockResolvedValue({
+      ...baseTemplateRecord({ id: "1" }),
+      translations: [{ id: "t", templateId: "1", locale: "en", name: "N", body: "B" }],
+    } as never);
+
+    const result = await upsertReplyTemplateTranslations("1", [
+      { locale: "en", name: "N", body: "B" },
+    ]);
+
+    expect(prisma.replyTemplate.update).toHaveBeenCalledWith({
+      where: { id: "1" },
+      data: {
+        translations: {
+          upsert: [
+            {
+              where: { templateId_locale: { templateId: "1", locale: "en" } },
+              create: { locale: "en", name: "N", body: "B" },
+              update: { name: "N", body: "B" },
+            },
+          ],
+        },
+      },
+      include: { translations: true },
+    });
+    expect(result.translations).toEqual([{ locale: "en", name: "N", body: "B" }]);
   });
 });

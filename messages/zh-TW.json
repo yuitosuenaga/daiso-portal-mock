@@ -155,7 +155,10 @@
       "categoryLabel": "大分類",
       "categoryPlaceholderOption": "請選擇",
       "subCategoryLabel": "中分類",
-      "subCategoryNoneOption": "無"
+      "subCategoryNoneOption": "無",
+      "translationPartialFailed": "部分語言翻譯失敗，之後可以重新翻譯。",
+      "retranslateButton": "重新翻譯",
+      "retranslateSuccess": "翻譯完成"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "沒有已登記的文件",
       "linkedDocumentsTargetingAllLabel": "全部公開",
       "linkedDocumentsTargetingCountriesPrefixLabel": "目標國家：",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "目標公司："
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "目標公司：",
+      "translationFailedDraft": "因翻譯失敗，已儲存為草稿。",
+      "retranslateButton": "重新翻譯",
+      "retranslatePending": "翻譯中...",
+      "retranslateSuccess": "已儲存翻譯",
+      "retranslateFailed": "部分語言翻譯失敗，請稍後再試。",
+      "retranslateError": "重新翻譯失敗，請稍後再試。"
     },
     "tracking": {
       "confirmedCount": "已確認 {confirmed}/{total}人",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "此欄位為必填項",
         "nameTooLong": "範本名稱請在40個字以內輸入"
-      }
+      },
+      "translationFailed": "部分語言翻譯失敗，之後可以重新翻譯。",
+      "retranslateButton": "重新翻譯"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "保存失敗。請稍待後重試。",
       "validation": {
         "required": "此項目為必填項"
-      }
+      },
+      "translationFailed": "部分語言翻譯失敗，之後可以重新翻譯。",
+      "retranslateButton": "重新翻譯"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "此項目為必填",
         "invalidUrl": "請輸入有效的URL"
-      }
+      },
+      "translationFailed": "部分語言翻譯失敗，之後可以重新翻譯。",
+      "retranslateButton": "重新翻譯"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "刪除失敗。請稍候後重試。",
           "blockedByLinks": "「{name}」關聯了{count}件連結，無法刪除。請先變更相應連結的分類。",
           "blockedByChildren": "「{name}」存在{count}件中分類，無法刪除。請先刪除中分類。"
-        }
+        },
+        "retranslateButton": "重新翻譯"
       },
       "form": {
         "createParentTitle": "新增大分類",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "此項目為必填項",
           "nameConflict": "同一層級中已存在同名類別"
-        }
+        },
+        "translationFailed": "部分語言翻譯失敗，之後可以重新翻譯。"
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "同層級已存在同名分類",
         "countriesRequired": "請選擇至少一個國家/地區",
         "companiesRequired": "請選擇至少一個銷售公司"
-      }
+      },
+      "translationPartialFailed": "部分語言翻譯失敗，之後可以重新翻譯。",
+      "retranslateButton": "重新翻譯",
+      "retranslateSuccess": "翻譯完成",
+      "closeButton": "關閉"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "檔案讀取失敗。請重試。",
         "googleUrlInvalid": "請輸入Google文件/試算表/簡報的共享連結",
         "categoryRequired": "請選擇類別"
-      }
+      },
+      "translationPartialFailure": "部分語言翻譯失敗，之後可以重新翻譯。",
+      "retranslateButton": "重新翻譯",
+      "retranslateError": "重新翻譯失敗，請稍後再試。"
     },
     "delete": {
       "buttonLabel": "刪除",

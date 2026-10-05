@@ -184,7 +184,7 @@ export async function createLinkCategoryRecord(
       name: input.name,
       displayOrder,
       translations: {
-        create: input.translations.map((translation) => ({
+        create: (input.translations ?? []).map((translation) => ({
           locale: translation.locale,
           name: translation.name,
         })),
@@ -216,7 +216,45 @@ export async function updateLinkCategoryRecord(
     where: { id },
     data: {
       name: input.name,
-      translations: translationsToNestedWrite(input.translations),
+      // 省略時（ja原文が変わっていない編集）は既存の翻訳行を変更しない
+      ...(input.translations
+        ? { translations: translationsToNestedWrite(input.translations) }
+        : {}),
+    },
+    include: LINK_CATEGORY_INCLUDE,
+  });
+
+  return mapLinkCategory(record);
+}
+
+/**
+ * 指定カテゴリへ、未保存のlocaleの翻訳のみを追加する（再翻訳用）。既存localeの行は上書きしない。
+ * 存在しない場合は`LinkCategoryNotFoundError`を送出する。
+ */
+export async function addLinkCategoryTranslations(
+  id: string,
+  translations: LinkCategoryTranslationView[]
+): Promise<LinkCategory> {
+  const existing = await prisma.linkCategory.findUnique({
+    where: { id },
+    include: LINK_CATEGORY_INCLUDE,
+  });
+  if (!existing) {
+    throw new LinkCategoryNotFoundError(id);
+  }
+
+  const savedLocales = new Set(existing.translations.map((item) => item.locale));
+  const missing = translations.filter((item) => !savedLocales.has(item.locale));
+  if (missing.length === 0) {
+    return mapLinkCategory(existing);
+  }
+
+  const record = await prisma.linkCategory.update({
+    where: { id },
+    data: {
+      translations: {
+        create: missing.map((item) => ({ locale: item.locale, name: item.name })),
+      },
     },
     include: LINK_CATEGORY_INCLUDE,
   });

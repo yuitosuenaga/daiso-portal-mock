@@ -2,89 +2,82 @@ import "server-only";
 
 import { createHash } from "crypto";
 
-import { getTranslator } from "@/lib/server/translation-service";
-import { findAnnouncementById } from "@/lib/server/announcement-service";
-import { TranslationError } from "@/lib/translation/claude-translator";
-import type { Announcement, CreateAnnouncementInput } from "@/types/announcement";
+import { TRANSLATED_LOCALES } from "@/lib/constants/locales";
+import { autoTranslateFields } from "@/lib/server/auto-translation";
+import type { AnnouncementTranslationView } from "@/types/announcement";
 
-function hashContent(title: string, body: string): string {
+export function hashAnnouncementSource(title: string, body: string): string {
   return createHash("sha256").update(`${title}\u0000${body}`).digest("hex");
 }
 
+export interface BuildAnnouncementTranslationsResult {
+  /** 保存すべき翻訳行の全体（既存のmanual行・最新のmachine行・今回翻訳できた行） */
+  translations: AnnouncementTranslationView[];
+  /** 今回翻訳が必要だったが失敗したlocale。空なら全言語が最新 */
+  failedLocales: string[];
+}
+
 /**
- * `announcementFormSchema`でtitleEn/bodyEnが両方未入力だったとき（`translations`に
- * en行が無い）、ja本文からClaude APIで自動翻訳しen行を補う。
+ * ja本文（タイトル・本文）から全対応言語（`TRANSLATED_LOCALES`）の翻訳行を組み立てる。
  *
- * en行が既に含まれている場合でも、既存の`en`行が機械翻訳（`source: "machine"`）で、
- * 送信されたen内容が既存と完全に一致し、かつja本文が変わっている場合は「人は英語を
- * 触らずにjaだけ編集した」と判断し、再翻訳する（古い機械翻訳が取り残されるのを防ぐ）。
- * それ以外（人がen欄を編集した、既存がmanual、新規作成等）は送信された内容をmanualとして
- * そのまま使う。
+ * - 既存の`manual`行（人が編集した翻訳）は上書きしない。
+ * - 既存の`machine`行は、`sourceHash`が現在のja本文と一致すれば最新とみなし再翻訳しない。
+ * - それ以外のlocale（未翻訳・ja変更後の古い機械翻訳）のみ`autoTranslateFields`で翻訳する。
+ * - 翻訳に失敗したlocaleは`failedLocales`に入れる。`keepExistingOnFailure`が偽（既定）なら
+ *   古い機械翻訳行も保存対象から外す（古い内容を残さない）。真なら既存行をそのまま残す。
+ * - `TRANSLATED_LOCALES`以外のlocale（過去に手動追加された言語）の既存行は変更せず残す。
  *
- * 翻訳が必要な場面でAPIキー未設定・翻訳失敗の場合は`TranslationError`を送出する
- * （呼び出し元は保存を中止し、フォームにエラーを表示する）。
+ * 例外は送出しない（`autoTranslateFields`が例外を送出しないため）。
  */
-export async function ensureEnTranslation(
-  input: CreateAnnouncementInput,
-  existingId?: string
-): Promise<CreateAnnouncementInput> {
-  const submittedEn = input.translations.find((translation) => translation.locale === "en");
-  const others = input.translations.filter((translation) => translation.locale !== "en");
+export async function buildAnnouncementTranslations(
+  source: { title: string; body: string },
+  existing: readonly AnnouncementTranslationView[] = [],
+  options?: { keepExistingOnFailure?: boolean }
+): Promise<BuildAnnouncementTranslationsResult> {
+  const hash = hashAnnouncementSource(source.title, source.body);
+  const existingByLocale = new Map(existing.map((row) => [row.locale, row]));
 
-  let existing: Announcement | null = null;
-  if (existingId) {
-    existing = await findAnnouncementById(existingId);
-  }
-  const existingEn = existing?.translations.find((translation) => translation.locale === "en");
+  const kept: AnnouncementTranslationView[] = existing.filter(
+    (row) => !(TRANSLATED_LOCALES as readonly string[]).includes(row.locale)
+  );
+  const needed: string[] = [];
 
-  const jaHash = hashContent(input.title, input.body);
-
-  const unchangedFromMachineTranslation =
-    submittedEn !== undefined &&
-    existingEn?.source === "machine" &&
-    submittedEn.title === existingEn.title &&
-    submittedEn.body === existingEn.body;
-
-  const jaChangedSinceLastTranslation =
-    existingEn?.sourceHash !== undefined && existingEn.sourceHash !== jaHash;
-
-  const needsTranslation =
-    submittedEn === undefined ||
-    (unchangedFromMachineTranslation && jaChangedSinceLastTranslation);
-
-  if (!needsTranslation) {
-    return {
-      ...input,
-      translations: [{ ...submittedEn!, source: "manual" }, ...others],
-    };
+  for (const locale of TRANSLATED_LOCALES) {
+    const row = existingByLocale.get(locale);
+    if (row && (row.source ?? "manual") === "manual") {
+      kept.push(row);
+    } else if (row && row.sourceHash === hash) {
+      kept.push(row);
+    } else {
+      needed.push(locale);
+    }
   }
 
-  const translator = getTranslator();
-  if (!translator) {
-    throw new TranslationError(
-      "not_configured",
-      "Automatic translation is not configured (ANTHROPIC_API_KEY is not set)"
-    );
+  if (needed.length === 0) {
+    return { translations: kept, failedLocales: [] };
   }
 
-  const translated = await translator.translate({
-    title: input.title,
-    body: input.body,
-    sourceLocale: "ja",
-    targetLocale: "en",
-  });
+  const result = await autoTranslateFields(
+    { title: source.title, body: source.body },
+    { locales: needed }
+  );
 
-  return {
-    ...input,
-    translations: [
-      {
-        locale: "en",
-        title: translated.title,
-        body: translated.body,
-        source: "machine",
-        sourceHash: jaHash,
-      },
-      ...others,
-    ],
-  };
+  const failedLocales = new Set(result.failedLocales);
+  const translations = [...kept];
+  for (const locale of needed) {
+    const fields = result.translations[locale];
+    const title = fields?.title?.trim();
+    const body = fields?.body?.trim();
+    if (!failedLocales.has(locale) && title && body) {
+      translations.push({ locale, title, body, source: "machine", sourceHash: hash });
+      continue;
+    }
+    failedLocales.add(locale);
+    const stale = existingByLocale.get(locale);
+    if (options?.keepExistingOnFailure && stale) {
+      translations.push(stale);
+    }
+  }
+
+  return { translations, failedLocales: Array.from(failedLocales) };
 }

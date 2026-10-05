@@ -30,6 +30,7 @@ import {
   listFaqs,
   listFaqsForHelpdesk,
   updateFaqRecord,
+  upsertFaqTranslations,
 } from "@/lib/server/faq-service";
 
 function baseFaqRecord(
@@ -312,5 +313,35 @@ describe("createFaqRecord / updateFaqRecord / deleteFaqRecord", () => {
     vi.mocked(prisma.faq.delete).mockRejectedValue(new Error("connection lost"));
 
     await expect(deleteFaqRecord("1")).rejects.toThrow("connection lost");
+  });
+});
+
+describe("upsertFaqTranslations", () => {
+  it("指定localeだけをupsertする", async () => {
+    vi.mocked(prisma.faq.update).mockResolvedValue(baseFaqRecord() as never);
+
+    await upsertFaqTranslations("1", [{ locale: "th", question: "q", answer: "a" }]);
+
+    expect(prisma.faq.update).toHaveBeenCalledWith({
+      where: { id: "1" },
+      data: {
+        translations: {
+          upsert: [
+            {
+              where: { faqId_locale: { faqId: "1", locale: "th" } },
+              create: { locale: "th", question: "q", answer: "a" },
+              update: { question: "q", answer: "a" },
+            },
+          ],
+        },
+      },
+      include: FAQ_INCLUDE,
+    });
+  });
+
+  it("存在しないIDはFaqNotFoundErrorを送出する", async () => {
+    vi.mocked(prisma.faq.update).mockRejectedValue(notFoundPrismaError());
+
+    await expect(upsertFaqTranslations("missing", [])).rejects.toThrow(FaqNotFoundError);
   });
 });

@@ -78,3 +78,17 @@ export type Manual =
 export type CreateManualInput =
   | Omit<Extract<Manual, { sourceType: "upload" }>, "id" | "createdAt" | "updatedAt">
   | Omit<Extract<Manual, { sourceType: "google" }>, "id" | "createdAt" | "updatedAt">;
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+/**
+ * ヘルプデスクのフォームから送信される入力。日本語（`ja`）の原文のみを持ち、他言語の
+ * `translations`はサーバーアクションが自動翻訳して付与する。
+ */
+export type ManualFormInput = DistributiveOmit<CreateManualInput, "translations">;
+
+/** マニュアル保存・再翻訳アクションの戻り値。`failedLocales`が空でなければ一部言語の翻訳に失敗している。 */
+export interface ManualSaveResult {
+  manual: Manual;
+  failedLocales: string[];
+}

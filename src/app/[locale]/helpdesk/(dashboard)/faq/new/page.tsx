@@ -28,16 +28,11 @@ export default async function HelpdeskFaqNewPage() {
         categoryPlaceholder={t("categoryPlaceholder")}
         answerLabel={t("answerLabel")}
         answerPlaceholder={t("answerPlaceholder")}
-        languageJaTabLabel={t("language.jaTab")}
-        languageEnTabLabel={t("language.enTab")}
-        languageAddButtonLabel={t("language.addButton")}
-        languageRemoveButtonLabel={t("language.removeButton")}
-        languageLocaleCodeLabel={t("language.localeCodeLabel")}
-        languageLocaleCodePlaceholder={t("language.localeCodePlaceholder")}
-        languageLocaleDuplicateErrorMessage={t("language.localeDuplicateError")}
         submitButtonLabel={t("submitButton")}
         requiredErrorMessage={t("validation.required")}
         submitErrorMessage={t("submitError")}
+        translationFailedMessage={t("translationFailed")}
+        retranslateButtonLabel={t("retranslateButton")}
         categoryOptions={categoryOptions}
       />
     </div>

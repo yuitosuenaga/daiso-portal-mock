@@ -23,6 +23,13 @@ vi.mock("@/lib/api/reply-templates", () => ({
   updateReplyTemplate: vi.fn(),
   getReplyTemplateById: vi.fn(),
 }));
+vi.mock("@/lib/server/auto-translation", () => ({
+  autoTranslateFields: vi.fn(),
+}));
+vi.mock("@/lib/server/reply-template-service", () => ({
+  findReplyTemplateById: vi.fn(),
+  upsertReplyTemplateTranslations: vi.fn(),
+}));
 
 vi.mock("next-intl/server", async () => {
   const messages = (await import("../../../messages/ja.json")).default;
@@ -56,12 +63,18 @@ import {
   sendInquiryReplyAction,
   createReplyTemplateAction,
   updateReplyTemplateAction,
+  retranslateReplyTemplateAction,
 } from "@/lib/actions/helpdesk";
 import {
   createReplyTemplate,
   getReplyTemplateById,
   updateReplyTemplate,
 } from "@/lib/api/reply-templates";
+import { autoTranslateFields } from "@/lib/server/auto-translation";
+import {
+  findReplyTemplateById,
+  upsertReplyTemplateTranslations,
+} from "@/lib/server/reply-template-service";
 import {
   ATTACHMENT_MAX_COUNT,
   ATTACHMENT_MAX_FILE_SIZE_BYTES,
@@ -389,59 +402,116 @@ describe("sendInquiryReplyAction", () => {
   });
 });
 
-describe("createReplyTemplateAction / updateReplyTemplateAction", () => {
-  it("有効な入力でテンプレートを作成する", async () => {
-    vi.mocked(createReplyTemplate).mockResolvedValue({
-      id: "template-1",
-      category: "other",
-      name: "新規テンプレート名",
-      body: "新規テンプレート本文",
-    });
+describe("createReplyTemplateAction / updateReplyTemplateAction / retranslateReplyTemplateAction", () => {
+  const baseInput = { category: "other" as const, name: "新規テンプレート名", body: "新規テンプレート本文" };
+  const stored = { id: "template-1", ...baseInput, translations: [] };
 
-    const created = await createReplyTemplateAction({
-      category: "other",
-      name: "新規テンプレート名",
-      body: "新規テンプレート本文",
+  it("有効な入力でname/bodyを自動翻訳し、翻訳付きでテンプレートを作成する", async () => {
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: { en: { name: "New", body: "Body" } },
+      failedLocales: ["th"],
     });
+    vi.mocked(createReplyTemplate).mockResolvedValue(stored);
 
-    expect(created.id).toBeTruthy();
+    const result = await createReplyTemplateAction(baseInput);
+
+    expect(autoTranslateFields).toHaveBeenCalledWith({
+      name: baseInput.name,
+      body: baseInput.body,
+    });
+    expect(createReplyTemplate).toHaveBeenCalledWith({
+      ...baseInput,
+      translations: [{ locale: "en", name: "New", body: "Body" }],
+    });
+    expect(result.template.id).toBe("template-1");
+    expect(result.failedLocales).toEqual(["th"]);
     expect(revalidatePath).toHaveBeenCalled();
   });
 
-  it("不正な入力（本文空）は例外になる", async () => {
+  it("翻訳が失敗してもjaのみで作成を継続する", async () => {
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: {},
+      failedLocales: ["en"],
+    });
+    vi.mocked(createReplyTemplate).mockResolvedValue(stored);
+
+    await createReplyTemplateAction(baseInput);
+
+    expect(createReplyTemplate).toHaveBeenCalledWith({ ...baseInput, translations: [] });
+  });
+
+  it("不正な入力（本文空）は例外になり、翻訳も保存もされない", async () => {
     await expect(
-      createReplyTemplateAction({
-        category: "other",
-        name: "テンプレート名",
-        body: "",
-      })
+      createReplyTemplateAction({ ...baseInput, body: "" })
     ).rejects.toThrow();
 
+    expect(autoTranslateFields).not.toHaveBeenCalled();
     expect(createReplyTemplate).not.toHaveBeenCalled();
   });
 
-  it("既存テンプレートを更新する", async () => {
-    vi.mocked(updateReplyTemplate).mockResolvedValue({
-      id: "template-1",
-      category: "system",
-      name: "更新後の名前",
-      body: "更新後の本文",
-    });
+  it("更新時にjaの原文が変わった場合は再翻訳した結果で置き換える", async () => {
     vi.mocked(getReplyTemplateById).mockResolvedValue({
-      id: "template-1",
-      category: "system",
-      name: "更新後の名前",
+      ...stored,
+      translations: [{ locale: "en", name: "Old", body: "Old" }],
+    });
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: { en: { name: "Upd", body: "Upd body" } },
+      failedLocales: [],
+    });
+    vi.mocked(updateReplyTemplate).mockResolvedValue(stored);
+
+    await updateReplyTemplateAction("template-1", { ...baseInput, body: "更新後の本文" });
+
+    expect(updateReplyTemplate).toHaveBeenCalledWith("template-1", {
+      ...baseInput,
       body: "更新後の本文",
+      translations: [{ locale: "en", name: "Upd", body: "Upd body" }],
+    });
+  });
+
+  it("更新時にjaの原文が変わらない場合は再翻訳せず既存の翻訳を維持する", async () => {
+    const translations = [{ locale: "en", name: "Old", body: "Old" }];
+    vi.mocked(getReplyTemplateById).mockResolvedValue({ ...stored, translations });
+    vi.mocked(updateReplyTemplate).mockResolvedValue(stored);
+
+    const result = await updateReplyTemplateAction("template-1", {
+      ...baseInput,
+      category: "system",
     });
 
-    await updateReplyTemplateAction("template-1", {
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+    expect(updateReplyTemplate).toHaveBeenCalledWith("template-1", {
+      ...baseInput,
       category: "system",
-      name: "更新後の名前",
-      body: "更新後の本文",
+      translations,
+    });
+    expect(result.failedLocales).toEqual([]);
+  });
+
+  it("再翻訳は不足localeだけを翻訳してupsertする", async () => {
+    vi.mocked(findReplyTemplateById).mockResolvedValue({
+      ...stored,
+      translations: [{ locale: "en", name: "N", body: "B" }],
+    });
+    vi.mocked(autoTranslateFields).mockResolvedValue({
+      translations: { pt: { name: "Pn", body: "Pb" } },
+      failedLocales: ["th"],
     });
 
-    const result = await getReplyTemplateById("template-1");
-    expect(result?.name).toBe("更新後の名前");
-    expect(result?.body).toBe("更新後の本文");
+    const result = await retranslateReplyTemplateAction("template-1");
+
+    const [, options] = vi.mocked(autoTranslateFields).mock.calls[0];
+    expect(options?.locales).not.toContain("en");
+    expect(options?.locales).toContain("pt");
+    expect(upsertReplyTemplateTranslations).toHaveBeenCalledWith("template-1", [
+      { locale: "pt", name: "Pn", body: "Pb" },
+    ]);
+    expect(result).toEqual({ failedLocales: ["th"] });
+  });
+
+  it("再翻訳対象のテンプレートが存在しない場合は例外になる", async () => {
+    vi.mocked(findReplyTemplateById).mockResolvedValue(null);
+
+    await expect(retranslateReplyTemplateAction("missing")).rejects.toThrow();
   });
 });

@@ -35,8 +35,14 @@ export interface CreateLinkCategoryInput {
   parentId: string | null;
   /** 既定言語（ja）の名称 */
   name: string;
-  /** `en`必須＋任意の追加言語。`ja`行は含まない */
-  translations: LinkCategoryTranslationView[];
+  /** 自動翻訳の結果（`ja`行は含まない）。省略時は翻訳行を一切変更しない */
+  translations?: LinkCategoryTranslationView[];
+}
+
+/** 作成・更新・再翻訳アクションの結果。`failedLocales`が空でなければ一部言語が未翻訳。 */
+export interface LinkCategorySaveResult {
+  category: LinkCategory;
+  failedLocales: string[];
 }
 
 /** カテゴリの更新入力。所属大分類の付け替えは対象外のため`parentId`を含まない。 */

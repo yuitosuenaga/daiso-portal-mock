@@ -155,7 +155,10 @@
       "categoryLabel": "Categoria Principal",
       "categoryPlaceholderOption": "Selecione",
       "subCategoryLabel": "Subcategoria",
-      "subCategoryNoneOption": "Nenhuma"
+      "subCategoryNoneOption": "Nenhuma",
+      "translationPartialFailed": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde.",
+      "retranslateButton": "Traduzir novamente",
+      "retranslateSuccess": "Tradução concluída"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "Nenhum documento registrado",
       "linkedDocumentsTargetingAllLabel": "Publicação geral",
       "linkedDocumentsTargetingCountriesPrefixLabel": "Países-alvo:",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "Empresas-alvo:"
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "Empresas-alvo:",
+      "translationFailedDraft": "Salvo como rascunho porque a tradução falhou.",
+      "retranslateButton": "Traduzir novamente",
+      "retranslatePending": "Traduzindo...",
+      "retranslateSuccess": "Tradução salva",
+      "retranslateFailed": "A tradução falhou em alguns idiomas. Tente novamente mais tarde.",
+      "retranslateError": "A nova tradução falhou. Tente novamente mais tarde."
     },
     "tracking": {
       "confirmedCount": "Confirmado {confirmed}/{total} pessoas",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "Este campo é obrigatório",
         "nameTooLong": "O nome do modelo deve ter no máximo 40 caracteres"
-      }
+      },
+      "translationFailed": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde.",
+      "retranslateButton": "Traduzir novamente"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "Falha ao salvar. Tente novamente mais tarde.",
       "validation": {
         "required": "Este campo é obrigatório"
-      }
+      },
+      "translationFailed": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde.",
+      "retranslateButton": "Traduzir novamente"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "Este campo é obrigatório",
         "invalidUrl": "Digite uma URL válida"
-      }
+      },
+      "translationFailed": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde.",
+      "retranslateButton": "Traduzir novamente"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "Falha ao deletar. Tente novamente mais tarde.",
           "blockedByLinks": "Não é possível deletar '{name}' porque existem {count} links associados. Primeiro altere a categoria dos links correspondentes.",
           "blockedByChildren": "Não é possível deletar '{name}' porque existem {count} subcategorias. Primeiro delete as subcategorias."
-        }
+        },
+        "retranslateButton": "Traduzir novamente"
       },
       "form": {
         "createParentTitle": "Adicionar categoria principal",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "Este campo é obrigatório",
           "nameConflict": "Uma categoria com o mesmo nome já existe no mesmo nível"
-        }
+        },
+        "translationFailed": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde."
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "Uma categoria com o mesmo nome já existe no mesmo nível",
         "countriesRequired": "Selecione pelo menos um país/região",
         "companiesRequired": "Selecione pelo menos uma distribuidora"
-      }
+      },
+      "translationPartialFailed": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde.",
+      "retranslateButton": "Traduzir novamente",
+      "retranslateSuccess": "Tradução concluída",
+      "closeButton": "Fechar"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "Falha ao ler o arquivo. Tente novamente.",
         "googleUrlInvalid": "Insira um link compartilhado do Google Docs/Sheets/Slides",
         "categoryRequired": "Selecione uma categoria"
-      }
+      },
+      "translationPartialFailure": "A tradução falhou em alguns idiomas. Você pode traduzir novamente mais tarde.",
+      "retranslateButton": "Traduzir novamente",
+      "retranslateError": "A nova tradução falhou. Tente novamente mais tarde."
     },
     "delete": {
       "buttonLabel": "Excluir",

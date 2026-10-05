@@ -146,6 +146,45 @@ export async function updateFaqRecord(
 }
 
 /**
+ * 指定したlocaleの翻訳だけを追加・上書きする（他localeの既存翻訳は維持する）。
+ * 存在しない場合は`FaqNotFoundError`を送出する。
+ */
+export async function upsertFaqTranslations(
+  id: string,
+  translations: Faq["translations"]
+): Promise<Faq> {
+  try {
+    const record = await prisma.faq.update({
+      where: { id },
+      data: {
+        translations: {
+          upsert: translations.map((translation) => ({
+            where: { faqId_locale: { faqId: id, locale: translation.locale } },
+            create: {
+              locale: translation.locale,
+              question: translation.question,
+              answer: translation.answer,
+            },
+            update: { question: translation.question, answer: translation.answer },
+          })),
+        },
+      },
+      include: FAQ_INCLUDE,
+    });
+
+    return mapFaq(record);
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      throw new FaqNotFoundError(id);
+    }
+    throw error;
+  }
+}
+
+/**
  * FAQを削除する。存在しない場合は`FaqNotFoundError`を送出する。
  * `FaqTranslation`は`onDelete: Cascade`のため、関連する翻訳行の削除に
  * 追加の処理は不要（`Announcement`の削除前トランザクションとは異なる）。

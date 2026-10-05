@@ -155,7 +155,10 @@
       "categoryLabel": "หมวดหมู่หลัก",
       "categoryPlaceholderOption": "กรุณาเลือก",
       "subCategoryLabel": "หมวดหมู่ย่อย",
-      "subCategoryNoneOption": "ไม่มี"
+      "subCategoryNoneOption": "ไม่มี",
+      "translationPartialFailed": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้",
+      "retranslateButton": "แปลอีกครั้ง",
+      "retranslateSuccess": "แปลเสร็จสมบูรณ์"
     }
   },
   "helpdeskAnnouncements": {
@@ -271,7 +274,13 @@
       "linkedDocumentsDialogNoDocumentsMessage": "ไม่มีเอกสารที่ลงทะเบียนไว้",
       "linkedDocumentsTargetingAllLabel": "เผยแพร่สาธารณะทั่วไป",
       "linkedDocumentsTargetingCountriesPrefixLabel": "ประเทศเป้าหมาย:",
-      "linkedDocumentsTargetingCompaniesPrefixLabel": "บริษัทเป้าหมาย:"
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "บริษัทเป้าหมาย:",
+      "translationFailedDraft": "บันทึกเป็นฉบับร่างเนื่องจากการแปลล้มเหลว",
+      "retranslateButton": "แปลอีกครั้ง",
+      "retranslatePending": "กำลังแปล...",
+      "retranslateSuccess": "บันทึกการแปลแล้ว",
+      "retranslateFailed": "การแปลล้มเหลวในบางภาษา โปรดลองใหม่ภายหลัง",
+      "retranslateError": "การแปลอีกครั้งล้มเหลว โปรดลองใหม่ภายหลัง"
     },
     "tracking": {
       "confirmedCount": "ยืนยันแล้ว {confirmed}/{total} คน",
@@ -427,7 +436,9 @@
       "validation": {
         "required": "ข้อมูลนี้เป็นสิ่งจำเป็น",
         "nameTooLong": "โปรดป้อนชื่อเทมเพลตในจำนวน 40 อักขระหรือน้อยกว่า"
-      }
+      },
+      "translationFailed": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้",
+      "retranslateButton": "แปลอีกครั้ง"
     }
   },
   "helpdeskFaq": {
@@ -482,7 +493,9 @@
       "submitError": "การบันทึกล้มเหลว โปรดลองอีกครั้งหลังจากนั้น",
       "validation": {
         "required": "ช่องนี้เป็นบังคับ"
-      }
+      },
+      "translationFailed": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้",
+      "retranslateButton": "แปลอีกครั้ง"
     }
   },
   "helpdeskLinks": {
@@ -539,7 +552,9 @@
       "validation": {
         "required": "ช่องนี้เป็นข้อมูลที่จำเป็น",
         "invalidUrl": "กรุณากรอก URL ที่ถูกต้อง"
-      }
+      },
+      "translationFailed": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้",
+      "retranslateButton": "แปลอีกครั้ง"
     },
     "categories": {
       "list": {
@@ -564,7 +579,8 @@
           "errorMessage": "ลบล้มเหลว โปรดลองอีกครั้งหลังจากรอสักครู่",
           "blockedByLinks": "ไม่สามารถลบ『{name}』ได้เพราะมี{count}ลิงค์ที่เชื่อมโยง โปรดเปลี่ยนหมวดหมู่ของลิงค์ที่เกี่ยวข้องก่อน",
           "blockedByChildren": "ไม่สามารถลบ『{name}』ได้เพราะมีหมวดหมู่ย่อย{count}หมวดหมู่อยู่ โปรดลบหมวดหมู่ย่อยก่อน"
-        }
+        },
+        "retranslateButton": "แปลอีกครั้ง"
       },
       "form": {
         "createParentTitle": "เพิ่มหมวดหมู่หลัก",
@@ -587,7 +603,8 @@
         "validation": {
           "required": "จำเป็นต้องกรอกข้อมูลในช่องนี้",
           "nameConflict": "มีหมวดหมู่ที่มีชื่อเดียวกันอยู่แล้วในลำดับชั้นเดียวกัน"
-        }
+        },
+        "translationFailed": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้"
       }
     },
     "preview": {
@@ -1380,7 +1397,11 @@
         "nameConflict": "มีหมวดหมู่ที่มีชื่อเดียวกันอยู่แล้วในชั้นเดียวกัน",
         "countriesRequired": "กรุณาเลือกอย่างน้อยหนึ่งประเทศ/ภูมิภาค",
         "companiesRequired": "กรุณาเลือกอย่างน้อยหนึ่งบริษัทจำหน่าย"
-      }
+      },
+      "translationPartialFailed": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้",
+      "retranslateButton": "แปลอีกครั้ง",
+      "retranslateSuccess": "แปลเสร็จสมบูรณ์",
+      "closeButton": "ปิด"
     }
   },
   "manuals": {
@@ -1491,7 +1512,10 @@
         "readFailed": "การอ่านไฟล์ล้มเหลว โปรดลองใหม่อีกครั้ง",
         "googleUrlInvalid": "โปรดป้อนลิงก์แชร์เอกสาร/สเปรดชีต/สไลด์ Google",
         "categoryRequired": "โปรดเลือกหมวดหมู่"
-      }
+      },
+      "translationPartialFailure": "การแปลล้มเหลวในบางภาษา คุณสามารถแปลใหม่ภายหลังได้",
+      "retranslateButton": "แปลอีกครั้ง",
+      "retranslateError": "การแปลอีกครั้งล้มเหลว โปรดลองใหม่ภายหลัง"
     },
     "delete": {
       "buttonLabel": "ลบ",
