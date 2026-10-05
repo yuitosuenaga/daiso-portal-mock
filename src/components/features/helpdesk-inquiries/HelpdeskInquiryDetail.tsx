@@ -6,6 +6,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { getInquiryById } from "@/lib/api/inquiries";
 import { getInquiryHistory } from "@/lib/api/inquiry-history";
 import { getReplyTemplatesByCategory } from "@/lib/api/reply-templates";
+import { localizeReplyTemplates } from "@/lib/reply-template-content";
 import { ClaimToggleButton } from "@/components/features/helpdesk-inquiries/ClaimToggleButton";
 import { StatusSelect } from "@/components/features/helpdesk-inquiries/StatusSelect";
 import { ReplyForm } from "@/components/features/helpdesk-inquiries/ReplyForm";
@@ -68,10 +69,15 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
     );
   }
 
-  const [history, templates] = await Promise.all([
+  const [history, rawTemplates] = await Promise.all([
     getInquiryHistory(inquiry.id),
     getReplyTemplatesByCategory(inquiry.category),
   ]);
+  // 名称はスタッフのUI言語、挿入される本文は問い合わせ送信者の言語（未翻訳はen→ja）で解決する
+  const templates = localizeReplyTemplates(rawTemplates, {
+    displayLocale: locale,
+    replyLocale: inquiry.originalLanguage,
+  });
 
   const statusOptions = INQUIRY_STATUS_CODES.map((code) => ({
     value: code,
