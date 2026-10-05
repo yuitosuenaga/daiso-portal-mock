@@ -1,0 +1,1505 @@
+{
+  "login": {
+    "applicantTitle": "海外销售公司代理商登录",
+    "helpdeskTitle": "日本大创侧登录",
+    "emailLabel": "电子邮件地址",
+    "emailPlaceholder": "请输入电子邮件地址",
+    "passwordLabel": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "submit": "登录",
+    "submitting": "登录中…",
+    "errorInvalidCredentials": "电子邮件地址或密码不正确。",
+    "validation": {
+      "emailRequired": "请输入电子邮件地址",
+      "passwordRequired": "请输入密码"
+    },
+    "switchToHelpdeskLogin": "切换到日本大创侧登录",
+    "switchToApplicantLogin": "切换到海外销售公司代理商登录"
+  },
+  "header": {
+    "portalName": "海外运营门户",
+    "screenName": "海外销售公司代理商屏幕",
+    "logout": "登出"
+  },
+  "helpdeskHeader": {
+    "portalName": "海外运营门户",
+    "screenName": "日本大创侧屏幕",
+    "logout": "登出"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "帮助台导航",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "home": "仪表板",
+    "inquiryForm": "咨询",
+    "inquiries": "咨询管理",
+    "templates": "模板管理",
+    "links": "链接集合",
+    "faq": "常见问题",
+    "announcements": "公告管理",
+    "documents": "文档管理",
+    "companies": "销售公司管理",
+    "salesFloorMeeting": "销售楼层研讨会（视频）",
+    "pop": "POP",
+    "manuals": "手册"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "文档管理",
+      "description": "可以上传、编辑和删除针对海外销售公司的业务文档（PDF）。",
+      "empty": "没有文档",
+      "error": "获取文档失败",
+      "addButton": "添加新文档",
+      "editLink": "编辑",
+      "deleteButton": "删除",
+      "deleteConfirmTitle": "删除文档",
+      "deleteConfirm": "将删除『{title}』。此操作无法撤销。您确定要继续吗？",
+      "deleteConfirmButton": "删除",
+      "deleteCancelButton": "取消",
+      "deleteError": "删除失败。请稍后重试。",
+      "targetingAllLabel": "全体公开",
+      "targetingCountriesLabel": "目标国家/地区",
+      "targetingCompaniesLabel": "目标分销商",
+      "fileSizeLabel": "文件大小",
+      "uploadedAtLabel": "上传日期",
+      "sourceTypeUploadBadge": "上传",
+      "sourceTypeGoogleBadge": "Google链接",
+      "statusDraftBadge": "草稿",
+      "statusPublishedBadge": "已发布",
+      "filter": {
+        "keywordLabel": "关键词搜索",
+        "keywordPlaceholder": "包含在标题或描述中的词汇",
+        "sourceTypeLabel": "登记方式",
+        "sourceTypeAll": "所有登记方式",
+        "sourceTypeUpload": "上传",
+        "sourceTypeGoogle": "Google链接",
+        "scopeLabel": "公开范围",
+        "scopeAll": "所有公开范围",
+        "scopeAllScope": "全体公开",
+        "scopeCountries": "按国家单位",
+        "scopeCompanies": "按分销商单位",
+        "clearButton": "清除条件",
+        "noResults": "没有相应的文档",
+        "categoryLabel": "主类别",
+        "categoryAll": "所有主类别",
+        "categoryUnassigned": "未设置",
+        "subCategoryLabel": "次类别",
+        "subCategoryAll": "所有次类别"
+      },
+      "pagination": {
+        "previousLabel": "上一页",
+        "nextLabel": "下一页",
+        "pageStatus": "{current} / {total} 页"
+      },
+      "categoryLabel": "主类别",
+      "subCategoryLabel": "次类别",
+      "categoryUnassigned": "未设置",
+      "manageCategoriesLink": "类别管理"
+    },
+    "form": {
+      "createTitle": "创建新文档",
+      "editTitle": "编辑文档",
+      "notFound": "找不到文档",
+      "backToList": "返回列表",
+      "titleLabel": "标题",
+      "titlePlaceholder": "请输入文档标题",
+      "descriptionLabel": "说明",
+      "descriptionPlaceholder": "请输入补充说明（可选）",
+      "language": {
+        "jaTab": "日语",
+        "enTab": "English",
+        "addButton": "添加语言",
+        "removeButton": "删除此语言",
+        "localeCodeLabel": "语言代码",
+        "localeCodePlaceholder": "例: th, vi, zh",
+        "localeDuplicateError": "请输入与其他语言不重复的语言代码"
+      },
+      "statusLabel": "发布状态",
+      "statusDraftOption": "草稿",
+      "statusPublishedOption": "已发布",
+      "targetingLabel": "发布范围",
+      "targetingAllOption": "全体公开",
+      "targetingCountriesOption": "指定特定国家/地区",
+      "targetingCompaniesOption": "指定特定经销商",
+      "countriesLabel": "国家/地区（可多选）",
+      "companiesLabel": "经销商（可多选）",
+      "sourceTypeLabel": "注册方法",
+      "sourceTypeUploadOption": "上传文件",
+      "sourceTypeGoogleOption": "注册Google文档共享链接",
+      "fileLabel": "PDF文件",
+      "fileHint": "仅限PDF，可上传至20MB。",
+      "currentFileLabel": "已注册文件",
+      "removeButtonLabel": "删除",
+      "googleUrlLabel": "Google文档共享链接",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "请先将Google文档/电子表格/幻灯片的共享设置更改为",
+      "submitButton": "保存",
+      "submitError": "保存失败。请稍后重试。",
+      "validation": {
+        "required": "此项是必填的",
+        "countriesRequired": "请选择至少一个国家/地区",
+        "companiesRequired": "请选择至少一个经销商",
+        "fileRequired": "请选择PDF文件",
+        "sizeExceeded": "文件大小超过上限（20MB）",
+        "typeNotAllowed": "不允许的文件格式（仅限PDF）",
+        "readFailed": "文件读取失败。请重试。",
+        "googleUrlInvalid": "请输入Google文档/表格/幻灯片的共享链接",
+        "categoryRequired": "请选择主分类",
+        "categoryPairInvalid": "所选的中分类与主分类不匹配"
+      },
+      "detailTitle": "文档详情",
+      "editButton": "编辑",
+      "cancelButton": "取消",
+      "downloadLink": "下载",
+      "openOriginalLink": "打开原始文档",
+      "categoryLabel": "主分类",
+      "categoryPlaceholderOption": "请选择",
+      "subCategoryLabel": "中分类",
+      "subCategoryNoneOption": "无"
+    }
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "通知管理",
+      "description": "您可以为海外经销商创建、编辑和删除通知。",
+      "empty": "没有通知",
+      "error": "获取通知失败",
+      "addButton": "创建新通知",
+      "editLink": "编辑",
+      "createdBy": "创建者",
+      "deleteButton": "删除",
+      "deleteConfirmTitle": "删除通知",
+      "deleteConfirm": "将删除《{title}》。此操作无法撤销。您确定吗？",
+      "deleteConfirmButton": "删除",
+      "deleteCancelButton": "取消",
+      "deleteError": "删除失败。请稍后重试。",
+      "targetingAllLabel": "全体统一",
+      "targetingCountriesLabel": "配送对象国家",
+      "actionRequiredBadge": "需要响应",
+      "publishPeriodAlwaysLabel": "随时公开",
+      "publishPeriodLabel": "公开期间",
+      "publishPeriodToSeparator": "〜",
+      "dueDateLabel": "应对期限",
+      "statusBadgeDraft": "草稿",
+      "filter": {
+        "keywordLabel": "标题搜索",
+        "keywordPlaceholder": "标题中包含的术语",
+        "categoryLabel": "类型",
+        "categoryAll": "所有类型",
+        "actionRequiredLabel": "是否需要处理",
+        "actionRequiredAll": "全部",
+        "actionRequiredTrue": "仅限需要处理",
+        "actionRequiredFalse": "仅限无需处理",
+        "statusLabel": "公开状态",
+        "statusAll": "全部",
+        "statusDraft": "草稿",
+        "statusPublished": "已公开",
+        "clearButton": "清除",
+        "noResults": "没有相应的通知"
+      }
+    },
+    "form": {
+      "createTitle": "新建通知",
+      "editTitle": "编辑通知",
+      "notFound": "找不到通知",
+      "backToList": "返回列表",
+      "titleLabel": "标题",
+      "titlePlaceholder": "请输入通知的标题",
+      "bodyLabel": "正文",
+      "bodyPlaceholder": "请输入通知的正文",
+      "language": {
+        "jaTab": "日语",
+        "enTab": "English",
+        "addButton": "添加语言",
+        "removeButton": "删除此语言",
+        "localeCodeLabel": "语言代码",
+        "localeCodePlaceholder": "例: th, vi, zh",
+        "localeDuplicateError": "请输入与其他语言不重复的语言代码"
+      },
+      "categoryLabel": "类型",
+      "categoryPlaceholder": "请选择类型",
+      "statusLabel": "公开状态",
+      "statusDraftOption": "草稿",
+      "statusPublishedOption": "已公开",
+      "targetingLabel": "配送目标",
+      "targetingAllOption": "全体统一",
+      "targetingCountriesOption": "指定特定国家/地区",
+      "countriesLabel": "国家/地区（可多选）",
+      "countriesSearchPlaceholder": "按国家名称搜索",
+      "countriesSelectAllButtonLabel": "全选",
+      "countriesClearAllButtonLabel": "取消全选",
+      "countriesSelectedCountLabel": "已选择{count}项",
+      "countriesNoResultsMessage": "没有相应的国家/地区",
+      "countriesRemoveChipButtonLabel": "删除",
+      "submitButton": "保存",
+      "submitError": "保存失败。请稍候后重试。",
+      "enAutoTranslateHint": "如果未输入，保存时将从日语自动翻译。",
+      "translateFromJaButton": "从日语自动翻译",
+      "translateFromJaPending": "翻译中...",
+      "translateFromJaError": "自动翻译失败。请稍候后重试。",
+      "validation": {
+        "required": "此项为必填项",
+        "countriesRequired": "请选择一个或多个国家/地区",
+        "enBothOrNeither": "英文标题和正文应同时输入或同时不输入",
+        "publishEndDateBeforeStart": "结束日期应为开始日期之后的日期",
+        "dueDateRequired": "如需应对，请输入应对期限",
+        "attachmentsSizeExceeded": "文件大小超过限制（5MB）",
+        "attachmentsTypeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
+        "attachmentsCountExceeded": "超过附件数量限制（5个）",
+        "attachmentsReadFailed": "文件读取失败。请重试。"
+      },
+      "actionRequiredLabel": "应对需求",
+      "actionRequiredTrueOption": "需要应对",
+      "actionRequiredFalseOption": "无需应对",
+      "sendEmailNotificationLabel": "邮件发送",
+      "sendEmailNotificationTrueOption": "发送邮件",
+      "sendEmailNotificationFalseOption": "不发送邮件",
+      "publishStartDateLabel": "公开开始日期",
+      "publishEndDateLabel": "公开结束日期",
+      "publishPeriodHint": "如果未输入，将持续公开",
+      "dueDateLabel": "应对期限",
+      "attachmentsLabel": "附件",
+      "attachmentsHint": "可直接上传图像或PDF，单个文件最大5MB，最多5个文件。",
+      "attachmentsRemoveButtonLabel": "删除",
+      "linkedDocumentsLabel": "文档关联",
+      "linkedDocumentsPickButtonLabel": "从文档中选择",
+      "linkedDocumentsEmptyMessage": "没有关联的文档",
+      "linkedDocumentRemoveButtonLabel": "删除",
+      "linkedDocumentsDialogTitle": "选择文档",
+      "linkedDocumentsDialogConfirmLabel": "确认选择",
+      "linkedDocumentsDialogCancelLabel": "取消",
+      "linkedDocumentsDialogNoDocumentsMessage": "没有已注册的文档",
+      "linkedDocumentsTargetingAllLabel": "全体公开",
+      "linkedDocumentsTargetingCountriesPrefixLabel": "目标国家：",
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "目标公司："
+    },
+    "tracking": {
+      "confirmedCount": "已确认 {confirmed}/{total}人",
+      "completedCount": "已实施 {completed}/{total}家",
+      "dialogTitleConfirmed": "未确认的负责人",
+      "dialogTitleCompleted": "未实施的公司",
+      "columnContact": "负责人名称",
+      "columnEmail": "电子邮件地址",
+      "columnCompany": "公司",
+      "columnCountry": "国家·地区",
+      "remindButton": "提醒",
+      "remindAllButton": "提醒全员",
+      "remindSuccessMessage": "已发送提醒",
+      "remindErrorMessage": "发送失败。请稍后重试。",
+      "alreadyRemindedLabel": "已发送",
+      "allRespondedMessage": "全员已确认",
+      "confirmersButton": "确认者列表",
+      "dialogTitleConfirmers": "确认者列表",
+      "confirmersEmptyMessage": "没有输入姓名的确认者",
+      "columnConfirmerName": "确认者名称",
+      "columnConfirmedAt": "确认日期和时间"
+    }
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "咨询管理",
+      "description": "可以按处理状态·紧急度顺序确认全公司的咨询。",
+      "empty": "没有咨询",
+      "error": "获取咨询失败",
+      "noResults": "没有符合条件的咨询",
+      "untitled": "（标题未设置）"
+    },
+    "detail": {
+      "notFound": "找不到咨询",
+      "error": "获取咨询失败",
+      "backToList": "返回列表",
+      "attachmentsLabel": "附件",
+      "translatedTextLabel": "翻译（自动翻译）",
+      "originalTextLabel": "原文",
+      "translationUnavailable": "自动翻译失败或未执行。请确认以下原文。",
+      "retryTranslationButton": "重新翻译",
+      "retryTranslationError": "重新翻译失败。请稍后重试。",
+      "untitled": "（标题未设置）"
+    },
+    "filter": {
+      "companyLabel": "公司名称",
+      "companyPlaceholder": "按公司名称筛选",
+      "keywordLabel": "关键词",
+      "keywordPlaceholder": "按正文中包含的关键词筛选",
+      "countryLabel": "国家",
+      "countryAll": "所有国家",
+      "categoryLabel": "案件种别",
+      "categoryAll": "所有种别",
+      "statusLabel": "处理状况",
+      "statusAll": "所有处理状况",
+      "urgencyLabel": "紧急度",
+      "urgencyAll": "所有紧急度",
+      "unclaimedOnlyLabel": "仅未着手",
+      "claimedByLabel": "处理者",
+      "claimedByAll": "所有处理者",
+      "clearButton": "清除条件"
+    },
+    "claim": {
+      "inProgressBadge": "处理中",
+      "claimButton": "设为处理中",
+      "releaseButton": "取消处理",
+      "claimedByLabel": "处理者",
+      "error": "操作失败。请稍候后重试。",
+      "notOwnerErrorMessage": "因为其他负责人正在处理，无法取消"
+    },
+    "stats": {
+      "title": "处理状况总结",
+      "scopeAll": "针对全部案件",
+      "scopeFiltered": "针对筛选中的{count}个案件",
+      "unclaimedLabel": "未着手",
+      "unclaimedCaption": "未有人开始处理的案件数",
+      "unclaimedNone": "所有未处理的咨询都已分配给处理者",
+      "highUrgencyAlert": "紧急度「高」的有{count}个",
+      "staleUnclaimedAlert": "{count}个案件已24小时以上未着手",
+      "mineLabel": "我的负责",
+      "mineCaption": "自己正在处理的未解决案件数",
+      "statusBreakdownTitle": "处理状况的细分",
+      "staffLoadTitle": "按处理者统计的案件数",
+      "staffLoadEmpty": "没有正在处理的咨询",
+      "staffOthers": "其他{count}位",
+      "unit": "个",
+      "percent": "{value}%",
+      "tableToggle": "以表格方式查看",
+      "tableHeaderItem": "项目",
+      "tableHeaderCount": "件数",
+      "tableHeaderShare": "比例"
+    },
+    "status": {
+      "sectionTitle": "更改处理状况",
+      "label": "处理状况",
+      "error": "更改处理状况失败。请稍候后重试。"
+    },
+    "reply": {
+      "sectionTitle": "回复",
+      "templateLabel": "模板",
+      "templatePlaceholder": "选择模板",
+      "noTemplates": "此分类中没有模板",
+      "bodyLabel": "回复内容",
+      "bodyPlaceholder": "请输入回复内容",
+      "submitButton": "发送",
+      "submitting": "发送中...",
+      "successMessage": "已记录回复",
+      "error": "发送失败。请稍后重试。",
+      "attachments": {
+        "label": "附件",
+        "hint": "可附加图像或PDF，每个文件最多5MB，最多5个文件。",
+        "removeButton": "删除",
+        "sizeExceeded": "文件大小超过限制（5MB）",
+        "typeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
+        "countExceeded": "超过了可附加的文件数量限制（5个）",
+        "readFailed": "文件读取失败。请重试。"
+      }
+    },
+    "history": {
+      "sectionTitle": "处理历史",
+      "empty": "没有处理历史",
+      "types": {
+        "claimed": "已开始处理",
+        "released": "已结束处理",
+        "status_changed": "已更改处理状态",
+        "reply_sent": "已发送回复",
+        "requester_message": "申请人的消息"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "模板管理",
+      "description": "可以按分类注册和管理多个回复模板。",
+      "addButton": "添加新模板",
+      "editLink": "编辑",
+      "empty": "没有模板",
+      "templateCount": "{count}个"
+    },
+    "form": {
+      "createTitle": "新建模板",
+      "editTitle": "编辑模板",
+      "notFound": "找不到模板",
+      "nameLabel": "模板名称",
+      "namePlaceholder": "请输入模板名称",
+      "categoryLabel": "问题类型",
+      "categoryPlaceholder": "请选择问题类型",
+      "bodyLabel": "正文",
+      "bodyPlaceholder": "请输入模板正文",
+      "submitButton": "保存",
+      "backToList": "返回列表",
+      "submitError": "保存失败。请稍后再试。",
+      "validation": {
+        "required": "此项为必填项",
+        "nameTooLong": "模板名称应在40个字符以内"
+      }
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "常见问题管理",
+      "description": "您可以为海外经销商注册、编辑和删除常见问题及答案。",
+      "empty": "没有常见问题",
+      "error": "获取常见问题失败",
+      "addButton": "添加新常见问题",
+      "editLink": "编辑",
+      "deleteButton": "删除",
+      "deleteConfirmTitle": "删除常见问题",
+      "deleteConfirm": "将删除『{question}』。此操作无法撤销。您确定吗？",
+      "deleteConfirmButton": "删除",
+      "deleteCancelButton": "取消",
+      "deleteError": "删除失败。请稍后再试。",
+      "filter": {
+        "keywordLabel": "关键字搜索",
+        "keywordPlaceholder": "问题或答案中包含的术语",
+        "categoryLabel": "分类",
+        "categoryAll": "全部",
+        "clearButton": "清除条件",
+        "noResults": "没有匹配的常见问题"
+      },
+      "pagination": {
+        "previousLabel": "上一页",
+        "nextLabel": "下一页",
+        "pageStatus": "{current} / {total} 页"
+      }
+    },
+    "form": {
+      "createTitle": "新建常见问题",
+      "editTitle": "编辑常见问题",
+      "notFound": "未找到常见问题",
+      "questionLabel": "问题",
+      "questionPlaceholder": "请输入问题",
+      "categoryLabel": "分类",
+      "categoryPlaceholder": "请选择分类",
+      "answerLabel": "答案",
+      "answerPlaceholder": "请输入答案",
+      "language": {
+        "jaTab": "日语",
+        "enTab": "English",
+        "addButton": "添加语言",
+        "removeButton": "删除此语言",
+        "localeCodeLabel": "语言代码",
+        "localeCodePlaceholder": "例: th, vi, zh",
+        "localeDuplicateError": "请输入与其他语言不重复的语言代码"
+      },
+      "submitButton": "保存",
+      "backToList": "返回列表",
+      "submitError": "保存失败。请稍后重试。",
+      "validation": {
+        "required": "此项为必填项"
+      }
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "链接集管理",
+      "description": "可以为海外销售公司注册、编辑和删除业务链接。",
+      "empty": "没有链接",
+      "error": "获取链接失败",
+      "addButton": "添加新链接",
+      "editLink": "编辑",
+      "deleteButton": "删除",
+      "deleteConfirmTitle": "删除链接",
+      "deleteConfirm": "将删除『{title}』。此操作无法撤销。确认吗？",
+      "deleteConfirmButton": "删除",
+      "deleteCancelButton": "取消",
+      "deleteError": "删除失败。请稍后重试。",
+      "categoryUnset": "未设置",
+      "manageCategoriesLink": "类别管理",
+      "filter": {
+        "keywordLabel": "关键词搜索",
+        "keywordPlaceholder": "标题、URL、描述中包含的词汇",
+        "categoryLabel": "主分类",
+        "categoryAll": "所有主分类",
+        "categoryUnsetOption": "未设置（类别未分配）",
+        "subCategoryLabel": "子分类",
+        "subCategoryAll": "所有子分类",
+        "clearButton": "清除条件",
+        "noResults": "没有相应的链接"
+      },
+      "pagination": {
+        "previousLabel": "上一页",
+        "nextLabel": "下一页",
+        "pageStatus": "{current} / {total} 页"
+      }
+    },
+    "form": {
+      "createTitle": "新建链接",
+      "editTitle": "编辑链接",
+      "notFound": "找不到链接",
+      "titleLabel": "标题",
+      "titlePlaceholder": "请输入标题",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "主分类",
+      "categoryPlaceholder": "请选择主分类",
+      "subCategoryLabel": "子分类（可选）",
+      "subCategoryPlaceholder": "请选择中分类",
+      "subCategoryNoneOption": "无中分类",
+      "descriptionLabel": "说明（可选）",
+      "descriptionPlaceholder": "请输入补充说明",
+      "submitButton": "保存",
+      "backToList": "返回列表",
+      "submitError": "保存失败。请稍后重试。",
+      "validation": {
+        "required": "此项目为必填项",
+        "invalidUrl": "请输入有效的URL"
+      }
+    },
+    "categories": {
+      "list": {
+        "title": "链接分类管理",
+        "description": "可以添加、编辑、删除和重新排序链接的大分类和中分类。",
+        "backToLinks": "返回链接集管理",
+        "empty": "没有分类",
+        "error": "无法获取分类",
+        "addParentButton": "添加大分类",
+        "addChildButton": "添加中分类",
+        "editButton": "编辑",
+        "moveUpButton": "向上",
+        "moveDownButton": "向下",
+        "linkCountLabel": "链接数：{count}个",
+        "subCategoryCountLabel": "中分类数：{count}个",
+        "delete": {
+          "buttonLabel": "删除",
+          "confirmTitle": "删除分类",
+          "confirmMessage": "将删除『{name}』。此操作无法撤销。确认吗？",
+          "confirmButtonLabel": "删除",
+          "cancelButtonLabel": "取消",
+          "errorMessage": "删除失败。请稍后重试。",
+          "blockedByLinks": "『{name}』已关联{count}个链接，无法删除。请先更改相应链接的分类。",
+          "blockedByChildren": "『{name}』存在{count}个中分类，无法删除。请先删除中分类。"
+        }
+      },
+      "form": {
+        "createParentTitle": "添加大分类",
+        "createChildTitle": "添加中分类",
+        "editTitle": "编辑分类",
+        "nameLabel": "名称",
+        "namePlaceholder": "请输入分类名称",
+        "submitButton": "保存",
+        "cancelButton": "取消",
+        "submitError": "保存失败。请稍后重试。",
+        "language": {
+          "jaTab": "日语",
+          "enTab": "English",
+          "addButton": "添加语言",
+          "removeButton": "删除此语言",
+          "localeCodeLabel": "语言代码",
+          "localeCodePlaceholder": "例：th、vi、zh",
+          "localeDuplicateError": "请输入不与其他语言重复的语言代码"
+        },
+        "validation": {
+          "required": "此项为必填项",
+          "nameConflict": "同一层级中已存在同名的分类"
+        }
+      }
+    },
+    "preview": {
+      "triggerButton": "确认申请者端的显示",
+      "dialogTitle": "预览：申请者端的链接列表",
+      "localeTabJa": "日语",
+      "localeTabEn": "English",
+      "error": "获取预览失败"
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "销售商管理",
+      "description": "可以确认已注册的海外销售商，并管理申请者帐户。",
+      "empty": "未注册销售商",
+      "noResults": "没有相应的销售商",
+      "error": "获取销售商失败",
+      "addButton": "添加新销售商",
+      "searchLabel": "按公司名称和销售商代码搜索",
+      "searchPlaceholder": "请输入公司名称或销售商代码",
+      "nameHeader": "公司名称",
+      "countryHeader": "国家",
+      "companyCodeHeader": "销售商代码",
+      "applicantUserCountHeader": "申请者帐户数",
+      "detailLink": "详情",
+      "detailLinkLabel": "显示{name}的详情"
+    },
+    "form": {
+      "createTitle": "新建销售商",
+      "editTitle": "编辑销售商",
+      "notFound": "找不到公司",
+      "backToList": "返回列表",
+      "nameLabel": "公司名称",
+      "namePlaceholder": "请输入公司名称",
+      "countryLabel": "国家",
+      "countryPlaceholder": "请选择国家",
+      "companyCodeLabel": "销售商代码",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "请按照\"ISO国家代码小写2位-daiso-国家名称（小写·连字符分隔）\"的格式输入（例：vn-daiso-vietnam）。仅可使用半角英文小写字母、数字和连字符，代码必须在所有销售商中唯一。",
+      "submitButton": "保存",
+      "submitError": "保存失败。请稍候后重试。",
+      "validation": {
+        "required": "此项为必填项",
+        "companyCodeFormat": "仅可使用半角英文小写字母、数字和连字符，不可在开头、末尾或连续使用连字符（例：vn-daiso-vietnam）",
+        "companyCodeDuplicate": "此销售公司代码已被使用"
+      }
+    },
+    "detail": {
+      "backToList": "返回列表",
+      "editButton": "编辑公司信息",
+      "countryLabel": "国家",
+      "companyCodeLabel": "销售公司代码",
+      "applicantUsersTitle": "申请者账户",
+      "addApplicantUserButton": "添加申请者账户",
+      "applicantUsersEmpty": "未注册申请者账户",
+      "emailHeader": "电子邮件地址",
+      "displayNameHeader": "显示名称",
+      "statusHeader": "有效状态",
+      "activeStatus": "有效",
+      "inactiveStatus": "无效",
+      "editLink": "编辑"
+    },
+    "applicantUserForm": {
+      "createTitle": "新建申请者账户",
+      "editTitle": "编辑申请者账户",
+      "notFound": "未找到账户",
+      "backToDetail": "返回公司详情",
+      "emailLabel": "电子邮件地址",
+      "emailPlaceholder": "请输入电子邮件地址",
+      "displayNameLabel": "显示名称",
+      "displayNamePlaceholder": "请输入显示名称",
+      "passwordLabel": "密码",
+      "passwordCreatePlaceholder": "请输入初始密码（8个字符或更多）",
+      "passwordEditPlaceholder": "仅在需要更改时输入（8个字符或更多）",
+      "passwordCreateHint": "帮助台工作人员将直接设置初始密码。",
+      "passwordEditHint": "如果保存时留空，现有密码将不会更改。",
+      "preferredLocaleLabel": "通知语言",
+      "preferredLocaleOptions": {
+        "en": "英语",
+        "ja": "日语",
+        "zh": "中文",
+        "ko": "韩语",
+        "th": "泰语",
+        "vi": "越南语",
+        "id": "印度尼西亚语",
+        "ms": "马来语",
+        "tl": "他加禄语"
+      },
+      "submitButton": "保存",
+      "submitError": "保存失败。请稍后重试。",
+      "validation": {
+        "required": "此项为必填项",
+        "emailInvalid": "请输入有效的电子邮件地址",
+        "emailDuplicate": "此电子邮件地址已被使用",
+        "passwordTooShort": "密码必须为8个字符或以上"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "停用",
+      "activateButton": "重新启用",
+      "deactivateConfirmTitle": "停用账户",
+      "activateConfirmTitle": "重新启用账户",
+      "deactivateConfirm": "将停用''{name}''。停用后，将无法使用此账户登录。确定吗？",
+      "activateConfirm": "将重新启用''{name}''。重新启用后，将能够再次登录。确定吗？",
+      "deactivateConfirmButton": "执行停用",
+      "activateConfirmButton": "执行重新启用",
+      "cancelButton": "取消",
+      "toggleError": "更新失败。请稍后重试。"
+    },
+    "import": {
+      "title": "分销商CSV批量注册",
+      "description": "上传包含",
+      "backToList": "返回列表",
+      "templateDownloadLabel": "下载CSV模板",
+      "fileInputLabel": "选择CSV文件",
+      "uploadButtonLabel": "验证并上传",
+      "uploadingLabel": "验证中…",
+      "resultsHeading": "验证结果",
+      "rowNumberHeader": "行号",
+      "rowNameHeader": "公司名称",
+      "rowCompanyCodeHeader": "分销商代码",
+      "rowStatusHeader": "判定",
+      "rowErrorsHeader": "错误内容",
+      "statusOk": "可注册",
+      "statusError": "错误",
+      "successMessage": "已注册'{count}'家公司",
+      "noFileSelected": "请选择CSV文件",
+      "genericError": "验证和注册失败。请稍后重试。",
+      "errors": {
+        "required": "公司名称、国家和分销商代码为必填项",
+        "companyCodeFormat": "分销商代码格式不正确（仅限半角英文小写字母、数字和连字符，不能在开头、末尾或连续使用连字符）",
+        "invalidCountry": "国家代码无效",
+        "companyCodeDuplicate": "此分销商代码已被注册",
+        "duplicateInFile": "此CSV中的分销商代码重复"
+      },
+      "fileErrors": {
+        "empty": "CSV文件为空",
+        "headerMismatch": "标题行与'name,country,companyCode'不匹配",
+        "noDataRows": "数据行数为0"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "全选",
+      "selectRowLabel": "选择'{name}'",
+      "selectedCount": "已选择'{count}'家公司",
+      "bulkDeactivateButton": "批量禁用选定的经销商",
+      "confirmTitle": "经销商批量禁用",
+      "confirmMessage": "将禁用属于选定的'{companyCount}'家公司的'{userCount}'个有效申请人账户。禁用后的账户将无法登录。您确定吗？",
+      "confirmButton": "执行批量禁用",
+      "cancelButton": "取消",
+      "successMessage": "已禁用'{count}'个申请人账户",
+      "errorMessage": "批量禁用失败。请稍后重试。"
+    }
+  },
+  "dashboard": {
+    "inquiryForm": {
+      "title": "咨询",
+      "description": "发送新的咨询。"
+    },
+    "inquiryList": {
+      "title": "咨询列表",
+      "description": "可以确认本公司发送的咨询状况。"
+    },
+    "documents": {
+      "title": "资料共享",
+      "description": "可以确认总公司公开的业务文档。"
+    },
+    "salesFloorMeeting": {
+      "title": "卖场检讨会（视频）",
+      "description": "可以确认卖场检讨会的视频资料。"
+    },
+    "manuals": {
+      "title": "手册",
+      "description": "可以确认业务手册。"
+    },
+    "pop": {
+      "title": "POP",
+      "description": "可以确认店铺POP资料。"
+    },
+    "links": {
+      "title": "链接",
+      "description": "可以确认业务中使用的公司内部和外部网站的链接。"
+    },
+    "faq": {
+      "title": "常见问题",
+      "description": "可以确认常见问题和解答。"
+    },
+    "announcementsPreview": {
+      "title": "最新通知",
+      "empty": "没有可显示的通知。",
+      "error": "获取通知失败。",
+      "viewAll": "查看所有通知"
+    },
+    "announcementSummary": {
+      "title": "通知处理状况",
+      "unconfirmedLabel": "未确认",
+      "actionPendingLabel": "已确认·处理未完成",
+      "confirmedCompleteLabel": "已确认·处理完成",
+      "categoryBreakdownTitle": "按种类的件数",
+      "unit": "项",
+      "totalCaption": "目标通知 {count}项",
+      "empty": "没有可显示的通知。",
+      "error": "获取通知处理状况失败。",
+      "viewAll": "查看所有通知"
+    },
+    "reminderAnnouncements": {
+      "title": "来自日本方的提醒"
+    },
+    "priorityInquiriesPreview": {
+      "title": "需要处理的咨询",
+      "empty": "没有需要处理的咨询。",
+      "error": "获取咨询失败。",
+      "viewAll": "查看咨询列表"
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "支持业务",
+      "reference": "参考信息"
+    },
+    "kpi": {
+      "title": "咨询状况",
+      "unresolvedLabel": "全公司未处理件数",
+      "unclaimedLabel": "未着手",
+      "todayLabel": "今日收到",
+      "todayUnresolvedCaption": "其中未处理 {count}件",
+      "todayNone": "今日没有收到咨询",
+      "none": "没有未处理咨询",
+      "viewAll": "查看咨询列表",
+      "error": "获取未处理件数失败"
+    },
+    "companies": {
+      "description": "可以管理已注册的海外销售公司的列表和申请人帐户。"
+    },
+    "salesFloorMeeting": {
+      "description": "可以管理按月进行的卖场讨论会资料。"
+    },
+    "pop": {
+      "description": "可以管理按月进行的POP资料。"
+    },
+    "templates": {
+      "title": "模板管理",
+      "description": "可以管理用于回复的模板。"
+    },
+    "announcements": {
+      "title": "通知管理",
+      "description": "可以进行通知的列表、创建、编辑和删除。"
+    },
+    "documents": {
+      "title": "文档管理",
+      "description": "可以进行文档的列表、创建、编辑和删除。"
+    },
+    "manuals": {
+      "title": "手册",
+      "description": "可以查看业务手册。"
+    },
+    "inquiryForm": {
+      "title": "咨询",
+      "description": "可以新建咨询。"
+    },
+    "links": {
+      "title": "链接",
+      "description": "可以查看业务中使用的公司内部和外部网站的链接。"
+    },
+    "faq": {
+      "title": "常见问题",
+      "description": "可以查看常见问题和解答。"
+    }
+  },
+  "common": {
+    "comingSoon": "准备中"
+  },
+  "announcements": {
+    "list": {
+      "title": "通知",
+      "description": "可以一览查看总部的周知事项。",
+      "empty": "没有通知",
+      "error": "获取通知失败",
+      "noResults": "没有相应的通知"
+    },
+    "categories": {
+      "maintenance": "维护",
+      "policy": "制度变更",
+      "incident": "故障信息",
+      "other": "其他"
+    },
+    "detail": {
+      "publishedAtLabel": "发布日期",
+      "categoryLabel": "类别",
+      "notFound": "找不到通知",
+      "error": "获取通知失败",
+      "backToList": "返回列表",
+      "attachmentsSectionTitle": "附件"
+    },
+    "actionRequiredBadge": "需要处理",
+    "reminderBadge": "已收到提醒",
+    "dueDateLabel": "处理期限",
+    "overdueBadge": "超期",
+    "selfReport": {
+      "confirmed": "已确认",
+      "completeButton": "标记为处理完成",
+      "completed": "处理完成",
+      "confirmerLabel": "确认人姓名",
+      "confirmerPlaceholder": "确认人的姓名",
+      "confirmerAddButton": "记录为确认人",
+      "confirmerError": "记录失败。请稍候后重试。",
+      "confirmersLabel": "确认人"
+    },
+    "filter": {
+      "keywordLabel": "标题搜索",
+      "keywordPlaceholder": "标题中包含的词语",
+      "categoryLabel": "类别",
+      "categoryAll": "所有类别",
+      "actionRequiredLabel": "是否需要处理",
+      "actionRequiredAll": "全部",
+      "actionRequiredTrue": "仅需要处理",
+      "clearButton": "清除"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "文档",
+      "description": "可以查看总部发布的业务文档。",
+      "empty": "没有文档",
+      "error": "获取文档失败",
+      "downloadLink": "下载",
+      "openOriginalLink": "打开原始文档",
+      "fileSizeLabel": "文件大小",
+      "uploadedAtLabel": "上传日期",
+      "newBadge": "新",
+      "googlePreviewError": "无法显示预览",
+      "googlePreviewHint": "如果预览无法显示，请打开原始文档"
+    },
+    "search": {
+      "keywordLabel": "关键词搜索",
+      "keywordPlaceholder": "包含在标题或说明中的词语",
+      "clearButton": "清除条件",
+      "noResults": "没有相关文档",
+      "subCategoryLabel": "按中分类筛选",
+      "subCategoryAll": "所有中分类"
+    },
+    "categories": {
+      "documentCount": "{count}件"
+    },
+    "category": {
+      "notFound": "未找到文档",
+      "backToCategories": "返回大分类列表"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "销售楼层会议（视频）",
+      "pageDescription": "可以查看每月的销售楼层会议资料。"
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "可以查看每月的POP资料。"
+    },
+    "departments": {
+      "seasonalEvent": "季节·活动",
+      "storage": "收纳·整理",
+      "kitchen": "厨房·餐具",
+      "cleaning": "清洁·洗涤",
+      "beautyHealth": "美容·健康",
+      "stationery": "文具·办公用品",
+      "interior": "室内·杂货",
+      "craftDiy": "手工·DIY",
+      "food": "食品·糖果",
+      "other": "其他",
+      "localPopsList": "Local POPs List",
+      "globalPopsList": "Global POPs List",
+      "endPopsList": "End POPs List"
+    },
+    "filter": {
+      "departmentLabel": "按分类筛选",
+      "departmentAll": "所有分类",
+      "yearLabel": "按年份筛选",
+      "yearAll": "所有年份",
+      "monthLabel": "按月份筛选",
+      "monthAll": "所有月份",
+      "clearButton": "清除条件",
+      "noResults": "没有相关资料"
+    },
+    "list": {
+      "error": "获取资料失败",
+      "empty": "没有资料",
+      "downloadLink": "下载",
+      "openOriginalLink": "打开原始文档",
+      "googlePreviewError": "无法显示预览",
+      "googlePreviewHint": "如果预览无法显示，请打开原始文档",
+      "addButton": "新增",
+      "editButton": "编辑",
+      "expandButton": "放大显示"
+    },
+    "delete": {
+      "buttonLabel": "删除",
+      "confirmTitle": "删除资料",
+      "confirmMessage": "将删除『{heading}』的资料。此操作无法撤销。确定吗？",
+      "confirmButton": "删除",
+      "cancelButton": "取消",
+      "errorMessage": "删除失败。请稍后重试。"
+    },
+    "form": {
+      "departmentLabel": "分类",
+      "yearLabel": "年",
+      "monthLabel": "月",
+      "sourceTypeLabel": "注册方式",
+      "sourceTypeUploadOption": "上传文件",
+      "sourceTypeGoogleOption": "注册Google文档的共享链接",
+      "fileLabel": "文件",
+      "fileHint": "请选择PDF文件（最大20MB）",
+      "removeFileButtonLabel": "删除",
+      "googleUrlLabel": "共享链接URL",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "请粘贴Google文档/电子表格/幻灯片的共享链接",
+      "targetingLabel": "发布范围",
+      "targetingAllOption": "全部公开",
+      "targetingCountriesOption": "指定特定国家/地区",
+      "targetingCompaniesOption": "指定特定经销商",
+      "countriesLabel": "目标国家/地区",
+      "companiesLabel": "目标经销商",
+      "submitButton": "保存",
+      "cancelButton": "取消",
+      "requiredError": "必填项",
+      "countriesRequiredError": "请至少选择1项",
+      "companiesRequiredError": "请至少选择1项",
+      "fileRequiredError": "请选择文件",
+      "sizeExceeded": "文件大小超过限制（20MB）",
+      "typeNotAllowed": "无法注册PDF以外的文件",
+      "readFailed": "文件读取失败",
+      "googleUrlInvalid": "请输入有效的Google文档/电子表格/幻灯片共享链接",
+      "requiredIndicator": "必填",
+      "submitError": "保存失败。请稍后重试。"
+    }
+  },
+  "inquiryForm": {
+    "title": "咨询表单",
+    "description": "请填写选择项和自由描述，然后发送咨询。",
+    "requiredMark": "必须",
+    "backToList": "返回列表",
+    "loadError": "获取显示表单所需的信息失败。请稍候后重试。",
+    "fields": {
+      "title": {
+        "label": "标题",
+        "placeholder": "请输入标题（主题）"
+      },
+      "category": {
+        "label": "案件类型",
+        "placeholder": "请选择案件类型"
+      },
+      "urgency": {
+        "label": "紧急程度",
+        "placeholder": "请选择紧急程度"
+      },
+      "storeRegion": {
+        "label": "门店·地区",
+        "placeholder": "请输入门店·地区"
+      },
+      "originalText": {
+        "label": "咨询内容（自由描述）",
+        "placeholder": "请输入咨询内容",
+        "remainingCharacters": "剩余{count}字符"
+      },
+      "originalLanguage": {
+        "label": "原文语言",
+        "placeholder": "请选择原文的语言"
+      },
+      "companyName": {
+        "label": "公司名称",
+        "placeholder": "请输入公司名称"
+      },
+      "country": {
+        "label": "国家",
+        "placeholder": "请选择国家"
+      },
+      "targetCompany": {
+        "label": "目标公司",
+        "placeholder": "请选择要注册咨询的公司",
+        "empty": "未注册可选公司。请联系管理员。"
+      },
+      "attachments": {
+        "label": "附件",
+        "hint": "可附加图像或PDF，每个最大5MB，最多5个。",
+        "removeButton": "删除"
+      }
+    },
+    "options": {
+      "category": {
+        "defect": "缺陷",
+        "order": "订单相关",
+        "system": "系统相关",
+        "other": "其他"
+      },
+      "urgency": {
+        "high": "高",
+        "medium": "中",
+        "low": "低"
+      },
+      "country": {
+        "JP": "日本",
+        "US": "美利坚合众国",
+        "CN": "中国",
+        "KR": "韩国",
+        "TH": "泰国",
+        "VN": "越南",
+        "ID": "印度尼西亚",
+        "PH": "菲律宾",
+        "MY": "马来西亚",
+        "SG": "新加坡",
+        "IN": "印度",
+        "TW": "台湾",
+        "HK": "香港",
+        "GB": "英国",
+        "FR": "法国",
+        "DE": "德国",
+        "IT": "意大利",
+        "ES": "西班牙",
+        "AU": "澳大利亚",
+        "BR": "巴西",
+        "MX": "墨西哥",
+        "CA": "加拿大",
+        "AE": "阿拉伯联合酋长国"
+      },
+      "originalLanguage": {
+        "ja": "日语",
+        "en": "英语",
+        "zh": "中文",
+        "ko": "韩语",
+        "th": "泰语",
+        "vi": "越南语",
+        "id": "印尼语",
+        "ms": "马来语",
+        "tl": "他加禄语",
+        "hi": "印地语",
+        "fr": "法语",
+        "de": "德语",
+        "es": "西班牙语",
+        "pt": "葡萄牙语",
+        "ar": "阿拉伯语"
+      }
+    },
+    "validation": {
+      "required": "此项为必填项",
+      "maxLength": "字符数超过上限",
+      "targetCompanyRequired": "请选择目标公司",
+      "attachments": {
+        "sizeExceeded": "文件大小超过上限（5MB）",
+        "typeNotAllowed": "不允许的文件格式（仅支持图像或PDF）",
+        "countExceeded": "附件数量超过上限（5个）",
+        "readFailed": "文件读取失败。请重试。"
+      }
+    },
+    "submit": {
+      "button": "提交",
+      "submitting": "提交中...",
+      "successTitle": "提交完成",
+      "successDescription": "已接受您的咨询。",
+      "errorTitle": "提交失败",
+      "errorDescription": "请稍候后重试。",
+      "viewInquiryListLink": "查看咨询列表"
+    }
+  },
+  "inquiryList": {
+    "list": {
+      "title": "咨询列表",
+      "description": "可以确认公司发送的咨询列表和处理状况。",
+      "empty": "没有咨询",
+      "error": "获取咨询失败",
+      "untitled": "（标题未设置）",
+      "newBadge": "新"
+    },
+    "status": {
+      "new": "新建",
+      "in_progress": "处理中",
+      "resolved": "已解决"
+    },
+    "detail": {
+      "createdAtLabel": "提交日期和时间",
+      "categoryLabel": "项目类型",
+      "urgencyLabel": "紧急程度",
+      "storeRegionLabel": "地区",
+      "statusLabel": "处理状况",
+      "originalTextLabel": "自由叙述",
+      "translatedTextLabel": "自由叙述（翻译・自动翻译）",
+      "translationUnavailable": "自动翻译失败或未执行。以下是原文。",
+      "submittedByLabel": "申请人信息",
+      "notFound": "未找到咨询",
+      "error": "获取咨询失败",
+      "backToList": "返回列表",
+      "inProgressBadge": "处理中",
+      "attachmentsLabel": "附件",
+      "untitled": "（标题未设置）"
+    },
+    "history": {
+      "title": "处理履历",
+      "empty": "还没有处理履历",
+      "error": "获取处理履历失败",
+      "replyLabel": "回复",
+      "claimedLabel": "开始处理",
+      "claimedMessage": "变为处理中",
+      "releasedLabel": "取消处理",
+      "releasedMessage": "取消了处理中的状态",
+      "statusChangedLabel": "状态变更",
+      "requesterMessageLabel": "发送的消息"
+    },
+    "message": {
+      "sectionTitle": "发送追加消息",
+      "bodyLabel": "消息内容",
+      "bodyPlaceholder": "请输入消息",
+      "submitButton": "发送",
+      "submitting": "发送中...",
+      "successMessage": "消息已发送",
+      "error": "发送失败。请稍后重试。",
+      "attachments": {
+        "label": "附件",
+        "hint": "可附加图像或PDF，每个最大5MB，最多5个文件。",
+        "removeButton": "删除",
+        "sizeExceeded": "文件大小超过上限（5MB）",
+        "typeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
+        "countExceeded": "附件数量超过上限（5个）",
+        "readFailed": "文件读取失败。请重试。"
+      }
+    },
+    "filter": {
+      "keywordLabel": "关键词搜索",
+      "keywordPlaceholder": "标题和自由描述中包含的短语",
+      "statusLabel": "处理状态",
+      "statusAll": "所有处理状态",
+      "categoryLabel": "问题类型",
+      "categoryAll": "所有问题类型",
+      "urgencyLabel": "紧急度",
+      "urgencyAll": "所有紧急度",
+      "unreadOnlyLabel": "仅新消息",
+      "clearButton": "清除",
+      "noResults": "没有匹配的问询"
+    },
+    "stats": {
+      "title": "处理状态摘要",
+      "scopeAll": "针对所有问询",
+      "scopeFiltered": "针对筛选中的{count}个问询",
+      "unreadLabel": "未确认的新消息",
+      "unreadCaption": "帮助台回复或状态变更未确认的件数",
+      "unreadNone": "没有未确认的更新",
+      "highUrgencyAlert": "有{count}个紧急度\"高\"的未解决问询",
+      "awaitingResponseLabel": "等待回复",
+      "awaitingResponseCaption": "等待帮助台回复或开始处理的件数",
+      "staleAwaitingResponseAlert": "{count}个问询已等待回复72小时以上",
+      "unresolvedLabel": "未解决",
+      "unresolvedCaption": "处理状态为\"新建\"或\"处理中\"的件数",
+      "statusBreakdownTitle": "处理状态详情",
+      "urgencyBreakdownTitle": "未解决问询的紧急度分类件数",
+      "urgencyBreakdownEmpty": "没有未解决的问询",
+      "unit": "个",
+      "percent": "{value}%",
+      "tableToggle": "表格查看",
+      "tableHeaderItem": "项目",
+      "tableHeaderCount": "件数",
+      "tableHeaderShare": "占比"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "未解决的滞留时间",
+      "lt24h": "24小时以内",
+      "h24to72": "24~72小时",
+      "d3to7": "3~7天",
+      "gte7d": "7天以上",
+      "over24h": "超过24小时",
+      "over72h": "超过72小时",
+      "empty": "没有未解决的咨询",
+      "oldest": "最旧的未解决：接收后{hours}小时已过"
+    },
+    "category": {
+      "title": "案件种类的细分",
+      "empty": "没有相关咨询"
+    },
+    "country": {
+      "title": "按国家分列的未解决件数",
+      "others": "其他{count}个国家",
+      "empty": "没有未解决的咨询"
+    },
+    "intake": {
+      "receivedTitle": "最近7天的接收件数",
+      "submittedTitle": "最近7天的提交件数",
+      "empty": "最近7天没有相关咨询",
+      "columnLabel": "{date}: {count}件"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "仅未解决",
+      "agingLabel": "滞留时间",
+      "agingAll": "所有滞留时间",
+      "receivedOnLabel": "接收日期"
+    }
+  },
+  "links": {
+    "list": {
+      "title": "链接集",
+      "description": "可按类别确认业务中使用的内部和外部网站的链接。",
+      "empty": "没有链接",
+      "error": "链接获取失败"
+    },
+    "uncategorized": "未分类",
+    "item": {
+      "opensInNewTab": "（在新标签页中打开）",
+      "newBadge": "新"
+    },
+    "search": {
+      "keywordLabel": "关键词搜索",
+      "keywordPlaceholder": "包含在标题、说明、URL中的词汇",
+      "clearButton": "清除条件",
+      "noResults": "没有相关链接"
+    }
+  },
+  "faq": {
+    "list": {
+      "title": "常见问题",
+      "description": "可按类别确认常见问题及其答案。",
+      "empty": "没有常见问题解答",
+      "error": "获取常见问题解答失败",
+      "updatedLabel": "更新日期",
+      "newBadge": "新"
+    },
+    "categories": {
+      "inquiry_method": "询问方式",
+      "form_input": "表单输入",
+      "status": "处理状态",
+      "other": "其他"
+    },
+    "search": {
+      "keywordLabel": "关键词搜索",
+      "keywordPlaceholder": "问题或答案中包含的词语",
+      "noResults": "没有相符的常见问题解答",
+      "clearButton": "清除条件"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "文档分类管理",
+      "description": "可以添加、编辑、删除和重新排列文档的一级分类和二级分类。",
+      "backToDocuments": "返回文档管理",
+      "empty": "没有分类",
+      "error": "获取分类失败",
+      "addParentButton": "添加一级分类",
+      "addChildButton": "添加二级分类",
+      "editButton": "编辑",
+      "moveUpButton": "向上",
+      "moveDownButton": "向下",
+      "documentCountLabel": "文档数：{count}件",
+      "subCategoryCountLabel": "二级分类数：{count}件",
+      "targetingAllLabel": "全体公开",
+      "targetingCountriesLabel": "目标国家/地区",
+      "targetingCompaniesLabel": "目标销售公司",
+      "delete": {
+        "buttonLabel": "删除",
+        "confirmTitle": "删除分类",
+        "confirmMessage": "将删除「{name}」。此操作无法撤消。确认吗？",
+        "confirmButtonLabel": "删除",
+        "cancelButtonLabel": "取消",
+        "errorMessage": "删除失败。请稍后重试。",
+        "blockedByDocuments": "「{name}」有{count}件文档关联，无法删除。请先更改目标文档的分类。",
+        "blockedByChildren": "「{name}」存在{count}件二级分类，无法删除。请先删除二级分类。"
+      }
+    },
+    "form": {
+      "createParentTitle": "添加一级分类",
+      "createChildTitle": "添加二级分类",
+      "editTitle": "编辑分类",
+      "nameLabel": "名称",
+      "namePlaceholder": "请输入分类名称",
+      "targetingLabel": "公开范围",
+      "targetingAllOption": "全体公开",
+      "targetingCountriesOption": "指定特定国家·地区",
+      "targetingCompaniesOption": "指定特定销售公司",
+      "countriesLabel": "国家·地区（可多选）",
+      "companiesLabel": "销售公司（可多选）",
+      "submitButton": "保存",
+      "cancelButton": "取消",
+      "submitError": "保存失败。请稍候后重试。",
+      "language": {
+        "jaTab": "日本語",
+        "enTab": "English",
+        "addButton": "添加语言",
+        "removeButton": "删除此语言",
+        "localeCodeLabel": "语言代码",
+        "localeCodePlaceholder": "例：th, vi, zh",
+        "localeDuplicateError": "请输入与其他语言不重复的语言代码"
+      },
+      "validation": {
+        "required": "此项为必填项",
+        "nameConflict": "同一层级中已存在同名的分类",
+        "countriesRequired": "请选择至少一个国家·地区",
+        "companiesRequired": "请选择至少一个销售公司"
+      }
+    }
+  },
+  "manuals": {
+    "list": {
+      "title": "手册",
+      "description": "可按分类·年月搜索和查看业务手册。",
+      "empty": "没有手册",
+      "error": "获取手册失败",
+      "downloadLink": "下载",
+      "openOriginalLink": "打开原始文档",
+      "revisionLabel": "修订年月"
+    },
+    "categories": {
+      "storeOperations": "店铺运营",
+      "registerPayment": "收银·支付",
+      "inventoryOrdering": "订购·库存管理",
+      "salesFloorDisplay": "卖场布置·陈列",
+      "promotion": "销售促进·POP运营",
+      "safetyHygiene": "安全·卫生·防灾",
+      "hrTraining": "人事·劳务·教育",
+      "systemOperation": "系统操作",
+      "accounting": "会计",
+      "other": "其他"
+    },
+    "filter": {
+      "keywordLabel": "关键词搜索",
+      "keywordPlaceholder": "包含在标题或说明中的词语",
+      "categoryLabel": "分类",
+      "categoryAll": "所有类别",
+      "yearLabel": "年",
+      "yearAll": "所有年份",
+      "monthLabel": "月",
+      "monthAll": "所有月份",
+      "clearButton": "清除条件",
+      "noResults": "没有相关的手册"
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "手册管理",
+      "description": "可以上传、编辑和删除针对海外销售公司的业务手册（PDF）。",
+      "newButton": "添加新手册",
+      "editLink": "编辑",
+      "empty": "没有手册",
+      "error": "获取手册失败",
+      "categoryLabel": "类别",
+      "revisionLabel": "修订年月",
+      "sourceTypeUploadBadge": "上传",
+      "sourceTypeGoogleBadge": "Google链接",
+      "targetingAllLabel": "全体公开",
+      "targetingCountriesLabel": "目标国家/地区",
+      "targetingCompaniesLabel": "目标销售公司",
+      "filter": {
+        "keywordLabel": "关键词搜索",
+        "keywordPlaceholder": "包含在标题或说明中的词汇",
+        "categoryLabel": "类别",
+        "categoryAll": "所有类别",
+        "yearLabel": "年",
+        "yearAll": "所有年份",
+        "monthLabel": "月",
+        "monthAll": "所有月份",
+        "clearButton": "清除条件",
+        "noResults": "没有相关的手册"
+      }
+    },
+    "form": {
+      "createTitle": "新建手册",
+      "editTitle": "编辑手册",
+      "notFound": "找不到手册",
+      "backToList": "返回列表",
+      "titleLabel": "标题",
+      "titlePlaceholder": "请输入手册的标题",
+      "descriptionLabel": "说明",
+      "descriptionPlaceholder": "请输入补充说明（可选）",
+      "language": {
+        "jaTab": "日语",
+        "enTab": "English"
+      },
+      "categoryLabel": "分类",
+      "categoryPlaceholderOption": "请选择",
+      "yearLabel": "年",
+      "monthLabel": "月",
+      "sourceTypeLabel": "注册方法",
+      "sourceTypeUploadOption": "上传文件",
+      "sourceTypeGoogleOption": "注册Google文档共享链接",
+      "fileLabel": "PDF文件",
+      "fileHint": "仅支持PDF，最大可上传20MB。",
+      "removeButtonLabel": "删除",
+      "googleUrlLabel": "Google文档共享链接",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "请先将Google文档/表格/幻灯片的共享设置更改为",
+      "targetingLabel": "公开范围",
+      "targetingAllOption": "全体公开",
+      "targetingCountriesOption": "指定特定国家/地区",
+      "targetingCompaniesOption": "指定特定销售公司",
+      "countriesLabel": "国家/地区（可多选）",
+      "companiesLabel": "销售公司（可多选）",
+      "submitButton": "保存",
+      "submitError": "保存失败。请稍候后重试。",
+      "requiredIndicator": "必填",
+      "validation": {
+        "required": "此项为必填项",
+        "countriesRequired": "请至少选择一个国家/地区",
+        "companiesRequired": "请至少选择一个销售公司",
+        "fileRequired": "请选择PDF文件",
+        "sizeExceeded": "文件大小超过限制（20MB）",
+        "typeNotAllowed": "不允许的文件格式（仅限PDF）",
+        "readFailed": "文件读取失败。请重试。",
+        "googleUrlInvalid": "请输入Google文档/表格/幻灯片的共享链接",
+        "categoryRequired": "请选择分类"
+      }
+    },
+    "delete": {
+      "buttonLabel": "删除",
+      "confirmTitle": "删除手册",
+      "confirmMessage": "将删除《{title}》。此操作无法撤销。是否继续？",
+      "confirmButton": "删除",
+      "cancelButton": "取消",
+      "errorMessage": "删除失败。请稍候后重试。"
+    }
+  }
+}

@@ -58,8 +58,8 @@ export async function translateMissingMessages(
   const translations: Record<string, string> = {};
   const failed: string[] = [];
 
-  for (let i = 0; i < missingKeys.length; i += BATCH_SIZE) {
-    const keys = missingKeys.slice(i, i + BATCH_SIZE);
+  // 一部の項目をモデルが落としたバッチは全体が無効になるため、失敗時はバッチを半分に分けて再試行する
+  async function translateBatch(keys: string[]): Promise<void> {
     const fields = Object.fromEntries(keys.map((key) => [key, source[key]]));
     try {
       const { translations: result } = await translator.translateFields({
@@ -73,9 +73,19 @@ export async function translateMissingMessages(
         else failed.push(key);
       }
     } catch (error) {
-      console.error(`[messages] ${locale}: batch starting at ${keys[0]} failed:`, error);
+      if (keys.length > 1) {
+        const half = Math.ceil(keys.length / 2);
+        await translateBatch(keys.slice(0, half));
+        await translateBatch(keys.slice(half));
+        return;
+      }
+      console.error(`[messages] ${locale}: ${keys[0]} failed:`, error);
       failed.push(...keys);
     }
+  }
+
+  for (let i = 0; i < missingKeys.length; i += BATCH_SIZE) {
+    await translateBatch(missingKeys.slice(i, i + BATCH_SIZE));
   }
 
   // jaの構造・キー順に揃えて書き出す（既存の訳を優先し、無いキーのみ新規翻訳を使う）

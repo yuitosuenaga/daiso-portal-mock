@@ -1,0 +1,1505 @@
+{
+  "login": {
+    "applicantTitle": "海外銷售公司代理店登入",
+    "helpdeskTitle": "日本大創側登入",
+    "emailLabel": "電子郵件地址",
+    "emailPlaceholder": "請輸入電子郵件地址",
+    "passwordLabel": "密碼",
+    "passwordPlaceholder": "請輸入密碼",
+    "submit": "登入",
+    "submitting": "登入中…",
+    "errorInvalidCredentials": "電子郵件地址或密碼不正確。",
+    "validation": {
+      "emailRequired": "請輸入電子郵件地址",
+      "passwordRequired": "請輸入密碼"
+    },
+    "switchToHelpdeskLogin": "切換至日本大創側登入",
+    "switchToApplicantLogin": "切換至海外銷售公司代理店側登入"
+  },
+  "header": {
+    "portalName": "海外運營入口網站",
+    "screenName": "海外銷售公司代理店畫面",
+    "logout": "登出"
+  },
+  "helpdeskHeader": {
+    "portalName": "海外運營入口網站",
+    "screenName": "日本大創側畫面",
+    "logout": "登出"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "服務台導覽",
+    "openMenu": "開啟選單",
+    "closeMenu": "關閉選單",
+    "home": "儀表板",
+    "inquiryForm": "詢問",
+    "inquiries": "詢問管理",
+    "templates": "範本管理",
+    "links": "連結集合",
+    "faq": "常見問題",
+    "announcements": "公告管理",
+    "documents": "文件管理",
+    "companies": "銷售公司管理",
+    "salesFloorMeeting": "銷售樓層檢討會（影片）",
+    "pop": "POP",
+    "manuals": "使用手冊"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "文件管理",
+      "description": "可以上傳、編輯和刪除供海外銷售公司使用的業務文件（PDF）。",
+      "empty": "沒有文件",
+      "error": "無法取得文件",
+      "addButton": "新增文件",
+      "editLink": "編輯",
+      "deleteButton": "刪除",
+      "deleteConfirmTitle": "刪除文件",
+      "deleteConfirm": "將刪除『{title}』。此操作無法撤銷。您確定嗎？",
+      "deleteConfirmButton": "刪除",
+      "deleteCancelButton": "取消",
+      "deleteError": "刪除失敗。請稍後重試。",
+      "targetingAllLabel": "全體公開",
+      "targetingCountriesLabel": "目標國家/地區",
+      "targetingCompaniesLabel": "目標販售商",
+      "fileSizeLabel": "檔案大小",
+      "uploadedAtLabel": "上傳日期",
+      "sourceTypeUploadBadge": "上傳",
+      "sourceTypeGoogleBadge": "Google連結",
+      "statusDraftBadge": "草稿",
+      "statusPublishedBadge": "已公開",
+      "filter": {
+        "keywordLabel": "關鍵字搜尋",
+        "keywordPlaceholder": "包含在標題或說明中的詞彙",
+        "sourceTypeLabel": "登記方式",
+        "sourceTypeAll": "所有登記方式",
+        "sourceTypeUpload": "上傳",
+        "sourceTypeGoogle": "Google連結",
+        "scopeLabel": "公開範圍",
+        "scopeAll": "所有公開範圍",
+        "scopeAllScope": "全體公開",
+        "scopeCountries": "國家為單位",
+        "scopeCompanies": "販售商為單位",
+        "clearButton": "清除條件",
+        "noResults": "沒有符合的文件",
+        "categoryLabel": "大分類",
+        "categoryAll": "所有大分類",
+        "categoryUnassigned": "未設定",
+        "subCategoryLabel": "中分類",
+        "subCategoryAll": "所有中分類"
+      },
+      "pagination": {
+        "previousLabel": "上一頁",
+        "nextLabel": "下一頁",
+        "pageStatus": "{current} / {total} 頁"
+      },
+      "categoryLabel": "大分類",
+      "subCategoryLabel": "中分類",
+      "categoryUnassigned": "未設定",
+      "manageCategoriesLink": "分類管理"
+    },
+    "form": {
+      "createTitle": "建立新文件",
+      "editTitle": "編輯文件",
+      "notFound": "找不到文件",
+      "backToList": "返回清單",
+      "titleLabel": "標題",
+      "titlePlaceholder": "請輸入文件標題",
+      "descriptionLabel": "說明",
+      "descriptionPlaceholder": "請輸入補充說明（可選）",
+      "language": {
+        "jaTab": "日語",
+        "enTab": "English",
+        "addButton": "新增語言",
+        "removeButton": "刪除此語言",
+        "localeCodeLabel": "語言代碼",
+        "localeCodePlaceholder": "範例: th, vi, zh",
+        "localeDuplicateError": "請輸入與其他語言不重複的語言代碼"
+      },
+      "statusLabel": "發佈狀態",
+      "statusDraftOption": "草稿",
+      "statusPublishedOption": "已發佈",
+      "targetingLabel": "發佈範圍",
+      "targetingAllOption": "全體公開",
+      "targetingCountriesOption": "指定特定國家/地區",
+      "targetingCompaniesOption": "指定特定銷售公司",
+      "countriesLabel": "國家/地區（可複選）",
+      "companiesLabel": "銷售公司（可複選）",
+      "sourceTypeLabel": "註冊方法",
+      "sourceTypeUploadOption": "上傳檔案",
+      "sourceTypeGoogleOption": "註冊 Google 文件共享連結",
+      "fileLabel": "PDF 檔案",
+      "fileHint": "只支援 PDF，最多可上傳 20MB。",
+      "currentFileLabel": "已註冊檔案",
+      "removeButtonLabel": "刪除",
+      "googleUrlLabel": "Google 文件共享連結",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "請先將 Google Docs/試算表/簡報的共享設定變更為「知道連結的任何人都可以查看」，然後再進行註冊。",
+      "submitButton": "保存",
+      "submitError": "保存失敗。請稍後重試。",
+      "validation": {
+        "required": "此欄位為必填項",
+        "countriesRequired": "請選擇至少一個國家/地區",
+        "companiesRequired": "請選擇至少一個銷售公司",
+        "fileRequired": "請選擇 PDF 檔案",
+        "sizeExceeded": "檔案大小超過上限（20MB）",
+        "typeNotAllowed": "不允許的檔案格式（僅限PDF）",
+        "readFailed": "檔案讀取失敗。請重試。",
+        "googleUrlInvalid": "請輸入Google文件/試算表/簡報的共享連結",
+        "categoryRequired": "請選擇大分類",
+        "categoryPairInvalid": "所選的中分類與大分類不符"
+      },
+      "detailTitle": "文件詳情",
+      "editButton": "編輯",
+      "cancelButton": "取消",
+      "downloadLink": "下載",
+      "openOriginalLink": "開啟原始文件",
+      "categoryLabel": "大分類",
+      "categoryPlaceholderOption": "請選擇",
+      "subCategoryLabel": "中分類",
+      "subCategoryNoneOption": "無"
+    }
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "公告管理",
+      "description": "您可以為海外經銷商建立、編輯及刪除公告。",
+      "empty": "沒有公告",
+      "error": "無法取得公告",
+      "addButton": "建立新公告",
+      "editLink": "編輯",
+      "createdBy": "建立者",
+      "deleteButton": "刪除",
+      "deleteConfirmTitle": "刪除公告",
+      "deleteConfirm": "將刪除『{title}』。此操作無法撤銷。您確定嗎？",
+      "deleteConfirmButton": "刪除",
+      "deleteCancelButton": "取消",
+      "deleteError": "刪除失敗。請稍候後重試。",
+      "targetingAllLabel": "全體統一",
+      "targetingCountriesLabel": "配信對象國家",
+      "actionRequiredBadge": "需採取行動",
+      "publishPeriodAlwaysLabel": "常時公開",
+      "publishPeriodLabel": "公開期間",
+      "publishPeriodToSeparator": "～",
+      "dueDateLabel": "對應期限",
+      "statusBadgeDraft": "草稿",
+      "filter": {
+        "keywordLabel": "標題搜尋",
+        "keywordPlaceholder": "標題中包含的詞彙",
+        "categoryLabel": "類型",
+        "categoryAll": "所有類型",
+        "actionRequiredLabel": "是否需要處理",
+        "actionRequiredAll": "全部",
+        "actionRequiredTrue": "僅顯示需要處理",
+        "actionRequiredFalse": "僅顯示無需處理",
+        "statusLabel": "發佈狀態",
+        "statusAll": "全部",
+        "statusDraft": "草稿",
+        "statusPublished": "已發佈",
+        "clearButton": "清空",
+        "noResults": "沒有相關公告"
+      }
+    },
+    "form": {
+      "createTitle": "建立新公告",
+      "editTitle": "編輯公告",
+      "notFound": "找不到公告",
+      "backToList": "返回列表",
+      "titleLabel": "標題",
+      "titlePlaceholder": "請輸入公告標題",
+      "bodyLabel": "內容",
+      "bodyPlaceholder": "請輸入公告內容",
+      "language": {
+        "jaTab": "日語",
+        "enTab": "English",
+        "addButton": "新增語言",
+        "removeButton": "刪除此語言",
+        "localeCodeLabel": "語言代碼",
+        "localeCodePlaceholder": "例：th、vi、zh",
+        "localeDuplicateError": "請輸入不與其他語言重複的語言代碼"
+      },
+      "categoryLabel": "類別",
+      "categoryPlaceholder": "請選擇類別",
+      "statusLabel": "發佈狀態",
+      "statusDraftOption": "草稿",
+      "statusPublishedOption": "已發佈",
+      "targetingLabel": "配信對象",
+      "targetingAllOption": "全體一致",
+      "targetingCountriesOption": "指定特定國家·地區",
+      "countriesLabel": "國家·地區（可複選）",
+      "countriesSearchPlaceholder": "按國家名稱搜尋",
+      "countriesSelectAllButtonLabel": "全選",
+      "countriesClearAllButtonLabel": "清除所有選擇",
+      "countriesSelectedCountLabel": "已選擇{count}項",
+      "countriesNoResultsMessage": "沒有相應的國家·地區",
+      "countriesRemoveChipButtonLabel": "刪除",
+      "submitButton": "保存",
+      "submitError": "保存失敗。請稍候後重試。",
+      "enAutoTranslateHint": "如果未輸入，保存時將從日語自動翻譯。",
+      "translateFromJaButton": "從日語自動翻譯",
+      "translateFromJaPending": "翻譯中...",
+      "translateFromJaError": "自動翻譯失敗。請稍候後重試。",
+      "validation": {
+        "required": "此項目為必填項",
+        "countriesRequired": "請選擇一個或多個國家/地區",
+        "enBothOrNeither": "英語標題和正文應全部輸入或全部保持空白",
+        "publishEndDateBeforeStart": "結束日期應為開始日期或之後的日期",
+        "dueDateRequired": "如果需要對應，請輸入對應期限",
+        "attachmentsSizeExceeded": "檔案大小超過上限（5MB）",
+        "attachmentsTypeNotAllowed": "不允許的檔案格式（僅限圖片或PDF）",
+        "attachmentsCountExceeded": "超過可附加檔案數量的上限（5個）",
+        "attachmentsReadFailed": "無法讀取檔案。請重試。"
+      },
+      "actionRequiredLabel": "對應必要性",
+      "actionRequiredTrueOption": "需要對應",
+      "actionRequiredFalseOption": "無需對應",
+      "sendEmailNotificationLabel": "郵件發送",
+      "sendEmailNotificationTrueOption": "發送郵件",
+      "sendEmailNotificationFalseOption": "不發送郵件",
+      "publishStartDateLabel": "公開開始日期",
+      "publishEndDateLabel": "公開結束日期",
+      "publishPeriodHint": "如果未輸入，將持續公開",
+      "dueDateLabel": "對應期限",
+      "attachmentsLabel": "附件",
+      "attachmentsHint": "可直接上傳圖片或PDF，每個檔案最大5MB，最多5個檔案。",
+      "attachmentsRemoveButtonLabel": "刪除",
+      "linkedDocumentsLabel": "連結文件",
+      "linkedDocumentsPickButtonLabel": "從文件中選擇",
+      "linkedDocumentsEmptyMessage": "沒有連結的文件",
+      "linkedDocumentRemoveButtonLabel": "刪除",
+      "linkedDocumentsDialogTitle": "選擇文件",
+      "linkedDocumentsDialogConfirmLabel": "確定選擇",
+      "linkedDocumentsDialogCancelLabel": "取消",
+      "linkedDocumentsDialogNoDocumentsMessage": "沒有已登記的文件",
+      "linkedDocumentsTargetingAllLabel": "全部公開",
+      "linkedDocumentsTargetingCountriesPrefixLabel": "目標國家：",
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "目標公司："
+    },
+    "tracking": {
+      "confirmedCount": "已確認 {confirmed}/{total}人",
+      "completedCount": "已實施 {completed}/{total}家",
+      "dialogTitleConfirmed": "未確認的負責人",
+      "dialogTitleCompleted": "未實施的公司",
+      "columnContact": "負責人名稱",
+      "columnEmail": "電子郵件地址",
+      "columnCompany": "公司",
+      "columnCountry": "國家・地區",
+      "remindButton": "提醒",
+      "remindAllButton": "提醒全員",
+      "remindSuccessMessage": "已發送提醒",
+      "remindErrorMessage": "發送失敗。請稍後重試。",
+      "alreadyRemindedLabel": "已發送",
+      "allRespondedMessage": "全員已回應",
+      "confirmersButton": "確認者名單",
+      "dialogTitleConfirmers": "確認者名單",
+      "confirmersEmptyMessage": "沒有輸入名稱的確認者",
+      "columnConfirmerName": "確認者名稱",
+      "columnConfirmedAt": "確認日期和時間"
+    }
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "問卷管理",
+      "description": "可按回應狀況・緊急度順序確認全公司的問卷。",
+      "empty": "沒有問卷",
+      "error": "獲取問卷失敗",
+      "noResults": "沒有符合條件的問卷",
+      "untitled": "(標題未設定)"
+    },
+    "detail": {
+      "notFound": "找不到問卷",
+      "error": "獲取問卷失敗",
+      "backToList": "返回列表",
+      "attachmentsLabel": "附件",
+      "translatedTextLabel": "翻譯（自動翻譯）",
+      "originalTextLabel": "原文",
+      "translationUnavailable": "自動翻譯失敗或未執行。請確認以下原文。",
+      "retryTranslationButton": "重新翻譯",
+      "retryTranslationError": "重新翻譯失敗。請稍後重試。",
+      "untitled": "(標題未設定)"
+    },
+    "filter": {
+      "companyLabel": "公司名稱",
+      "companyPlaceholder": "按公司名稱篩選",
+      "keywordLabel": "關鍵字",
+      "keywordPlaceholder": "按正文中包含的關鍵字篩選",
+      "countryLabel": "國家",
+      "countryAll": "所有國家",
+      "categoryLabel": "案件種別",
+      "categoryAll": "所有種別",
+      "statusLabel": "處理狀況",
+      "statusAll": "所有處理狀況",
+      "urgencyLabel": "緊急度",
+      "urgencyAll": "所有緊急度",
+      "unclaimedOnlyLabel": "未著手",
+      "claimedByLabel": "處理人員",
+      "claimedByAll": "所有處理人員",
+      "clearButton": "清除條件"
+    },
+    "claim": {
+      "inProgressBadge": "處理中",
+      "claimButton": "開始處理",
+      "releaseButton": "取消處理",
+      "claimedByLabel": "處理人員",
+      "error": "操作失敗。請稍後重試。",
+      "notOwnerErrorMessage": "因為其他負責人正在處理中，無法取消"
+    },
+    "stats": {
+      "title": "處理狀況摘要",
+      "scopeAll": "所有案件為對象",
+      "scopeFiltered": "篩選中的{count}件為對象",
+      "unclaimedLabel": "未著手",
+      "unclaimedCaption": "尚無人開始處理的案件數",
+      "unclaimedNone": "所有未回應的查詢都已分配處理人員",
+      "highUrgencyAlert": "緊急度「高」有{count}件",
+      "staleUnclaimedAlert": "{count}件超過24小時未著手",
+      "mineLabel": "我的負責",
+      "mineCaption": "我正在處理的未解決案件數",
+      "statusBreakdownTitle": "處理狀況明細",
+      "staffLoadTitle": "處理人員別案件數",
+      "staffLoadEmpty": "沒有處理中的查詢",
+      "staffOthers": "其他{count}名",
+      "unit": "件",
+      "percent": "{value}%",
+      "tableToggle": "用表格查看",
+      "tableHeaderItem": "項目",
+      "tableHeaderCount": "件數",
+      "tableHeaderShare": "比例"
+    },
+    "status": {
+      "sectionTitle": "變更處理狀況",
+      "label": "處理狀況",
+      "error": "變更處理狀況失敗。請稍後重試。"
+    },
+    "reply": {
+      "sectionTitle": "回覆",
+      "templateLabel": "模板",
+      "templatePlaceholder": "選擇模板",
+      "noTemplates": "此類別沒有模板",
+      "bodyLabel": "回覆內容",
+      "bodyPlaceholder": "請輸入回覆內容",
+      "submitButton": "送出",
+      "submitting": "送出中...",
+      "successMessage": "已記錄回覆",
+      "error": "送出失敗。請稍候後重試。",
+      "attachments": {
+        "label": "附件",
+        "hint": "可附加圖片或PDF，每個檔案最大5MB，最多5個檔案。",
+        "removeButton": "刪除",
+        "sizeExceeded": "檔案大小超過上限（5MB）",
+        "typeNotAllowed": "不允許的檔案格式（僅限圖片或PDF）",
+        "countExceeded": "超過可附加檔案數的上限（5個）",
+        "readFailed": "檔案讀取失敗。請重試。"
+      }
+    },
+    "history": {
+      "sectionTitle": "處理歷程",
+      "empty": "沒有處理歷程",
+      "types": {
+        "claimed": "設為處理中",
+        "released": "取消處理",
+        "status_changed": "已變更處理狀況",
+        "reply_sent": "已送出回覆",
+        "requester_message": "申請者的訊息"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "模板管理",
+      "description": "可按類別登記和管理多個回覆模板。",
+      "addButton": "新增模板",
+      "editLink": "編輯",
+      "empty": "沒有模板",
+      "templateCount": "{count}個"
+    },
+    "form": {
+      "createTitle": "建立新模板",
+      "editTitle": "編輯模板",
+      "notFound": "找不到模板",
+      "nameLabel": "模板名稱",
+      "namePlaceholder": "請輸入模板名稱",
+      "categoryLabel": "案件類型",
+      "categoryPlaceholder": "請選擇案件類型",
+      "bodyLabel": "本文",
+      "bodyPlaceholder": "請輸入模板本文",
+      "submitButton": "保存",
+      "backToList": "返回列表",
+      "submitError": "保存失敗。請稍後重試。",
+      "validation": {
+        "required": "此欄位為必填項",
+        "nameTooLong": "範本名稱請在40個字以內輸入"
+      }
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "常見問題管理",
+      "description": "可以為海外銷售商登記、編輯、刪除常見的問題和回答。",
+      "empty": "沒有常見問題",
+      "error": "常見問題取得失敗",
+      "addButton": "新增常見問題",
+      "editLink": "編輯",
+      "deleteButton": "刪除",
+      "deleteConfirmTitle": "常見問題的刪除",
+      "deleteConfirm": "將刪除『{question}』。此操作無法撤銷。您確定嗎？",
+      "deleteConfirmButton": "刪除",
+      "deleteCancelButton": "取消",
+      "deleteError": "刪除失敗。請稍後重試。",
+      "filter": {
+        "keywordLabel": "關鍵字搜尋",
+        "keywordPlaceholder": "問題或回答中包含的詞語",
+        "categoryLabel": "分類",
+        "categoryAll": "全部",
+        "clearButton": "清除條件",
+        "noResults": "沒有符合的常見問題"
+      },
+      "pagination": {
+        "previousLabel": "上一頁",
+        "nextLabel": "下一頁",
+        "pageStatus": "{current} / {total} 頁"
+      }
+    },
+    "form": {
+      "createTitle": "常見問題新規建立",
+      "editTitle": "常見問題編輯",
+      "notFound": "找不到常見問題",
+      "questionLabel": "問題",
+      "questionPlaceholder": "請輸入問題",
+      "categoryLabel": "分類",
+      "categoryPlaceholder": "請選擇分類",
+      "answerLabel": "回答",
+      "answerPlaceholder": "請輸入回答",
+      "language": {
+        "jaTab": "日文",
+        "enTab": "English",
+        "addButton": "新增語言",
+        "removeButton": "刪除此語言",
+        "localeCodeLabel": "語言代碼",
+        "localeCodePlaceholder": "例：th、vi、zh",
+        "localeDuplicateError": "請輸入與其他語言不重複的語言代碼"
+      },
+      "submitButton": "保存",
+      "backToList": "返回列表",
+      "submitError": "保存失敗。請稍待後重試。",
+      "validation": {
+        "required": "此項目為必填項"
+      }
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "連結集管理",
+      "description": "可以註冊、編輯、刪除用於海外販售公司的業務連結。",
+      "empty": "沒有連結",
+      "error": "獲取連結失敗",
+      "addButton": "新增連結",
+      "editLink": "編輯",
+      "deleteButton": "刪除",
+      "deleteConfirmTitle": "刪除連結",
+      "deleteConfirm": "將刪除『{title}』。此操作無法撤銷。確認刪除？",
+      "deleteConfirmButton": "刪除",
+      "deleteCancelButton": "取消",
+      "deleteError": "刪除失敗。請稍待後重試。",
+      "categoryUnset": "未設定",
+      "manageCategoriesLink": "類別管理",
+      "filter": {
+        "keywordLabel": "關鍵字搜尋",
+        "keywordPlaceholder": "包含在標題、URL、說明中的詞語",
+        "categoryLabel": "主類別",
+        "categoryAll": "所有主類別",
+        "categoryUnsetOption": "未設定（類別未分配）",
+        "subCategoryLabel": "次類別",
+        "subCategoryAll": "所有次類別",
+        "clearButton": "清除條件",
+        "noResults": "沒有符合的連結"
+      },
+      "pagination": {
+        "previousLabel": "上一頁",
+        "nextLabel": "下一頁",
+        "pageStatus": "{current} / {total} 頁"
+      }
+    },
+    "form": {
+      "createTitle": "新建連結",
+      "editTitle": "編輯連結",
+      "notFound": "找不到連結",
+      "titleLabel": "標題",
+      "titlePlaceholder": "請輸入標題",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "主類別",
+      "categoryPlaceholder": "請選擇主類別",
+      "subCategoryLabel": "次類別（選填）",
+      "subCategoryPlaceholder": "請選擇中分類",
+      "subCategoryNoneOption": "無中分類",
+      "descriptionLabel": "說明（選擇性）",
+      "descriptionPlaceholder": "請輸入補充說明",
+      "submitButton": "保存",
+      "backToList": "返回列表",
+      "submitError": "保存失敗。請稍候後重試。",
+      "validation": {
+        "required": "此項目為必填",
+        "invalidUrl": "請輸入有效的URL"
+      }
+    },
+    "categories": {
+      "list": {
+        "title": "連結分類管理",
+        "description": "可以新增、編輯、刪除和重新排序連結的大分類和中分類。",
+        "backToLinks": "返回連結集管理",
+        "empty": "沒有分類",
+        "error": "取得分類失敗",
+        "addParentButton": "新增大分類",
+        "addChildButton": "新增中分類",
+        "editButton": "編輯",
+        "moveUpButton": "上移",
+        "moveDownButton": "下移",
+        "linkCountLabel": "連結數：{count}件",
+        "subCategoryCountLabel": "中分類數：{count}件",
+        "delete": {
+          "buttonLabel": "刪除",
+          "confirmTitle": "刪除分類",
+          "confirmMessage": "將刪除「{name}」。此操作無法撤銷。確認嗎？",
+          "confirmButtonLabel": "刪除",
+          "cancelButtonLabel": "取消",
+          "errorMessage": "刪除失敗。請稍候後重試。",
+          "blockedByLinks": "「{name}」關聯了{count}件連結，無法刪除。請先變更相應連結的分類。",
+          "blockedByChildren": "「{name}」存在{count}件中分類，無法刪除。請先刪除中分類。"
+        }
+      },
+      "form": {
+        "createParentTitle": "新增大分類",
+        "createChildTitle": "新增中分類",
+        "editTitle": "編輯分類",
+        "nameLabel": "名稱",
+        "namePlaceholder": "請輸入分類名稱",
+        "submitButton": "保存",
+        "cancelButton": "取消",
+        "submitError": "保存失敗。請稍候後重試。",
+        "language": {
+          "jaTab": "日語",
+          "enTab": "English",
+          "addButton": "新增語言",
+          "removeButton": "刪除此語言",
+          "localeCodeLabel": "語言代碼",
+          "localeCodePlaceholder": "例如：th、vi、zh",
+          "localeDuplicateError": "請輸入不與其他語言重複的語言代碼"
+        },
+        "validation": {
+          "required": "此項目為必填項",
+          "nameConflict": "同一層級中已存在同名類別"
+        }
+      }
+    },
+    "preview": {
+      "triggerButton": "確認申請者端的顯示",
+      "dialogTitle": "預覽：申請者端的連結清單",
+      "localeTabJa": "日語",
+      "localeTabEn": "English",
+      "error": "取得預覽失敗"
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "經銷商管理",
+      "description": "可確認已註冊的海外經銷商，並管理申請者帳戶。",
+      "empty": "未註冊任何經銷商",
+      "noResults": "沒有相符的經銷商",
+      "error": "取得經銷商失敗",
+      "addButton": "新增經銷商",
+      "searchLabel": "按公司名稱或經銷商代碼搜尋",
+      "searchPlaceholder": "請輸入公司名稱或經銷商代碼",
+      "nameHeader": "公司名稱",
+      "countryHeader": "國家",
+      "companyCodeHeader": "經銷商代碼",
+      "applicantUserCountHeader": "申請者帳戶數",
+      "detailLink": "詳細資訊",
+      "detailLinkLabel": "顯示{name}的詳細資訊"
+    },
+    "form": {
+      "createTitle": "新建經銷商",
+      "editTitle": "編輯經銷商",
+      "notFound": "找不到公司",
+      "backToList": "返回清單",
+      "nameLabel": "公司名稱",
+      "namePlaceholder": "請輸入公司名稱",
+      "countryLabel": "國家",
+      "countryPlaceholder": "請選擇國家",
+      "companyCodeLabel": "經銷商代碼",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "請按照「ISO國家代碼小寫2位元-daiso-國家名稱（小寫‧連字號分隔）」的格式輸入（例：vn-daiso-vietnam）。只能使用半形英文小寫字母、數字和連字號，代碼必須在所有經銷商中是唯一的。",
+      "submitButton": "儲存",
+      "submitError": "儲存失敗。請稍候後重試。",
+      "validation": {
+        "required": "此項目為必填項",
+        "companyCodeFormat": "只能使用半形英文小寫字母、數字和連字號，不能在開頭、結尾或使用連續連字號（例：vn-daiso-vietnam）",
+        "companyCodeDuplicate": "此販售公司代碼已被使用"
+      }
+    },
+    "detail": {
+      "backToList": "返回列表",
+      "editButton": "編輯公司資訊",
+      "countryLabel": "國家",
+      "companyCodeLabel": "販售公司代碼",
+      "applicantUsersTitle": "申請者帳戶",
+      "addApplicantUserButton": "新增申請者帳戶",
+      "applicantUsersEmpty": "未登記申請者帳戶",
+      "emailHeader": "電子郵件地址",
+      "displayNameHeader": "顯示名稱",
+      "statusHeader": "有效狀態",
+      "activeStatus": "有效",
+      "inactiveStatus": "無效",
+      "editLink": "編輯"
+    },
+    "applicantUserForm": {
+      "createTitle": "新建申請者帳戶",
+      "editTitle": "編輯申請者帳戶",
+      "notFound": "找不到帳戶",
+      "backToDetail": "返回公司詳細資訊",
+      "emailLabel": "電子郵件地址",
+      "emailPlaceholder": "請輸入電子郵件地址",
+      "displayNameLabel": "顯示名稱",
+      "displayNamePlaceholder": "請輸入顯示名稱",
+      "passwordLabel": "密碼",
+      "passwordCreatePlaceholder": "請輸入初始密碼（8個字符以上）",
+      "passwordEditPlaceholder": "僅在需要更改時輸入（8個字符以上）",
+      "passwordCreateHint": "幫助台管理員將直接設置初始密碼。",
+      "passwordEditHint": "如果保存時留空，現有密碼將不會更改。",
+      "preferredLocaleLabel": "通知語言",
+      "preferredLocaleOptions": {
+        "en": "英文",
+        "ja": "日文",
+        "zh": "中文",
+        "ko": "韓文",
+        "th": "泰文",
+        "vi": "越南文",
+        "id": "印尼文",
+        "ms": "馬來文",
+        "tl": "他加祿文"
+      },
+      "submitButton": "保存",
+      "submitError": "保存失敗。請稍候後重試。",
+      "validation": {
+        "required": "此項目為必填項",
+        "emailInvalid": "請輸入有效的電郵地址",
+        "emailDuplicate": "此電郵地址已被使用",
+        "passwordTooShort": "密碼必須為8個字元或以上"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "停用",
+      "activateButton": "重新啟用",
+      "deactivateConfirmTitle": "停用帳戶",
+      "activateConfirmTitle": "重新啟用帳戶",
+      "deactivateConfirm": "將停用『{name}』。停用後將無法使用此帳戶登入。確認嗎？",
+      "activateConfirm": "將重新啟用『{name}』。重新啟用後將可再次登入。確認嗎？",
+      "deactivateConfirmButton": "執行停用",
+      "activateConfirmButton": "執行重新啟用",
+      "cancelButton": "取消",
+      "toggleError": "更新失敗。請稍後再試。"
+    },
+    "import": {
+      "title": "販售公司CSV批量登記",
+      "description": "上傳包含「name,country,companyCode」3列的CSV檔案（第1行為標題行），可在登記前確認全部行的驗證結果。如有任何行出現錯誤，將不會登記任何記錄。",
+      "backToList": "返回列表",
+      "templateDownloadLabel": "下載CSV範本",
+      "fileInputLabel": "選擇CSV檔案",
+      "uploadButtonLabel": "驗證並上傳",
+      "uploadingLabel": "驗證中…",
+      "resultsHeading": "驗證結果",
+      "rowNumberHeader": "行號",
+      "rowNameHeader": "公司名稱",
+      "rowCompanyCodeHeader": "販售公司代碼",
+      "rowStatusHeader": "判定",
+      "rowErrorsHeader": "錯誤內容",
+      "statusOk": "可登記",
+      "statusError": "錯誤",
+      "successMessage": "已登記'{count}'家公司",
+      "noFileSelected": "請選擇CSV檔案",
+      "genericError": "驗證和登記失敗。請稍後再試。",
+      "errors": {
+        "required": "公司名稱、國家及販售公司代碼為必填項",
+        "companyCodeFormat": "販售公司代碼格式不正確（只能使用半形小寫英文字母、數字及連字號，開頭、結尾或連續的連字號無法使用）",
+        "invalidCountry": "國家代碼無效",
+        "companyCodeDuplicate": "此販售公司代碼已被登記",
+        "duplicateInFile": "此CSV內販售公司代碼重複"
+      },
+      "fileErrors": {
+        "empty": "CSV檔案為空",
+        "headerMismatch": "標題行與「name,country,companyCode」不符",
+        "noDataRows": "資料行為0筆"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "全選",
+      "selectRowLabel": "選擇'{name}'",
+      "selectedCount": "已選擇'{count}'家公司",
+      "bulkDeactivateButton": "批量停用所選銷售公司",
+      "confirmTitle": "銷售公司批量停用",
+      "confirmMessage": "將停用所選'{companyCount}'家公司所屬的有效申請者帳戶共'{userCount}'件。被停用的帳戶將無法登入。您確定要進行此操作嗎？",
+      "confirmButton": "執行批量停用",
+      "cancelButton": "取消",
+      "successMessage": "已停用'{count}'件申請者帳戶",
+      "errorMessage": "批量停用失敗。請稍候後重試。"
+    }
+  },
+  "dashboard": {
+    "inquiryForm": {
+      "title": "詢問",
+      "description": "發送新的詢問。"
+    },
+    "inquiryList": {
+      "title": "詢問清單",
+      "description": "可確認本公司發送的詢問狀況。"
+    },
+    "documents": {
+      "title": "資料共享",
+      "description": "可確認總公司公開的業務文件。"
+    },
+    "salesFloorMeeting": {
+      "title": "賣場檢討會（影片）",
+      "description": "可確認賣場檢討會的影片資料。"
+    },
+    "manuals": {
+      "title": "手冊",
+      "description": "可確認業務手冊。"
+    },
+    "pop": {
+      "title": "POP",
+      "description": "可確認店頭POP資料。"
+    },
+    "links": {
+      "title": "連結",
+      "description": "可確認業務中使用的公司內部及外部網站的連結。"
+    },
+    "faq": {
+      "title": "常見問題",
+      "description": "可確認常見問題和解答。"
+    },
+    "announcementsPreview": {
+      "title": "最新公告",
+      "empty": "沒有可顯示的公告。",
+      "error": "獲取公告失敗。",
+      "viewAll": "查看公告清單"
+    },
+    "announcementSummary": {
+      "title": "公告對應狀況",
+      "unconfirmedLabel": "未確認",
+      "actionPendingLabel": "已確認・對應未完成",
+      "confirmedCompleteLabel": "已確認・對應已完成",
+      "categoryBreakdownTitle": "按種別的件數",
+      "unit": "件",
+      "totalCaption": "目標公告 {count}件",
+      "empty": "沒有可顯示的公告。",
+      "error": "獲取公告對應狀況失敗。",
+      "viewAll": "查看公告清單"
+    },
+    "reminderAnnouncements": {
+      "title": "日本端提醒"
+    },
+    "priorityInquiriesPreview": {
+      "title": "需要回應的查詢",
+      "empty": "沒有需要回應的查詢。",
+      "error": "查詢取得失敗。",
+      "viewAll": "查看查詢列表"
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "對應業務",
+      "reference": "參考資訊"
+    },
+    "kpi": {
+      "title": "查詢狀況",
+      "unresolvedLabel": "全公司未對應件數",
+      "unclaimedLabel": "未開始",
+      "todayLabel": "今日受理",
+      "todayUnresolvedCaption": "其中未對應 {count}件",
+      "todayNone": "今日沒有受理",
+      "none": "未對應件數為零",
+      "viewAll": "查看查詢列表",
+      "error": "未對應件數取得失敗"
+    },
+    "companies": {
+      "description": "可以管理已註冊的海外販社的列表及申請人帳戶。"
+    },
+    "salesFloorMeeting": {
+      "description": "可以管理按月份的賣場檢討會資料。"
+    },
+    "pop": {
+      "description": "可以管理按月份的POP資料。"
+    },
+    "templates": {
+      "title": "範本管理",
+      "description": "可以管理用於回覆的範本。"
+    },
+    "announcements": {
+      "title": "通知管理",
+      "description": "可以進行通知的列表、建立、編輯、刪除操作。"
+    },
+    "documents": {
+      "title": "文件管理",
+      "description": "可以進行文件的列表、建立、編輯、刪除操作。"
+    },
+    "manuals": {
+      "title": "手冊",
+      "description": "可以確認業務手冊。"
+    },
+    "inquiryForm": {
+      "title": "查詢",
+      "description": "可以新建查詢。"
+    },
+    "links": {
+      "title": "連結",
+      "description": "可以確認業務中使用的公司內部及外部網站的連結。"
+    },
+    "faq": {
+      "title": "常見問題",
+      "description": "可以確認常見問題及回答。"
+    }
+  },
+  "common": {
+    "comingSoon": "準備中"
+  },
+  "announcements": {
+    "list": {
+      "title": "通知",
+      "description": "可以列表查看來自總部的通知事項。",
+      "empty": "沒有通知",
+      "error": "通知取得失敗",
+      "noResults": "沒有符合的通知"
+    },
+    "categories": {
+      "maintenance": "維護",
+      "policy": "制度變更",
+      "incident": "故障資訊",
+      "other": "其他"
+    },
+    "detail": {
+      "publishedAtLabel": "發佈日期",
+      "categoryLabel": "類型",
+      "notFound": "找不到公告",
+      "error": "獲取公告失敗",
+      "backToList": "返回清單",
+      "attachmentsSectionTitle": "附件"
+    },
+    "actionRequiredBadge": "需要處理",
+    "reminderBadge": "已收到提醒",
+    "dueDateLabel": "處理期限",
+    "overdueBadge": "逾期",
+    "selfReport": {
+      "confirmed": "已確認",
+      "completeButton": "標記為處理完成",
+      "completed": "處理完成",
+      "confirmerLabel": "確認者名稱",
+      "confirmerPlaceholder": "確認者的姓名",
+      "confirmerAddButton": "記錄為確認者",
+      "confirmerError": "記錄失敗。請稍後重試。",
+      "confirmersLabel": "確認者"
+    },
+    "filter": {
+      "keywordLabel": "標題搜尋",
+      "keywordPlaceholder": "標題中包含的詞語",
+      "categoryLabel": "類型",
+      "categoryAll": "所有類型",
+      "actionRequiredLabel": "是否需要處理",
+      "actionRequiredAll": "全部",
+      "actionRequiredTrue": "僅需要處理的",
+      "clearButton": "清除"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "文檔",
+      "description": "可以查看總部發佈的業務文檔。",
+      "empty": "沒有文檔",
+      "error": "獲取文檔失敗",
+      "downloadLink": "下載",
+      "openOriginalLink": "打開原始文檔",
+      "fileSizeLabel": "檔案大小",
+      "uploadedAtLabel": "上傳日期",
+      "newBadge": "新",
+      "googlePreviewError": "無法顯示預覽",
+      "googlePreviewHint": "如果預覽無法顯示，請打開原始文檔"
+    },
+    "search": {
+      "keywordLabel": "關鍵字搜尋",
+      "keywordPlaceholder": "標題或說明中包含的詞彙",
+      "clearButton": "清除條件",
+      "noResults": "沒有相符的文件",
+      "subCategoryLabel": "按中分類篩選",
+      "subCategoryAll": "所有中分類"
+    },
+    "categories": {
+      "documentCount": "{count}件"
+    },
+    "category": {
+      "notFound": "找不到文件",
+      "backToCategories": "返回大分類列表"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "銷售樓層討論會（影片）",
+      "pageDescription": "可確認每月的銷售樓層討論會資料。"
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "可確認每月的POP資料。"
+    },
+    "departments": {
+      "seasonalEvent": "季節・活動",
+      "storage": "收納・整理",
+      "kitchen": "廚房・餐具",
+      "cleaning": "清潔・洗滌",
+      "beautyHealth": "美容・健康",
+      "stationery": "文具・辦公",
+      "interior": "室內裝飾・雜貨",
+      "craftDiy": "手工・DIY",
+      "food": "食品・糖果",
+      "other": "其他",
+      "localPopsList": "Local POPs List",
+      "globalPopsList": "Global POPs List",
+      "endPopsList": "End POPs List"
+    },
+    "filter": {
+      "departmentLabel": "按類別篩選",
+      "departmentAll": "所有類別",
+      "yearLabel": "按年份篩選",
+      "yearAll": "所有年份",
+      "monthLabel": "按月份篩選",
+      "monthAll": "所有月份",
+      "clearButton": "清除條件",
+      "noResults": "沒有相符的資料"
+    },
+    "list": {
+      "error": "獲取資料失敗",
+      "empty": "沒有資料",
+      "downloadLink": "下載",
+      "openOriginalLink": "打開原始文件",
+      "googlePreviewError": "無法顯示預覽",
+      "googlePreviewHint": "如果預覽未顯示，請打開原始文件",
+      "addButton": "新增",
+      "editButton": "編輯",
+      "expandButton": "放大顯示"
+    },
+    "delete": {
+      "buttonLabel": "刪除",
+      "confirmTitle": "刪除資料",
+      "confirmMessage": "將刪除『{heading}』的資料。此操作無法撤銷。您確定嗎？",
+      "confirmButton": "刪除",
+      "cancelButton": "取消",
+      "errorMessage": "刪除失敗。請稍候後重試。"
+    },
+    "form": {
+      "departmentLabel": "分類",
+      "yearLabel": "年",
+      "monthLabel": "月",
+      "sourceTypeLabel": "登錄方式",
+      "sourceTypeUploadOption": "上傳檔案",
+      "sourceTypeGoogleOption": "登錄Google文件的共享連結",
+      "fileLabel": "檔案",
+      "fileHint": "請選擇PDF檔案（最大20MB）",
+      "removeFileButtonLabel": "刪除",
+      "googleUrlLabel": "共享連結URL",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "請貼上Google文件/試算表/簡報的共享連結",
+      "targetingLabel": "公開範圍",
+      "targetingAllOption": "全體公開",
+      "targetingCountriesOption": "指定特定國家/地區",
+      "targetingCompaniesOption": "指定特定經銷商",
+      "countriesLabel": "目標國家/地區",
+      "companiesLabel": "目標經銷商",
+      "submitButton": "保存",
+      "cancelButton": "取消",
+      "requiredError": "必填項目",
+      "countriesRequiredError": "請選擇至少1項",
+      "companiesRequiredError": "請選擇至少1項",
+      "fileRequiredError": "請選擇檔案",
+      "sizeExceeded": "檔案大小超過上限（20MB）",
+      "typeNotAllowed": "無法登錄PDF以外的檔案",
+      "readFailed": "檔案讀取失敗",
+      "googleUrlInvalid": "請輸入有效的Google文件/試算表/簡報共享連結",
+      "requiredIndicator": "必填",
+      "submitError": "保存失敗。請稍候後重試。"
+    }
+  },
+  "inquiryForm": {
+    "title": "查詢表單",
+    "description": "請填寫選擇題項目和自由記述，然後提交查詢。",
+    "requiredMark": "必須",
+    "backToList": "返回列表",
+    "loadError": "無法取得顯示表單所需的資訊。請稍候後重試。",
+    "fields": {
+      "title": {
+        "label": "標題",
+        "placeholder": "請輸入標題（主旨）"
+      },
+      "category": {
+        "label": "案件類型",
+        "placeholder": "請選擇案件類型"
+      },
+      "urgency": {
+        "label": "緊急度",
+        "placeholder": "請選擇緊急度"
+      },
+      "storeRegion": {
+        "label": "店鋪・地域",
+        "placeholder": "請輸入店鋪・地域"
+      },
+      "originalText": {
+        "label": "詢問內容（自由記述）",
+        "placeholder": "請輸入詢問內容",
+        "remainingCharacters": "剩餘{count}個字符"
+      },
+      "originalLanguage": {
+        "label": "原文語言",
+        "placeholder": "請選擇原文語言"
+      },
+      "companyName": {
+        "label": "公司名稱",
+        "placeholder": "請輸入公司名稱"
+      },
+      "country": {
+        "label": "國家",
+        "placeholder": "請選擇國家"
+      },
+      "targetCompany": {
+        "label": "目標公司",
+        "placeholder": "請選擇登記詢問的公司",
+        "empty": "未登記可選擇的公司。請聯繫管理員。"
+      },
+      "attachments": {
+        "label": "附加檔案",
+        "hint": "可附加圖像或PDF，單件最大5MB，最多5件。",
+        "removeButton": "刪除"
+      }
+    },
+    "options": {
+      "category": {
+        "defect": "故障",
+        "order": "訂購相關",
+        "system": "系統相關",
+        "other": "其他"
+      },
+      "urgency": {
+        "high": "高",
+        "medium": "中",
+        "low": "低"
+      },
+      "country": {
+        "JP": "日本",
+        "US": "美利堅合眾國",
+        "CN": "中國",
+        "KR": "韓國",
+        "TH": "泰國",
+        "VN": "越南",
+        "ID": "印尼",
+        "PH": "菲律賓",
+        "MY": "馬來西亞",
+        "SG": "新加坡",
+        "IN": "印度",
+        "TW": "台灣",
+        "HK": "香港",
+        "GB": "英國",
+        "FR": "法國",
+        "DE": "德國",
+        "IT": "義大利",
+        "ES": "西班牙",
+        "AU": "澳洲",
+        "BR": "巴西",
+        "MX": "墨西哥",
+        "CA": "加拿大",
+        "AE": "阿拉伯聯合酋長國"
+      },
+      "originalLanguage": {
+        "ja": "日語",
+        "en": "英語",
+        "zh": "中文",
+        "ko": "韓語",
+        "th": "泰語",
+        "vi": "越南語",
+        "id": "印尼語",
+        "ms": "馬來語",
+        "tl": "他加祿語",
+        "hi": "印地語",
+        "fr": "法語",
+        "de": "德語",
+        "es": "西班牙語",
+        "pt": "葡萄牙語",
+        "ar": "阿拉伯語"
+      }
+    },
+    "validation": {
+      "required": "此項目為必填項",
+      "maxLength": "超過字數上限",
+      "targetCompanyRequired": "請選擇對象公司",
+      "attachments": {
+        "sizeExceeded": "檔案大小超過上限（5MB）",
+        "typeNotAllowed": "不允許的檔案格式（僅限影像或PDF）",
+        "countExceeded": "附加檔案數量超過上限（5個）",
+        "readFailed": "檔案讀取失敗。請重試。"
+      }
+    },
+    "submit": {
+      "button": "送出",
+      "submitting": "送出中...",
+      "successTitle": "提交完成",
+      "successDescription": "已接收您的詢問。",
+      "errorTitle": "提交失敗",
+      "errorDescription": "請稍候後重試。",
+      "viewInquiryListLink": "查看詢問清單"
+    }
+  },
+  "inquiryList": {
+    "list": {
+      "title": "詢問清單",
+      "description": "您可以確認本公司已提交的詢問清單和對應狀況。",
+      "empty": "沒有詢問",
+      "error": "無法取得詢問",
+      "untitled": "（標題未設置）",
+      "newBadge": "新"
+    },
+    "status": {
+      "new": "新規",
+      "in_progress": "處理中",
+      "resolved": "已解決"
+    },
+    "detail": {
+      "createdAtLabel": "提交日期和時間",
+      "categoryLabel": "案件類型",
+      "urgencyLabel": "緊急程度",
+      "storeRegionLabel": "地區",
+      "statusLabel": "對應狀況",
+      "originalTextLabel": "自由記述",
+      "translatedTextLabel": "自由記述（翻譯・自動翻譯）",
+      "translationUnavailable": "自動翻譯失敗或未執行。以下是原文。",
+      "submittedByLabel": "申請人資訊",
+      "notFound": "找不到詢問",
+      "error": "無法取得詢問",
+      "backToList": "返回清單",
+      "inProgressBadge": "處理中",
+      "attachmentsLabel": "附加檔案",
+      "untitled": "（標題未設置）"
+    },
+    "history": {
+      "title": "對應歷史",
+      "empty": "還沒有對應歷史",
+      "error": "無法取得對應歷史",
+      "replyLabel": "回覆",
+      "claimedLabel": "開始對應",
+      "claimedMessage": "進入處理中狀態",
+      "releasedLabel": "解除對應",
+      "releasedMessage": "已解除處理中的狀態",
+      "statusChangedLabel": "狀態變更",
+      "requesterMessageLabel": "已發送的訊息"
+    },
+    "message": {
+      "sectionTitle": "發送追加訊息",
+      "bodyLabel": "訊息內容",
+      "bodyPlaceholder": "請輸入訊息",
+      "submitButton": "傳送",
+      "submitting": "傳送中...",
+      "successMessage": "訊息已傳送",
+      "error": "傳送失敗。請稍候後重試。",
+      "attachments": {
+        "label": "附件",
+        "hint": "可附加圖片或PDF，每個檔案最多5MB，最多5個檔案。",
+        "removeButton": "刪除",
+        "sizeExceeded": "檔案大小超過上限（5MB）",
+        "typeNotAllowed": "不允許的檔案格式（僅限圖片或PDF）",
+        "countExceeded": "超過可附加檔案數的上限（5個）",
+        "readFailed": "檔案讀取失敗。請重試。"
+      }
+    },
+    "filter": {
+      "keywordLabel": "關鍵字搜尋",
+      "keywordPlaceholder": "標題或自由記述中包含的詞彙",
+      "statusLabel": "處理狀況",
+      "statusAll": "所有處理狀況",
+      "categoryLabel": "案件類型",
+      "categoryAll": "所有案件類型",
+      "urgencyLabel": "緊急度",
+      "urgencyAll": "所有緊急度",
+      "unreadOnlyLabel": "僅新訊息",
+      "clearButton": "清除",
+      "noResults": "沒有相符的詢問"
+    },
+    "stats": {
+      "title": "處理狀況摘要",
+      "scopeAll": "涵蓋全部",
+      "scopeFiltered": "涵蓋篩選中的{count}件",
+      "unreadLabel": "未確認的新訊息",
+      "unreadCaption": "幫助台回覆或狀態變更未確認的件數",
+      "unreadNone": "沒有未確認的更新",
+      "highUrgencyAlert": "緊急度「高」的未解決案件有{count}件",
+      "awaitingResponseLabel": "等待回覆",
+      "awaitingResponseCaption": "等待幫助台回覆或開始處理的件數",
+      "staleAwaitingResponseAlert": "{count}件已等待回覆超過72小時",
+      "unresolvedLabel": "未解決",
+      "unresolvedCaption": "處理狀況為「新規」「處理中」的件數",
+      "statusBreakdownTitle": "處理狀況的明細",
+      "urgencyBreakdownTitle": "未解決的緊急度別件數",
+      "urgencyBreakdownEmpty": "沒有未解決的詢問",
+      "unit": "件",
+      "percent": "{value}%",
+      "tableToggle": "以表格檢視",
+      "tableHeaderItem": "項目",
+      "tableHeaderCount": "件數",
+      "tableHeaderShare": "比例"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "未解決的滯留時間",
+      "lt24h": "24小時以內",
+      "h24to72": "24～72小時",
+      "d3to7": "3～7天",
+      "gte7d": "7天以上",
+      "over24h": "已超過24小時",
+      "over72h": "已超過72小時",
+      "empty": "沒有未解決的問詢",
+      "oldest": "最久未解決：受理後已經過{hours}小時"
+    },
+    "category": {
+      "title": "案件類別的細分",
+      "empty": "沒有相關的問詢"
+    },
+    "country": {
+      "title": "按國家分類的未解決件數",
+      "others": "其他{count}個國家",
+      "empty": "沒有未解決的問詢"
+    },
+    "intake": {
+      "receivedTitle": "最近7天的受理件數",
+      "submittedTitle": "最近7天的提交件數",
+      "empty": "最近7天沒有相關的問詢",
+      "columnLabel": "{date}：{count}件"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "僅未解決",
+      "agingLabel": "滯留時間",
+      "agingAll": "所有滯留時間",
+      "receivedOnLabel": "受理日期"
+    }
+  },
+  "links": {
+    "list": {
+      "title": "連結集",
+      "description": "可按類別確認業務中使用的內部與外部網站的連結。",
+      "empty": "沒有連結",
+      "error": "連結取得失敗"
+    },
+    "uncategorized": "未分類",
+    "item": {
+      "opensInNewTab": "（在新標籤中開啟）",
+      "newBadge": "新著"
+    },
+    "search": {
+      "keywordLabel": "關鍵字搜尋",
+      "keywordPlaceholder": "標題、說明、URL中包含的詞句",
+      "clearButton": "清除條件",
+      "noResults": "沒有相符的連結"
+    }
+  },
+  "faq": {
+    "list": {
+      "title": "常見問題",
+      "description": "可按類別確認常見問題和解答。",
+      "empty": "沒有常見問題解答",
+      "error": "無法取得常見問題解答",
+      "updatedLabel": "更新日期",
+      "newBadge": "新增"
+    },
+    "categories": {
+      "inquiry_method": "詢問方式",
+      "form_input": "表單輸入",
+      "status": "處理狀況",
+      "other": "其他"
+    },
+    "search": {
+      "keywordLabel": "關鍵字搜尋",
+      "keywordPlaceholder": "問題或回答中包含的術語",
+      "noResults": "沒有符合的常見問題解答",
+      "clearButton": "清除條件"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "文件分類管理",
+      "description": "可以新增、編輯、刪除、排序文件的大分類和中分類。",
+      "backToDocuments": "返回文件管理",
+      "empty": "沒有分類",
+      "error": "無法取得分類",
+      "addParentButton": "新增大分類",
+      "addChildButton": "新增中分類",
+      "editButton": "編輯",
+      "moveUpButton": "上移",
+      "moveDownButton": "下移",
+      "documentCountLabel": "文件數：{count}件",
+      "subCategoryCountLabel": "中分類數：{count}件",
+      "targetingAllLabel": "全體公開",
+      "targetingCountriesLabel": "對象國家/地區",
+      "targetingCompaniesLabel": "對象販售商",
+      "delete": {
+        "buttonLabel": "刪除",
+        "confirmTitle": "刪除分類",
+        "confirmMessage": "將刪除『{name}』。此操作無法復原。您確定嗎？",
+        "confirmButtonLabel": "刪除",
+        "cancelButtonLabel": "取消",
+        "errorMessage": "刪除失敗。請稍候後再試一次。",
+        "blockedByDocuments": "『{name}』已連結{count}份文件，因此無法刪除。請先變更相關文件的分類。",
+        "blockedByChildren": "『{name}』存在{count}個中分類，因此無法刪除。請先刪除中分類。"
+      }
+    },
+    "form": {
+      "createParentTitle": "新增大分類",
+      "createChildTitle": "新增中分類",
+      "editTitle": "編輯分類",
+      "nameLabel": "名稱",
+      "namePlaceholder": "請輸入分類名稱",
+      "targetingLabel": "公開範圍",
+      "targetingAllOption": "全體公開",
+      "targetingCountriesOption": "指定特定國家/地區",
+      "targetingCompaniesOption": "指定特定銷售公司",
+      "countriesLabel": "國家/地區（可複選）",
+      "companiesLabel": "銷售公司（可複選）",
+      "submitButton": "保存",
+      "cancelButton": "取消",
+      "submitError": "保存失敗。請稍候後重試。",
+      "language": {
+        "jaTab": "日語",
+        "enTab": "English",
+        "addButton": "新增語言",
+        "removeButton": "刪除此語言",
+        "localeCodeLabel": "語言代碼",
+        "localeCodePlaceholder": "例：th, vi, zh",
+        "localeDuplicateError": "請輸入與其他語言不重複的語言代碼"
+      },
+      "validation": {
+        "required": "此項目為必填",
+        "nameConflict": "同層級已存在同名分類",
+        "countriesRequired": "請選擇至少一個國家/地區",
+        "companiesRequired": "請選擇至少一個銷售公司"
+      }
+    }
+  },
+  "manuals": {
+    "list": {
+      "title": "操作手冊",
+      "description": "可按分類與年月搜尋並查看業務操作手冊。",
+      "empty": "沒有操作手冊",
+      "error": "無法取得操作手冊",
+      "downloadLink": "下載",
+      "openOriginalLink": "開啟原始文件",
+      "revisionLabel": "修訂年月"
+    },
+    "categories": {
+      "storeOperations": "店舖營運",
+      "registerPayment": "收銀機・付款",
+      "inventoryOrdering": "訂貨・庫存管理",
+      "salesFloorDisplay": "賣場佈置・陳列",
+      "promotion": "銷售推廣・POP運營",
+      "safetyHygiene": "安全・衛生・防災",
+      "hrTraining": "人事・勞務・教育",
+      "systemOperation": "系統操作",
+      "accounting": "會計",
+      "other": "其他"
+    },
+    "filter": {
+      "keywordLabel": "關鍵字搜尋",
+      "keywordPlaceholder": "標題或說明中包含的詞彙",
+      "categoryLabel": "分類",
+      "categoryAll": "所有分類",
+      "yearLabel": "年份",
+      "yearAll": "所有年份",
+      "monthLabel": "月份",
+      "monthAll": "所有月份",
+      "clearButton": "清除條件",
+      "noResults": "沒有相符的手冊"
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "手冊管理",
+      "description": "可上傳、編輯、刪除海外銷售公司用的業務手冊（PDF）。",
+      "newButton": "新增手冊",
+      "editLink": "編輯",
+      "empty": "沒有手冊",
+      "error": "取得手冊失敗",
+      "categoryLabel": "分類",
+      "revisionLabel": "修訂年月",
+      "sourceTypeUploadBadge": "上傳",
+      "sourceTypeGoogleBadge": "Google連結",
+      "targetingAllLabel": "全體公開",
+      "targetingCountriesLabel": "對象國家・地區",
+      "targetingCompaniesLabel": "對象銷售公司",
+      "filter": {
+        "keywordLabel": "關鍵字搜尋",
+        "keywordPlaceholder": "包含在標題或說明中的詞語",
+        "categoryLabel": "分類",
+        "categoryAll": "所有分類",
+        "yearLabel": "年份",
+        "yearAll": "所有年份",
+        "monthLabel": "月份",
+        "monthAll": "所有月份",
+        "clearButton": "清除條件",
+        "noResults": "沒有相符的手冊"
+      }
+    },
+    "form": {
+      "createTitle": "新建手冊",
+      "editTitle": "編輯手冊",
+      "notFound": "找不到手冊",
+      "backToList": "返回列表",
+      "titleLabel": "標題",
+      "titlePlaceholder": "請輸入手冊標題",
+      "descriptionLabel": "說明",
+      "descriptionPlaceholder": "請輸入補充說明（可選）",
+      "language": {
+        "jaTab": "日本語",
+        "enTab": "English"
+      },
+      "categoryLabel": "類別",
+      "categoryPlaceholderOption": "請選擇",
+      "yearLabel": "年",
+      "monthLabel": "月",
+      "sourceTypeLabel": "註冊方法",
+      "sourceTypeUploadOption": "上傳檔案",
+      "sourceTypeGoogleOption": "註冊Google文件的共享連結",
+      "fileLabel": "PDF檔案",
+      "fileHint": "只能上傳PDF，最多20MB。",
+      "removeButtonLabel": "刪除",
+      "googleUrlLabel": "Google文件的共享連結",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "在註冊前，請將Google Docs/試算表/簡報的共享設定設為「知道連結的任何人都可以檢視」。",
+      "targetingLabel": "公開範圍",
+      "targetingAllOption": "全體公開",
+      "targetingCountriesOption": "指定特定國家/地區",
+      "targetingCompaniesOption": "指定特定販社",
+      "countriesLabel": "國家/地區（可複選）",
+      "companiesLabel": "販社（可複選）",
+      "submitButton": "保存",
+      "submitError": "保存失敗。請稍候後重試。",
+      "requiredIndicator": "必填",
+      "validation": {
+        "required": "此欄位為必填項",
+        "countriesRequired": "請選擇至少一個國家/地區",
+        "companiesRequired": "請選擇至少一個販社",
+        "fileRequired": "請選擇PDF檔案",
+        "sizeExceeded": "檔案大小超過上限（20MB）",
+        "typeNotAllowed": "不允許的檔案格式（僅限PDF）",
+        "readFailed": "檔案讀取失敗。請重試。",
+        "googleUrlInvalid": "請輸入Google文件/試算表/簡報的共享連結",
+        "categoryRequired": "請選擇類別"
+      }
+    },
+    "delete": {
+      "buttonLabel": "刪除",
+      "confirmTitle": "刪除手冊",
+      "confirmMessage": "將刪除『{title}』。此操作無法撤銷。您確定嗎？",
+      "confirmButton": "刪除",
+      "cancelButton": "取消",
+      "errorMessage": "刪除失敗。請稍候後重試。"
+    }
+  }
+}
