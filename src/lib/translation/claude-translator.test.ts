@@ -108,3 +108,38 @@ describe("createClaudeTranslator", () => {
     expect(result.title).toBe("");
   });
 });
+
+describe("translateFields", () => {
+  it("複数言語の訳をlocale→フィールドの形で返す", async () => {
+    parseMock.mockResolvedValue({
+      stop_reason: "end_turn",
+      parsed_output: {
+        translations: [
+          { locale: "en", fields: [{ key: "title", value: "T-en" }] },
+          { locale: "vi", fields: [{ key: "title", value: "T-vi" }] },
+        ],
+      },
+    });
+    const translator = createClaudeTranslator({ apiKey: "test-key" });
+
+    const result = await translator.translateFields({
+      fields: { title: "題" },
+      sourceLocale: "ja",
+      targetLocales: ["en", "vi"],
+    });
+
+    expect(result.translations).toEqual({ en: { title: "T-en" }, vi: { title: "T-vi" } });
+  });
+
+  it("対象localeまたはフィールドが欠けていればinvalid_outputを送出する", async () => {
+    parseMock.mockResolvedValue({
+      stop_reason: "end_turn",
+      parsed_output: { translations: [{ locale: "en", fields: [{ key: "title", value: "T" }] }] },
+    });
+    const translator = createClaudeTranslator({ apiKey: "test-key" });
+
+    await expect(
+      translator.translateFields({ fields: { title: "題" }, sourceLocale: "ja", targetLocales: ["en", "vi"] }),
+    ).rejects.toMatchObject({ kind: "invalid_output" });
+  });
+});
