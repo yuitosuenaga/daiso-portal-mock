@@ -17,6 +17,28 @@ describe("announcementFormSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("publishWithoutTranslationは省略時false、指定すればその値になり、真偽値以外はエラーになる", () => {
+    const base = {
+      title: "テストタイトル",
+      body: "テスト本文",
+      category: "maintenance",
+      status: "published",
+      targeting: { scope: "all" },
+      actionRequired: false,
+      sendEmailNotification: false,
+    };
+
+    const omitted = announcementFormSchema.parse(base);
+    expect(omitted.publishWithoutTranslation).toBe(false);
+    expect(
+      announcementFormSchema.parse({ ...base, publishWithoutTranslation: true })
+        .publishWithoutTranslation
+    ).toBe(true);
+    expect(
+      announcementFormSchema.safeParse({ ...base, publishWithoutTranslation: "yes" }).success
+    ).toBe(false);
+  });
+
   it("特定の国・地域を1件以上指定していれば検証を通過する", () => {
     const result = announcementFormSchema.safeParse({
       title: "テストタイトル",

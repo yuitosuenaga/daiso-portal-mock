@@ -88,6 +88,9 @@ const labels = {
   requiredIndicator: "必須",
   submitErrorMessage: "保存に失敗しました。時間を置いて再度お試しください。",
   translationFailedDraftMessage: "翻訳に失敗したため下書きとして保存しました",
+  publishWithoutTranslationLabel: "翻訳に失敗しても公開する（翻訳は後から再実行できます）",
+  translationFailedPublishedMessage:
+    "一部の言語の翻訳に失敗しましたが、公開は維持しました。翻訳は後から再実行できます",
   categoryOptions: [
     { value: "maintenance", label: "メンテナンス" },
     { value: "policy", label: "制度変更" },
@@ -157,6 +160,7 @@ describe("AnnouncementForm", () => {
         targeting: { scope: "all" },
         actionRequired: false,
         sendEmailNotification: false,
+        publishWithoutTranslation: false,
         publishStartDate: null,
         publishEndDate: null,
         dueDate: null,
@@ -250,6 +254,7 @@ describe("AnnouncementForm", () => {
         targeting: { scope: "countries", countries: ["JP", "VN"] },
         actionRequired: false,
         sendEmailNotification: false,
+        publishWithoutTranslation: false,
         publishStartDate: null,
         publishEndDate: null,
         dueDate: null,
@@ -297,6 +302,7 @@ describe("AnnouncementForm", () => {
           targeting: { scope: "all" },
           actionRequired: false,
           sendEmailNotification: false,
+          publishWithoutTranslation: false,
           publishStartDate: null,
           publishEndDate: null,
           dueDate: null,
@@ -603,6 +609,74 @@ describe("AnnouncementForm", () => {
         "/helpdesk/announcements/created-id/edit?translationFailed=1"
       );
     });
+  });
+
+  it("公開維持で一部翻訳に失敗した場合、編集モードでは警告を表示し状態は公開のまま遷移しない", async () => {
+    updateAnnouncementActionMock.mockResolvedValueOnce({
+      announcement: { id: "existing-id" },
+      failedLocales: ["en"],
+      forcedDraft: false,
+    });
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "all" },
+          actionRequired: false,
+          sendEmailNotification: false,
+        }}
+        {...labels}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    const notice = await screen.findByRole("status");
+    expect(notice.textContent).toContain("公開は維持しました");
+    expect(screen.queryByText("翻訳に失敗したため下書きとして保存しました")).toBeNull();
+    expect((screen.getByLabelText("公開状態") as HTMLSelectElement).value).toBe("published");
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("公開維持で翻訳失敗した場合、作成モードでは公開維持を示すパラメータ付きで編集画面へ遷移する", async () => {
+    createAnnouncementActionMock.mockResolvedValueOnce({
+      announcement: { id: "created-id" },
+      failedLocales: ["en"],
+      forcedDraft: false,
+    });
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), { target: { value: "新規お知らせ" } });
+    fireEvent.change(screen.getByLabelText(/本文/), { target: { value: "本文テキスト" } });
+    fireEvent.change(screen.getByLabelText(/種別/), { target: { value: "maintenance" } });
+    fireEvent.change(screen.getByLabelText("公開状態"), { target: { value: "published" } });
+    fireEvent.click(screen.getByLabelText(labels.publishWithoutTranslationLabel));
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith(
+        "/helpdesk/announcements/created-id/edit?translationFailed=published"
+      );
+    });
+    expect(createAnnouncementActionMock).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "published", publishWithoutTranslation: true })
+    );
+  });
+
+  it("公開状態が公開のときだけ「翻訳に失敗しても公開する」チェックボックスを表示し、既定はオフ", () => {
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    expect(screen.queryByLabelText(labels.publishWithoutTranslationLabel)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("公開状態"), { target: { value: "published" } });
+
+    const checkbox = screen.getByLabelText(labels.publishWithoutTranslationLabel) as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
   });
 
   it("言語タブ・英語入力欄は表示されない（日本語のみ入力）", () => {

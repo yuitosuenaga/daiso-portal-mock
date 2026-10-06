@@ -279,6 +279,8 @@
       "linkedDocumentsTargetingCountriesPrefixLabel": "Países-alvo:",
       "linkedDocumentsTargetingCompaniesPrefixLabel": "Empresas-alvo:",
       "translationFailedDraft": "Salvo como rascunho porque a tradução falhou.",
+      "publishWithoutTranslationLabel": "Publicar mesmo se a tradução falhar (você pode refazer a tradução depois)",
+      "translationFailedPublished": "A tradução falhou em alguns idiomas, mas a publicação foi mantida. Você pode refazer a tradução depois.",
       "retranslateButton": "Traduzir novamente",
       "retranslatePending": "Traduzindo...",
       "retranslateSuccess": "Tradução salva",

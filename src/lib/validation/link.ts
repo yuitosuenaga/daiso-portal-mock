@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * リンク新規作成・編集フォームの入力値を検証する zod スキーマ。
@@ -11,7 +12,7 @@ import { z } from "zod";
  * サービス層の`assertLinkCategoryPair`で別途検証する。
  */
 export const linkFormSchema = z.object({
-  title: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(TEXT_LIMITS.title),
   url: z.string().trim().min(1).url({ protocol: /^https?$/ }),
   categoryId: z.string().trim().min(1),
   // フォーム側は未選択（「なし」）を空文字列で表現するため、`transform`で空文字列を`null`へ
@@ -23,7 +24,7 @@ export const linkFormSchema = z.object({
     .nullable()
     .default(null)
     .transform((value) => (value ? value : null)),
-  description: z.string().trim().optional(),
+  description: z.string().trim().max(TEXT_LIMITS.description).optional(),
 });
 
 /**

@@ -12,6 +12,7 @@ import {
   MANUAL_MIN_YEAR,
 } from "@/lib/constants/manual";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * マニュアルの公開範囲検証定義。`documents`specの`documentTargetingSchema`・
@@ -31,8 +32,8 @@ export const manualTargetingSchema = z.discriminatedUnion("scope", [
 ]);
 
 const manualSharedFields = {
-  title: z.string().trim().min(1),
-  description: z.string().trim().optional(),
+  title: z.string().trim().min(1).max(TEXT_LIMITS.title),
+  description: z.string().trim().max(TEXT_LIMITS.description).optional(),
   category: z.enum(MANUAL_CATEGORIES),
   year: z.number().int().min(MANUAL_MIN_YEAR).max(MANUAL_MAX_YEAR),
   month: z.number().int().min(1).max(12),

@@ -279,6 +279,8 @@
       "linkedDocumentsTargetingCountriesPrefixLabel": "目标国家：",
       "linkedDocumentsTargetingCompaniesPrefixLabel": "目标公司：",
       "translationFailedDraft": "因翻译失败，已保存为草稿。",
+      "publishWithoutTranslationLabel": "即使翻译失败也发布（之后可重新执行翻译）",
+      "translationFailedPublished": "部分语言翻译失败，但已保持发布状态。之后可重新执行翻译",
       "retranslateButton": "重新翻译",
       "retranslatePending": "翻译中...",
       "retranslateSuccess": "已保存翻译",

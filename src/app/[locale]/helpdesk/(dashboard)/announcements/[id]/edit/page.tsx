@@ -97,7 +97,11 @@ export default async function HelpdeskAnnouncementEditPage({
         failedMessage={t("retranslateFailed")}
         errorMessage={t("retranslateError")}
         initialErrorMessage={
-          searchParams?.translationFailed === "1" ? t("translationFailedDraft") : undefined
+          searchParams?.translationFailed === "1"
+            ? t("translationFailedDraft")
+            : searchParams?.translationFailed === "published"
+              ? t("translationFailedPublished")
+              : undefined
         }
       />
       <AnnouncementForm
@@ -181,6 +185,8 @@ export default async function HelpdeskAnnouncementEditPage({
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
         translationFailedDraftMessage={t("translationFailedDraft")}
+        publishWithoutTranslationLabel={t("publishWithoutTranslationLabel")}
+        translationFailedPublishedMessage={t("translationFailedPublished")}
         attachmentsLabel={t("attachmentsLabel")}
         attachmentsHint={t("attachmentsHint")}
         attachmentsRemoveButtonLabel={t("attachmentsRemoveButtonLabel")}

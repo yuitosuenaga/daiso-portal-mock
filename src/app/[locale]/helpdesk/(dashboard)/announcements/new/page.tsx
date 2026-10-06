@@ -93,6 +93,8 @@ export default async function HelpdeskAnnouncementNewPage() {
         requiredIndicator={tInquiryForm("requiredMark")}
         submitErrorMessage={t("submitError")}
         translationFailedDraftMessage={t("translationFailedDraft")}
+        publishWithoutTranslationLabel={t("publishWithoutTranslationLabel")}
+        translationFailedPublishedMessage={t("translationFailedPublished")}
         attachmentsLabel={t("attachmentsLabel")}
         attachmentsHint={t("attachmentsHint")}
         attachmentsRemoveButtonLabel={t("attachmentsRemoveButtonLabel")}

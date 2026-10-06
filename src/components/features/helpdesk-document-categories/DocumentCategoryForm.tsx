@@ -23,6 +23,7 @@ import type {
   DocumentCategory,
   DocumentCategoryFormInput,
 } from "@/types/document-category";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 export interface DocumentCategoryFormProps {
   mode: "createParent" | "createChild" | "edit";
@@ -155,6 +156,7 @@ export function DocumentCategoryForm({
             id="document-category-name"
             placeholder={t("namePlaceholder")}
             aria-invalid={errors.name ? true : undefined}
+            maxLength={TEXT_LIMITS.categoryName}
             {...register("name")}
           />
         </FormField>

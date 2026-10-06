@@ -27,6 +27,7 @@ import {
 } from "@/lib/validation/document";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type { DocumentFormInput } from "@/types/document";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /** カテゴリ選択肢1件（大分類＋配下の中分類）。名称は既定言語（ja）で解決済み（要件20.10）。 */
 export interface DocumentCategoryFormOption {
@@ -369,6 +370,7 @@ export function DocumentForm({
             id="document-title"
             placeholder={titlePlaceholder}
             aria-invalid={errors.title ? true : undefined}
+            maxLength={TEXT_LIMITS.title}
             {...register("title")}
           />
         </FormField>
@@ -377,6 +379,7 @@ export function DocumentForm({
             id="document-description"
             placeholder={descriptionPlaceholder}
             rows={3}
+            maxLength={TEXT_LIMITS.description}
             {...register("description")}
           />
         </FormField>

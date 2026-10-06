@@ -19,6 +19,7 @@ import {
   type LinkCategorySubmitValues,
 } from "@/lib/validation/link-category";
 import type { LinkCategory } from "@/types/link-category";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 export interface LinkCategoryFormProps {
   mode: "createParent" | "createChild" | "edit";
@@ -140,6 +141,7 @@ export function LinkCategoryForm({
             id="link-category-name"
             placeholder={t("namePlaceholder")}
             aria-invalid={errors.name ? true : undefined}
+            maxLength={TEXT_LIMITS.categoryName}
             {...register("name")}
           />
         </FormField>

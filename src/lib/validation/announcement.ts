@@ -4,6 +4,7 @@ import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-option
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
 import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * ドキュメント紐づけ（`linkedDocumentIds`）の検証スキーマ。件数上限は直接アップロード添付と
@@ -46,13 +47,15 @@ const optionalDateField = z
  */
 export const announcementFormSchema = z
   .object({
-    title: z.string().trim().min(1),
-    body: z.string().trim().min(1),
+    title: z.string().trim().min(1).max(TEXT_LIMITS.title),
+    body: z.string().trim().min(1).max(TEXT_LIMITS.body),
     category: z.enum(ANNOUNCEMENT_CATEGORY_CODES),
     status: z.enum(["draft", "published"]),
     targeting: announcementTargetingSchema,
     actionRequired: z.boolean(),
     sendEmailNotification: z.boolean(),
+    /** 真なら、翻訳に失敗しても強制的に下書きにせず公開で保存する（保存データには含まれない） */
+    publishWithoutTranslation: z.boolean().default(false),
     publishStartDate: optionalDateField,
     publishEndDate: optionalDateField,
     dueDate: optionalDateField,

@@ -105,7 +105,7 @@ export function createClaudeTranslator(options?: {
     throw new TranslationError("not_configured", "ANTHROPIC_API_KEY is not set");
   }
 
-  const client = new Anthropic({ apiKey, timeout: 20_000, maxRetries: 2 });
+  const client = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 2 });
   const model = options?.model ?? process.env.TRANSLATION_MODEL ?? DEFAULT_MODEL;
 
   return {

@@ -279,6 +279,8 @@
       "linkedDocumentsTargetingCountriesPrefixLabel": "Quốc gia/vùng đích:",
       "linkedDocumentsTargetingCompaniesPrefixLabel": "Công ty đích:",
       "translationFailedDraft": "Đã lưu dưới dạng bản nháp vì dịch thất bại.",
+      "publishWithoutTranslationLabel": "Vẫn đăng dù dịch thất bại (có thể dịch lại sau)",
+      "translationFailedPublished": "Dịch thất bại ở một số ngôn ngữ nhưng thông báo vẫn được giữ ở trạng thái đã đăng. Bạn có thể dịch lại sau.",
       "retranslateButton": "Dịch lại",
       "retranslatePending": "Đang dịch...",
       "retranslateSuccess": "Đã lưu bản dịch",

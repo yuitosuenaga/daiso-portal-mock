@@ -7,6 +7,7 @@ import {
 import { DOCUMENT_COMPANY_CODES } from "@/lib/constants/document-company-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * ドキュメント・カテゴリ双方の公開範囲検証定義。`validation/document-category.ts`から
@@ -26,8 +27,8 @@ export const documentTargetingSchema = z.discriminatedUnion("scope", [
 
 const documentUploadSchema = z.object({
   sourceType: z.literal("upload"),
-  title: z.string().trim().min(1),
-  description: z.string().trim().optional(),
+  title: z.string().trim().min(1).max(TEXT_LIMITS.title),
+  description: z.string().trim().max(TEXT_LIMITS.description).optional(),
   status: z.enum(["draft", "published"]),
   fileName: z.string().trim().min(1),
   fileType: z.enum(DOCUMENT_ALLOWED_MIME_TYPES),
@@ -50,8 +51,8 @@ const documentUploadSchema = z.object({
 
 const documentGoogleSchema = z.object({
   sourceType: z.literal("google"),
-  title: z.string().trim().min(1),
-  description: z.string().trim().optional(),
+  title: z.string().trim().min(1).max(TEXT_LIMITS.title),
+  description: z.string().trim().max(TEXT_LIMITS.description).optional(),
   status: z.enum(["draft", "published"]),
   googleUrl: z.string().trim().min(1),
   googleEmbedUrl: z.string().trim().min(1),
