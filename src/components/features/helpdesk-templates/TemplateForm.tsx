@@ -20,6 +20,7 @@ import {
   retranslateReplyTemplateAction,
   updateReplyTemplateAction,
 } from "@/lib/actions/helpdesk";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 export interface TemplateFormProps {
   mode: "create" | "edit";
@@ -171,6 +172,7 @@ export function TemplateForm({
           placeholder={bodyPlaceholder}
           rows={5}
           aria-invalid={errors.body ? true : undefined}
+          maxLength={TEXT_LIMITS.body}
           {...register("body")}
         />
       </FormField>

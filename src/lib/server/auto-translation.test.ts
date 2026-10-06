@@ -14,7 +14,7 @@ describe("autoTranslateFields", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("空でないフィールドだけを全対応言語へ1回で翻訳する", async () => {
+  it("空でないフィールドだけを、言語ごとに1回ずつ（並列で）翻訳する", async () => {
     const translateFields = vi.fn(async ({ targetLocales }: { targetLocales: string[] }) => ({
       translations: Object.fromEntries(targetLocales.map((l) => [l, { title: `${l}:題` }])),
       model: "m",
@@ -23,14 +23,34 @@ describe("autoTranslateFields", () => {
 
     const result = await autoTranslateFields({ title: "題", description: " ", note: null });
 
-    expect(translateFields).toHaveBeenCalledTimes(1);
-    expect(translateFields).toHaveBeenCalledWith({
-      fields: { title: "題" },
-      sourceLocale: "ja",
-      targetLocales: TRANSLATED_LOCALES,
-    });
+    expect(translateFields).toHaveBeenCalledTimes(TRANSLATED_LOCALES.length);
+    for (const locale of TRANSLATED_LOCALES) {
+      expect(translateFields).toHaveBeenCalledWith({
+        fields: { title: "題" },
+        sourceLocale: "ja",
+        targetLocales: [locale],
+      });
+    }
     expect(result.failedLocales).toEqual([]);
     expect(result.translations.th).toEqual({ title: "th:題" });
+  });
+
+  it("一部の言語だけ失敗した場合、失敗した言語だけをfailedLocalesに入れ、成功分は返す", async () => {
+    const translateFields = vi.fn(async ({ targetLocales }: { targetLocales: string[] }) => {
+      if (targetLocales[0] === "th") throw new Error("timeout");
+      return {
+        translations: { [targetLocales[0]]: { title: `${targetLocales[0]}:題` } },
+        model: "m",
+      };
+    });
+    getFieldsTranslatorMock.mockReturnValue({ translateFields });
+
+    const result = await autoTranslateFields({ title: "題" });
+
+    expect(result.failedLocales).toEqual(["th"]);
+    expect(Object.keys(result.translations).sort()).toEqual(
+      TRANSLATED_LOCALES.filter((l) => l !== "th").sort()
+    );
   });
 
   it("翻訳対象が無ければAPIを呼ばない", async () => {

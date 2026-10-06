@@ -20,6 +20,7 @@ import {
   retranslateLinkAction,
   updateLinkAction,
 } from "@/lib/actions/links";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /** 大分類1件分の選択肢（`getAllLinkCategories()`の大分類一覧、中分類を含む）。 */
 export interface LinkCategoryFormOption {
@@ -173,6 +174,7 @@ export function LinkForm({
           id="link-title"
           placeholder={titlePlaceholder}
           aria-invalid={errors.title ? true : undefined}
+          maxLength={TEXT_LIMITS.title}
           {...register("title")}
         />
       </FormField>
@@ -235,6 +237,7 @@ export function LinkForm({
           id="link-description"
           placeholder={descriptionPlaceholder}
           rows={3}
+          maxLength={TEXT_LIMITS.description}
           {...register("description")}
         />
       </FormField>
