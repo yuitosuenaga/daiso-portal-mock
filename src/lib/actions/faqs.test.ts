@@ -236,3 +236,22 @@ describe("deleteFaqAction", () => {
     expect(revalidatePath).toHaveBeenCalled();
   });
 });
+
+describe("認証（翻訳APIを呼ぶ前に拒否する）", () => {
+  beforeEach(() => {
+    vi.mocked(autoTranslateFields).mockClear();
+    vi.mocked(requireHelpdeskStaffSession).mockRejectedValueOnce(new Error("unauthorized"));
+  });
+
+  it("作成は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(createFaqAction({} as never)).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+    expect(createFaq).not.toHaveBeenCalled();
+  });
+
+  it("更新は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(updateFaqAction("faq-1", {} as never)).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+    expect(updateFaq).not.toHaveBeenCalled();
+  });
+});

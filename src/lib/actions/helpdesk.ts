@@ -222,6 +222,7 @@ function toTemplateTranslationViews(
 export async function createReplyTemplateAction(
   input: ReplyTemplateFormValues
 ): Promise<ReplyTemplateSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = replyTemplateFormSchema.parse(input);
   const { translations, failedLocales } = await autoTranslateFields({
     name: parsed.name,
@@ -246,6 +247,7 @@ export async function updateReplyTemplateAction(
   id: string,
   input: ReplyTemplateFormValues
 ): Promise<ReplyTemplateSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = replyTemplateFormSchema.parse(input);
   const existing = await getReplyTemplateById(id);
   if (!existing) {
