@@ -47,6 +47,8 @@ export const announcementFormSchema = z
     targeting: announcementTargetingSchema,
     actionRequired: z.boolean(),
     sendEmailNotification: z.boolean(),
+    /** 真なら、翻訳に失敗しても強制的に下書きにせず公開で保存する（保存データには含まれない） */
+    publishWithoutTranslation: z.boolean().default(false),
     publishStartDate: optionalDateField,
     publishEndDate: optionalDateField,
     dueDate: optionalDateField,

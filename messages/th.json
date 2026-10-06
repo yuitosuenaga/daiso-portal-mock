@@ -276,6 +276,8 @@
       "linkedDocumentsTargetingCountriesPrefixLabel": "ประเทศเป้าหมาย:",
       "linkedDocumentsTargetingCompaniesPrefixLabel": "บริษัทเป้าหมาย:",
       "translationFailedDraft": "บันทึกเป็นฉบับร่างเนื่องจากการแปลล้มเหลว",
+      "publishWithoutTranslationLabel": "เผยแพร่แม้การแปลล้มเหลว (สามารถแปลใหม่ภายหลังได้)",
+      "translationFailedPublished": "การแปลล้มเหลวในบางภาษา แต่ยังคงเผยแพร่ประกาศไว้ สามารถแปลใหม่ภายหลังได้",
       "retranslateButton": "แปลอีกครั้ง",
       "retranslatePending": "กำลังแปล...",
       "retranslateSuccess": "บันทึกการแปลแล้ว",

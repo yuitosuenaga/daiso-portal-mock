@@ -276,6 +276,8 @@
       "linkedDocumentsTargetingCountriesPrefixLabel": "対象国:",
       "linkedDocumentsTargetingCompaniesPrefixLabel": "対象会社:",
       "translationFailedDraft": "翻訳に失敗したため下書きとして保存しました",
+      "publishWithoutTranslationLabel": "翻訳に失敗しても公開する（翻訳は後から再実行できます）",
+      "translationFailedPublished": "一部の言語の翻訳に失敗しましたが、公開は維持しました。翻訳は後から再実行できます",
       "retranslateButton": "翻訳を再実行",
       "retranslatePending": "翻訳中...",
       "retranslateSuccess": "翻訳を保存しました",

@@ -31,35 +31,46 @@ function revalidateAnnouncementRoutes() {
   revalidatePath(DASHBOARD_PATH, "page");
 }
 
-/** フォームから受け取る入力。翻訳は保存時にjaから自動生成するため`translations`は含まない。 */
-export type AnnouncementActionInput = Omit<CreateAnnouncementInput, "translations">;
+/**
+ * フォームから受け取る入力。翻訳は保存時にjaから自動生成するため`translations`は含まない。
+ * `publishWithoutTranslation`が真なら、翻訳に失敗しても強制的に下書きにせず公開で保存する。
+ */
+export type AnnouncementActionInput = Omit<CreateAnnouncementInput, "translations"> & {
+  publishWithoutTranslation?: boolean;
+};
 
 export interface AnnouncementSaveResult {
   announcement: Announcement;
   /** 自動翻訳に失敗したlocale。空なら全言語の翻訳が保存済み */
   failedLocales: string[];
-  /** 翻訳失敗のため、指定された公開状態に関わらず下書きとして保存した場合に真 */
+  /**
+   * 新規公開（下書き→公開、または新規作成で公開指定）が翻訳失敗のため下書きに変わった場合に真。
+   * 公開維持・翻訳なし公開で失敗localeがある場合は偽（`failedLocales`のみ返す）。
+   */
   forcedDraft: boolean;
 }
 
 /**
- * ja本文から全対応言語の翻訳を組み立て、1言語でも失敗したら公開状態を強制的に下書きにする
- * （下書きなら公開通知は送られない）。
+ * ja本文から全対応言語の翻訳を組み立てる。翻訳に1言語でも失敗したとき、強制的に下書きにするのは
+ * 「新規公開」（更新前が公開でない状態から公開指定）のときだけ。更新前が既に公開中の場合は
+ * 公開を維持する（誤字修正で下書きに戻して再通知させない）。`publishWithoutTranslation`が真の
+ * 場合も下書きにせず公開で保存する。失敗localeの翻訳行は保存されない（表示側はjaにフォールバック）。
  */
 async function withAutoTranslations(
   parsed: ReturnType<typeof announcementFormSchema.parse>,
   existingId?: string
 ): Promise<{ input: CreateAnnouncementInput; failedLocales: string[]; forcedDraft: boolean }> {
-  const values = parsed;
+  const { publishWithoutTranslation, ...values } = parsed;
   const existing = existingId ? await findAnnouncementById(existingId) : null;
   const { translations, failedLocales } = await buildAnnouncementTranslations(
     { title: values.title, body: values.body },
     existing?.translations ?? []
   );
-  const forcedDraft = failedLocales.length > 0 && values.status === "published";
+  const isNewPublish = values.status === "published" && existing?.status !== "published";
+  const forcedDraft = failedLocales.length > 0 && isNewPublish && !publishWithoutTranslation;
 
   return {
-    input: { ...values, status: failedLocales.length > 0 ? "draft" : values.status, translations },
+    input: { ...values, status: forcedDraft ? "draft" : values.status, translations },
     failedLocales,
     forcedDraft,
   };
@@ -68,7 +79,8 @@ async function withAutoTranslations(
 /**
  * お知らせを新規作成し、ヘルプデスク側・申請者側・ダッシュボードのルートを再検証する。
  * 不正な入力（タイトル・本文・種別の未入力、配信対象の国0件選択）は保存せず例外を送出する。
- * 翻訳に失敗した場合は下書きとして保存する（`failedLocales`・`forcedDraft`で通知）。
+ * 公開指定で翻訳に失敗した場合は、`publishWithoutTranslation`でない限り下書きとして保存する
+ * （`failedLocales`・`forcedDraft`で通知）。
  */
 export async function createAnnouncementAction(
   input: AnnouncementActionInput
