@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { INQUIRY_CATEGORY_CODES } from "@/lib/constants/inquiry-options";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * テンプレート名の最大文字数。一覧見出しやテンプレート選択肢のラベルとして
@@ -15,7 +16,7 @@ export const TEMPLATE_NAME_MAX_LENGTH = 40;
 export const replyTemplateFormSchema = z.object({
   category: z.enum(INQUIRY_CATEGORY_CODES),
   name: z.string().trim().min(1).max(TEMPLATE_NAME_MAX_LENGTH),
-  body: z.string().trim().min(1),
+  body: z.string().trim().min(1).max(TEXT_LIMITS.body),
 });
 
 /**

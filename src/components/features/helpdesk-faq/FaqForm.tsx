@@ -21,6 +21,7 @@ import {
   retranslateFaqAction,
   updateFaqAction,
 } from "@/lib/actions/faqs";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 export interface FaqFormProps {
   mode: "create" | "edit";
@@ -138,6 +139,7 @@ export function FaqForm({
           id="faq-question"
           placeholder={questionPlaceholder}
           aria-invalid={errors.question ? true : undefined}
+          maxLength={TEXT_LIMITS.question}
           {...register("question")}
         />
       </FormField>
@@ -151,6 +153,7 @@ export function FaqForm({
           placeholder={answerPlaceholder}
           rows={5}
           aria-invalid={errors.answer ? true : undefined}
+          maxLength={TEXT_LIMITS.body}
           {...register("answer")}
         />
       </FormField>

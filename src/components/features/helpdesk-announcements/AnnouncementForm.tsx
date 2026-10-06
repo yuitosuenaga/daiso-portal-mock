@@ -25,6 +25,7 @@ import {
 } from "@/lib/validation/announcement";
 import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
 import type { Document } from "@/types/document";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 export interface AnnouncementFormProps {
   mode: "create" | "edit";
@@ -253,6 +254,7 @@ export function AnnouncementForm({
             id="announcement-title"
             placeholder={titlePlaceholder}
             aria-invalid={errors.title ? true : undefined}
+            maxLength={TEXT_LIMITS.title}
             {...register("title")}
           />
         </FormField>
@@ -268,6 +270,7 @@ export function AnnouncementForm({
             placeholder={bodyPlaceholder}
             rows={5}
             aria-invalid={errors.body ? true : undefined}
+            maxLength={TEXT_LIMITS.body}
             {...register("body")}
           />
         </FormField>

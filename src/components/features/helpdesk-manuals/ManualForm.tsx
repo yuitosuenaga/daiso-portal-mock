@@ -27,6 +27,7 @@ import {
 } from "@/lib/validation/manual";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type { ManualCategory, ManualFormInput } from "@/types/manual";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 type UploadFormValues = Extract<ManualFormValues, { sourceType: "upload" }>;
 
@@ -349,6 +350,7 @@ export function ManualForm({
           id="manual-title"
           placeholder={titlePlaceholder}
           aria-invalid={errors.title ? true : undefined}
+          maxLength={TEXT_LIMITS.title}
           {...register("title")}
         />
       </FormField>
@@ -357,6 +359,7 @@ export function ManualForm({
           id="manual-description"
           placeholder={descriptionPlaceholder}
           rows={3}
+          maxLength={TEXT_LIMITS.description}
           {...register("description")}
         />
       </FormField>
