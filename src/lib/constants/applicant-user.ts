@@ -11,12 +11,14 @@ export const APPLICANT_USER_PREFERRED_LOCALE_CODES = [
   "en",
   "ja",
   "zh",
+  "zh-TW",
   "ko",
   "th",
   "vi",
   "id",
   "ms",
   "tl",
+  "pt",
 ] as const;
 
 /**

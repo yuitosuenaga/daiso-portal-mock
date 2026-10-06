@@ -685,13 +685,15 @@
       "preferredLocaleOptions": {
         "en": "Inglês",
         "ja": "Japonês",
-        "zh": "Chinês",
+        "zh": "Chinês (simplificado)",
+        "zh-TW": "Chinês (tradicional)",
         "ko": "Coreano",
         "th": "Tailandês",
         "vi": "Vietnamita",
         "id": "Indonésio",
         "ms": "Malaio",
-        "tl": "Tagalog"
+        "tl": "Tagalog",
+        "pt": "Português"
       },
       "submitButton": "Salvar",
       "submitError": "Falha ao salvar. Tente novamente após algum tempo.",
@@ -1131,7 +1133,8 @@
       "originalLanguage": {
         "ja": "Japonês",
         "en": "Inglês",
-        "zh": "Chinês",
+        "zh": "Chinês (simplificado)",
+        "zh-TW": "Chinês (tradicional)",
         "ko": "Coreano",
         "th": "Tailandês",
         "vi": "Vietnamita",
