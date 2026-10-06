@@ -165,6 +165,7 @@ enum AnnouncementCategory {
 enum AnnouncementTargetingScope {
   all
   countries
+  users
 }
 
 enum AnnouncementStatus {
@@ -200,6 +201,8 @@ model Announcement {
   sendEmailNotification Boolean                       @default(false)
   targetingScope        AnnouncementTargetingScope    @default(all)
   targetingCountries    String[]                      @default([])
+  /// `targetingScope = users`のとき配信対象とする`ApplicantUser.id`の一覧
+  targetingUserIds      String[]                      @default([])
   publishStartDate      DateTime?                     @db.Date
   publishEndDate        DateTime?                     @db.Date
   dueDate               DateTime?                     @db.Date

@@ -6,6 +6,7 @@ import {
   ApplicantUserEmailTakenError,
   createApplicantUser,
   isApplicantUserEmailTaken,
+  searchApplicantUsersForTargeting,
   setApplicantUserActive,
   updateApplicantUser,
 } from "@/lib/server/applicant-user-service";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/validation/applicant-user";
 import type {
   ApplicantUserSummary,
+  ApplicantUserTargetOption,
   CreateApplicantUserInput,
   UpdateApplicantUserInput,
 } from "@/types/applicant-user";
@@ -86,4 +88,11 @@ export async function setApplicantUserActiveAction(
   revalidateApplicantUserRoutes();
 
   return updated;
+}
+
+/** お知らせの個人指定用に、申請者アカウントを部分一致で検索する（ヘルプデスク専用）。 */
+export async function searchApplicantUsersForTargetingAction(
+  query: string
+): Promise<ApplicantUserTargetOption[]> {
+  return searchApplicantUsersForTargeting(query);
 }

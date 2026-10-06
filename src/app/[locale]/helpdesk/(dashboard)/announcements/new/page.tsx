@@ -57,6 +57,23 @@ export default async function HelpdeskAnnouncementNewPage() {
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
+        targetingUsersOption={t("targetingUsersOption")}
+        usersLabel={t("usersLabel")}
+        usersLabels={{
+          groupLabel: t("usersLabel"),
+          searchPlaceholder: t("usersSearchPlaceholder"),
+          searchHint: t("usersSearchHint"),
+          noResultsMessage: t("usersNoResultsMessage"),
+          searchErrorMessage: t("usersSearchError"),
+          selectedCountLabel: t.raw("usersSelectedCountLabel"),
+          removeChipButtonLabel: t("usersRemoveChipButtonLabel"),
+          alreadySelectedLabel: t("usersAlreadySelectedLabel"),
+          searchingLabel: t("usersSearchingLabel"),
+          resultsCountLabel: t.raw("usersResultsCountLabel"),
+          unavailableLabel: t("usersUnavailableLabel"),
+        }}
+        usersRequiredErrorMessage={t("validation.usersRequired")}
+        usersUnavailableErrorMessage={t("validation.usersUnavailable")}
         countriesLabel={t("countriesLabel")}
         countriesSearchPlaceholder={t("countriesSearchPlaceholder")}
         countriesSelectAllButtonLabel={t("countriesSelectAllButtonLabel")}

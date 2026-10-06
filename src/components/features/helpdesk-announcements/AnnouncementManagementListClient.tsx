@@ -31,6 +31,8 @@ export interface AnnouncementManagementListClientProps {
   locale: string;
   targetingAllLabel: string;
   targetingCountriesLabel: string;
+  /** `{count}`を選択人数に置換して表示する */
+  targetingUsersLabel: string;
   actionRequiredBadgeLabel: string;
   statusBadgeDraftLabel: string;
   publishPeriodAlwaysLabel: string;
@@ -56,6 +58,7 @@ export function AnnouncementManagementListClient({
   locale,
   targetingAllLabel,
   targetingCountriesLabel,
+  targetingUsersLabel,
   actionRequiredBadgeLabel,
   statusBadgeDraftLabel,
   publishPeriodAlwaysLabel,
@@ -78,6 +81,9 @@ export function AnnouncementManagementListClient({
   function targetingLabel(announcement: Announcement): string {
     if (announcement.targeting.scope === "all") {
       return targetingAllLabel;
+    }
+    if (announcement.targeting.scope === "users") {
+      return targetingUsersLabel.replace("{count}", String(announcement.targeting.userIds.length));
     }
     return `${targetingCountriesLabel}: ${announcement.targeting.countries
       .map((code) => countryLabels[code] ?? code)

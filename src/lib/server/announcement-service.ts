@@ -44,15 +44,30 @@ export class AnnouncementNotFoundError extends Error {
   }
 }
 
+/** 個人指定の配信対象に、有効な申請者アカウントが1件も含まれないことを表すエラー。 */
+export class AnnouncementTargetUsersNotFoundError extends Error {
+  constructor() {
+    super("No active applicant users in the individual targeting");
+    this.name = "AnnouncementTargetUsersNotFoundError";
+  }
+}
+
 const ORDER_BY_PUBLISHED_AT_DESC = { publishedAt: "desc" } as const;
 const ORDER_BY_CREATED_AT_DESC = { createdAt: "desc" } as const;
 
-function visibleToCountryWhere(country: string): Prisma.AnnouncementWhereInput {
+function visibleToCountryWhere(
+  country: string,
+  applicantUserId?: string
+): Prisma.AnnouncementWhereInput {
   return {
     status: "published",
     OR: [
       { targetingScope: "all" },
       { targetingScope: "countries", targetingCountries: { has: country } },
+      // 個人指定は閲覧者のIDが分かる場合のみ該当する（不明なら個人指定のお知らせは見せない）。
+      ...(applicantUserId
+        ? [{ targetingScope: "users" as const, targetingUserIds: { has: applicantUserId } }]
+        : []),
     ],
   };
 }
@@ -89,6 +104,12 @@ function targetRecipientsWhere(
   if (announcement.targeting.scope === "countries") {
     return { company: { country: { in: announcement.targeting.countries } } };
   }
+  if (announcement.targeting.scope === "users") {
+    // 会社単位の実施済み管理では、指定された個人が所属する会社の担当者を対象とする。
+    return {
+      company: { applicantUsers: { some: { id: { in: announcement.targeting.userIds } } } },
+    };
+  }
   return {};
 }
 
@@ -111,15 +132,16 @@ function translationsToNestedWrite(translations: Announcement["translations"]) {
 }
 
 /**
- * 自社の国が配信対象に含まれるお知らせのみを公開日の降順で取得する。`locale`に対応する
+ * 自社の国、または閲覧者本人（`applicantUserId`）が配信対象に含まれるお知らせのみを公開日の降順で取得する。`locale`に対応する
  * タイトル・本文（要件16、未登録の場合は既定言語`ja`にフォールバック）に解決して返す。
  */
 export async function listAnnouncementsVisibleToCountry(
   country: string,
-  locale: string = DEFAULT_ANNOUNCEMENT_LOCALE
+  locale: string = DEFAULT_ANNOUNCEMENT_LOCALE,
+  applicantUserId?: string
 ): Promise<Announcement[]> {
   const records = await prisma.announcement.findMany({
-    where: visibleToCountryWhere(country),
+    where: visibleToCountryWhere(country, applicantUserId),
     orderBy: ORDER_BY_PUBLISHED_AT_DESC,
     include: ANNOUNCEMENT_INCLUDE,
   });
@@ -139,10 +161,11 @@ export async function listAnnouncementsVisibleToCountry(
 export async function findAnnouncementVisibleToCountry(
   id: string,
   country: string,
-  locale: string = DEFAULT_ANNOUNCEMENT_LOCALE
+  locale: string = DEFAULT_ANNOUNCEMENT_LOCALE,
+  applicantUserId?: string
 ): Promise<Announcement | null> {
   const record = await prisma.announcement.findFirst({
-    where: { id, ...visibleToCountryWhere(country) },
+    where: { id, ...visibleToCountryWhere(country, applicantUserId) },
     include: ANNOUNCEMENT_INCLUDE,
   });
   if (!record) {
@@ -199,6 +222,30 @@ async function filterExistingDocumentIds(documentIds: string[]): Promise<string[
   return documentIds.filter((id) => existingIds.has(id));
 }
 
+/**
+ * 個人指定（`users`）の配信対象について、重複IDを除き、実在し有効な（`isActive`）申請者
+ * アカウントのIDだけに絞り込む。1件も残らない場合は`AnnouncementTargetUsersNotFoundError`を
+ * 送出する（誰にも届かないお知らせの保存を防ぐ）。他の配信対象はそのまま返す。
+ */
+export async function normalizeTargeting(
+  targeting: AnnouncementTargeting
+): Promise<AnnouncementTargeting> {
+  if (targeting.scope !== "users") {
+    return targeting;
+  }
+  const uniqueIds = Array.from(new Set(targeting.userIds));
+  const users = await prisma.applicantUser.findMany({
+    where: { id: { in: uniqueIds }, isActive: true },
+    select: { id: true },
+  });
+  const existingIds = new Set(users.map((user) => user.id));
+  const userIds = uniqueIds.filter((id) => existingIds.has(id));
+  if (userIds.length === 0) {
+    throw new AnnouncementTargetUsersNotFoundError();
+  }
+  return { scope: "users", userIds };
+}
+
 function dateOnlyToColumn(value: string | null | undefined): Date | null {
   return value ? new Date(value) : null;
 }
@@ -212,6 +259,7 @@ export async function createAnnouncementRecord(
   createdById?: string
 ): Promise<Announcement> {
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
+  const targeting = await normalizeTargeting(input.targeting);
 
   const record = await prisma.announcement.create({
     data: {
@@ -223,7 +271,7 @@ export async function createAnnouncementRecord(
       publishedAt: input.status === "published" ? new Date() : null,
       actionRequired: input.actionRequired,
       sendEmailNotification: input.sendEmailNotification,
-      ...targetingToColumns(input.targeting),
+      ...targetingToColumns(targeting),
       publishStartDate: dateOnlyToColumn(input.publishStartDate),
       publishEndDate: dateOnlyToColumn(input.publishEndDate),
       dueDate: dateOnlyToColumn(input.dueDate),
@@ -270,7 +318,12 @@ export async function updateAnnouncementRecord(
 ): Promise<Announcement> {
   const current = await prisma.announcement.findUnique({
     where: { id },
-    select: { status: true, targetingScope: true, targetingCountries: true },
+    select: {
+      status: true,
+      targetingScope: true,
+      targetingCountries: true,
+      targetingUserIds: true,
+    },
   });
   if (!current) {
     throw new AnnouncementNotFoundError(id);
@@ -279,10 +332,13 @@ export async function updateAnnouncementRecord(
   const previousTargeting: AnnouncementTargeting =
     current.targetingScope === "countries"
       ? { scope: "countries", countries: current.targetingCountries }
-      : { scope: "all" };
+      : current.targetingScope === "users"
+        ? { scope: "users", userIds: current.targetingUserIds }
+        : { scope: "all" };
 
   const shouldStampPublishedAt = current.status !== "published" && input.status === "published";
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
+  const targeting = await normalizeTargeting(input.targeting);
 
   try {
     const record = await prisma.announcement.update({
@@ -295,7 +351,7 @@ export async function updateAnnouncementRecord(
         ...(shouldStampPublishedAt ? { publishedAt: new Date() } : {}),
         actionRequired: input.actionRequired,
         sendEmailNotification: input.sendEmailNotification,
-        ...targetingToColumns(input.targeting),
+        ...targetingToColumns(targeting),
         publishStartDate: dateOnlyToColumn(input.publishStartDate),
         publishEndDate: dateOnlyToColumn(input.publishEndDate),
         dueDate: dateOnlyToColumn(input.dueDate),
@@ -776,10 +832,17 @@ export async function getAnnouncementSelfStatusForCompany(
  * `targetRecipientsWhere`（Prismaの`where`条件版）と同じ判定基準をメモリ上で再現したもの。
  * `targetRecipientsWhere`の判定基準を変える場合はこちらも追随させる必要がある。
  */
-function isRecipientTargeted(targeting: AnnouncementTargeting, recipientCountry: string): boolean {
-  return targeting.scope === "countries"
-    ? targeting.countries.includes(recipientCountry)
-    : true;
+function isRecipientTargeted(
+  targeting: AnnouncementTargeting,
+  recipient: { country: string; applicantUserIds: string[] }
+): boolean {
+  if (targeting.scope === "countries") {
+    return targeting.countries.includes(recipient.country);
+  }
+  if (targeting.scope === "users") {
+    return recipient.applicantUserIds.some((id) => targeting.userIds.includes(id));
+  }
+  return true;
 }
 
 /**
@@ -810,7 +873,9 @@ export async function getAnnouncementSelfStatuses(
       where: { company: { companyCode } },
       select: {
         id: true,
-        company: { select: { country: true } },
+        company: {
+          select: { country: true, applicantUsers: { select: { id: true } } },
+        },
         statuses: {
           where: { announcementId: { in: announcementIds } },
           select: { announcementId: true, completedAt: true },
@@ -828,6 +893,7 @@ export async function getAnnouncementSelfStatuses(
 
   const recipientViews = recipients.map((recipient) => ({
     country: recipient.company.country,
+    applicantUserIds: recipient.company.applicantUsers.map((user) => user.id),
     completedAtByAnnouncementId: new Map(
       recipient.statuses.map((status) => [status.announcementId, status.completedAt])
     ),
@@ -836,7 +902,7 @@ export async function getAnnouncementSelfStatuses(
   const selfStatuses = new Map<string, AnnouncementSelfStatus>();
   for (const announcement of announcements) {
     const targets = recipientViews.filter((recipient) =>
-      isRecipientTargeted(announcement.targeting, recipient.country)
+      isRecipientTargeted(announcement.targeting, recipient)
     );
     selfStatuses.set(announcement.id, {
       confirmedAt: confirmedAtByAnnouncementId.get(announcement.id) ?? null,

@@ -15,6 +15,8 @@ vi.mock("@/lib/server/announcement-service", () => ({
   AnnouncementNotFoundError: class AnnouncementNotFoundError extends Error {},
   findAnnouncementById: vi.fn(async () => null),
   replaceAnnouncementTranslations: vi.fn(),
+  AnnouncementTargetUsersNotFoundError: class AnnouncementTargetUsersNotFoundError extends Error {},
+  normalizeTargeting: vi.fn(async (targeting: unknown) => targeting),
 }));
 vi.mock("@/lib/server/auth-session", () => ({
   requireHelpdeskStaffSession: vi.fn(),
@@ -28,10 +30,13 @@ import {
 } from "@/lib/api/announcements";
 import { buildAnnouncementTranslations } from "@/lib/server/announcement-translation";
 import {
+  AnnouncementTargetUsersNotFoundError,
   findAnnouncementById,
+  normalizeTargeting,
   replaceAnnouncementTranslations,
 } from "@/lib/server/announcement-service";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import type { AnnouncementSaveRejected, AnnouncementSaveResult } from "@/lib/actions/announcements";
 import {
   createAnnouncementAction,
   deleteAnnouncementAction,
@@ -39,6 +44,12 @@ import {
   updateAnnouncementAction,
 } from "@/lib/actions/announcements";
 import type { Announcement } from "@/types/announcement";
+
+/** 保存拒否の結果でないことを確認し、保存結果に絞り込む。 */
+function saved(result: AnnouncementSaveResult | AnnouncementSaveRejected): AnnouncementSaveResult {
+  if ("error" in result) throw new Error(`rejected: ${result.error}`);
+  return result;
+}
 
 function announcement(overrides: Partial<Announcement> = {}): Announcement {
   return {
@@ -75,7 +86,7 @@ describe("createAnnouncementAction", () => {
   it("有効な入力でお知らせを作成し、ルートを再検証する", async () => {
     vi.mocked(createAnnouncement).mockResolvedValue(announcement());
 
-    const result = await createAnnouncementAction({
+    const result = saved(await createAnnouncementAction({
       title: "アクション経由の新規作成",
       body: "本文",
       category: "other",
@@ -85,7 +96,7 @@ describe("createAnnouncementAction", () => {
       sendEmailNotification: false,
       attachments: [],
       linkedDocumentIds: [],
-    });
+    }));
 
     expect(createAnnouncement).toHaveBeenCalled();
     expect(result.announcement.id).toBe("announcement-1");
@@ -133,7 +144,7 @@ describe("createAnnouncementAction", () => {
       announcement({ publishStartDate: null, publishEndDate: null, dueDate: null })
     );
 
-    const created = await createAnnouncementAction({
+    const created = saved(await createAnnouncementAction({
       title: "日付nullテスト",
       body: "本文",
       category: "other",
@@ -146,7 +157,7 @@ describe("createAnnouncementAction", () => {
       dueDate: null,
       attachments: [],
       linkedDocumentIds: [],
-    });
+    }));
 
     expect(created.announcement.publishStartDate).toBeNull();
     expect(created.announcement.publishEndDate).toBeNull();
@@ -160,7 +171,7 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       announcement({ title: "更新後", category: "policy" })
     );
 
-    const result = await updateAnnouncementAction("announcement-1", {
+    const result = saved(await updateAnnouncementAction("announcement-1", {
       title: "更新後",
       body: "本文",
       category: "policy",
@@ -170,7 +181,7 @@ describe("updateAnnouncementAction / deleteAnnouncementAction", () => {
       sendEmailNotification: false,
       attachments: [],
       linkedDocumentIds: [],
-    });
+    }));
 
     expect(updateAnnouncement).toHaveBeenCalledWith(
       "announcement-1",
@@ -206,7 +217,7 @@ describe("自動翻訳", () => {
   it("翻訳成功時は指定された公開状態のまま翻訳行を付けて保存する", async () => {
     vi.mocked(createAnnouncement).mockResolvedValue(announcement());
 
-    const result = await createAnnouncementAction(input);
+    const result = saved(await createAnnouncementAction(input));
 
     expect(createAnnouncement).toHaveBeenCalledWith(
       expect.objectContaining({ status: "published", translations: [EN_ROW] })
@@ -222,7 +233,7 @@ describe("自動翻訳", () => {
     });
     vi.mocked(createAnnouncement).mockResolvedValue(announcement({ status: "draft" }));
 
-    const result = await createAnnouncementAction(input);
+    const result = saved(await createAnnouncementAction(input));
 
     expect(createAnnouncement).toHaveBeenCalledWith(expect.objectContaining({ status: "draft" }));
     expect(result.failedLocales).toEqual(["en", "th"]);
@@ -236,7 +247,7 @@ describe("自動翻訳", () => {
     });
     vi.mocked(createAnnouncement).mockResolvedValue(announcement({ status: "draft" }));
 
-    const result = await createAnnouncementAction({ ...input, status: "draft" });
+    const result = saved(await createAnnouncementAction({ ...input, status: "draft" }));
 
     expect(result.forcedDraft).toBe(false);
     expect(result.failedLocales).toEqual(["en"]);
@@ -251,7 +262,7 @@ describe("自動翻訳", () => {
     });
     vi.mocked(updateAnnouncement).mockResolvedValue(announcement());
 
-    const result = await updateAnnouncementAction("announcement-1", input);
+    const result = saved(await updateAnnouncementAction("announcement-1", input));
 
     expect(buildAnnouncementTranslations).toHaveBeenCalledWith(
       { title: "タイトル", body: "本文" },
@@ -273,7 +284,7 @@ describe("自動翻訳", () => {
     });
     vi.mocked(updateAnnouncement).mockResolvedValue(announcement({ status: "draft" }));
 
-    const result = await updateAnnouncementAction("announcement-1", input);
+    const result = saved(await updateAnnouncementAction("announcement-1", input));
 
     expect(updateAnnouncement).toHaveBeenCalledWith(
       "announcement-1",
@@ -289,11 +300,11 @@ describe("自動翻訳", () => {
     });
     vi.mocked(createAnnouncement).mockResolvedValue(announcement());
 
-    const result = await createAnnouncementAction({ ...input, publishWithoutTranslation: true });
+    const result = saved(await createAnnouncementAction({ ...input, publishWithoutTranslation: true }));
 
-    const saved = vi.mocked(createAnnouncement).mock.calls[0][0];
-    expect(saved.status).toBe("published");
-    expect(saved).not.toHaveProperty("publishWithoutTranslation");
+    const savedInput = vi.mocked(createAnnouncement).mock.calls[0][0];
+    expect(savedInput.status).toBe("published");
+    expect(savedInput).not.toHaveProperty("publishWithoutTranslation");
     expect(result.forcedDraft).toBe(false);
     expect(result.failedLocales).toEqual(["en", "th"]);
   });
@@ -306,10 +317,10 @@ describe("自動翻訳", () => {
     });
     vi.mocked(updateAnnouncement).mockResolvedValue(announcement());
 
-    const result = await updateAnnouncementAction("announcement-1", {
+    const result = saved(await updateAnnouncementAction("announcement-1", {
       ...input,
       publishWithoutTranslation: true,
-    });
+    }));
 
     expect(updateAnnouncement).toHaveBeenCalledWith(
       "announcement-1",
@@ -345,6 +356,54 @@ describe("retranslateAnnouncementAction", () => {
 
     await expect(retranslateAnnouncementAction("missing")).rejects.toThrow();
     expect(replaceAnnouncementTranslations).not.toHaveBeenCalled();
+  });
+});
+
+describe("個人指定の配信対象の検証", () => {
+  const usersInput = {
+    title: "タイトル",
+    body: "本文",
+    category: "other" as const,
+    status: "published" as const,
+    targeting: { scope: "users" as const, userIds: ["ghost"] },
+    actionRequired: false,
+    sendEmailNotification: false,
+    attachments: [],
+    linkedDocumentIds: [],
+  };
+
+  it("有効なアカウントが無い場合は翻訳も保存もせず拒否結果を返す（作成）", async () => {
+    vi.mocked(buildAnnouncementTranslations).mockClear();
+    vi.mocked(createAnnouncement).mockClear();
+    vi.mocked(normalizeTargeting).mockRejectedValueOnce(
+      new AnnouncementTargetUsersNotFoundError()
+    );
+
+    const result = await createAnnouncementAction(usersInput);
+
+    expect(result).toEqual({ error: "targetUsersUnavailable" });
+    expect(buildAnnouncementTranslations).not.toHaveBeenCalled();
+    expect(createAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("有効なアカウントが無い場合は翻訳も保存もせず拒否結果を返す（更新）", async () => {
+    vi.mocked(buildAnnouncementTranslations).mockClear();
+    vi.mocked(updateAnnouncement).mockClear();
+    vi.mocked(normalizeTargeting).mockRejectedValueOnce(
+      new AnnouncementTargetUsersNotFoundError()
+    );
+
+    const result = await updateAnnouncementAction("a-1", usersInput);
+
+    expect(result).toEqual({ error: "targetUsersUnavailable" });
+    expect(buildAnnouncementTranslations).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("想定外のエラーは握りつぶさず再送出する", async () => {
+    vi.mocked(normalizeTargeting).mockRejectedValueOnce(new Error("db down"));
+
+    await expect(createAnnouncementAction(usersInput)).rejects.toThrow("db down");
   });
 });
 

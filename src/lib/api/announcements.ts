@@ -32,9 +32,11 @@ export async function getRecentAnnouncements(
 ): Promise<Announcement[]> {
   const limit = options?.limit ?? 3;
   const { claims } = await requireApplicantSession();
-  const visible = options?.locale
-    ? await listAnnouncementsVisibleToCountry(claims.country, options.locale)
-    : await listAnnouncementsVisibleToCountry(claims.country);
+  const visible = await listAnnouncementsVisibleToCountry(
+    claims.country,
+    options?.locale,
+    claims.applicantUserId
+  );
 
   return visible.slice(0, limit);
 }
@@ -49,9 +51,7 @@ export async function getAnnouncements(
 ): Promise<Announcement[]> {
   const { claims } = await requireApplicantSession();
 
-  return options?.locale
-    ? listAnnouncementsVisibleToCountry(claims.country, options.locale)
-    : listAnnouncementsVisibleToCountry(claims.country);
+  return listAnnouncementsVisibleToCountry(claims.country, options?.locale, claims.applicantUserId);
 }
 
 /**
@@ -65,9 +65,12 @@ export async function getAnnouncementById(
 ): Promise<Announcement | null> {
   const { claims } = await requireApplicantSession();
 
-  return options?.locale
-    ? findAnnouncementVisibleToCountry(id, claims.country, options.locale)
-    : findAnnouncementVisibleToCountry(id, claims.country);
+  return findAnnouncementVisibleToCountry(
+    id,
+    claims.country,
+    options?.locale,
+    claims.applicantUserId
+  );
 }
 
 /**

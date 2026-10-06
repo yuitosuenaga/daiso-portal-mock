@@ -12,6 +12,10 @@ const createAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("new-i
 const updateAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("existing-id"));
 const pushMock = vi.fn();
 
+vi.mock("@/lib/actions/applicant-users", () => ({
+  searchApplicantUsersForTargetingAction: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock("@/lib/actions/announcements", () => ({
   createAnnouncementAction: (...args: unknown[]) =>
     createAnnouncementActionMock(...args),
@@ -48,6 +52,23 @@ const labels = {
   targetingLabel: "配信対象",
   targetingAllOption: "全体一律",
   targetingCountriesOption: "特定の国・地域を指定",
+  targetingUsersOption: "個人を指定",
+  usersLabel: "配信対象の個人",
+  usersLabels: {
+    groupLabel: "配信対象の個人",
+    searchPlaceholder: "氏名・メールアドレス・会社名で検索",
+    searchHint: "検索語を入力すると候補が表示されます",
+    noResultsMessage: "該当するユーザーがいません",
+    searchErrorMessage: "検索に失敗しました",
+    selectedCountLabel: "{count}名選択中",
+    removeChipButtonLabel: "削除",
+    alreadySelectedLabel: "選択済み",
+    searchingLabel: "検索中",
+    resultsCountLabel: "{count}件見つかりました",
+    unavailableLabel: "利用不可",
+  },
+  usersRequiredErrorMessage: "配信対象の個人を1名以上選択してください",
+  usersUnavailableErrorMessage: "選択した個人は配信対象にできません",
   countriesLabel: "国・地域",
   countriesSearchPlaceholder: "国名で検索",
   countriesSelectAllButtonLabel: "すべて選択",
@@ -507,6 +528,33 @@ describe("AnnouncementForm", () => {
       expect(
         screen.getByText("保存に失敗しました。時間を置いて再度お試しください。")
       ).toBeTruthy();
+    });
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("個人指定の対象が全て無効で保存が拒否された場合、専用のエラーを表示し遷移しない", async () => {
+    updateAnnouncementActionMock.mockResolvedValueOnce({ error: "targetUsersUnavailable" });
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "users", userIds: ["u1"] },
+          actionRequired: false,
+          sendEmailNotification: false,
+        }}
+        {...labels}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("選択した個人は配信対象にできません")).toBeTruthy();
     });
     expect(pushMock).not.toHaveBeenCalled();
   });

@@ -199,7 +199,8 @@
         "statusPublished": "Published",
         "clearButton": "Clear",
         "noResults": "No matching announcements"
-      }
+      },
+      "targetingUsersLabel": "Individuals: {count}"
     },
     "form": {
       "createTitle": "Create Announcement",
@@ -249,7 +250,9 @@
         "attachmentsSizeExceeded": "The file size exceeds the limit (5MB)",
         "attachmentsTypeNotAllowed": "This file type is not allowed (images or PDF only)",
         "attachmentsCountExceeded": "The maximum number of attachments (5) has been exceeded",
-        "attachmentsReadFailed": "Failed to read the file. Please try again."
+        "attachmentsReadFailed": "Failed to read the file. Please try again.",
+        "usersRequired": "Select at least one individual",
+        "usersUnavailable": "The selected individuals are deactivated or deleted and cannot be targeted"
       },
       "actionRequiredLabel": "Action required",
       "actionRequiredTrueOption": "Action required",
@@ -282,7 +285,19 @@
       "retranslatePending": "Translating...",
       "retranslateSuccess": "Translation saved",
       "retranslateFailed": "Translation failed for some languages. Please try again later.",
-      "retranslateError": "Retranslation failed. Please try again later."
+      "retranslateError": "Retranslation failed. Please try again later.",
+      "targetingUsersOption": "Specific individuals",
+      "usersLabel": "Target individuals",
+      "usersSearchPlaceholder": "Search by name, email or company",
+      "usersSearchHint": "Type to search for users",
+      "usersNoResultsMessage": "No matching users",
+      "usersSearchError": "Search failed",
+      "usersSelectedCountLabel": "{count} selected",
+      "usersRemoveChipButtonLabel": "Remove",
+      "usersAlreadySelectedLabel": "Selected",
+      "usersSearchingLabel": "Searching...",
+      "usersResultsCountLabel": "{count} found",
+      "usersUnavailableLabel": "Unavailable"
     },
     "tracking": {
       "confirmedCount": "Confirmed {confirmed}/{total} people",

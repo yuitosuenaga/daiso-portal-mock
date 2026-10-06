@@ -124,6 +124,7 @@ export async function AnnouncementManagementList() {
           locale={locale}
           targetingAllLabel={t("targetingAllLabel")}
           targetingCountriesLabel={t("targetingCountriesLabel")}
+          targetingUsersLabel={t.raw("targetingUsersLabel")}
           actionRequiredBadgeLabel={t("actionRequiredBadge")}
           statusBadgeDraftLabel={t("statusBadgeDraft")}
           publishPeriodAlwaysLabel={t("publishPeriodAlwaysLabel")}

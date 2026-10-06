@@ -199,7 +199,8 @@
         "statusPublished": "เผยแพร่",
         "clearButton": "ล้าง",
         "noResults": "ไม่มีประกาศที่ตรงกัน"
-      }
+      },
+      "targetingUsersLabel": "รายบุคคล: {count} คน"
     },
     "form": {
       "createTitle": "สร้างประกาศใหม่",
@@ -249,7 +250,9 @@
         "attachmentsSizeExceeded": "ขนาดไฟล์เกินขีดจำกัด (5MB)",
         "attachmentsTypeNotAllowed": "รูปแบบไฟล์ที่ไม่อนุญาต (รูปภาพหรือ PDF เท่านั้น)",
         "attachmentsCountExceeded": "เกินจำนวนไฟล์ที่สามารถแนบได้ (สูงสุด 5 ไฟล์)",
-        "attachmentsReadFailed": "การอ่านไฟล์ล้มเหลว โปรดลองอีกครั้ง"
+        "attachmentsReadFailed": "การอ่านไฟล์ล้มเหลว โปรดลองอีกครั้ง",
+        "usersRequired": "กรุณาเลือกอย่างน้อย 1 คน",
+        "usersUnavailable": "บุคคลที่เลือกถูกปิดใช้งานหรือถูกลบแล้ว จึงไม่สามารถกำหนดเป็นกลุ่มเป้าหมายได้"
       },
       "actionRequiredLabel": "ความจำเป็นในการดำเนินการ",
       "actionRequiredTrueOption": "ต้องดำเนินการ",
@@ -282,7 +285,19 @@
       "retranslatePending": "กำลังแปล...",
       "retranslateSuccess": "บันทึกการแปลแล้ว",
       "retranslateFailed": "การแปลล้มเหลวในบางภาษา โปรดลองใหม่ภายหลัง",
-      "retranslateError": "การแปลอีกครั้งล้มเหลว โปรดลองใหม่ภายหลัง"
+      "retranslateError": "การแปลอีกครั้งล้มเหลว โปรดลองใหม่ภายหลัง",
+      "targetingUsersOption": "ระบุเป็นรายบุคคล",
+      "usersLabel": "บุคคลที่เป็นกลุ่มเป้าหมาย",
+      "usersSearchPlaceholder": "ค้นหาด้วยชื่อ อีเมล หรือบริษัท",
+      "usersSearchHint": "พิมพ์เพื่อค้นหาผู้ใช้",
+      "usersNoResultsMessage": "ไม่พบผู้ใช้ที่ตรงกัน",
+      "usersSearchError": "ค้นหาไม่สำเร็จ",
+      "usersSelectedCountLabel": "เลือกแล้ว {count} คน",
+      "usersRemoveChipButtonLabel": "ลบ",
+      "usersAlreadySelectedLabel": "เลือกแล้ว",
+      "usersSearchingLabel": "กำลังค้นหา...",
+      "usersResultsCountLabel": "พบ {count} รายการ",
+      "usersUnavailableLabel": "ใช้งานไม่ได้"
     },
     "tracking": {
       "confirmedCount": "ยืนยันแล้ว {confirmed}/{total} คน",

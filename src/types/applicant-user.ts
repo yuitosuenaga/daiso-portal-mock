@@ -36,3 +36,12 @@ export interface UpdateApplicantUserInput {
   password?: string;
   preferredLocale: string;
 }
+
+/** お知らせの個人指定で検索・選択する申請者アカウントの表示用情報。 */
+export interface ApplicantUserTargetOption {
+  id: string;
+  displayName: string;
+  email: string;
+  companyName: string;
+  country: string;
+}

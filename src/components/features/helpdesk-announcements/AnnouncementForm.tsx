@@ -9,6 +9,11 @@ import { FormField } from "@/components/features/inquiry-form/FormField";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
 import { CountryTargetingSelect } from "@/components/features/helpdesk-announcements/CountryTargetingSelect";
+import {
+  UserTargetingSelect,
+  type UserTargetingSelectLabels,
+} from "@/components/features/helpdesk-announcements/UserTargetingSelect";
+import type { ApplicantUserTargetOption } from "@/types/applicant-user";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -53,6 +58,13 @@ export interface AnnouncementFormProps {
   targetingLabel: string;
   targetingAllOption: string;
   targetingCountriesOption: string;
+  targetingUsersOption: string;
+  usersLabel: string;
+  usersLabels: UserTargetingSelectLabels;
+  usersRequiredErrorMessage: string;
+  usersUnavailableErrorMessage: string;
+  /** 編集時、`targeting.userIds`の表示情報（氏名・会社）を復元するための選択済みユーザー。 */
+  initialTargetUsers?: ApplicantUserTargetOption[];
   countriesLabel: string;
   countriesSearchPlaceholder: string;
   countriesSelectAllButtonLabel: string;
@@ -129,6 +141,12 @@ export function AnnouncementForm({
   targetingLabel,
   targetingAllOption,
   targetingCountriesOption,
+  targetingUsersOption,
+  usersLabel,
+  usersLabels,
+  usersRequiredErrorMessage,
+  usersUnavailableErrorMessage,
+  initialTargetUsers,
   countriesLabel,
   countriesSearchPlaceholder,
   countriesSelectAllButtonLabel,
@@ -173,6 +191,7 @@ export function AnnouncementForm({
 }: AnnouncementFormProps) {
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
+  const [hasUnavailableUsers, setHasUnavailableUsers] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [translationFailedNotice, setTranslationFailedNotice] = useState(false);
   const [publishKeptNotice, setPublishKeptNotice] = useState(false);
@@ -219,13 +238,18 @@ export function AnnouncementForm({
   const scopeOptions: SelectOption[] = [
     { value: "all", label: targetingAllOption },
     { value: "countries", label: targetingCountriesOption },
+    { value: "users", label: targetingUsersOption },
   ];
+  const countryLabels = Object.fromEntries(
+    countryOptions.map((option) => [option.value, option.label])
+  );
   const scope = watch("targeting.scope");
   const actionRequired = watch("actionRequired");
   const status = watch("status");
 
   async function onSubmit(values: AnnouncementSubmitValues) {
     setHasSubmitError(false);
+    setHasUnavailableUsers(false);
     setTranslationFailedNotice(false);
     setPublishKeptNotice(false);
     try {
@@ -233,6 +257,10 @@ export function AnnouncementForm({
         mode === "edit" && announcementId
           ? await updateAnnouncementAction(announcementId, values)
           : await createAnnouncementAction(values);
+      if ("error" in result) {
+        setHasUnavailableUsers(true);
+        return;
+      }
       if (result.failedLocales.length > 0) {
         if (result.forcedDraft) {
           // 新規公開が翻訳失敗で下書きに変わった。フォームに通知し、状態表示も下書きに合わせる。
@@ -481,6 +509,44 @@ export function AnnouncementForm({
                 selectedCountLabel={countriesSelectedCountLabel}
                 noResultsMessage={countriesNoResultsMessage}
                 removeChipButtonLabel={countriesRemoveChipButtonLabel}
+              />
+            )}
+          />
+        </FormField>
+      )}
+
+      {scope === "users" && (
+        <FormField
+          label={usersLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          htmlFor="announcement-targeting-users-search"
+          error={
+            errors.targeting && "userIds" in errors.targeting
+              ? usersRequiredErrorMessage
+              : hasUnavailableUsers
+                ? usersUnavailableErrorMessage
+                : undefined
+          }
+          errorId="announcement-targeting-users-error"
+        >
+          <Controller
+            control={control}
+            name="targeting.userIds"
+            render={({ field }) => (
+              <UserTargetingSelect
+                id="announcement-targeting-users"
+                value={field.value ?? []}
+                onChange={field.onChange}
+                initialUsers={initialTargetUsers}
+                labels={usersLabels}
+                countryLabels={countryLabels}
+                ariaInvalid={
+                  (errors.targeting && "userIds" in errors.targeting) || hasUnavailableUsers
+                    ? true
+                    : undefined
+                }
+                errorMessageId="announcement-targeting-users-error"
               />
             )}
           />
