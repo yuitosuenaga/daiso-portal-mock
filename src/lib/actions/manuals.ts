@@ -19,6 +19,7 @@ import type {
   ManualSaveResult,
   ManualTranslationView,
 } from "@/types/manual";
+import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 
 const HELPDESK_MANUAL_LIST_PATH = "/[locale]/helpdesk/manuals";
 const HELPDESK_MANUAL_NEW_PATH = "/[locale]/helpdesk/manuals/new";
@@ -80,6 +81,7 @@ async function translateManualContent(
 export async function createManualAction(
   input: ManualFormInput
 ): Promise<ManualSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = withServerRecomputedEmbedUrl(
     manualFormSchema.parse(input) as ManualFormInput
   );
@@ -99,6 +101,7 @@ export async function updateManualAction(
   id: string,
   input: ManualFormInput
 ): Promise<ManualSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = withServerRecomputedEmbedUrl(
     manualFormSchema.parse(input) as ManualFormInput
   );
@@ -130,6 +133,7 @@ export async function updateManualAction(
 export async function retranslateManualAction(
   id: string
 ): Promise<{ failedLocales: string[] }> {
+  await requireHelpdeskStaffSession();
   const existing = await getManualByIdForHelpdesk(id);
   if (!existing) {
     throw new ManualNotFoundError(id);

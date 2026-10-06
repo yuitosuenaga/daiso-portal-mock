@@ -73,6 +73,7 @@ async function withAutoTranslations(
 export async function createAnnouncementAction(
   input: AnnouncementActionInput
 ): Promise<AnnouncementSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = announcementFormSchema.parse(input);
   const { input: prepared, failedLocales, forcedDraft } = await withAutoTranslations(parsed);
   const created = await createAnnouncement(prepared);
@@ -89,6 +90,7 @@ export async function updateAnnouncementAction(
   id: string,
   input: AnnouncementActionInput
 ): Promise<AnnouncementSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = announcementFormSchema.parse(input);
   const { input: prepared, failedLocales, forcedDraft } = await withAutoTranslations(parsed, id);
   const updated = await updateAnnouncement(id, prepared);

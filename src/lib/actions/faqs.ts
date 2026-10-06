@@ -51,6 +51,7 @@ function toTranslationViews(
  * 不正な入力は保存せず例外を送出する。
  */
 export async function createFaqAction(input: FaqFormValues): Promise<FaqSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = faqFormSchema.parse(input);
   const { translations, failedLocales } = await autoTranslateFields({
     question: parsed.question,
@@ -71,6 +72,7 @@ export async function updateFaqAction(
   id: string,
   input: FaqFormValues
 ): Promise<FaqSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = faqFormSchema.parse(input);
   const existing = await getFaqByIdForHelpdesk(id);
   if (!existing) {

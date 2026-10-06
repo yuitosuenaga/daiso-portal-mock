@@ -24,6 +24,7 @@ import {
   getLinkCategoryById,
   updateLinkCategory,
 } from "@/lib/api/link-categories";
+import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import { autoTranslateFields } from "@/lib/server/auto-translation";
 import { addLinkCategoryTranslations } from "@/lib/server/link-category-service";
 import {
@@ -141,5 +142,22 @@ describe("retranslateLinkCategoryAction", () => {
   it("カテゴリが存在しないときは例外を送出する", async () => {
     vi.mocked(getLinkCategoryById).mockResolvedValue(null);
     await expect(retranslateLinkCategoryAction("x")).rejects.toThrow();
+  });
+});
+
+describe("認証（翻訳APIを呼ぶ前に拒否する）", () => {
+  beforeEach(() => {
+    vi.mocked(autoTranslateFields).mockClear();
+    vi.mocked(requireHelpdeskStaffSession).mockRejectedValueOnce(new Error("unauthorized"));
+  });
+
+  it("作成は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(createLinkCategoryAction({ parentId: null, name: "x" } as never)).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+  });
+
+  it("更新は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(updateLinkCategoryAction("cat-1", { name: "x" } as never)).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
   });
 });
