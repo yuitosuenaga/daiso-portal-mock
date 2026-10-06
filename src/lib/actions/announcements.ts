@@ -11,7 +11,9 @@ import { announcementFormSchema } from "@/lib/validation/announcement";
 import { buildAnnouncementTranslations } from "@/lib/server/announcement-translation";
 import {
   AnnouncementNotFoundError,
+  AnnouncementTargetUsersNotFoundError,
   findAnnouncementById,
+  normalizeTargeting,
   replaceAnnouncementTranslations,
 } from "@/lib/server/announcement-service";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
@@ -40,6 +42,29 @@ export interface AnnouncementSaveResult {
   failedLocales: string[];
   /** 翻訳失敗のため、指定された公開状態に関わらず下書きとして保存した場合に真 */
   forcedDraft: boolean;
+}
+
+/** 個人指定の配信対象に有効なアカウントが1件も無く、保存しなかったことを表す結果。 */
+export interface AnnouncementSaveRejected {
+  error: "targetUsersUnavailable";
+}
+
+/**
+ * 翻訳APIを呼ぶ前に配信対象を検証する。個人指定で有効なアカウントが残らない場合は
+ * 拒否結果を返し、翻訳コストをかけずに保存を中止する。
+ */
+async function rejectUnavailableTargetUsers(
+  targeting: AnnouncementActionInput["targeting"]
+): Promise<AnnouncementSaveRejected | null> {
+  try {
+    await normalizeTargeting(targeting);
+    return null;
+  } catch (error) {
+    if (error instanceof AnnouncementTargetUsersNotFoundError) {
+      return { error: "targetUsersUnavailable" };
+    }
+    throw error;
+  }
 }
 
 /**
@@ -72,9 +97,11 @@ async function withAutoTranslations(
  */
 export async function createAnnouncementAction(
   input: AnnouncementActionInput
-): Promise<AnnouncementSaveResult> {
+): Promise<AnnouncementSaveResult | AnnouncementSaveRejected> {
   await requireHelpdeskStaffSession();
   const parsed = announcementFormSchema.parse(input);
+  const rejected = await rejectUnavailableTargetUsers(parsed.targeting);
+  if (rejected) return rejected;
   const { input: prepared, failedLocales, forcedDraft } = await withAutoTranslations(parsed);
   const created = await createAnnouncement(prepared);
   revalidateAnnouncementRoutes();
@@ -89,9 +116,11 @@ export async function createAnnouncementAction(
 export async function updateAnnouncementAction(
   id: string,
   input: AnnouncementActionInput
-): Promise<AnnouncementSaveResult> {
+): Promise<AnnouncementSaveResult | AnnouncementSaveRejected> {
   await requireHelpdeskStaffSession();
   const parsed = announcementFormSchema.parse(input);
+  const rejected = await rejectUnavailableTargetUsers(parsed.targeting);
+  if (rejected) return rejected;
   const { input: prepared, failedLocales, forcedDraft } = await withAutoTranslations(parsed, id);
   const updated = await updateAnnouncement(id, prepared);
   revalidateAnnouncementRoutes();

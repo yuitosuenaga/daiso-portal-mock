@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
         "attachmentsCountExceeded": "Số lượng tệp đính kèm vượt quá giới hạn (5 tệp)",
         "attachmentsReadFailed": "Không thể đọc tệp. Vui lòng thử lại.",
-        "usersRequired": "Vui lòng chọn ít nhất một cá nhân"
+        "usersRequired": "Vui lòng chọn ít nhất một cá nhân",
+        "usersUnavailable": "Những người dùng đã chọn đã bị vô hiệu hóa hoặc xóa nên không thể chọn làm đối tượng"
       },
       "actionRequiredLabel": "Cần xử lý hay không",
       "actionRequiredTrueOption": "Cần xử lý",
@@ -291,7 +292,10 @@
       "usersSearchError": "Tìm kiếm thất bại",
       "usersSelectedCountLabel": "Đã chọn {count} người",
       "usersRemoveChipButtonLabel": "Xóa",
-      "usersAlreadySelectedLabel": "Đã chọn"
+      "usersAlreadySelectedLabel": "Đã chọn",
+      "usersSearchingLabel": "Đang tìm kiếm...",
+      "usersResultsCountLabel": "Tìm thấy {count} kết quả",
+      "usersUnavailableLabel": "Không khả dụng"
     },
     "tracking": {
       "confirmedCount": "Đã xác nhận {confirmed}/{total} người",

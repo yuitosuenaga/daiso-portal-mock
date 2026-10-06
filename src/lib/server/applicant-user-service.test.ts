@@ -38,6 +38,8 @@ import {
   getApplicantUserById,
   isApplicantUserEmailTaken,
   listApplicantUsersByCompany,
+  listApplicantUsersForTargetingByIds,
+  searchApplicantUsersForTargeting,
   setApplicantUserActive,
   updateApplicantUser,
 } from "@/lib/server/applicant-user-service";
@@ -342,5 +344,44 @@ describe("isApplicantUserEmailTaken", () => {
     expect(prisma.applicantUser.findFirst).toHaveBeenCalledWith({
       where: { email: "tanaka@example.com", id: { not: "applicant-1" } },
     });
+  });
+});
+
+describe("searchApplicantUsersForTargeting / listApplicantUsersForTargetingByIds", () => {
+  it("文字列以外の検索語は検索せず空配列を返す", async () => {
+    const result = await searchApplicantUsersForTargeting(123 as never);
+
+    expect(result).toEqual([]);
+    expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
+  });
+
+  it("検索語は100文字に切り詰めて有効なアカウントだけを検索する", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([]);
+
+    await searchApplicantUsersForTargeting(`  ${"a".repeat(150)}  `);
+
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          OR: expect.arrayContaining([
+            { displayName: { contains: "a".repeat(100), mode: "insensitive" } },
+          ]),
+        }),
+        take: 20,
+      })
+    );
+  });
+
+  it("IDによる復元は上限200件までに絞って取得する", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([]);
+    const ids = Array.from({ length: 250 }, (_, index) => `u${index}`);
+
+    await listApplicantUsersForTargetingByIds(ids);
+
+    const call = vi.mocked(prisma.applicantUser.findMany).mock.calls[0][0] as {
+      where: { id: { in: string[] } };
+    };
+    expect(call.where.id.in).toHaveLength(200);
   });
 });

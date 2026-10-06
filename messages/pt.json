@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "Tipo de arquivo não permitido (apenas imagens ou PDF)",
         "attachmentsCountExceeded": "Excedido o limite de arquivos anexados (5 itens)",
         "attachmentsReadFailed": "Falha ao ler o arquivo. Tente novamente.",
-        "usersRequired": "Selecione pelo menos uma pessoa"
+        "usersRequired": "Selecione pelo menos uma pessoa",
+        "usersUnavailable": "Os indivíduos selecionados foram desativados ou excluídos e não podem ser destinatários"
       },
       "actionRequiredLabel": "Necessidade de ação",
       "actionRequiredTrueOption": "Ação necessária",
@@ -291,7 +292,10 @@
       "usersSearchError": "Falha na pesquisa",
       "usersSelectedCountLabel": "{count} selecionado(s)",
       "usersRemoveChipButtonLabel": "Remover",
-      "usersAlreadySelectedLabel": "Selecionado"
+      "usersAlreadySelectedLabel": "Selecionado",
+      "usersSearchingLabel": "Pesquisando...",
+      "usersResultsCountLabel": "{count} encontrado(s)",
+      "usersUnavailableLabel": "Indisponível"
     },
     "tracking": {
       "confirmedCount": "Confirmado {confirmed}/{total} pessoas",

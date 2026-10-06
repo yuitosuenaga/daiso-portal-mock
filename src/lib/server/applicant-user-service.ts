@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import { ANNOUNCEMENT_TARGET_USER_MAX_COUNT } from "@/lib/validation/announcement";
 import type {
   ApplicantUserSummary,
   ApplicantUserTargetOption,
@@ -224,6 +225,9 @@ function mapTargetOption(record: {
 /** 個人指定の検索候補の最大件数。 */
 export const APPLICANT_USER_SEARCH_LIMIT = 20;
 
+/** 個人指定の検索語の最大文字数（それ以上は切り捨てる）。 */
+const APPLICANT_USER_SEARCH_QUERY_MAX_LENGTH = 100;
+
 /**
  * お知らせの個人指定用に、有効な申請者アカウントを氏名・メールアドレス・会社名の
  * 部分一致（大文字小文字を区別しない）で検索する。空のクエリは空配列を返す。
@@ -233,7 +237,10 @@ export async function searchApplicantUsersForTargeting(
 ): Promise<ApplicantUserTargetOption[]> {
   await requireHelpdeskStaffSession();
 
-  const trimmed = query.trim();
+  if (typeof query !== "string") {
+    return [];
+  }
+  const trimmed = query.trim().slice(0, APPLICANT_USER_SEARCH_QUERY_MAX_LENGTH);
   if (trimmed === "") {
     return [];
   }
@@ -267,7 +274,7 @@ export async function listApplicantUsersForTargetingByIds(
   }
 
   const records = await prisma.applicantUser.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids.slice(0, ANNOUNCEMENT_TARGET_USER_MAX_COUNT) } },
     select: TARGET_OPTION_SELECT,
     orderBy: [{ company: { name: "asc" } }, { displayName: "asc" }],
   });

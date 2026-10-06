@@ -63,8 +63,12 @@ const labels = {
     selectedCountLabel: "{count}名選択中",
     removeChipButtonLabel: "削除",
     alreadySelectedLabel: "選択済み",
+    searchingLabel: "検索中",
+    resultsCountLabel: "{count}件見つかりました",
+    unavailableLabel: "利用不可",
   },
   usersRequiredErrorMessage: "配信対象の個人を1名以上選択してください",
+  usersUnavailableErrorMessage: "選択した個人は配信対象にできません",
   countriesLabel: "国・地域",
   countriesSearchPlaceholder: "国名で検索",
   countriesSelectAllButtonLabel: "すべて選択",
@@ -518,6 +522,33 @@ describe("AnnouncementForm", () => {
       expect(
         screen.getByText("保存に失敗しました。時間を置いて再度お試しください。")
       ).toBeTruthy();
+    });
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("個人指定の対象が全て無効で保存が拒否された場合、専用のエラーを表示し遷移しない", async () => {
+    updateAnnouncementActionMock.mockResolvedValueOnce({ error: "targetUsersUnavailable" });
+    render(
+      <AnnouncementForm
+        mode="edit"
+        announcementId="existing-id"
+        defaultValues={{
+          title: "既存タイトル",
+          body: "既存本文",
+          category: "policy",
+          status: "published",
+          targeting: { scope: "users", userIds: ["u1"] },
+          actionRequired: false,
+          sendEmailNotification: false,
+        }}
+        {...labels}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("選択した個人は配信対象にできません")).toBeTruthy();
     });
     expect(pushMock).not.toHaveBeenCalled();
   });

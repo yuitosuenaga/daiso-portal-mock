@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "This file type is not allowed (images or PDF only)",
         "attachmentsCountExceeded": "The maximum number of attachments (5) has been exceeded",
         "attachmentsReadFailed": "Failed to read the file. Please try again.",
-        "usersRequired": "Select at least one individual"
+        "usersRequired": "Select at least one individual",
+        "usersUnavailable": "The selected individuals are deactivated or deleted and cannot be targeted"
       },
       "actionRequiredLabel": "Action required",
       "actionRequiredTrueOption": "Action required",
@@ -291,7 +292,10 @@
       "usersSearchError": "Search failed",
       "usersSelectedCountLabel": "{count} selected",
       "usersRemoveChipButtonLabel": "Remove",
-      "usersAlreadySelectedLabel": "Selected"
+      "usersAlreadySelectedLabel": "Selected",
+      "usersSearchingLabel": "Searching...",
+      "usersResultsCountLabel": "{count} found",
+      "usersUnavailableLabel": "Unavailable"
     },
     "tracking": {
       "confirmedCount": "Confirmed {confirmed}/{total} people",

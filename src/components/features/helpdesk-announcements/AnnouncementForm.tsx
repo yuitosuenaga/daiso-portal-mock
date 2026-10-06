@@ -61,6 +61,7 @@ export interface AnnouncementFormProps {
   usersLabel: string;
   usersLabels: UserTargetingSelectLabels;
   usersRequiredErrorMessage: string;
+  usersUnavailableErrorMessage: string;
   /** 編集時、`targeting.userIds`の表示情報（氏名・会社）を復元するための選択済みユーザー。 */
   initialTargetUsers?: ApplicantUserTargetOption[];
   countriesLabel: string;
@@ -139,6 +140,7 @@ export function AnnouncementForm({
   usersLabel,
   usersLabels,
   usersRequiredErrorMessage,
+  usersUnavailableErrorMessage,
   initialTargetUsers,
   countriesLabel,
   countriesSearchPlaceholder,
@@ -182,6 +184,7 @@ export function AnnouncementForm({
 }: AnnouncementFormProps) {
   const router = useRouter();
   const [hasSubmitError, setHasSubmitError] = useState(false);
+  const [hasUnavailableUsers, setHasUnavailableUsers] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [translationFailedNotice, setTranslationFailedNotice] = useState(false);
   const {
@@ -228,17 +231,25 @@ export function AnnouncementForm({
     { value: "countries", label: targetingCountriesOption },
     { value: "users", label: targetingUsersOption },
   ];
+  const countryLabels = Object.fromEntries(
+    countryOptions.map((option) => [option.value, option.label])
+  );
   const scope = watch("targeting.scope");
   const actionRequired = watch("actionRequired");
 
   async function onSubmit(values: AnnouncementSubmitValues) {
     setHasSubmitError(false);
+    setHasUnavailableUsers(false);
     setTranslationFailedNotice(false);
     try {
       const result =
         mode === "edit" && announcementId
           ? await updateAnnouncementAction(announcementId, values)
           : await createAnnouncementAction(values);
+      if ("error" in result) {
+        setHasUnavailableUsers(true);
+        return;
+      }
       if (result.failedLocales.length > 0) {
         // 翻訳失敗: 下書きとして保存済み。フォームに通知し、状態表示も下書きに合わせる。
         setValue("status", "draft");
@@ -481,7 +492,9 @@ export function AnnouncementForm({
           error={
             errors.targeting && "userIds" in errors.targeting
               ? usersRequiredErrorMessage
-              : undefined
+              : hasUnavailableUsers
+                ? usersUnavailableErrorMessage
+                : undefined
           }
           errorId="announcement-targeting-users-error"
         >
@@ -495,8 +508,11 @@ export function AnnouncementForm({
                 onChange={field.onChange}
                 initialUsers={initialTargetUsers}
                 labels={usersLabels}
+                countryLabels={countryLabels}
                 ariaInvalid={
-                  errors.targeting && "userIds" in errors.targeting ? true : undefined
+                  (errors.targeting && "userIds" in errors.targeting) || hasUnavailableUsers
+                    ? true
+                    : undefined
                 }
                 errorMessageId="announcement-targeting-users-error"
               />

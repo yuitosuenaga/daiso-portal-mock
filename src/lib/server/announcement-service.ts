@@ -44,10 +44,10 @@ export class AnnouncementNotFoundError extends Error {
   }
 }
 
-/** 個人指定の配信対象に、存在する申請者アカウントが1件も含まれないことを表すエラー。 */
+/** 個人指定の配信対象に、有効な申請者アカウントが1件も含まれないことを表すエラー。 */
 export class AnnouncementTargetUsersNotFoundError extends Error {
   constructor() {
-    super("No existing applicant users in the individual targeting");
+    super("No active applicant users in the individual targeting");
     this.name = "AnnouncementTargetUsersNotFoundError";
   }
 }
@@ -223,11 +223,11 @@ async function filterExistingDocumentIds(documentIds: string[]): Promise<string[
 }
 
 /**
- * 個人指定（`users`）の配信対象について、重複IDを除き、実在する申請者アカウントのIDだけに
- * 絞り込む。1件も残らない場合は`AnnouncementTargetUsersNotFoundError`を送出する
- * （誰にも届かないお知らせの保存を防ぐ）。他の配信対象はそのまま返す。
+ * 個人指定（`users`）の配信対象について、重複IDを除き、実在し有効な（`isActive`）申請者
+ * アカウントのIDだけに絞り込む。1件も残らない場合は`AnnouncementTargetUsersNotFoundError`を
+ * 送出する（誰にも届かないお知らせの保存を防ぐ）。他の配信対象はそのまま返す。
  */
-async function normalizeTargeting(
+export async function normalizeTargeting(
   targeting: AnnouncementTargeting
 ): Promise<AnnouncementTargeting> {
   if (targeting.scope !== "users") {
@@ -235,7 +235,7 @@ async function normalizeTargeting(
   }
   const uniqueIds = Array.from(new Set(targeting.userIds));
   const users = await prisma.applicantUser.findMany({
-    where: { id: { in: uniqueIds } },
+    where: { id: { in: uniqueIds }, isActive: true },
     select: { id: true },
   });
   const existingIds = new Set(users.map((user) => user.id));

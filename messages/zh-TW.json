@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "不允許的檔案格式（僅限圖片或PDF）",
         "attachmentsCountExceeded": "超過可附加檔案數量的上限（5個）",
         "attachmentsReadFailed": "無法讀取檔案。請重試。",
-        "usersRequired": "請至少選擇一位個人"
+        "usersRequired": "請至少選擇一位個人",
+        "usersUnavailable": "所選人員已停用或已刪除，無法作為發送對象"
       },
       "actionRequiredLabel": "對應必要性",
       "actionRequiredTrueOption": "需要對應",
@@ -291,7 +292,10 @@
       "usersSearchError": "搜尋失敗",
       "usersSelectedCountLabel": "已選擇{count}人",
       "usersRemoveChipButtonLabel": "刪除",
-      "usersAlreadySelectedLabel": "已選擇"
+      "usersAlreadySelectedLabel": "已選擇",
+      "usersSearchingLabel": "搜尋中...",
+      "usersResultsCountLabel": "找到 {count} 筆",
+      "usersUnavailableLabel": "無法使用"
     },
     "tracking": {
       "confirmedCount": "已確認 {confirmed}/{total}人",

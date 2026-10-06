@@ -68,8 +68,12 @@ export default async function HelpdeskAnnouncementNewPage() {
           selectedCountLabel: t.raw("usersSelectedCountLabel"),
           removeChipButtonLabel: t("usersRemoveChipButtonLabel"),
           alreadySelectedLabel: t("usersAlreadySelectedLabel"),
+          searchingLabel: t("usersSearchingLabel"),
+          resultsCountLabel: t.raw("usersResultsCountLabel"),
+          unavailableLabel: t("usersUnavailableLabel"),
         }}
         usersRequiredErrorMessage={t("validation.usersRequired")}
+        usersUnavailableErrorMessage={t("validation.usersUnavailable")}
         countriesLabel={t("countriesLabel")}
         countriesSearchPlaceholder={t("countriesSearchPlaceholder")}
         countriesSelectAllButtonLabel={t("countriesSelectAllButtonLabel")}

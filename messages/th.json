@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "รูปแบบไฟล์ที่ไม่อนุญาต (รูปภาพหรือ PDF เท่านั้น)",
         "attachmentsCountExceeded": "เกินจำนวนไฟล์ที่สามารถแนบได้ (สูงสุด 5 ไฟล์)",
         "attachmentsReadFailed": "การอ่านไฟล์ล้มเหลว โปรดลองอีกครั้ง",
-        "usersRequired": "กรุณาเลือกอย่างน้อย 1 คน"
+        "usersRequired": "กรุณาเลือกอย่างน้อย 1 คน",
+        "usersUnavailable": "บุคคลที่เลือกถูกปิดใช้งานหรือถูกลบแล้ว จึงไม่สามารถกำหนดเป็นกลุ่มเป้าหมายได้"
       },
       "actionRequiredLabel": "ความจำเป็นในการดำเนินการ",
       "actionRequiredTrueOption": "ต้องดำเนินการ",
@@ -291,7 +292,10 @@
       "usersSearchError": "ค้นหาไม่สำเร็จ",
       "usersSelectedCountLabel": "เลือกแล้ว {count} คน",
       "usersRemoveChipButtonLabel": "ลบ",
-      "usersAlreadySelectedLabel": "เลือกแล้ว"
+      "usersAlreadySelectedLabel": "เลือกแล้ว",
+      "usersSearchingLabel": "กำลังค้นหา...",
+      "usersResultsCountLabel": "พบ {count} รายการ",
+      "usersUnavailableLabel": "ใช้งานไม่ได้"
     },
     "tracking": {
       "confirmedCount": "ยืนยันแล้ว {confirmed}/{total} คน",

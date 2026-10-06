@@ -482,6 +482,21 @@ describe("個人指定のtargeting正規化", () => {
     );
   });
 
+  it("無効化済みアカウントは対象から除外する（有効なアカウントだけを検索する）", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([{ id: "u1" }] as never);
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", targetingScope: "users", targetingUserIds: ["u1"] }) as never
+    );
+
+    await createAnnouncementRecord(usersInput(["u1", "inactive"]));
+
+    expect(prisma.applicantUser.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ["u1", "inactive"] }, isActive: true },
+      })
+    );
+  });
+
   it("実在するIDが1件も無い場合は保存せずエラーにする", async () => {
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([] as never);
     vi.mocked(prisma.announcement.create).mockClear();

@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",
         "attachmentsCountExceeded": "添付できるファイル数の上限（5件）を超えています",
         "attachmentsReadFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
-        "usersRequired": "配信対象の個人を1名以上選択してください"
+        "usersRequired": "配信対象の個人を1名以上選択してください",
+        "usersUnavailable": "選択した個人が無効化または削除されているため、配信対象にできません"
       },
       "actionRequiredLabel": "対応要否",
       "actionRequiredTrueOption": "対応が必要",
@@ -291,7 +292,10 @@
       "usersSearchError": "検索に失敗しました",
       "usersSelectedCountLabel": "{count}名選択中",
       "usersRemoveChipButtonLabel": "削除",
-      "usersAlreadySelectedLabel": "選択済み"
+      "usersAlreadySelectedLabel": "選択済み",
+      "usersSearchingLabel": "検索中...",
+      "usersResultsCountLabel": "{count}件見つかりました",
+      "usersUnavailableLabel": "利用不可"
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",

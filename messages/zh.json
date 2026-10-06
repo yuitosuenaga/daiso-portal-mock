@@ -251,7 +251,8 @@
         "attachmentsTypeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
         "attachmentsCountExceeded": "超过附件数量限制（5个）",
         "attachmentsReadFailed": "文件读取失败。请重试。",
-        "usersRequired": "请至少选择一名个人"
+        "usersRequired": "请至少选择一名个人",
+        "usersUnavailable": "所选人员已停用或已删除，无法作为发送对象"
       },
       "actionRequiredLabel": "应对需求",
       "actionRequiredTrueOption": "需要应对",
@@ -291,7 +292,10 @@
       "usersSearchError": "搜索失败",
       "usersSelectedCountLabel": "已选择{count}人",
       "usersRemoveChipButtonLabel": "删除",
-      "usersAlreadySelectedLabel": "已选择"
+      "usersAlreadySelectedLabel": "已选择",
+      "usersSearchingLabel": "搜索中...",
+      "usersResultsCountLabel": "找到 {count} 条",
+      "usersUnavailableLabel": "不可用"
     },
     "tracking": {
       "confirmedCount": "已确认 {confirmed}/{total}人",

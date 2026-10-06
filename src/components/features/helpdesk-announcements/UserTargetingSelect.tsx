@@ -22,6 +22,12 @@ export interface UserTargetingSelectLabels {
   removeChipButtonLabel: string;
   /** 既に選択済みの検索結果に付けるラベル */
   alreadySelectedLabel: string;
+  /** 検索中に表示する文言 */
+  searchingLabel: string;
+  /** `{count}`を検索結果の件数に置換してスクリーンリーダーへ通知する */
+  resultsCountLabel: string;
+  /** 無効化・削除済みで情報を復元できない選択済みチップに表示する文言 */
+  unavailableLabel: string;
 }
 
 export interface UserTargetingSelectProps {
@@ -32,12 +38,14 @@ export interface UserTargetingSelectProps {
   /** 編集画面などで、`value`に含まれるIDの表示情報を復元するための初期選択。 */
   initialUsers?: ApplicantUserTargetOption[];
   labels: UserTargetingSelectLabels;
+  /** 国コード→表示名。未指定・未登録の国コードはコードのまま表示する。 */
+  countryLabels?: Record<string, string>;
   ariaInvalid?: boolean;
   errorMessageId?: string;
 }
 
-function userSummary(user: ApplicantUserTargetOption): string {
-  return `${user.displayName}（${user.companyName} / ${user.country}）`;
+function userSummary(user: ApplicantUserTargetOption, countryLabel: string): string {
+  return `${user.displayName} (${user.companyName} / ${countryLabel})`;
 }
 
 /**
@@ -51,12 +59,15 @@ export function UserTargetingSelect({
   onChange,
   initialUsers = [],
   labels,
+  countryLabels = {},
   ariaInvalid,
   errorMessageId,
 }: UserTargetingSelectProps) {
+  const countryLabelOf = (code: string) => countryLabels[code] ?? code;
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ApplicantUserTargetOption[]>([]);
   const [searched, setSearched] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [hasSearchError, setHasSearchError] = useState(false);
   const [knownUsers, setKnownUsers] = useState<Map<string, ApplicantUserTargetOption>>(
     () => new Map(initialUsers.map((user) => [user.id, user]))
@@ -69,9 +80,11 @@ export function UserTargetingSelect({
     if (trimmed === "") {
       setResults([]);
       setSearched(false);
+      setIsSearching(false);
       setHasSearchError(false);
       return;
     }
+    setIsSearching(true);
 
     const timer = setTimeout(async () => {
       try {
@@ -85,6 +98,7 @@ export function UserTargetingSelect({
         setHasSearchError(true);
       }
       setSearched(true);
+      setIsSearching(false);
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
@@ -116,16 +130,23 @@ export function UserTargetingSelect({
       <ul
         id={id}
         aria-label={labels.groupLabel}
-        className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border"
+        aria-busy={isSearching}
+        className={
+          results.length > 0 && !isSearching && !hasSearchError
+            ? "max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border"
+            : "max-h-56 overflow-y-auto"
+        }
       >
         {query.trim() === "" ? (
-          <li className="px-3 py-2 text-sm text-muted-foreground">{labels.searchHint}</li>
+          <li className="px-1 py-2 text-sm text-muted-foreground">{labels.searchHint}</li>
+        ) : isSearching ? (
+          <li className="px-1 py-2 text-sm text-muted-foreground">{labels.searchingLabel}</li>
         ) : hasSearchError ? (
-          <li className="px-3 py-2 text-sm text-destructive" role="alert">
+          <li className="px-1 py-2 text-sm text-destructive" role="alert">
             {labels.searchErrorMessage}
           </li>
         ) : searched && results.length === 0 ? (
-          <li className="px-3 py-2 text-sm text-muted-foreground">{labels.noResultsMessage}</li>
+          <li className="px-1 py-2 text-sm text-muted-foreground">{labels.noResultsMessage}</li>
         ) : (
           results.map((user) => {
             const selected = value.includes(user.id);
@@ -146,7 +167,7 @@ export function UserTargetingSelect({
                     )}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {user.email} · {user.companyName} / {user.country}
+                    {user.email} · {user.companyName} / {countryLabelOf(user.country)}
                   </span>
                 </button>
               </li>
@@ -154,6 +175,12 @@ export function UserTargetingSelect({
           })
         )}
       </ul>
+
+      <p className="sr-only" aria-live="polite">
+        {searched && !isSearching && !hasSearchError
+          ? labels.resultsCountLabel.replace("{count}", String(results.length))
+          : ""}
+      </p>
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
         {labels.selectedCountLabel.replace("{count}", String(value.length))}
@@ -163,7 +190,9 @@ export function UserTargetingSelect({
         <ul className="flex flex-wrap gap-2">
           {value.map((userId) => {
             const user = knownUsers.get(userId);
-            const text = user ? userSummary(user) : userId;
+            const text = user
+              ? userSummary(user, countryLabelOf(user.country))
+              : labels.unavailableLabel;
             return (
               <li
                 key={userId}

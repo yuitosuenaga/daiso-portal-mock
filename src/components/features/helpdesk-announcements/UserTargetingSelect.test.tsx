@@ -19,6 +19,9 @@ const labels = {
   selectedCountLabel: "{count}名選択中",
   removeChipButtonLabel: "削除",
   alreadySelectedLabel: "選択済み",
+  searchingLabel: "検索中",
+  resultsCountLabel: "{count}件見つかりました",
+  unavailableLabel: "利用不可",
 };
 
 const taro = {
@@ -38,6 +41,7 @@ function Harness({ initial = [] as string[] }) {
       onChange={setValue}
       initialUsers={initial.length > 0 ? [taro] : []}
       labels={labels}
+      countryLabels={{ VN: "ベトナム" }}
     />
   );
 }
@@ -55,9 +59,9 @@ describe("UserTargetingSelect", () => {
     fireEvent.click(result);
 
     expect(screen.getByText("1名選択中")).toBeTruthy();
-    expect(screen.getByText("Taro（Daiso VN / VN）")).toBeTruthy();
+    expect(screen.getByText("Taro (Daiso VN / ベトナム)")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "削除: Taro（Daiso VN / VN）" }));
+    fireEvent.click(screen.getByRole("button", { name: "削除: Taro (Daiso VN / ベトナム)" }));
     expect(screen.getByText("0名選択中")).toBeTruthy();
   });
 
@@ -65,8 +69,32 @@ describe("UserTargetingSelect", () => {
     searchMock.mockResolvedValue([]);
     render(<Harness initial={["u1"]} />);
 
-    expect(screen.getByText("Taro（Daiso VN / VN）")).toBeTruthy();
+    expect(screen.getByText("Taro (Daiso VN / ベトナム)")).toBeTruthy();
     fireEvent.change(screen.getByPlaceholderText("検索"), { target: { value: "zzz" } });
     await waitFor(() => expect(screen.getByText("該当なし")).toBeTruthy());
+  });
+
+  it("検索中は案内を表示し、完了後に件数を通知する", async () => {
+    let resolveSearch: (value: (typeof taro)[]) => void = () => {};
+    searchMock.mockReturnValue(new Promise((resolve) => (resolveSearch = resolve)));
+    render(<Harness />);
+
+    fireEvent.change(screen.getByPlaceholderText("検索"), { target: { value: "tar" } });
+    expect(await screen.findByText("検索中")).toBeTruthy();
+
+    resolveSearch([taro]);
+    await waitFor(() => expect(screen.getByText("1件見つかりました")).toBeTruthy());
+    expect(screen.queryByText("検索中")).toBeNull();
+  });
+
+  it("情報を復元できない選択済みIDは生のIDでなく「利用不可」で表示する", () => {
+    function Unresolved() {
+      const [value, setValue] = useState<string[]>(["ghost-id"]);
+      return <UserTargetingSelect id="users" value={value} onChange={setValue} labels={labels} />;
+    }
+    render(<Unresolved />);
+
+    expect(screen.getByText("利用不可")).toBeTruthy();
+    expect(screen.queryByText("ghost-id")).toBeNull();
   });
 });

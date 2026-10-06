@@ -155,8 +155,12 @@ export default async function HelpdeskAnnouncementEditPage({
           selectedCountLabel: t.raw("usersSelectedCountLabel"),
           removeChipButtonLabel: t("usersRemoveChipButtonLabel"),
           alreadySelectedLabel: t("usersAlreadySelectedLabel"),
+          searchingLabel: t("usersSearchingLabel"),
+          resultsCountLabel: t.raw("usersResultsCountLabel"),
+          unavailableLabel: t("usersUnavailableLabel"),
         }}
         usersRequiredErrorMessage={t("validation.usersRequired")}
+        usersUnavailableErrorMessage={t("validation.usersUnavailable")}
         initialTargetUsers={initialTargetUsers}
         countriesLabel={t("countriesLabel")}
         countriesSearchPlaceholder={t("countriesSearchPlaceholder")}
