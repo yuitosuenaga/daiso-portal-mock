@@ -53,7 +53,7 @@
       "editLink": "Editar",
       "deleteButton": "Excluir",
       "deleteConfirmTitle": "Excluir documento",
-      "deleteConfirm": "Excluir '{title}'. Esta ação não pode ser desfeita. Tem certeza?",
+      "deleteConfirm": "Excluir {title}. Esta ação não pode ser desfeita. Tem certeza?",
       "deleteConfirmButton": "Excluir",
       "deleteCancelButton": "Cancelar",
       "deleteError": "Falha ao excluir. Aguarde um pouco e tente novamente.",
@@ -462,7 +462,7 @@
       "editLink": "Editar",
       "deleteButton": "Excluir",
       "deleteConfirmTitle": "Exclusão de FAQ",
-      "deleteConfirm": "Excluir '{question}'. Esta operação não pode ser desfeita. Tem certeza?",
+      "deleteConfirm": "Excluir {question}. Esta operação não pode ser desfeita. Tem certeza?",
       "deleteConfirmButton": "Excluir",
       "deleteCancelButton": "Cancelar",
       "deleteError": "Falha ao excluir. Tente novamente mais tarde.",
@@ -519,7 +519,7 @@
       "editLink": "Editar",
       "deleteButton": "Excluir",
       "deleteConfirmTitle": "Exclusão de link",
-      "deleteConfirm": "Você está excluindo '{title}'. Esta ação não pode ser desfeita. Tem certeza?",
+      "deleteConfirm": "Você está excluindo {title}. Esta ação não pode ser desfeita. Tem certeza?",
       "deleteConfirmButton": "Excluir",
       "deleteCancelButton": "Cancelar",
       "deleteError": "Falha ao excluir. Tente novamente mais tarde.",
@@ -584,12 +584,12 @@
         "delete": {
           "buttonLabel": "Deletar",
           "confirmTitle": "Exclusão de categoria",
-          "confirmMessage": "'{name}' será deletado. Esta operação não pode ser desfeita. Tem certeza?",
+          "confirmMessage": "{name} será deletado. Esta operação não pode ser desfeita. Tem certeza?",
           "confirmButtonLabel": "Deletar",
           "cancelButtonLabel": "Cancelar",
           "errorMessage": "Falha ao deletar. Tente novamente mais tarde.",
-          "blockedByLinks": "Não é possível deletar '{name}' porque existem {count} links associados. Primeiro altere a categoria dos links correspondentes.",
-          "blockedByChildren": "Não é possível deletar '{name}' porque existem {count} subcategorias. Primeiro delete as subcategorias."
+          "blockedByLinks": "Não é possível deletar {name} porque existem {count} links associados. Primeiro altere a categoria dos links correspondentes.",
+          "blockedByChildren": "Não é possível deletar {name} porque existem {count} subcategorias. Primeiro delete as subcategorias."
         },
         "retranslateButton": "Traduzir novamente"
       },
@@ -696,13 +696,15 @@
       "preferredLocaleOptions": {
         "en": "Inglês",
         "ja": "Japonês",
-        "zh": "Chinês",
+        "zh": "Chinês (simplificado)",
+        "zh-TW": "Chinês (tradicional)",
         "ko": "Coreano",
         "th": "Tailandês",
         "vi": "Vietnamita",
         "id": "Indonésio",
         "ms": "Malaio",
-        "tl": "Tagalog"
+        "tl": "Tagalog",
+        "pt": "Português"
       },
       "submitButton": "Salvar",
       "submitError": "Falha ao salvar. Tente novamente após algum tempo.",
@@ -718,8 +720,8 @@
       "activateButton": "Reativar",
       "deactivateConfirmTitle": "Desativação de conta",
       "activateConfirmTitle": "Reativação de conta",
-      "deactivateConfirm": "Desativar a conta '{name}'. Após a desativação, você não poderá fazer login com esta conta. Tem certeza?",
-      "activateConfirm": "Reativar a conta '{name}'. Após a reativação, você poderá fazer login novamente. Tem certeza?",
+      "deactivateConfirm": "Desativar a conta {name}. Após a desativação, você não poderá fazer login com esta conta. Tem certeza?",
+      "activateConfirm": "Reativar a conta {name}. Após a reativação, você poderá fazer login novamente. Tem certeza?",
       "deactivateConfirmButton": "Executar desativação",
       "activateConfirmButton": "Executar reativação",
       "cancelButton": "Cancelar",
@@ -1013,7 +1015,7 @@
     "delete": {
       "buttonLabel": "Deletar",
       "confirmTitle": "Deletar material",
-      "confirmMessage": "Você está prestes a deletar o material '{heading}'. Esta operação não pode ser desfeita. Tem certeza?",
+      "confirmMessage": "Você está prestes a deletar o material {heading}. Esta operação não pode ser desfeita. Tem certeza?",
       "confirmButton": "Deletar",
       "cancelButton": "Cancelar",
       "errorMessage": "Falha ao deletar. Aguarde um momento e tente novamente."
@@ -1142,7 +1144,8 @@
       "originalLanguage": {
         "ja": "Japonês",
         "en": "Inglês",
-        "zh": "Chinês",
+        "zh": "Chinês (simplificado)",
+        "zh-TW": "Chinês (tradicional)",
         "ko": "Coreano",
         "th": "Tailandês",
         "vi": "Vietnamita",
@@ -1371,12 +1374,12 @@
       "delete": {
         "buttonLabel": "Excluir",
         "confirmTitle": "Exclusão de categoria",
-        "confirmMessage": "Você vai excluir '{name}'. Esta ação não pode ser desfeita. Tem certeza?",
+        "confirmMessage": "Você vai excluir {name}. Esta ação não pode ser desfeita. Tem certeza?",
         "confirmButtonLabel": "Excluir",
         "cancelButtonLabel": "Cancelar",
         "errorMessage": "Falha na exclusão. Aguarde um momento e tente novamente.",
-        "blockedByDocuments": "Não é possível excluir '{name}' porque há {count} documentos vinculados. Primeiro, altere a categoria dos documentos correspondentes.",
-        "blockedByChildren": "Não é possível excluir '{name}' porque existem {count} subcategorias. Primeiro, exclua as subcategorias."
+        "blockedByDocuments": "Não é possível excluir {name} porque há {count} documentos vinculados. Primeiro, altere a categoria dos documentos correspondentes.",
+        "blockedByChildren": "Não é possível excluir {name} porque existem {count} subcategorias. Primeiro, exclua as subcategorias."
       }
     },
     "form": {
@@ -1531,7 +1534,7 @@
     "delete": {
       "buttonLabel": "Excluir",
       "confirmTitle": "Excluir manual",
-      "confirmMessage": "Excluir '{title}'. Esta ação não pode ser desfeita. Tem certeza?",
+      "confirmMessage": "Excluir {title}. Esta ação não pode ser desfeita. Tem certeza?",
       "confirmButton": "Excluir",
       "cancelButton": "Cancelar",
       "errorMessage": "Falha ao excluir. Aguarde um momento e tente novamente."

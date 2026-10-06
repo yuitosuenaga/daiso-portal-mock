@@ -43,6 +43,7 @@ function toTranslationViews(
  * 失敗したlocaleを`failedLocales`で返す。
  */
 export async function createLinkAction(input: CreateLinkInput): Promise<LinkSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = linkFormSchema.parse(input);
   const { translations, failedLocales } = await autoTranslateFields({
     title: parsed.title,
@@ -66,6 +67,7 @@ export async function updateLinkAction(
   id: string,
   input: CreateLinkInput
 ): Promise<LinkSaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = linkFormSchema.parse(input);
   const existing = await getLinkByIdForHelpdesk(id);
   if (!existing) {

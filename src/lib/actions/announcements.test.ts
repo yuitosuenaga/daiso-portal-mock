@@ -293,3 +293,22 @@ describe("retranslateAnnouncementAction", () => {
     expect(replaceAnnouncementTranslations).not.toHaveBeenCalled();
   });
 });
+
+describe("認証（翻訳処理の前に拒否する）", () => {
+  beforeEach(() => {
+    vi.mocked(buildAnnouncementTranslations).mockClear();
+    vi.mocked(requireHelpdeskStaffSession).mockRejectedValueOnce(new Error("unauthorized"));
+  });
+
+  it("作成は、未認証なら翻訳も保存も呼ばずに拒否する", async () => {
+    await expect(createAnnouncementAction({} as never)).rejects.toThrow("unauthorized");
+    expect(buildAnnouncementTranslations).not.toHaveBeenCalled();
+    expect(createAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("更新は、未認証なら翻訳も保存も呼ばずに拒否する", async () => {
+    await expect(updateAnnouncementAction("a-1", {} as never)).rejects.toThrow("unauthorized");
+    expect(buildAnnouncementTranslations).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
+  });
+});

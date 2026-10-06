@@ -696,13 +696,15 @@
       "preferredLocaleOptions": {
         "en": "English",
         "ja": "Japanese",
-        "zh": "Chinese",
+        "zh": "Chinese (Simplified)",
+        "zh-TW": "Chinese (Traditional)",
         "ko": "Korean",
         "th": "Thai",
         "vi": "Vietnamese",
         "id": "Indonesian",
         "ms": "Malay",
-        "tl": "Tagalog"
+        "tl": "Tagalog",
+        "pt": "Portuguese"
       },
       "submitButton": "Save",
       "submitError": "Failed to save. Please try again later.",
@@ -1142,7 +1144,8 @@
       "originalLanguage": {
         "ja": "Japanese",
         "en": "English",
-        "zh": "Chinese",
+        "zh": "Chinese (Simplified)",
+        "zh-TW": "Chinese (Traditional)",
         "ko": "Korean",
         "th": "Thai",
         "vi": "Vietnamese",

@@ -60,6 +60,7 @@ export async function createLinkCategoryAction(input: {
   parentId: string | null;
   name: string;
 }): Promise<LinkCategorySaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = linkCategoryFormSchema.parse(input);
   const { translations, failedLocales } = await autoTranslateFields({ name: parsed.name });
   const created = await createLinkCategory({
@@ -76,6 +77,7 @@ export async function updateLinkCategoryAction(
   id: string,
   input: { name: string }
 ): Promise<LinkCategorySaveResult> {
+  await requireHelpdeskStaffSession();
   const parsed = linkCategoryFormSchema.parse({ parentId: null, ...input });
   const existing = await getLinkCategoryById(id);
   if (!existing) {

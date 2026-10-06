@@ -56,6 +56,7 @@ export const INQUIRY_ORIGINAL_LANGUAGE_CODES = [
   "ja",
   "en",
   "zh",
+  "zh-TW",
   "ko",
   "th",
   "vi",

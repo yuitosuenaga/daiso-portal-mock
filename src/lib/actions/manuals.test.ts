@@ -9,6 +9,9 @@ vi.mock("@/lib/api/manuals", () => ({
   deleteManual: vi.fn(),
   getManualByIdForHelpdesk: vi.fn(),
 }));
+vi.mock("@/lib/server/auth-session", () => ({
+  requireHelpdeskStaffSession: vi.fn(),
+}));
 vi.mock("@/lib/server/auto-translation", () => ({
   autoTranslateFields: vi.fn(),
 }));
@@ -20,6 +23,7 @@ import {
   getManualByIdForHelpdesk,
   updateManual,
 } from "@/lib/api/manuals";
+import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import { autoTranslateFields } from "@/lib/server/auto-translation";
 import {
   createManualAction,
@@ -325,5 +329,27 @@ describe("deleteManualAction", () => {
 
     expect(deleteManual).toHaveBeenCalledWith("manual-1");
     expect(revalidatePath).toHaveBeenCalled();
+  });
+});
+
+describe("認証（翻訳APIを呼ぶ前に拒否する）", () => {
+  beforeEach(() => {
+    vi.mocked(autoTranslateFields).mockClear();
+    vi.mocked(requireHelpdeskStaffSession).mockRejectedValueOnce(new Error("unauthorized"));
+  });
+
+  it("作成は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(createManualAction({} as never)).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+  });
+
+  it("更新は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(updateManualAction("manual-1", {} as never)).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
+  });
+
+  it("再翻訳は、未認証なら翻訳APIも保存も呼ばずに拒否する", async () => {
+    await expect(retranslateManualAction("manual-1")).rejects.toThrow("unauthorized");
+    expect(autoTranslateFields).not.toHaveBeenCalled();
   });
 });
