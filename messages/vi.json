@@ -508,7 +508,7 @@
       "editLink": "Chỉnh sửa",
       "deleteButton": "Xóa",
       "deleteConfirmTitle": "Xóa liên kết",
-      "deleteConfirm": "Sẽ xóa '{title}'. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
+      "deleteConfirm": "Sẽ xóa {title}. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
       "deleteConfirmButton": "Xóa",
       "deleteCancelButton": "Hủy",
       "deleteError": "Xóa không thành công. Vui lòng thử lại sau.",
@@ -573,12 +573,12 @@
         "delete": {
           "buttonLabel": "Xóa",
           "confirmTitle": "Xóa danh mục",
-          "confirmMessage": "Xóa '{name}'. Thao tác này không thể hoàn tác. Bạn có chắc chắn không?",
+          "confirmMessage": "Xóa {name}. Thao tác này không thể hoàn tác. Bạn có chắc chắn không?",
           "confirmButtonLabel": "Xóa",
           "cancelButtonLabel": "Hủy",
           "errorMessage": "Xóa không thành công. Vui lòng thử lại sau một lúc.",
-          "blockedByLinks": "Không thể xóa '{name}' vì nó có {count} liên kết được liên kết. Vui lòng thay đổi danh mục của các liên kết đó trước.",
-          "blockedByChildren": "Không thể xóa '{name}' vì nó có {count} danh mục con. Vui lòng xóa các danh mục con trước."
+          "blockedByLinks": "Không thể xóa {name} vì nó có {count} liên kết được liên kết. Vui lòng thay đổi danh mục của các liên kết đó trước.",
+          "blockedByChildren": "Không thể xóa {name} vì nó có {count} danh mục con. Vui lòng xóa các danh mục con trước."
         },
         "retranslateButton": "Dịch lại"
       },
@@ -1002,7 +1002,7 @@
     "delete": {
       "buttonLabel": "Xóa",
       "confirmTitle": "Xóa tài liệu",
-      "confirmMessage": "Bạn sắp xóa tài liệu của '{heading}'. Không thể hoàn tác hành động này. Bạn có chắc chắn không?",
+      "confirmMessage": "Bạn sắp xóa tài liệu của {heading}. Không thể hoàn tác hành động này. Bạn có chắc chắn không?",
       "confirmButton": "Xóa",
       "cancelButton": "Hủy",
       "errorMessage": "Xóa không thành công. Vui lòng thử lại sau một lúc."
@@ -1360,12 +1360,12 @@
       "delete": {
         "buttonLabel": "Xóa",
         "confirmTitle": "Xóa danh mục",
-        "confirmMessage": "Xóa '{name}'. Thao tác này không thể được hoàn tác. Bạn có chắc chắn không?",
+        "confirmMessage": "Xóa {name}. Thao tác này không thể được hoàn tác. Bạn có chắc chắn không?",
         "confirmButtonLabel": "Xóa",
         "cancelButtonLabel": "Hủy",
         "errorMessage": "Xóa không thành công. Vui lòng thử lại sau.",
-        "blockedByDocuments": "Không thể xóa '{name}' vì có {count} tài liệu liên kết. Vui lòng thay đổi danh mục của các tài liệu đích trước.",
-        "blockedByChildren": "Không thể xóa '{name}' vì có {count} danh mục phụ tồn tại. Vui lòng xóa danh mục phụ trước."
+        "blockedByDocuments": "Không thể xóa {name} vì có {count} tài liệu liên kết. Vui lòng thay đổi danh mục của các tài liệu đích trước.",
+        "blockedByChildren": "Không thể xóa {name} vì có {count} danh mục phụ tồn tại. Vui lòng xóa danh mục phụ trước."
       }
     },
     "form": {
@@ -1520,7 +1520,7 @@
     "delete": {
       "buttonLabel": "Xóa",
       "confirmTitle": "Xóa hướng dẫn",
-      "confirmMessage": "Xóa '{title}'. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
+      "confirmMessage": "Xóa {title}. Hành động này không thể được hoàn tác. Bạn có chắc chắn không?",
       "confirmButton": "Xóa",
       "cancelButton": "Hủy",
       "errorMessage": "Xóa không thành công. Vui lòng thử lại sau."

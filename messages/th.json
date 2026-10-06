@@ -508,7 +508,7 @@
       "editLink": "แก้ไข",
       "deleteButton": "ลบ",
       "deleteConfirmTitle": "การลบลิงก์",
-      "deleteConfirm": "ลบ '{title}' คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้ ซึ่งไม่สามารถยกเลิกได้",
+      "deleteConfirm": "ลบ {title} คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้ ซึ่งไม่สามารถยกเลิกได้",
       "deleteConfirmButton": "ลบ",
       "deleteCancelButton": "ยกเลิก",
       "deleteError": "การลบล้มเหลว โปรดลองอีกครั้งหลังจากนั้น",
@@ -1520,7 +1520,7 @@
     "delete": {
       "buttonLabel": "ลบ",
       "confirmTitle": "ลบคู่มือ",
-      "confirmMessage": "จะลบ '{title}' คุณแน่ใจหรือว่าต้องการดำเนินการนี้ ซึ่งไม่สามารถยกเลิกได้?",
+      "confirmMessage": "จะลบ {title} คุณแน่ใจหรือว่าต้องการดำเนินการนี้ ซึ่งไม่สามารถยกเลิกได้?",
       "confirmButton": "ลบ",
       "cancelButton": "ยกเลิก",
       "errorMessage": "การลบล้มเหลว โปรดลองใหม่อีกครั้งในภายหลัง"
