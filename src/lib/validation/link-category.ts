@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * カテゴリの追加・編集フォームの入力値を検証する zod スキーマ。
@@ -7,7 +8,7 @@ import { z } from "zod";
 export const linkCategoryFormSchema = z.object({
   /** null=大分類として作成、非null=当該大分類配下の中分類として作成 */
   parentId: z.string().trim().min(1).nullable(),
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(TEXT_LIMITS.categoryName),
 });
 
 /** `linkCategoryFormSchema` から推論されるフォーム入力値の型（変換前・`z.input`）。 */

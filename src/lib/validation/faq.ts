@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { FAQ_CATEGORY_CODES } from "@/lib/constants/faq-options";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * FAQ新規作成・編集フォームの入力値を検証する zod スキーマ。
@@ -8,8 +9,8 @@ import { FAQ_CATEGORY_CODES } from "@/lib/constants/faq-options";
  */
 export const faqFormSchema = z.object({
   category: z.enum(FAQ_CATEGORY_CODES),
-  question: z.string().trim().min(1),
-  answer: z.string().trim().min(1),
+  question: z.string().trim().min(1).max(TEXT_LIMITS.question),
+  answer: z.string().trim().min(1).max(TEXT_LIMITS.body),
 });
 
 /** `faqFormSchema`から推論されるフォーム入力値の型。 */

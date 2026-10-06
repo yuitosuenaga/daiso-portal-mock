@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { documentTargetingSchema } from "@/lib/validation/document";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 /**
  * カテゴリの追加・編集フォームの入力値を検証する zod スキーマ。名称は日本語（`ja`）のみを
@@ -9,7 +10,7 @@ import { documentTargetingSchema } from "@/lib/validation/document";
 export const documentCategoryFormSchema = z.object({
   /** null=大分類として作成、非null=当該大分類配下の中分類として作成 */
   parentId: z.string().trim().min(1).nullable(),
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(TEXT_LIMITS.categoryName),
   targeting: documentTargetingSchema,
 });
 
