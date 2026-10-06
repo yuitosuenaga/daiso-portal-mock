@@ -6,6 +6,7 @@ import { RetranslateAnnouncementButton } from "@/components/features/helpdesk-an
 import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announcements/DeleteAnnouncementButton";
 import { getAnnouncementByIdForHelpdesk } from "@/lib/api/announcements";
 import { getAllDocuments } from "@/lib/api/documents";
+import { listApplicantUsersForTargetingByIds } from "@/lib/server/applicant-user-service";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import type { AnnouncementFormValues } from "@/lib/validation/announcement";
@@ -63,6 +64,10 @@ export default async function HelpdeskAnnouncementEditPage({
   }));
 
   const documentOptions = await getAllDocuments();
+  const initialTargetUsers =
+    announcement.targeting.scope === "users"
+      ? await listApplicantUsersForTargetingByIds(announcement.targeting.userIds)
+      : [];
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -139,6 +144,20 @@ export default async function HelpdeskAnnouncementEditPage({
         targetingLabel={t("targetingLabel")}
         targetingAllOption={t("targetingAllOption")}
         targetingCountriesOption={t("targetingCountriesOption")}
+        targetingUsersOption={t("targetingUsersOption")}
+        usersLabel={t("usersLabel")}
+        usersLabels={{
+          groupLabel: t("usersLabel"),
+          searchPlaceholder: t("usersSearchPlaceholder"),
+          searchHint: t("usersSearchHint"),
+          noResultsMessage: t("usersNoResultsMessage"),
+          searchErrorMessage: t("usersSearchError"),
+          selectedCountLabel: t.raw("usersSelectedCountLabel"),
+          removeChipButtonLabel: t("usersRemoveChipButtonLabel"),
+          alreadySelectedLabel: t("usersAlreadySelectedLabel"),
+        }}
+        usersRequiredErrorMessage={t("validation.usersRequired")}
+        initialTargetUsers={initialTargetUsers}
         countriesLabel={t("countriesLabel")}
         countriesSearchPlaceholder={t("countriesSearchPlaceholder")}
         countriesSelectAllButtonLabel={t("countriesSelectAllButtonLabel")}

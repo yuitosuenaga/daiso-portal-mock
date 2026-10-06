@@ -112,7 +112,12 @@ export async function confirmAnnouncementForCurrentCompany(
 ): Promise<AnnouncementSelfStatus> {
   const { claims } = await requireApplicantSession();
 
-  const announcement = await findAnnouncementVisibleToCountry(id, claims.country);
+  const announcement = await findAnnouncementVisibleToCountry(
+    id,
+    claims.country,
+    undefined,
+    claims.applicantUserId
+  );
   if (announcement) {
     await recordUserConfirmationService(id, claims.applicantUserId);
   }
@@ -131,7 +136,12 @@ export async function addAnnouncementConfirmerForCurrentUser(
 ): Promise<AnnouncementConfirmerView[]> {
   const { claims } = await requireApplicantSession();
 
-  const announcement = await findAnnouncementVisibleToCountry(id, claims.country);
+  const announcement = await findAnnouncementVisibleToCountry(
+    id,
+    claims.country,
+    undefined,
+    claims.applicantUserId
+  );
   if (announcement) {
     await addUserConfirmerService(id, claims.applicantUserId, name.trim().slice(0, 100));
   }
@@ -160,7 +170,12 @@ export async function completeAnnouncementForCurrentCompany(
 ): Promise<AnnouncementSelfStatus> {
   const { claims } = await requireApplicantSession();
 
-  const announcement = await findAnnouncementVisibleToCountry(id, claims.country);
+  const announcement = await findAnnouncementVisibleToCountry(
+    id,
+    claims.country,
+    undefined,
+    claims.applicantUserId
+  );
   if (announcement?.actionRequired) {
     await recordCompanyCompletionService(id, claims.companyCode);
   }

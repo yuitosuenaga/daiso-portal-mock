@@ -1770,7 +1770,7 @@ describe("getAnnouncementSelfStatuses", () => {
     vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
       {
         id: "r1",
-        company: { country: "VN" },
+        company: { country: "VN", applicantUsers: [] },
         statuses: [{ announcementId: "a1", completedAt: new Date("2026-01-02T00:00:00.000Z") }],
       },
     ] as never);
@@ -1792,12 +1792,12 @@ describe("getAnnouncementSelfStatuses", () => {
     vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
       {
         id: "r1",
-        company: { country: "VN" },
+        company: { country: "VN", applicantUsers: [] },
         statuses: [{ announcementId: "a1", completedAt: new Date("2026-01-02T00:00:00.000Z") }],
       },
       {
         id: "r2",
-        company: { country: "VN" },
+        company: { country: "VN", applicantUsers: [] },
         statuses: [],
       },
     ] as never);
@@ -1817,7 +1817,7 @@ describe("getAnnouncementSelfStatuses", () => {
     vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
       {
         id: "r1",
-        company: { country: "JP" },
+        company: { country: "JP", applicantUsers: [] },
         statuses: [{ announcementId: "a1", completedAt: new Date("2026-01-02T00:00:00.000Z") }],
       },
     ] as never);

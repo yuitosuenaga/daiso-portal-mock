@@ -9,6 +9,11 @@ import { FormField } from "@/components/features/inquiry-form/FormField";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
 import { CountryTargetingSelect } from "@/components/features/helpdesk-announcements/CountryTargetingSelect";
+import {
+  UserTargetingSelect,
+  type UserTargetingSelectLabels,
+} from "@/components/features/helpdesk-announcements/UserTargetingSelect";
+import type { ApplicantUserTargetOption } from "@/types/applicant-user";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -52,6 +57,12 @@ export interface AnnouncementFormProps {
   targetingLabel: string;
   targetingAllOption: string;
   targetingCountriesOption: string;
+  targetingUsersOption: string;
+  usersLabel: string;
+  usersLabels: UserTargetingSelectLabels;
+  usersRequiredErrorMessage: string;
+  /** 編集時、`targeting.userIds`の表示情報（氏名・会社）を復元するための選択済みユーザー。 */
+  initialTargetUsers?: ApplicantUserTargetOption[];
   countriesLabel: string;
   countriesSearchPlaceholder: string;
   countriesSelectAllButtonLabel: string;
@@ -124,6 +135,11 @@ export function AnnouncementForm({
   targetingLabel,
   targetingAllOption,
   targetingCountriesOption,
+  targetingUsersOption,
+  usersLabel,
+  usersLabels,
+  usersRequiredErrorMessage,
+  initialTargetUsers,
   countriesLabel,
   countriesSearchPlaceholder,
   countriesSelectAllButtonLabel,
@@ -210,6 +226,7 @@ export function AnnouncementForm({
   const scopeOptions: SelectOption[] = [
     { value: "all", label: targetingAllOption },
     { value: "countries", label: targetingCountriesOption },
+    { value: "users", label: targetingUsersOption },
   ];
   const scope = watch("targeting.scope");
   const actionRequired = watch("actionRequired");
@@ -449,6 +466,39 @@ export function AnnouncementForm({
                 selectedCountLabel={countriesSelectedCountLabel}
                 noResultsMessage={countriesNoResultsMessage}
                 removeChipButtonLabel={countriesRemoveChipButtonLabel}
+              />
+            )}
+          />
+        </FormField>
+      )}
+
+      {scope === "users" && (
+        <FormField
+          label={usersLabel}
+          required
+          requiredIndicator={requiredIndicator}
+          htmlFor="announcement-targeting-users-search"
+          error={
+            errors.targeting && "userIds" in errors.targeting
+              ? usersRequiredErrorMessage
+              : undefined
+          }
+          errorId="announcement-targeting-users-error"
+        >
+          <Controller
+            control={control}
+            name="targeting.userIds"
+            render={({ field }) => (
+              <UserTargetingSelect
+                id="announcement-targeting-users"
+                value={field.value ?? []}
+                onChange={field.onChange}
+                initialUsers={initialTargetUsers}
+                labels={usersLabels}
+                ariaInvalid={
+                  errors.targeting && "userIds" in errors.targeting ? true : undefined
+                }
+                errorMessageId="announcement-targeting-users-error"
               />
             )}
           />

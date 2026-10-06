@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { addedTargetApplicantUsersWhere } from "@/lib/server/announcement-mapper";
+import {
+  addedTargetApplicantUsersWhere,
+  targetApplicantUsersWhere,
+  targetingToColumns,
+} from "@/lib/server/announcement-mapper";
 import type { AnnouncementTargeting } from "@/types/announcement";
 
 function withTargeting(targeting: AnnouncementTargeting) {
@@ -78,5 +82,54 @@ describe("addedTargetApplicantUsersWhere", () => {
       withTargeting({ scope: "all" })
     );
     expect(allResult).toMatchObject({ isActive: true });
+  });
+});
+
+describe("個人指定（users）のtargeting", () => {
+  it("targetApplicantUsersWhereは指定IDかつ有効なアカウントに絞る", () => {
+    expect(
+      targetApplicantUsersWhere(withTargeting({ scope: "users", userIds: ["u1", "u2"] }))
+    ).toEqual({ isActive: true, id: { in: ["u1", "u2"] } });
+  });
+
+  it("targetingToColumnsが個人指定をカラム形状へ変換する", () => {
+    expect(targetingToColumns({ scope: "users", userIds: ["u1"] })).toEqual({
+      targetingScope: "users",
+      targetingCountries: [],
+      targetingUserIds: ["u1"],
+    });
+    expect(targetingToColumns({ scope: "all" }).targetingUserIds).toEqual([]);
+  });
+
+  it("個人指定の追加分のみを新規追加として返す／縮小・同一はnull", () => {
+    expect(
+      addedTargetApplicantUsersWhere(
+        withTargeting({ scope: "users", userIds: ["u1"] }),
+        withTargeting({ scope: "users", userIds: ["u1", "u2"] })
+      )
+    ).toEqual({
+      isActive: true,
+      AND: [{ id: { in: ["u1", "u2"] } }],
+      NOT: { id: { in: ["u1"] } },
+    });
+    expect(
+      addedTargetApplicantUsersWhere(
+        withTargeting({ scope: "users", userIds: ["u1", "u2"] }),
+        withTargeting({ scope: "users", userIds: ["u2"] })
+      )
+    ).toBeNull();
+  });
+
+  it("国指定から個人指定へ切り替えた場合、旧対象国外の指定個人を追加分とする", () => {
+    expect(
+      addedTargetApplicantUsersWhere(
+        withTargeting({ scope: "countries", countries: ["VN"] }),
+        withTargeting({ scope: "users", userIds: ["u1"] })
+      )
+    ).toEqual({
+      isActive: true,
+      AND: [{ id: { in: ["u1"] } }],
+      NOT: { company: { country: { in: ["VN"] } } },
+    });
   });
 });

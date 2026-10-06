@@ -12,6 +12,10 @@ const createAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("new-i
 const updateAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("existing-id"));
 const pushMock = vi.fn();
 
+vi.mock("@/lib/actions/applicant-users", () => ({
+  searchApplicantUsersForTargetingAction: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock("@/lib/actions/announcements", () => ({
   createAnnouncementAction: (...args: unknown[]) =>
     createAnnouncementActionMock(...args),
@@ -48,6 +52,19 @@ const labels = {
   targetingLabel: "配信対象",
   targetingAllOption: "全体一律",
   targetingCountriesOption: "特定の国・地域を指定",
+  targetingUsersOption: "個人を指定",
+  usersLabel: "配信対象の個人",
+  usersLabels: {
+    groupLabel: "配信対象の個人",
+    searchPlaceholder: "氏名・メールアドレス・会社名で検索",
+    searchHint: "検索語を入力すると候補が表示されます",
+    noResultsMessage: "該当するユーザーがいません",
+    searchErrorMessage: "検索に失敗しました",
+    selectedCountLabel: "{count}名選択中",
+    removeChipButtonLabel: "削除",
+    alreadySelectedLabel: "選択済み",
+  },
+  usersRequiredErrorMessage: "配信対象の個人を1名以上選択してください",
   countriesLabel: "国・地域",
   countriesSearchPlaceholder: "国名で検索",
   countriesSelectAllButtonLabel: "すべて選択",

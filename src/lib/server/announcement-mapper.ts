@@ -51,17 +51,28 @@ export function mapTargeting(record: PrismaAnnouncement): AnnouncementTargeting 
   if (record.targetingScope === "countries") {
     return { scope: "countries", countries: record.targetingCountries };
   }
+  if (record.targetingScope === "users") {
+    return { scope: "users", userIds: record.targetingUserIds };
+  }
   return { scope: "all" };
 }
 
 export function targetingToColumns(targeting: AnnouncementTargeting): {
-  targetingScope: "all" | "countries";
+  targetingScope: "all" | "countries" | "users";
   targetingCountries: string[];
+  targetingUserIds: string[];
 } {
   if (targeting.scope === "countries") {
-    return { targetingScope: "countries", targetingCountries: targeting.countries };
+    return {
+      targetingScope: "countries",
+      targetingCountries: targeting.countries,
+      targetingUserIds: [],
+    };
   }
-  return { targetingScope: "all", targetingCountries: [] };
+  if (targeting.scope === "users") {
+    return { targetingScope: "users", targetingCountries: [], targetingUserIds: targeting.userIds };
+  }
+  return { targetingScope: "all", targetingCountries: [], targetingUserIds: [] };
 }
 
 function mapDateOnly(value: Date | null): string | null {
@@ -211,7 +222,21 @@ export function targetApplicantUsersWhere(
       company: { country: { in: announcement.targeting.countries } },
     };
   }
+  if (announcement.targeting.scope === "users") {
+    return { isActive: true, id: { in: announcement.targeting.userIds } };
+  }
   return { isActive: true };
+}
+
+/** `targeting`に該当する`ApplicantUser`を表す条件（`isActive`は含まない。`all`は全員）。 */
+function targetingUserCondition(targeting: AnnouncementTargeting): Prisma.ApplicantUserWhereInput {
+  if (targeting.scope === "countries") {
+    return { company: { country: { in: targeting.countries } } };
+  }
+  if (targeting.scope === "users") {
+    return { id: { in: targeting.userIds } };
+  }
+  return {};
 }
 
 /**
@@ -233,6 +258,23 @@ export function addedTargetApplicantUsersWhere(
   // 編集前から全体一律（all）だった場合、既に全受信者が対象であり新規追加は生じ得ない（要件35.3）。
   if (previousTargeting.scope === "all") {
     return null;
+  }
+
+  // 個人指定（users）が絡む変更は、「編集後の対象のうち編集前の対象でなかった者」を
+  // 汎用的な差集合として表す（国⇔個人の切替、個人の追加・全体への拡大を含む）。
+  if (previousTargeting.scope === "users" || nextTargeting.scope === "users") {
+    if (
+      previousTargeting.scope === "users" &&
+      nextTargeting.scope === "users" &&
+      nextTargeting.userIds.every((userId) => previousTargeting.userIds.includes(userId))
+    ) {
+      return null;
+    }
+    return {
+      isActive: true,
+      AND: [targetingUserCondition(nextTargeting)],
+      NOT: targetingUserCondition(previousTargeting),
+    };
   }
 
   // 編集前が特定国（countries）、編集後が全体一律（all）へ変更された場合、

@@ -199,7 +199,8 @@
         "statusPublished": "公開",
         "clearButton": "クリア",
         "noResults": "該当するお知らせがありません"
-      }
+      },
+      "targetingUsersLabel": "個人指定: {count}名"
     },
     "form": {
       "createTitle": "お知らせの新規作成",
@@ -249,7 +250,8 @@
         "attachmentsSizeExceeded": "ファイルサイズが上限（5MB）を超えています",
         "attachmentsTypeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",
         "attachmentsCountExceeded": "添付できるファイル数の上限（5件）を超えています",
-        "attachmentsReadFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。"
+        "attachmentsReadFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
+        "usersRequired": "配信対象の個人を1名以上選択してください"
       },
       "actionRequiredLabel": "対応要否",
       "actionRequiredTrueOption": "対応が必要",
@@ -280,7 +282,16 @@
       "retranslatePending": "翻訳中...",
       "retranslateSuccess": "翻訳を保存しました",
       "retranslateFailed": "一部の言語で翻訳に失敗しました。時間を置いて再度お試しください。",
-      "retranslateError": "翻訳の再実行に失敗しました。時間をおいて再度お試しください"
+      "retranslateError": "翻訳の再実行に失敗しました。時間をおいて再度お試しください",
+      "targetingUsersOption": "個人を指定",
+      "usersLabel": "配信対象の個人",
+      "usersSearchPlaceholder": "氏名・メールアドレス・会社名で検索",
+      "usersSearchHint": "検索語を入力すると候補が表示されます",
+      "usersNoResultsMessage": "該当するユーザーがいません",
+      "usersSearchError": "検索に失敗しました",
+      "usersSelectedCountLabel": "{count}名選択中",
+      "usersRemoveChipButtonLabel": "削除",
+      "usersAlreadySelectedLabel": "選択済み"
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",

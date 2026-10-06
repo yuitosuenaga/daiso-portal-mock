@@ -199,7 +199,8 @@
         "statusPublished": "已公开",
         "clearButton": "清除",
         "noResults": "没有相应的通知"
-      }
+      },
+      "targetingUsersLabel": "指定个人：{count}人"
     },
     "form": {
       "createTitle": "新建通知",
@@ -249,7 +250,8 @@
         "attachmentsSizeExceeded": "文件大小超过限制（5MB）",
         "attachmentsTypeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
         "attachmentsCountExceeded": "超过附件数量限制（5个）",
-        "attachmentsReadFailed": "文件读取失败。请重试。"
+        "attachmentsReadFailed": "文件读取失败。请重试。",
+        "usersRequired": "请至少选择一名个人"
       },
       "actionRequiredLabel": "应对需求",
       "actionRequiredTrueOption": "需要应对",
@@ -280,7 +282,16 @@
       "retranslatePending": "翻译中...",
       "retranslateSuccess": "已保存翻译",
       "retranslateFailed": "部分语言翻译失败，请稍后再试。",
-      "retranslateError": "重新翻译失败，请稍后再试。"
+      "retranslateError": "重新翻译失败，请稍后再试。",
+      "targetingUsersOption": "指定个人",
+      "usersLabel": "目标个人",
+      "usersSearchPlaceholder": "按姓名、邮箱或公司搜索",
+      "usersSearchHint": "输入关键词以搜索用户",
+      "usersNoResultsMessage": "没有匹配的用户",
+      "usersSearchError": "搜索失败",
+      "usersSelectedCountLabel": "已选择{count}人",
+      "usersRemoveChipButtonLabel": "删除",
+      "usersAlreadySelectedLabel": "已选择"
     },
     "tracking": {
       "confirmedCount": "已确认 {confirmed}/{total}人",

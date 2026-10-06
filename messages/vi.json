@@ -199,7 +199,8 @@
         "statusPublished": "Đã công bố",
         "clearButton": "Xóa",
         "noResults": "Không có thông báo nào phù hợp"
-      }
+      },
+      "targetingUsersLabel": "Cá nhân: {count} người"
     },
     "form": {
       "createTitle": "Tạo thông báo mới",
@@ -249,7 +250,8 @@
         "attachmentsSizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
         "attachmentsTypeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
         "attachmentsCountExceeded": "Số lượng tệp đính kèm vượt quá giới hạn (5 tệp)",
-        "attachmentsReadFailed": "Không thể đọc tệp. Vui lòng thử lại."
+        "attachmentsReadFailed": "Không thể đọc tệp. Vui lòng thử lại.",
+        "usersRequired": "Vui lòng chọn ít nhất một cá nhân"
       },
       "actionRequiredLabel": "Cần xử lý hay không",
       "actionRequiredTrueOption": "Cần xử lý",
@@ -280,7 +282,16 @@
       "retranslatePending": "Đang dịch...",
       "retranslateSuccess": "Đã lưu bản dịch",
       "retranslateFailed": "Dịch thất bại ở một số ngôn ngữ. Vui lòng thử lại sau.",
-      "retranslateError": "Dịch lại thất bại. Vui lòng thử lại sau."
+      "retranslateError": "Dịch lại thất bại. Vui lòng thử lại sau.",
+      "targetingUsersOption": "Chỉ định cá nhân",
+      "usersLabel": "Cá nhân nhận thông báo",
+      "usersSearchPlaceholder": "Tìm theo tên, email hoặc công ty",
+      "usersSearchHint": "Nhập để tìm kiếm người dùng",
+      "usersNoResultsMessage": "Không có người dùng phù hợp",
+      "usersSearchError": "Tìm kiếm thất bại",
+      "usersSelectedCountLabel": "Đã chọn {count} người",
+      "usersRemoveChipButtonLabel": "Xóa",
+      "usersAlreadySelectedLabel": "Đã chọn"
     },
     "tracking": {
       "confirmedCount": "Đã xác nhận {confirmed}/{total} người",

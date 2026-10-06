@@ -12,11 +12,18 @@ import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
  */
 const linkedDocumentIdsSchema = z.array(z.string().min(1)).max(ATTACHMENT_MAX_COUNT);
 
+/** 個人指定で選択できる申請者アカウントの最大件数。 */
+export const ANNOUNCEMENT_TARGET_USER_MAX_COUNT = 200;
+
 const announcementTargetingSchema = z.discriminatedUnion("scope", [
   z.object({ scope: z.literal("all") }),
   z.object({
     scope: z.literal("countries"),
     countries: z.array(z.enum(INQUIRY_COUNTRY_CODES)).min(1),
+  }),
+  z.object({
+    scope: z.literal("users"),
+    userIds: z.array(z.string().min(1)).min(1).max(ANNOUNCEMENT_TARGET_USER_MAX_COUNT),
   }),
 ]);
 

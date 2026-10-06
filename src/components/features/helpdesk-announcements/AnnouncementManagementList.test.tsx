@@ -85,7 +85,9 @@ function resolveMessage(namespace: string, key: string): string {
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace: string) =>
-    (key: string) => resolveMessage(namespace, key),
+    Object.assign((key: string) => resolveMessage(namespace, key), {
+      raw: (key: string) => resolveMessage(namespace, key),
+    }),
   getLocale: async () => "ja",
 }));
 

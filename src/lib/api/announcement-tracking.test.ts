@@ -217,7 +217,9 @@ describe("confirmAnnouncementForCurrentCompany", () => {
 
     expect(findAnnouncementVisibleToCountryService).toHaveBeenCalledWith(
       "announcement-1",
-      "VN"
+      "VN",
+      undefined,
+      "applicant-1"
     );
     expect(recordUserConfirmationService).toHaveBeenCalledWith(
       "announcement-1",

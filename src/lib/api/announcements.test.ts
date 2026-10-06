@@ -91,7 +91,11 @@ describe("getRecentAnnouncements", () => {
 
     const result = await getRecentAnnouncements();
 
-    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN");
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
+      "VN",
+      undefined,
+      "applicant-1"
+    );
     expect(result.map((item) => item.id)).toEqual(["1", "2", "3"]);
   });
 
@@ -119,7 +123,11 @@ describe("getRecentAnnouncements", () => {
 
     await getRecentAnnouncements({ locale: "en" });
 
-    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN", "en");
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
+      "VN",
+      "en",
+      "applicant-1"
+    );
   });
 });
 
@@ -130,7 +138,11 @@ describe("getAnnouncements", () => {
 
     const result = await getAnnouncements();
 
-    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN");
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
+      "VN",
+      undefined,
+      "applicant-1"
+    );
     expect(result).toHaveLength(1);
   });
 
@@ -146,7 +158,11 @@ describe("getAnnouncements", () => {
 
     await getAnnouncements({ locale: "en" });
 
-    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith("VN", "en");
+    expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
+      "VN",
+      "en",
+      "applicant-1"
+    );
   });
 });
 
@@ -159,7 +175,9 @@ describe("getAnnouncementById", () => {
 
     expect(findAnnouncementVisibleToCountry).toHaveBeenCalledWith(
       "announcement-1",
-      "VN"
+      "VN",
+      undefined,
+      "applicant-1"
     );
     expect(result?.id).toBe("announcement-1");
   });
@@ -179,7 +197,8 @@ describe("getAnnouncementById", () => {
     expect(findAnnouncementVisibleToCountry).toHaveBeenCalledWith(
       "announcement-1",
       "VN",
-      "en"
+      "en",
+      "applicant-1"
     );
   });
 });
