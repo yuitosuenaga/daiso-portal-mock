@@ -50,6 +50,7 @@ import {
 } from "@/lib/server/announcement-notifications";
 import {
   AnnouncementNotFoundError,
+  AnnouncementTargetUsersNotFoundError,
   createAnnouncementRecord,
   deleteAnnouncementRecord,
   findAnnouncementById,
@@ -82,8 +83,9 @@ function baseAnnouncementRecord(
     publishedAt: Date | null;
     actionRequired: boolean;
     sendEmailNotification: boolean;
-    targetingScope: "all" | "countries";
+    targetingScope: "all" | "countries" | "users";
     targetingCountries: string[];
+    targetingUserIds: string[];
     publishStartDate: Date | null;
     publishEndDate: Date | null;
     dueDate: Date | null;
@@ -112,6 +114,7 @@ function baseAnnouncementRecord(
     sendEmailNotification: false,
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
+    targetingUserIds: [] as string[],
     publishStartDate: null,
     publishEndDate: null,
     dueDate: null,
@@ -443,6 +446,50 @@ describe("listAllAnnouncements / findAnnouncementById", () => {
     const result = await findAnnouncementById("1");
 
     expect(result?.id).toBe("1");
+  });
+});
+
+describe("個人指定のtargeting正規化", () => {
+  const usersInput = (userIds: string[]) => ({
+    title: "タイトル",
+    body: "本文",
+    category: "other" as const,
+    status: "draft" as const,
+    targeting: { scope: "users" as const, userIds },
+    actionRequired: false,
+    sendEmailNotification: false,
+    attachments: [],
+    linkedDocumentIds: [],
+    translations: [],
+  });
+
+  it("重複と実在しないIDを除いて保存する", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([{ id: "u1" }] as never);
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", targetingScope: "users", targetingUserIds: ["u1"] }) as never
+    );
+
+    await createAnnouncementRecord(usersInput(["u1", "u1", "ghost"]));
+
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetingScope: "users",
+          targetingCountries: [],
+          targetingUserIds: ["u1"],
+        }),
+      })
+    );
+  });
+
+  it("実在するIDが1件も無い場合は保存せずエラーにする", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([] as never);
+    vi.mocked(prisma.announcement.create).mockClear();
+
+    await expect(createAnnouncementRecord(usersInput(["ghost"]))).rejects.toBeInstanceOf(
+      AnnouncementTargetUsersNotFoundError
+    );
+    expect(prisma.announcement.create).not.toHaveBeenCalled();
   });
 });
 

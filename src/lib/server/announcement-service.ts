@@ -44,6 +44,14 @@ export class AnnouncementNotFoundError extends Error {
   }
 }
 
+/** 個人指定の配信対象に、存在する申請者アカウントが1件も含まれないことを表すエラー。 */
+export class AnnouncementTargetUsersNotFoundError extends Error {
+  constructor() {
+    super("No existing applicant users in the individual targeting");
+    this.name = "AnnouncementTargetUsersNotFoundError";
+  }
+}
+
 const ORDER_BY_PUBLISHED_AT_DESC = { publishedAt: "desc" } as const;
 const ORDER_BY_CREATED_AT_DESC = { createdAt: "desc" } as const;
 
@@ -214,6 +222,30 @@ async function filterExistingDocumentIds(documentIds: string[]): Promise<string[
   return documentIds.filter((id) => existingIds.has(id));
 }
 
+/**
+ * 個人指定（`users`）の配信対象について、重複IDを除き、実在する申請者アカウントのIDだけに
+ * 絞り込む。1件も残らない場合は`AnnouncementTargetUsersNotFoundError`を送出する
+ * （誰にも届かないお知らせの保存を防ぐ）。他の配信対象はそのまま返す。
+ */
+async function normalizeTargeting(
+  targeting: AnnouncementTargeting
+): Promise<AnnouncementTargeting> {
+  if (targeting.scope !== "users") {
+    return targeting;
+  }
+  const uniqueIds = Array.from(new Set(targeting.userIds));
+  const users = await prisma.applicantUser.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true },
+  });
+  const existingIds = new Set(users.map((user) => user.id));
+  const userIds = uniqueIds.filter((id) => existingIds.has(id));
+  if (userIds.length === 0) {
+    throw new AnnouncementTargetUsersNotFoundError();
+  }
+  return { scope: "users", userIds };
+}
+
 function dateOnlyToColumn(value: string | null | undefined): Date | null {
   return value ? new Date(value) : null;
 }
@@ -227,6 +259,7 @@ export async function createAnnouncementRecord(
   createdById?: string
 ): Promise<Announcement> {
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
+  const targeting = await normalizeTargeting(input.targeting);
 
   const record = await prisma.announcement.create({
     data: {
@@ -238,7 +271,7 @@ export async function createAnnouncementRecord(
       publishedAt: input.status === "published" ? new Date() : null,
       actionRequired: input.actionRequired,
       sendEmailNotification: input.sendEmailNotification,
-      ...targetingToColumns(input.targeting),
+      ...targetingToColumns(targeting),
       publishStartDate: dateOnlyToColumn(input.publishStartDate),
       publishEndDate: dateOnlyToColumn(input.publishEndDate),
       dueDate: dateOnlyToColumn(input.dueDate),
@@ -305,6 +338,7 @@ export async function updateAnnouncementRecord(
 
   const shouldStampPublishedAt = current.status !== "published" && input.status === "published";
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
+  const targeting = await normalizeTargeting(input.targeting);
 
   try {
     const record = await prisma.announcement.update({
@@ -317,7 +351,7 @@ export async function updateAnnouncementRecord(
         ...(shouldStampPublishedAt ? { publishedAt: new Date() } : {}),
         actionRequired: input.actionRequired,
         sendEmailNotification: input.sendEmailNotification,
-        ...targetingToColumns(input.targeting),
+        ...targetingToColumns(targeting),
         publishStartDate: dateOnlyToColumn(input.publishStartDate),
         publishEndDate: dateOnlyToColumn(input.publishEndDate),
         dueDate: dateOnlyToColumn(input.dueDate),
