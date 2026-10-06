@@ -276,6 +276,8 @@
       "linkedDocumentsTargetingCountriesPrefixLabel": "Countries:",
       "linkedDocumentsTargetingCompaniesPrefixLabel": "Companies:",
       "translationFailedDraft": "Saved as a draft because translation failed.",
+      "publishWithoutTranslationLabel": "Publish even if translation fails (you can re-run translation later)",
+      "translationFailedPublished": "Translation failed for some languages, but the announcement remains published. You can re-run translation later.",
       "retranslateButton": "Retranslate",
       "retranslatePending": "Translating...",
       "retranslateSuccess": "Translation saved",

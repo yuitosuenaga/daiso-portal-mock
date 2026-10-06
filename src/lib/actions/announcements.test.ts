@@ -242,14 +242,14 @@ describe("自動翻訳", () => {
     expect(result.failedLocales).toEqual(["en"]);
   });
 
-  it("編集時は既存の翻訳行を渡して再翻訳要否を判定させ、失敗時は公開済みでも下書きに戻す", async () => {
-    const existing = announcement({ translations: [EN_ROW] });
+  it("編集時は既存の翻訳行を渡して再翻訳要否を判定させ、公開中なら失敗しても公開を維持する", async () => {
+    const existing = announcement({ status: "published", translations: [EN_ROW] });
     vi.mocked(findAnnouncementById).mockResolvedValue(existing);
     vi.mocked(buildAnnouncementTranslations).mockResolvedValue({
       translations: [EN_ROW],
       failedLocales: ["vi"],
     });
-    vi.mocked(updateAnnouncement).mockResolvedValue(announcement({ status: "draft" }));
+    vi.mocked(updateAnnouncement).mockResolvedValue(announcement());
 
     const result = await updateAnnouncementAction("announcement-1", input);
 
@@ -259,9 +259,63 @@ describe("自動翻訳", () => {
     );
     expect(updateAnnouncement).toHaveBeenCalledWith(
       "announcement-1",
+      expect.objectContaining({ status: "published", translations: [EN_ROW] })
+    );
+    expect(result.forcedDraft).toBe(false);
+    expect(result.failedLocales).toEqual(["vi"]);
+  });
+
+  it("下書きから公開への更新で翻訳に失敗したら下書きに強制する", async () => {
+    vi.mocked(findAnnouncementById).mockResolvedValue(announcement({ status: "draft" }));
+    vi.mocked(buildAnnouncementTranslations).mockResolvedValue({
+      translations: [],
+      failedLocales: ["en"],
+    });
+    vi.mocked(updateAnnouncement).mockResolvedValue(announcement({ status: "draft" }));
+
+    const result = await updateAnnouncementAction("announcement-1", input);
+
+    expect(updateAnnouncement).toHaveBeenCalledWith(
+      "announcement-1",
       expect.objectContaining({ status: "draft" })
     );
     expect(result.forcedDraft).toBe(true);
+  });
+
+  it("publishWithoutTranslationが真なら新規公開でも翻訳失敗で下書きにせず公開で保存する", async () => {
+    vi.mocked(buildAnnouncementTranslations).mockResolvedValue({
+      translations: [],
+      failedLocales: ["en", "th"],
+    });
+    vi.mocked(createAnnouncement).mockResolvedValue(announcement());
+
+    const result = await createAnnouncementAction({ ...input, publishWithoutTranslation: true });
+
+    const saved = vi.mocked(createAnnouncement).mock.calls[0][0];
+    expect(saved.status).toBe("published");
+    expect(saved).not.toHaveProperty("publishWithoutTranslation");
+    expect(result.forcedDraft).toBe(false);
+    expect(result.failedLocales).toEqual(["en", "th"]);
+  });
+
+  it("下書きから公開への更新でもpublishWithoutTranslationが真なら公開で保存する", async () => {
+    vi.mocked(findAnnouncementById).mockResolvedValue(announcement({ status: "draft" }));
+    vi.mocked(buildAnnouncementTranslations).mockResolvedValue({
+      translations: [],
+      failedLocales: ["en"],
+    });
+    vi.mocked(updateAnnouncement).mockResolvedValue(announcement());
+
+    const result = await updateAnnouncementAction("announcement-1", {
+      ...input,
+      publishWithoutTranslation: true,
+    });
+
+    expect(updateAnnouncement).toHaveBeenCalledWith(
+      "announcement-1",
+      expect.objectContaining({ status: "published" })
+    );
+    expect(result.forcedDraft).toBe(false);
   });
 });
 

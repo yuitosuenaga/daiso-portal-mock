@@ -74,6 +74,10 @@ export interface AnnouncementFormProps {
   submitErrorMessage: string;
   /** 翻訳失敗のため下書きとして保存された旨の通知文言 */
   translationFailedDraftMessage: string;
+  /** 「翻訳に失敗しても公開する」チェックボックスのラベル */
+  publishWithoutTranslationLabel: string;
+  /** 翻訳に一部失敗したが公開は維持した旨の警告文言 */
+  translationFailedPublishedMessage: string;
   attachmentsLabel: string;
   attachmentsHint: string;
   attachmentsRemoveButtonLabel: string;
@@ -143,6 +147,8 @@ export function AnnouncementForm({
   requiredIndicator,
   submitErrorMessage,
   translationFailedDraftMessage,
+  publishWithoutTranslationLabel,
+  translationFailedPublishedMessage,
   attachmentsLabel,
   attachmentsHint,
   attachmentsRemoveButtonLabel,
@@ -168,6 +174,7 @@ export function AnnouncementForm({
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [translationFailedNotice, setTranslationFailedNotice] = useState(false);
+  const [publishKeptNotice, setPublishKeptNotice] = useState(false);
   const {
     register,
     handleSubmit,
@@ -185,6 +192,7 @@ export function AnnouncementForm({
       targeting: { scope: "all" },
       actionRequired: false,
       sendEmailNotification: false,
+      publishWithoutTranslation: false,
       publishStartDate: "",
       publishEndDate: "",
       dueDate: "",
@@ -213,22 +221,32 @@ export function AnnouncementForm({
   ];
   const scope = watch("targeting.scope");
   const actionRequired = watch("actionRequired");
+  const status = watch("status");
 
   async function onSubmit(values: AnnouncementSubmitValues) {
     setHasSubmitError(false);
     setTranslationFailedNotice(false);
+    setPublishKeptNotice(false);
     try {
       const result =
         mode === "edit" && announcementId
           ? await updateAnnouncementAction(announcementId, values)
           : await createAnnouncementAction(values);
       if (result.failedLocales.length > 0) {
-        // 翻訳失敗: 下書きとして保存済み。フォームに通知し、状態表示も下書きに合わせる。
-        setValue("status", "draft");
-        setTranslationFailedNotice(true);
+        if (result.forcedDraft) {
+          // 新規公開が翻訳失敗で下書きに変わった。フォームに通知し、状態表示も下書きに合わせる。
+          setValue("status", "draft");
+          setTranslationFailedNotice(true);
+        } else {
+          // 公開維持・翻訳なし公開。公開状態はそのまま警告のみ表示する。
+          setPublishKeptNotice(true);
+        }
+        // いずれも翻訳の再実行ボタンがある編集画面に留まる（作成時は編集画面へ遷移）。
         if (mode === "create") {
           router.push(
-            `/helpdesk/announcements/${result.announcement.id}/edit?translationFailed=1`
+            `/helpdesk/announcements/${result.announcement.id}/edit?translationFailed=${
+              result.forcedDraft ? "1" : "published"
+            }`
           );
         }
         return;
@@ -307,6 +325,17 @@ export function AnnouncementForm({
           )}
         />
       </FormField>
+
+      {status === "published" && (
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            {...register("publishWithoutTranslation")}
+          />
+          {publishWithoutTranslationLabel}
+        </label>
+      )}
 
       <FormField
         label={sendEmailNotificationLabel}
@@ -597,6 +626,11 @@ export function AnnouncementForm({
         {translationFailedNotice && (
           <span role="alert" className="text-sm text-destructive">
             {translationFailedDraftMessage}
+          </span>
+        )}
+        {publishKeptNotice && (
+          <span role="status" className="text-sm text-muted-foreground">
+            {translationFailedPublishedMessage}
           </span>
         )}
       </div>
