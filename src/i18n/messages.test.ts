@@ -22,9 +22,13 @@ function flatten(node: Json, prefix = ""): Record<string, string> {
 
 /** ICUメッセージ中の変数名（`{name}`・`{count, plural, ...}`の先頭）を集める。 */
 function variables(message: string): string[] {
-  const names = new Set<string>();
-  for (const match of message.matchAll(/\{\s*(\w+)\s*[,}]/g)) names.add(match[1]);
-  return [...names].sort();
+  const names: string[] = [];
+  const pattern = /\{\s*(\w+)\s*[,}]/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(message)) !== null) {
+    if (!names.includes(match[1])) names.push(match[1]);
+  }
+  return names.sort();
 }
 
 /** `'{name}'`はICUでは「`{name}`という文字そのもの」を意味し、変数が展開されない。 */
