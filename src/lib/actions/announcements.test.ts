@@ -284,7 +284,7 @@ describe("自動翻訳", () => {
     });
     vi.mocked(updateAnnouncement).mockResolvedValue(announcement({ status: "draft" }));
 
-    const result = await updateAnnouncementAction("announcement-1", input);
+    const result = saved(await updateAnnouncementAction("announcement-1", input));
 
     expect(updateAnnouncement).toHaveBeenCalledWith(
       "announcement-1",
@@ -300,11 +300,11 @@ describe("自動翻訳", () => {
     });
     vi.mocked(createAnnouncement).mockResolvedValue(announcement());
 
-    const result = await createAnnouncementAction({ ...input, publishWithoutTranslation: true });
+    const result = saved(await createAnnouncementAction({ ...input, publishWithoutTranslation: true }));
 
-    const saved = vi.mocked(createAnnouncement).mock.calls[0][0];
-    expect(saved.status).toBe("published");
-    expect(saved).not.toHaveProperty("publishWithoutTranslation");
+    const savedInput = vi.mocked(createAnnouncement).mock.calls[0][0];
+    expect(savedInput.status).toBe("published");
+    expect(savedInput).not.toHaveProperty("publishWithoutTranslation");
     expect(result.forcedDraft).toBe(false);
     expect(result.failedLocales).toEqual(["en", "th"]);
   });
@@ -317,10 +317,10 @@ describe("自動翻訳", () => {
     });
     vi.mocked(updateAnnouncement).mockResolvedValue(announcement());
 
-    const result = await updateAnnouncementAction("announcement-1", {
+    const result = saved(await updateAnnouncementAction("announcement-1", {
       ...input,
       publishWithoutTranslation: true,
-    });
+    }));
 
     expect(updateAnnouncement).toHaveBeenCalledWith(
       "announcement-1",
