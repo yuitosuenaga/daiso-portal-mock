@@ -116,7 +116,8 @@ export async function confirmAnnouncementForCurrentCompany(
     id,
     claims.country,
     undefined,
-    claims.applicantUserId
+    claims.applicantUserId,
+    claims.companyId
   );
   if (announcement) {
     await recordUserConfirmationService(id, claims.applicantUserId);
@@ -140,7 +141,8 @@ export async function addAnnouncementConfirmerForCurrentUser(
     id,
     claims.country,
     undefined,
-    claims.applicantUserId
+    claims.applicantUserId,
+    claims.companyId
   );
   if (announcement) {
     await addUserConfirmerService(id, claims.applicantUserId, name.trim().slice(0, 100));
@@ -174,7 +176,8 @@ export async function completeAnnouncementForCurrentCompany(
     id,
     claims.country,
     undefined,
-    claims.applicantUserId
+    claims.applicantUserId,
+    claims.companyId
   );
   if (announcement?.actionRequired) {
     await recordCompanyCompletionService(id, claims.companyCode);

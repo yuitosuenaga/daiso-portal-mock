@@ -200,7 +200,7 @@
         "clearButton": "Xóa",
         "noResults": "Không có thông báo nào phù hợp"
       },
-      "targetingUsersLabel": "Cá nhân: {count} người"
+      "targetingUsersLabel": "Cá nhân/công ty: {users} cá nhân, {companies} công ty"
     },
     "form": {
       "createTitle": "Tạo thông báo mới",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
         "attachmentsCountExceeded": "Số lượng tệp đính kèm vượt quá giới hạn (5 tệp)",
         "attachmentsReadFailed": "Không thể đọc tệp. Vui lòng thử lại.",
-        "usersRequired": "Vui lòng chọn ít nhất một cá nhân",
-        "usersUnavailable": "Những người dùng đã chọn đã bị vô hiệu hóa hoặc xóa nên không thể chọn làm đối tượng"
+        "usersRequired": "Vui lòng chọn ít nhất một cá nhân hoặc công ty",
+        "usersUnavailable": "Không thể chọn cá nhân hoặc công ty đã chọn làm đối tượng (đã bị vô hiệu hóa hoặc xóa)"
       },
       "actionRequiredLabel": "Cần xử lý hay không",
       "actionRequiredTrueOption": "Cần xử lý",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "Đã lưu bản dịch",
       "retranslateFailed": "Dịch thất bại ở một số ngôn ngữ. Vui lòng thử lại sau.",
       "retranslateError": "Dịch lại thất bại. Vui lòng thử lại sau.",
-      "targetingUsersOption": "Chỉ định cá nhân",
-      "usersLabel": "Cá nhân nhận thông báo",
+      "targetingUsersOption": "Chỉ định cá nhân / công ty",
+      "usersLabel": "Cá nhân / công ty nhận thông báo",
       "usersSearchPlaceholder": "Tìm theo tên, email hoặc công ty",
       "usersSearchHint": "Nhập để tìm kiếm người dùng",
       "usersNoResultsMessage": "Không có người dùng phù hợp",
       "usersSearchError": "Tìm kiếm thất bại",
-      "usersSelectedCountLabel": "Đã chọn {count} người",
+      "usersSelectedCountLabel": "Đã chọn {companies} công ty, {users} cá nhân",
       "usersRemoveChipButtonLabel": "Xóa",
       "usersAlreadySelectedLabel": "Đã chọn",
       "usersSearchingLabel": "Đang tìm kiếm...",
       "usersResultsCountLabel": "Tìm thấy {count} kết quả",
-      "usersUnavailableLabel": "Không khả dụng"
+      "usersUnavailableLabel": "Không khả dụng",
+      "usersCompanyGroupLabel": "Công ty",
+      "usersUserGroupLabel": "Cá nhân",
+      "usersCompanyMembersLabel": "{count} tài khoản đang hoạt động",
+      "usersCompanyNote": "Khi chọn công ty, thông báo sẽ được gửi đến tất cả tài khoản đang hoạt động của công ty đó"
     },
     "tracking": {
       "confirmedCount": "Đã xác nhận {confirmed}/{total} người",

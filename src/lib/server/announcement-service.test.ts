@@ -22,6 +22,9 @@ vi.mock("@/lib/db/prisma", () => ({
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
     },
+    company: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     announcementReadReceipt: {
       findUnique: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
@@ -86,6 +89,7 @@ function baseAnnouncementRecord(
     targetingScope: "all" | "countries" | "users";
     targetingCountries: string[];
     targetingUserIds: string[];
+    targetingCompanyIds: string[];
     publishStartDate: Date | null;
     publishEndDate: Date | null;
     dueDate: Date | null;
@@ -115,6 +119,7 @@ function baseAnnouncementRecord(
     targetingScope: "all" as const,
     targetingCountries: [] as string[],
     targetingUserIds: [] as string[],
+    targetingCompanyIds: [] as string[],
     publishStartDate: null,
     publishEndDate: null,
     dueDate: null,
@@ -245,6 +250,46 @@ describe("listAnnouncementsVisibleToCountry: 言語別コンテンツの解決�
 
     expect(result[0].title).toBe("日本語タイトル");
     expect(result[0].body).toBe("日本語本文");
+  });
+});
+
+describe("listAnnouncementsVisibleToCountry: 個人・会社指定の閲覧可否", () => {
+  it("閲覧者の個人IDと所属会社IDが分かる場合、個人指定・会社指定の両方を閲覧対象に含める", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([] as never);
+
+    await listAnnouncementsVisibleToCountry("VN", "ja", "user-1", "company-1");
+
+    expect(prisma.announcement.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "published",
+          OR: [
+            { targetingScope: "all" },
+            { targetingScope: "countries", targetingCountries: { has: "VN" } },
+            { targetingScope: "users", targetingUserIds: { has: "user-1" } },
+            { targetingScope: "users", targetingCompanyIds: { has: "company-1" } },
+          ],
+        },
+      })
+    );
+  });
+
+  it("個人IDも会社IDも不明なら、個人・会社指定のお知らせは対象に含めない", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([] as never);
+
+    await listAnnouncementsVisibleToCountry("VN");
+
+    expect(prisma.announcement.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "published",
+          OR: [
+            { targetingScope: "all" },
+            { targetingScope: "countries", targetingCountries: { has: "VN" } },
+          ],
+        },
+      })
+    );
   });
 });
 
@@ -449,13 +494,13 @@ describe("listAllAnnouncements / findAnnouncementById", () => {
   });
 });
 
-describe("個人指定のtargeting正規化", () => {
-  const usersInput = (userIds: string[]) => ({
+describe("個人・会社指定のtargeting正規化", () => {
+  const usersInput = (userIds: string[], companyIds: string[] = []) => ({
     title: "タイトル",
     body: "本文",
     category: "other" as const,
     status: "draft" as const,
-    targeting: { scope: "users" as const, userIds },
+    targeting: { scope: "users" as const, userIds, companyIds },
     actionRequired: false,
     sendEmailNotification: false,
     attachments: [],
@@ -477,6 +522,53 @@ describe("個人指定のtargeting正規化", () => {
           targetingScope: "users",
           targetingCountries: [],
           targetingUserIds: ["u1"],
+          targetingCompanyIds: [],
+        }),
+      })
+    );
+  });
+
+  it("会社のみの指定は実在する会社だけを重複なしで保存する", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([] as never);
+    vi.mocked(prisma.company.findMany).mockResolvedValueOnce([{ id: "c1" }] as never);
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "users",
+        targetingCompanyIds: ["c1"],
+      }) as never
+    );
+
+    await createAnnouncementRecord(usersInput([], ["c1", "c1", "ghost-company"]));
+
+    expect(prisma.company.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: { id: { in: ["c1", "ghost-company"] } } })
+    );
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetingScope: "users",
+          targetingUserIds: [],
+          targetingCompanyIds: ["c1"],
+        }),
+      })
+    );
+  });
+
+  it("個人と会社を併用して保存できる", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([{ id: "u1" }] as never);
+    vi.mocked(prisma.company.findMany).mockResolvedValueOnce([{ id: "c1" }] as never);
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", targetingScope: "users" }) as never
+    );
+
+    await createAnnouncementRecord(usersInput(["u1"], ["c1"]));
+
+    expect(prisma.announcement.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetingUserIds: ["u1"],
+          targetingCompanyIds: ["c1"],
         }),
       })
     );
@@ -497,11 +589,14 @@ describe("個人指定のtargeting正規化", () => {
     );
   });
 
-  it("実在するIDが1件も無い場合は保存せずエラーにする", async () => {
+  it("実在する個人も会社も1件も無い場合は保存せずエラーにする", async () => {
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValueOnce([] as never);
+    vi.mocked(prisma.company.findMany).mockResolvedValueOnce([] as never);
     vi.mocked(prisma.announcement.create).mockClear();
 
-    await expect(createAnnouncementRecord(usersInput(["ghost"]))).rejects.toBeInstanceOf(
+    await expect(
+      createAnnouncementRecord(usersInput(["ghost"], ["ghost-company"]))
+    ).rejects.toBeInstanceOf(
       AnnouncementTargetUsersNotFoundError
     );
     expect(prisma.announcement.create).not.toHaveBeenCalled();

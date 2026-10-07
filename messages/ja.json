@@ -200,7 +200,7 @@
         "clearButton": "クリア",
         "noResults": "該当するお知らせがありません"
       },
-      "targetingUsersLabel": "個人指定: {count}名"
+      "targetingUsersLabel": "個人・会社指定: 個人{users}名・会社{companies}社"
     },
     "form": {
       "createTitle": "お知らせの新規作成",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "許可されていないファイル形式です（画像またはPDFのみ）",
         "attachmentsCountExceeded": "添付できるファイル数の上限（5件）を超えています",
         "attachmentsReadFailed": "ファイルの読み込みに失敗しました。もう一度お試しください。",
-        "usersRequired": "配信対象の個人を1名以上選択してください",
-        "usersUnavailable": "選択した個人が無効化または削除されているため、配信対象にできません"
+        "usersRequired": "配信対象の個人または会社を1つ以上選択してください",
+        "usersUnavailable": "選択した個人・会社には配信できる対象がありません（無効化または削除済み）"
       },
       "actionRequiredLabel": "対応要否",
       "actionRequiredTrueOption": "対応が必要",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "翻訳を保存しました",
       "retranslateFailed": "一部の言語で翻訳に失敗しました。時間を置いて再度お試しください。",
       "retranslateError": "翻訳の再実行に失敗しました。時間をおいて再度お試しください",
-      "targetingUsersOption": "個人を指定",
-      "usersLabel": "配信対象の個人",
+      "targetingUsersOption": "個人・会社を指定",
+      "usersLabel": "配信対象の個人・会社",
       "usersSearchPlaceholder": "氏名・メールアドレス・会社名で検索",
       "usersSearchHint": "検索語を入力すると候補が表示されます",
       "usersNoResultsMessage": "該当するユーザーがいません",
       "usersSearchError": "検索に失敗しました",
-      "usersSelectedCountLabel": "{count}名選択中",
+      "usersSelectedCountLabel": "会社 {companies}社・個人 {users}名を選択中",
       "usersRemoveChipButtonLabel": "削除",
       "usersAlreadySelectedLabel": "選択済み",
       "usersSearchingLabel": "検索中...",
       "usersResultsCountLabel": "{count}件見つかりました",
-      "usersUnavailableLabel": "利用不可"
+      "usersUnavailableLabel": "利用不可",
+      "usersCompanyGroupLabel": "会社",
+      "usersUserGroupLabel": "個人",
+      "usersCompanyMembersLabel": "有効アカウント {count}名",
+      "usersCompanyNote": "会社を選ぶと、その会社の有効なアカウント全員に配信されます"
     },
     "tracking": {
       "confirmedCount": "確認済み {confirmed}/{total}人",

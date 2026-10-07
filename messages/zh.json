@@ -200,7 +200,7 @@
         "clearButton": "清除",
         "noResults": "没有相应的通知"
       },
-      "targetingUsersLabel": "指定个人：{count}人"
+      "targetingUsersLabel": "指定个人/公司：{users}人、{companies}家"
     },
     "form": {
       "createTitle": "新建通知",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
         "attachmentsCountExceeded": "超过附件数量限制（5个）",
         "attachmentsReadFailed": "文件读取失败。请重试。",
-        "usersRequired": "请至少选择一名个人",
-        "usersUnavailable": "所选人员已停用或已删除，无法作为发送对象"
+        "usersRequired": "请至少选择一名个人或一家公司",
+        "usersUnavailable": "所选个人或公司均无法作为发送对象（已停用或已删除）"
       },
       "actionRequiredLabel": "应对需求",
       "actionRequiredTrueOption": "需要应对",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "已保存翻译",
       "retranslateFailed": "部分语言翻译失败，请稍后再试。",
       "retranslateError": "重新翻译失败，请稍后再试。",
-      "targetingUsersOption": "指定个人",
-      "usersLabel": "目标个人",
+      "targetingUsersOption": "指定个人/公司",
+      "usersLabel": "目标个人/公司",
       "usersSearchPlaceholder": "按姓名、邮箱或公司搜索",
       "usersSearchHint": "输入关键词以搜索用户",
       "usersNoResultsMessage": "没有匹配的用户",
       "usersSearchError": "搜索失败",
-      "usersSelectedCountLabel": "已选择{count}人",
+      "usersSelectedCountLabel": "已选择 {companies} 家公司、{users} 位个人",
       "usersRemoveChipButtonLabel": "删除",
       "usersAlreadySelectedLabel": "已选择",
       "usersSearchingLabel": "搜索中...",
       "usersResultsCountLabel": "找到 {count} 条",
-      "usersUnavailableLabel": "不可用"
+      "usersUnavailableLabel": "不可用",
+      "usersCompanyGroupLabel": "公司",
+      "usersUserGroupLabel": "个人",
+      "usersCompanyMembersLabel": "有效账号 {count} 个",
+      "usersCompanyNote": "选择公司后，将发送给该公司所有有效账号"
     },
     "tracking": {
       "confirmedCount": "已确认 {confirmed}/{total}人",

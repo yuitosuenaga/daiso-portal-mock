@@ -13,7 +13,7 @@ const updateAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("exist
 const pushMock = vi.fn();
 
 vi.mock("@/lib/actions/applicant-users", () => ({
-  searchApplicantUsersForTargetingAction: vi.fn().mockResolvedValue([]),
+  searchTargetingCandidatesAction: vi.fn().mockResolvedValue({ companies: [], users: [] }),
 }));
 
 vi.mock("@/lib/actions/announcements", () => ({
@@ -60,14 +60,18 @@ const labels = {
     searchHint: "検索語を入力すると候補が表示されます",
     noResultsMessage: "該当するユーザーがいません",
     searchErrorMessage: "検索に失敗しました",
-    selectedCountLabel: "{count}名選択中",
+    selectedCountLabel: "会社 {companies}社・個人 {users}名を選択中",
     removeChipButtonLabel: "削除",
     alreadySelectedLabel: "選択済み",
     searchingLabel: "検索中",
     resultsCountLabel: "{count}件見つかりました",
     unavailableLabel: "利用不可",
+    companyBadgeLabel: "会社",
+    userBadgeLabel: "個人",
+    companyMembersLabel: "有効アカウント {count}名",
+    companyNote: "会社を選ぶと、その会社の有効なアカウント全員に配信されます",
   },
-  usersRequiredErrorMessage: "配信対象の個人を1名以上選択してください",
+  usersRequiredErrorMessage: "配信対象の個人または会社を1つ以上選択してください",
   usersUnavailableErrorMessage: "選択した個人は配信対象にできません",
   countriesLabel: "国・地域",
   countriesSearchPlaceholder: "国名で検索",
@@ -543,7 +547,7 @@ describe("AnnouncementForm", () => {
           body: "既存本文",
           category: "policy",
           status: "published",
-          targeting: { scope: "users", userIds: ["u1"] },
+          targeting: { scope: "users", userIds: ["u1"], companyIds: [] },
           actionRequired: false,
           sendEmailNotification: false,
         }}

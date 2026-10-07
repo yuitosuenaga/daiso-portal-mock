@@ -85,50 +85,72 @@ describe("addedTargetApplicantUsersWhere", () => {
   });
 });
 
-describe("個人指定（users）のtargeting", () => {
-  it("targetApplicantUsersWhereは指定IDかつ有効なアカウントに絞る", () => {
+describe("個人・会社指定（users）のtargeting", () => {
+  it("targetApplicantUsersWhereは指定個人または指定会社の所属で、かつ有効なアカウントに絞る", () => {
     expect(
-      targetApplicantUsersWhere(withTargeting({ scope: "users", userIds: ["u1", "u2"] }))
-    ).toEqual({ isActive: true, id: { in: ["u1", "u2"] } });
-  });
-
-  it("targetingToColumnsが個人指定をカラム形状へ変換する", () => {
-    expect(targetingToColumns({ scope: "users", userIds: ["u1"] })).toEqual({
-      targetingScope: "users",
-      targetingCountries: [],
-      targetingUserIds: ["u1"],
-    });
-    expect(targetingToColumns({ scope: "all" }).targetingUserIds).toEqual([]);
-  });
-
-  it("個人指定の追加分のみを新規追加として返す／縮小・同一はnull", () => {
-    expect(
-      addedTargetApplicantUsersWhere(
-        withTargeting({ scope: "users", userIds: ["u1"] }),
-        withTargeting({ scope: "users", userIds: ["u1", "u2"] })
+      targetApplicantUsersWhere(
+        withTargeting({ scope: "users", userIds: ["u1", "u2"], companyIds: ["c1"] })
       )
     ).toEqual({
       isActive: true,
-      AND: [{ id: { in: ["u1", "u2"] } }],
-      NOT: { id: { in: ["u1"] } },
+      OR: [{ id: { in: ["u1", "u2"] } }, { companyId: { in: ["c1"] } }],
+    });
+  });
+
+  it("targetingToColumnsが個人・会社指定をカラム形状へ変換する", () => {
+    expect(
+      targetingToColumns({ scope: "users", userIds: ["u1"], companyIds: ["c1"] })
+    ).toEqual({
+      targetingScope: "users",
+      targetingCountries: [],
+      targetingUserIds: ["u1"],
+      targetingCompanyIds: ["c1"],
+    });
+    expect(targetingToColumns({ scope: "all" }).targetingUserIds).toEqual([]);
+    expect(targetingToColumns({ scope: "all" }).targetingCompanyIds).toEqual([]);
+  });
+
+  it("個人・会社指定の追加分のみを新規追加として返す／縮小・同一はnull", () => {
+    expect(
+      addedTargetApplicantUsersWhere(
+        withTargeting({ scope: "users", userIds: ["u1"], companyIds: [] }),
+        withTargeting({ scope: "users", userIds: ["u1", "u2"], companyIds: [] })
+      )
+    ).toEqual({
+      isActive: true,
+      AND: [{ OR: [{ id: { in: ["u1", "u2"] } }, { companyId: { in: [] } }] }],
+      NOT: { OR: [{ id: { in: ["u1"] } }, { companyId: { in: [] } }] },
     });
     expect(
       addedTargetApplicantUsersWhere(
-        withTargeting({ scope: "users", userIds: ["u1", "u2"] }),
-        withTargeting({ scope: "users", userIds: ["u2"] })
+        withTargeting({ scope: "users", userIds: ["u1", "u2"], companyIds: ["c1"] }),
+        withTargeting({ scope: "users", userIds: ["u2"], companyIds: [] })
       )
     ).toBeNull();
   });
 
-  it("国指定から個人指定へ切り替えた場合、旧対象国外の指定個人を追加分とする", () => {
+  it("会社を追加した場合は追加分を新規追加として返す", () => {
     expect(
       addedTargetApplicantUsersWhere(
-        withTargeting({ scope: "countries", countries: ["VN"] }),
-        withTargeting({ scope: "users", userIds: ["u1"] })
+        withTargeting({ scope: "users", userIds: ["u1"], companyIds: ["c1"] }),
+        withTargeting({ scope: "users", userIds: ["u1"], companyIds: ["c1", "c2"] })
       )
     ).toEqual({
       isActive: true,
-      AND: [{ id: { in: ["u1"] } }],
+      AND: [{ OR: [{ id: { in: ["u1"] } }, { companyId: { in: ["c1", "c2"] } }] }],
+      NOT: { OR: [{ id: { in: ["u1"] } }, { companyId: { in: ["c1"] } }] },
+    });
+  });
+
+  it("国指定から個人・会社指定へ切り替えた場合、旧対象国外の指定対象を追加分とする", () => {
+    expect(
+      addedTargetApplicantUsersWhere(
+        withTargeting({ scope: "countries", countries: ["VN"] }),
+        withTargeting({ scope: "users", userIds: ["u1"], companyIds: ["c1"] })
+      )
+    ).toEqual({
+      isActive: true,
+      AND: [{ OR: [{ id: { in: ["u1"] } }, { companyId: { in: ["c1"] } }] }],
       NOT: { company: { country: { in: ["VN"] } } },
     });
   });
