@@ -264,7 +264,7 @@
       "publishEndDateLabel": "公開終了日",
       "publishStartTimeLabel": "公開開始時刻",
       "publishEndTimeLabel": "公開終了時刻",
-      "publishPeriodHint": "未入力の場合は常時公開になります（時刻は日本時間。未入力なら開始日0:00・終了日23:59）",
+      "publishPeriodHint": "未入力の場合は常時公開になります（時刻は日本時間。未入力なら開始日9:00・終了日23:59）",
       "dueDateLabel": "対応期限",
       "attachmentsLabel": "添付ファイル",
       "attachmentsHint": "画像またはPDF、1件5MBまで、最大5件まで直接アップロードできます。",

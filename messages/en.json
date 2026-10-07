@@ -264,7 +264,7 @@
       "publishEndDateLabel": "Publish end date",
       "publishStartTimeLabel": "Publish start time",
       "publishEndTimeLabel": "Publish end time",
-      "publishPeriodHint": "Leave blank to publish at all times (times are JST; blank = 0:00 on start date / 23:59 on end date)",
+      "publishPeriodHint": "Leave blank to publish at all times (times are JST; blank = 9:00 on start date / 23:59 on end date)",
       "dueDateLabel": "Due date",
       "attachmentsLabel": "Attachments",
       "attachmentsHint": "Images or PDF, up to 5MB each, up to 5 files can be uploaded directly.",

@@ -264,7 +264,7 @@
       "publishEndDateLabel": "Data de término da publicação",
       "publishStartTimeLabel": "Hora de início da publicação",
       "publishEndTimeLabel": "Hora de término da publicação",
-      "publishPeriodHint": "Se não preenchido, será publicado permanentemente (horário do Japão; vazio = 0:00 na data de início / 23:59 na data de término)",
+      "publishPeriodHint": "Se não preenchido, será publicado permanentemente (horário do Japão; vazio = 9:00 na data de início / 23:59 na data de término)",
       "dueDateLabel": "Prazo de resposta",
       "attachmentsLabel": "Anexos",
       "attachmentsHint": "Você pode fazer upload direto de imagens ou PDF, até 5MB por arquivo, máximo de 5 arquivos.",

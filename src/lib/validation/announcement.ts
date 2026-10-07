@@ -85,7 +85,7 @@ export const announcementFormSchema = z
       values.publishStartDate &&
       values.publishEndDate &&
       `${values.publishEndDate}T${values.publishEndTime ?? "23:59"}` <
-        `${values.publishStartDate}T${values.publishStartTime ?? "00:00"}`
+        `${values.publishStartDate}T${values.publishStartTime ?? "09:00"}`
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

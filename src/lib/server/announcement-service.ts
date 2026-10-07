@@ -77,9 +77,9 @@ function visibleToCountryWhere(
   };
 }
 
-/** 公開開始日（＋任意の時刻 HH:mm、未設定は0:00）を日本時間として解釈した時刻を返す。 */
+/** 公開開始日（＋任意の時刻 HH:mm、未設定は9:00）を日本時間として解釈した時刻を返す。 */
 function parsePublishStart(isoDate: string, time: string | null | undefined): Date {
-  return new Date(`${isoDate}T${time || "00:00"}:00.000+09:00`);
+  return new Date(`${isoDate}T${time || "09:00"}:00.000+09:00`);
 }
 
 /** 公開終了日（＋任意の時刻 HH:mm、未設定は23:59）を日本時間として解釈した時刻を返す（その分の終わりまで公開）。 */

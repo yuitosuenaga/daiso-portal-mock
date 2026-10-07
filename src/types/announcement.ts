@@ -62,7 +62,7 @@ export interface Announcement {
   publishStartDate?: string | null;
   /** 公開期間の終了日（ISO日付 YYYY-MM-DD）。未設定の場合は終了日による制限なし（開始日・終了日ともに未設定なら常時公開）。 */
   publishEndDate?: string | null;
-  /** 公開開始時刻（日本時間 HH:mm）。未設定の場合は開始日の0:00。 */
+  /** 公開開始時刻（日本時間 HH:mm）。未設定の場合は開始日の9:00。 */
   publishStartTime?: string | null;
   /** 公開終了時刻（日本時間 HH:mm）。未設定の場合は終了日の23:59。 */
   publishEndTime?: string | null;

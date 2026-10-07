@@ -208,7 +208,7 @@ model Announcement {
   targetingCompanyIds   String[]                      @default([])
   publishStartDate      DateTime?                     @db.Date
   publishEndDate        DateTime?                     @db.Date
-  /// 公開開始時刻（日本時間 HH:mm）。未設定は開始日の0:00として扱う。
+  /// 公開開始時刻（日本時間 HH:mm）。未設定は開始日の9:00として扱う。
   publishStartTime      String?
   /// 公開終了時刻（日本時間 HH:mm）。未設定は終了日の23:59として扱う。
   publishEndTime        String?
