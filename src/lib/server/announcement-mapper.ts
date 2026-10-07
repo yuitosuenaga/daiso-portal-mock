@@ -52,7 +52,11 @@ export function mapTargeting(record: PrismaAnnouncement): AnnouncementTargeting 
     return { scope: "countries", countries: record.targetingCountries };
   }
   if (record.targetingScope === "users") {
-    return { scope: "users", userIds: record.targetingUserIds };
+    return {
+      scope: "users",
+      userIds: record.targetingUserIds,
+      companyIds: record.targetingCompanyIds,
+    };
   }
   return { scope: "all" };
 }
@@ -61,18 +65,30 @@ export function targetingToColumns(targeting: AnnouncementTargeting): {
   targetingScope: "all" | "countries" | "users";
   targetingCountries: string[];
   targetingUserIds: string[];
+  targetingCompanyIds: string[];
 } {
   if (targeting.scope === "countries") {
     return {
       targetingScope: "countries",
       targetingCountries: targeting.countries,
       targetingUserIds: [],
+      targetingCompanyIds: [],
     };
   }
   if (targeting.scope === "users") {
-    return { targetingScope: "users", targetingCountries: [], targetingUserIds: targeting.userIds };
+    return {
+      targetingScope: "users",
+      targetingCountries: [],
+      targetingUserIds: targeting.userIds,
+      targetingCompanyIds: targeting.companyIds,
+    };
   }
-  return { targetingScope: "all", targetingCountries: [], targetingUserIds: [] };
+  return {
+    targetingScope: "all",
+    targetingCountries: [],
+    targetingUserIds: [],
+    targetingCompanyIds: [],
+  };
 }
 
 function mapDateOnly(value: Date | null): string | null {
@@ -203,6 +219,15 @@ export function resolveAnnouncementContent(
   return { title: announcement.title, body: announcement.body };
 }
 
+/** 個人指定（`users`）の配信対象を表す条件。指定された個人、または指定された会社の所属者。 */
+function usersTargetingCondition(
+  targeting: Extract<AnnouncementTargeting, { scope: "users" }>
+): Prisma.ApplicantUserWhereInput {
+  return {
+    OR: [{ id: { in: targeting.userIds } }, { companyId: { in: targeting.companyIds } }],
+  };
+}
+
 /**
  * 配信対象（`targeting`）でスコープされた`ApplicantUser`（通知メールの実際の宛先）を
  * 取得するための`where`条件。`announcement-service.ts`の`targetRecipientsWhere`
@@ -223,7 +248,7 @@ export function targetApplicantUsersWhere(
     };
   }
   if (announcement.targeting.scope === "users") {
-    return { isActive: true, id: { in: announcement.targeting.userIds } };
+    return { isActive: true, ...usersTargetingCondition(announcement.targeting) };
   }
   return { isActive: true };
 }
@@ -234,7 +259,7 @@ function targetingUserCondition(targeting: AnnouncementTargeting): Prisma.Applic
     return { company: { country: { in: targeting.countries } } };
   }
   if (targeting.scope === "users") {
-    return { id: { in: targeting.userIds } };
+    return usersTargetingCondition(targeting);
   }
   return {};
 }
@@ -266,7 +291,10 @@ export function addedTargetApplicantUsersWhere(
     if (
       previousTargeting.scope === "users" &&
       nextTargeting.scope === "users" &&
-      nextTargeting.userIds.every((userId) => previousTargeting.userIds.includes(userId))
+      nextTargeting.userIds.every((userId) => previousTargeting.userIds.includes(userId)) &&
+      nextTargeting.companyIds.every((companyId) =>
+        previousTargeting.companyIds.includes(companyId)
+      )
     ) {
       return null;
     }

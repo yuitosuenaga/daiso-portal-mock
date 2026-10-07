@@ -45,3 +45,19 @@ export interface ApplicantUserTargetOption {
   companyName: string;
   country: string;
 }
+
+/** お知らせの会社指定で検索・選択する会社の表示用情報。 */
+export interface CompanyTargetOption {
+  id: string;
+  name: string;
+  country: string;
+  companyCode: string;
+  /** 会社に所属する有効な申請者アカウント数（会社を選ぶと全員に配信される）。 */
+  activeUserCount: number;
+}
+
+/** 個人・会社指定の検索結果。会社と個人を別々の候補として返す。 */
+export interface TargetingCandidates {
+  companies: CompanyTargetOption[];
+  users: ApplicantUserTargetOption[];
+}

@@ -19,6 +19,10 @@ vi.mock("@/lib/server/applicant-user-service", () => ({
   updateApplicantUser: vi.fn(),
   setApplicantUserActive: vi.fn(),
   isApplicantUserEmailTaken: vi.fn(),
+  searchApplicantUsersForTargeting: vi.fn(),
+}));
+vi.mock("@/lib/server/company-targeting-service", () => ({
+  searchCompaniesForTargeting: vi.fn(),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -26,11 +30,14 @@ import {
   ApplicantUserEmailTakenError,
   createApplicantUser,
   isApplicantUserEmailTaken,
+  searchApplicantUsersForTargeting,
   setApplicantUserActive,
   updateApplicantUser,
 } from "@/lib/server/applicant-user-service";
+import { searchCompaniesForTargeting } from "@/lib/server/company-targeting-service";
 import {
   createApplicantUserAction,
+  searchTargetingCandidatesAction,
   setApplicantUserActiveAction,
   updateApplicantUserAction,
 } from "@/lib/actions/applicant-users";
@@ -243,5 +250,32 @@ describe("setApplicantUserActiveAction", () => {
     expect(setApplicantUserActive).toHaveBeenCalledWith("applicant-1", false);
     expect(result.isActive).toBe(false);
     expect(revalidatePath).toHaveBeenCalled();
+  });
+});
+
+describe("searchTargetingCandidatesAction", () => {
+  it("会社と個人を別々の候補として返す", async () => {
+    const company = {
+      id: "c1",
+      name: "Daiso VN",
+      country: "VN",
+      companyCode: "daiso-vn",
+      activeUserCount: 3,
+    };
+    const user = {
+      id: "u1",
+      displayName: "Taro",
+      email: "taro@example.com",
+      companyName: "Daiso VN",
+      country: "VN",
+    };
+    vi.mocked(searchCompaniesForTargeting).mockResolvedValue([company]);
+    vi.mocked(searchApplicantUsersForTargeting).mockResolvedValue([user]);
+
+    const result = await searchTargetingCandidatesAction("daiso");
+
+    expect(searchCompaniesForTargeting).toHaveBeenCalledWith("daiso");
+    expect(searchApplicantUsersForTargeting).toHaveBeenCalledWith("daiso");
+    expect(result).toEqual({ companies: [company], users: [user] });
   });
 });

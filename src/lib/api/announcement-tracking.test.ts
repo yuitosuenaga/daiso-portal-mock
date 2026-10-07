@@ -219,7 +219,8 @@ describe("confirmAnnouncementForCurrentCompany", () => {
       "announcement-1",
       "VN",
       undefined,
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
     expect(recordUserConfirmationService).toHaveBeenCalledWith(
       "announcement-1",

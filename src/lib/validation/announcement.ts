@@ -16,17 +16,27 @@ const linkedDocumentIdsSchema = z.array(z.string().min(1)).max(ATTACHMENT_MAX_CO
 /** 個人指定で選択できる申請者アカウントの最大件数。 */
 export const ANNOUNCEMENT_TARGET_USER_MAX_COUNT = 200;
 
-const announcementTargetingSchema = z.discriminatedUnion("scope", [
-  z.object({ scope: z.literal("all") }),
-  z.object({
-    scope: z.literal("countries"),
-    countries: z.array(z.enum(INQUIRY_COUNTRY_CODES)).min(1),
-  }),
-  z.object({
-    scope: z.literal("users"),
-    userIds: z.array(z.string().min(1)).min(1).max(ANNOUNCEMENT_TARGET_USER_MAX_COUNT),
-  }),
-]);
+/** 会社指定で選択できる会社の最大件数。 */
+export const ANNOUNCEMENT_TARGET_COMPANY_MAX_COUNT = 200;
+
+const announcementTargetingSchema = z
+  .discriminatedUnion("scope", [
+    z.object({ scope: z.literal("all") }),
+    z.object({
+      scope: z.literal("countries"),
+      countries: z.array(z.enum(INQUIRY_COUNTRY_CODES)).min(1),
+    }),
+    z.object({
+      scope: z.literal("users"),
+      userIds: z.array(z.string().min(1)).max(ANNOUNCEMENT_TARGET_USER_MAX_COUNT),
+      companyIds: z.array(z.string().min(1)).max(ANNOUNCEMENT_TARGET_COMPANY_MAX_COUNT).default([]),
+    }),
+  ])
+  .refine(
+    (targeting) =>
+      targeting.scope !== "users" || targeting.userIds.length + targeting.companyIds.length > 0,
+    { path: ["userIds"] }
+  );
 
 /** 空文字・nullを`null`に変換する任意入力の日付（ISO日付 YYYY-MM-DD）フィールド。 */
 const optionalDateField = z

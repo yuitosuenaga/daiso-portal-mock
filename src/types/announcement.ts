@@ -31,12 +31,14 @@ export interface AnnouncementTranslationView {
 
 /**
  * お知らせの配信対象。全体一律、特定の国・地域（ISO 3166-1 alpha-2）を
- * 1件以上指定、または特定の個人（`ApplicantUser.id`）を1件以上指定するかを判別可能なユニオン型で表す。
+ * 1件以上指定、または特定の個人（`ApplicantUser.id`）・会社（`Company.id`）を合わせて1件以上
+ * 指定するかを判別可能なユニオン型で表す。会社を指定した場合は、その会社に所属する有効な
+ * 申請者全員（配信時点の所属）が対象となる。
  */
 export type AnnouncementTargeting =
   | { scope: "all" }
   | { scope: "countries"; countries: string[] }
-  | { scope: "users"; userIds: string[] };
+  | { scope: "users"; userIds: string[]; companyIds: string[] };
 
 export interface Announcement {
   id: string;

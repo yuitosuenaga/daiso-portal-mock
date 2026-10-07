@@ -94,7 +94,8 @@ describe("getRecentAnnouncements", () => {
     expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
       "VN",
       undefined,
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
     expect(result.map((item) => item.id)).toEqual(["1", "2", "3"]);
   });
@@ -126,7 +127,8 @@ describe("getRecentAnnouncements", () => {
     expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
       "VN",
       "en",
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
   });
 });
@@ -141,7 +143,8 @@ describe("getAnnouncements", () => {
     expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
       "VN",
       undefined,
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
     expect(result).toHaveLength(1);
   });
@@ -161,7 +164,8 @@ describe("getAnnouncements", () => {
     expect(listAnnouncementsVisibleToCountry).toHaveBeenCalledWith(
       "VN",
       "en",
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
   });
 });
@@ -177,7 +181,8 @@ describe("getAnnouncementById", () => {
       "announcement-1",
       "VN",
       undefined,
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
     expect(result?.id).toBe("announcement-1");
   });
@@ -198,7 +203,8 @@ describe("getAnnouncementById", () => {
       "announcement-1",
       "VN",
       "en",
-      "applicant-1"
+      "applicant-1",
+      "company-1"
     );
   });
 });

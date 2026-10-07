@@ -365,7 +365,7 @@ describe("個人指定の配信対象の検証", () => {
     body: "本文",
     category: "other" as const,
     status: "published" as const,
-    targeting: { scope: "users" as const, userIds: ["ghost"] },
+    targeting: { scope: "users" as const, userIds: ["ghost"], companyIds: [] as string[] },
     actionRequired: false,
     sendEmailNotification: false,
     attachments: [],

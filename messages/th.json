@@ -200,7 +200,7 @@
         "clearButton": "ล้าง",
         "noResults": "ไม่มีประกาศที่ตรงกัน"
       },
-      "targetingUsersLabel": "รายบุคคล: {count} คน"
+      "targetingUsersLabel": "รายบุคคล/บริษัท: {users} คน, {companies} บริษัท"
     },
     "form": {
       "createTitle": "สร้างประกาศใหม่",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "รูปแบบไฟล์ที่ไม่อนุญาต (รูปภาพหรือ PDF เท่านั้น)",
         "attachmentsCountExceeded": "เกินจำนวนไฟล์ที่สามารถแนบได้ (สูงสุด 5 ไฟล์)",
         "attachmentsReadFailed": "การอ่านไฟล์ล้มเหลว โปรดลองอีกครั้ง",
-        "usersRequired": "กรุณาเลือกอย่างน้อย 1 คน",
-        "usersUnavailable": "บุคคลที่เลือกถูกปิดใช้งานหรือถูกลบแล้ว จึงไม่สามารถกำหนดเป็นกลุ่มเป้าหมายได้"
+        "usersRequired": "กรุณาเลือกบุคคลหรือบริษัทอย่างน้อย 1 รายการ",
+        "usersUnavailable": "บุคคลหรือบริษัทที่เลือกไม่สามารถเป็นกลุ่มเป้าหมายได้ (ถูกปิดใช้งานหรือถูกลบแล้ว)"
       },
       "actionRequiredLabel": "ความจำเป็นในการดำเนินการ",
       "actionRequiredTrueOption": "ต้องดำเนินการ",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "บันทึกการแปลแล้ว",
       "retranslateFailed": "การแปลล้มเหลวในบางภาษา โปรดลองใหม่ภายหลัง",
       "retranslateError": "การแปลอีกครั้งล้มเหลว โปรดลองใหม่ภายหลัง",
-      "targetingUsersOption": "ระบุเป็นรายบุคคล",
-      "usersLabel": "บุคคลที่เป็นกลุ่มเป้าหมาย",
+      "targetingUsersOption": "ระบุรายบุคคล / บริษัท",
+      "usersLabel": "บุคคล/บริษัทที่เป็นกลุ่มเป้าหมาย",
       "usersSearchPlaceholder": "ค้นหาด้วยชื่อ อีเมล หรือบริษัท",
       "usersSearchHint": "พิมพ์เพื่อค้นหาผู้ใช้",
       "usersNoResultsMessage": "ไม่พบผู้ใช้ที่ตรงกัน",
       "usersSearchError": "ค้นหาไม่สำเร็จ",
-      "usersSelectedCountLabel": "เลือกแล้ว {count} คน",
+      "usersSelectedCountLabel": "เลือกแล้ว: บริษัท {companies} แห่ง, บุคคล {users} คน",
       "usersRemoveChipButtonLabel": "ลบ",
       "usersAlreadySelectedLabel": "เลือกแล้ว",
       "usersSearchingLabel": "กำลังค้นหา...",
       "usersResultsCountLabel": "พบ {count} รายการ",
-      "usersUnavailableLabel": "ใช้งานไม่ได้"
+      "usersUnavailableLabel": "ใช้งานไม่ได้",
+      "usersCompanyGroupLabel": "บริษัท",
+      "usersUserGroupLabel": "บุคคล",
+      "usersCompanyMembersLabel": "บัญชีที่ใช้งานอยู่ {count} บัญชี",
+      "usersCompanyNote": "เมื่อเลือกบริษัท จะส่งถึงทุกบัญชีที่ใช้งานอยู่ของบริษัทนั้น"
     },
     "tracking": {
       "confirmedCount": "ยืนยันแล้ว {confirmed}/{total} คน",

@@ -35,7 +35,8 @@ export async function getRecentAnnouncements(
   const visible = await listAnnouncementsVisibleToCountry(
     claims.country,
     options?.locale,
-    claims.applicantUserId
+    claims.applicantUserId,
+    claims.companyId
   );
 
   return visible.slice(0, limit);
@@ -51,7 +52,12 @@ export async function getAnnouncements(
 ): Promise<Announcement[]> {
   const { claims } = await requireApplicantSession();
 
-  return listAnnouncementsVisibleToCountry(claims.country, options?.locale, claims.applicantUserId);
+  return listAnnouncementsVisibleToCountry(
+    claims.country,
+    options?.locale,
+    claims.applicantUserId,
+    claims.companyId
+  );
 }
 
 /**
@@ -69,7 +75,8 @@ export async function getAnnouncementById(
     id,
     claims.country,
     options?.locale,
-    claims.applicantUserId
+    claims.applicantUserId,
+    claims.companyId
   );
 }
 

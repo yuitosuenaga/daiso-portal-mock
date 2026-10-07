@@ -83,7 +83,9 @@ export function AnnouncementManagementListClient({
       return targetingAllLabel;
     }
     if (announcement.targeting.scope === "users") {
-      return targetingUsersLabel.replace("{count}", String(announcement.targeting.userIds.length));
+      return targetingUsersLabel
+        .replace("{users}", String(announcement.targeting.userIds.length))
+        .replace("{companies}", String(announcement.targeting.companyIds.length));
     }
     return `${targetingCountriesLabel}: ${announcement.targeting.countries
       .map((code) => countryLabels[code] ?? code)

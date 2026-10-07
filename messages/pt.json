@@ -200,7 +200,7 @@
         "clearButton": "Limpar",
         "noResults": "Nenhum aviso encontrado"
       },
-      "targetingUsersLabel": "Pessoas: {count}"
+      "targetingUsersLabel": "Pessoas/empresas: {users} pessoa(s), {companies} empresa(s)"
     },
     "form": {
       "createTitle": "Criar Novo Aviso",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "Tipo de arquivo não permitido (apenas imagens ou PDF)",
         "attachmentsCountExceeded": "Excedido o limite de arquivos anexados (5 itens)",
         "attachmentsReadFailed": "Falha ao ler o arquivo. Tente novamente.",
-        "usersRequired": "Selecione pelo menos uma pessoa",
-        "usersUnavailable": "Os indivíduos selecionados foram desativados ou excluídos e não podem ser destinatários"
+        "usersRequired": "Selecione pelo menos uma pessoa ou empresa",
+        "usersUnavailable": "Nenhuma das pessoas ou empresas selecionadas pode ser destinatária (desativadas ou excluídas)"
       },
       "actionRequiredLabel": "Necessidade de ação",
       "actionRequiredTrueOption": "Ação necessária",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "Tradução salva",
       "retranslateFailed": "A tradução falhou em alguns idiomas. Tente novamente mais tarde.",
       "retranslateError": "A nova tradução falhou. Tente novamente mais tarde.",
-      "targetingUsersOption": "Especificar pessoas",
-      "usersLabel": "Pessoas de destino",
+      "targetingUsersOption": "Especificar pessoas / empresas",
+      "usersLabel": "Pessoas / empresas de destino",
       "usersSearchPlaceholder": "Pesquisar por nome, e-mail ou empresa",
       "usersSearchHint": "Digite para pesquisar usuários",
       "usersNoResultsMessage": "Nenhum usuário encontrado",
       "usersSearchError": "Falha na pesquisa",
-      "usersSelectedCountLabel": "{count} selecionado(s)",
+      "usersSelectedCountLabel": "{companies} empresa(s) e {users} pessoa(s) selecionada(s)",
       "usersRemoveChipButtonLabel": "Remover",
       "usersAlreadySelectedLabel": "Selecionado",
       "usersSearchingLabel": "Pesquisando...",
       "usersResultsCountLabel": "{count} encontrado(s)",
-      "usersUnavailableLabel": "Indisponível"
+      "usersUnavailableLabel": "Indisponível",
+      "usersCompanyGroupLabel": "Empresa",
+      "usersUserGroupLabel": "Pessoa",
+      "usersCompanyMembersLabel": "{count} contas ativas",
+      "usersCompanyNote": "Ao selecionar uma empresa, o aviso é enviado a todas as contas ativas dessa empresa"
     },
     "tracking": {
       "confirmedCount": "Confirmado {confirmed}/{total} pessoas",

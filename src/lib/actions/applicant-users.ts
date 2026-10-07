@@ -10,14 +10,15 @@ import {
   setApplicantUserActive,
   updateApplicantUser,
 } from "@/lib/server/applicant-user-service";
+import { searchCompaniesForTargeting } from "@/lib/server/company-targeting-service";
 import {
   applicantUserCreateFormSchema,
   applicantUserUpdateFormSchema,
 } from "@/lib/validation/applicant-user";
 import type {
   ApplicantUserSummary,
-  ApplicantUserTargetOption,
   CreateApplicantUserInput,
+  TargetingCandidates,
   UpdateApplicantUserInput,
 } from "@/types/applicant-user";
 
@@ -90,9 +91,16 @@ export async function setApplicantUserActiveAction(
   return updated;
 }
 
-/** お知らせの個人指定用に、申請者アカウントを部分一致で検索する（ヘルプデスク専用）。 */
-export async function searchApplicantUsersForTargetingAction(
+/**
+ * お知らせの個人・会社指定用に、会社と申請者アカウントを部分一致で検索する（ヘルプデスク専用）。
+ * 会社と個人は別々の候補として返す。
+ */
+export async function searchTargetingCandidatesAction(
   query: string
-): Promise<ApplicantUserTargetOption[]> {
-  return searchApplicantUsersForTargeting(query);
+): Promise<TargetingCandidates> {
+  const [companies, users] = await Promise.all([
+    searchCompaniesForTargeting(query),
+    searchApplicantUsersForTargeting(query),
+  ]);
+  return { companies, users };
 }

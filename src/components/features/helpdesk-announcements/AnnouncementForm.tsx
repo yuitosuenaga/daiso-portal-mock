@@ -13,7 +13,7 @@ import {
   UserTargetingSelect,
   type UserTargetingSelectLabels,
 } from "@/components/features/helpdesk-announcements/UserTargetingSelect";
-import type { ApplicantUserTargetOption } from "@/types/applicant-user";
+import type { ApplicantUserTargetOption, CompanyTargetOption } from "@/types/applicant-user";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,8 @@ export interface AnnouncementFormProps {
   usersUnavailableErrorMessage: string;
   /** 編集時、`targeting.userIds`の表示情報（氏名・会社）を復元するための選択済みユーザー。 */
   initialTargetUsers?: ApplicantUserTargetOption[];
+  /** 編集時、`targeting.companyIds`の表示情報（会社名）を復元するための選択済み会社。 */
+  initialTargetCompanies?: CompanyTargetOption[];
   countriesLabel: string;
   countriesSearchPlaceholder: string;
   countriesSelectAllButtonLabel: string;
@@ -147,6 +149,7 @@ export function AnnouncementForm({
   usersRequiredErrorMessage,
   usersUnavailableErrorMessage,
   initialTargetUsers,
+  initialTargetCompanies,
   countriesLabel,
   countriesSearchPlaceholder,
   countriesSelectAllButtonLabel,
@@ -244,6 +247,7 @@ export function AnnouncementForm({
     countryOptions.map((option) => [option.value, option.label])
   );
   const scope = watch("targeting.scope");
+  const selectedCompanyIds = (watch("targeting.companyIds") as string[] | undefined) ?? [];
   const actionRequired = watch("actionRequired");
   const status = watch("status");
 
@@ -536,9 +540,13 @@ export function AnnouncementForm({
             render={({ field }) => (
               <UserTargetingSelect
                 id="announcement-targeting-users"
-                value={field.value ?? []}
-                onChange={field.onChange}
+                value={{ userIds: field.value ?? [], companyIds: selectedCompanyIds }}
+                onChange={(next) => {
+                  field.onChange(next.userIds);
+                  setValue("targeting.companyIds", next.companyIds);
+                }}
                 initialUsers={initialTargetUsers}
+                initialCompanies={initialTargetCompanies}
                 labels={usersLabels}
                 countryLabels={countryLabels}
                 ariaInvalid={

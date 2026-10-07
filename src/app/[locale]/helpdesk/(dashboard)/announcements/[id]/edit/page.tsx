@@ -7,6 +7,7 @@ import { DeleteAnnouncementButton } from "@/components/features/helpdesk-announc
 import { getAnnouncementByIdForHelpdesk } from "@/lib/api/announcements";
 import { getAllDocuments } from "@/lib/api/documents";
 import { listApplicantUsersForTargetingByIds } from "@/lib/server/applicant-user-service";
+import { listCompaniesForTargetingByIds } from "@/lib/server/company-targeting-service";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import type { AnnouncementFormValues } from "@/lib/validation/announcement";
@@ -64,10 +65,13 @@ export default async function HelpdeskAnnouncementEditPage({
   }));
 
   const documentOptions = await getAllDocuments();
-  const initialTargetUsers =
+  const [initialTargetUsers, initialTargetCompanies] =
     announcement.targeting.scope === "users"
-      ? await listApplicantUsersForTargetingByIds(announcement.targeting.userIds)
-      : [];
+      ? await Promise.all([
+          listApplicantUsersForTargetingByIds(announcement.targeting.userIds),
+          listCompaniesForTargetingByIds(announcement.targeting.companyIds),
+        ])
+      : [[], []];
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -159,6 +163,10 @@ export default async function HelpdeskAnnouncementEditPage({
           selectedCountLabel: t.raw("usersSelectedCountLabel"),
           removeChipButtonLabel: t("usersRemoveChipButtonLabel"),
           alreadySelectedLabel: t("usersAlreadySelectedLabel"),
+          companyBadgeLabel: t("usersCompanyGroupLabel"),
+          userBadgeLabel: t("usersUserGroupLabel"),
+          companyMembersLabel: t.raw("usersCompanyMembersLabel"),
+          companyNote: t("usersCompanyNote"),
           searchingLabel: t("usersSearchingLabel"),
           resultsCountLabel: t.raw("usersResultsCountLabel"),
           unavailableLabel: t("usersUnavailableLabel"),
@@ -166,6 +174,7 @@ export default async function HelpdeskAnnouncementEditPage({
         usersRequiredErrorMessage={t("validation.usersRequired")}
         usersUnavailableErrorMessage={t("validation.usersUnavailable")}
         initialTargetUsers={initialTargetUsers}
+        initialTargetCompanies={initialTargetCompanies}
         countriesLabel={t("countriesLabel")}
         countriesSearchPlaceholder={t("countriesSearchPlaceholder")}
         countriesSelectAllButtonLabel={t("countriesSelectAllButtonLabel")}

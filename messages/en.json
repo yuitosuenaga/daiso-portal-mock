@@ -200,7 +200,7 @@
         "clearButton": "Clear",
         "noResults": "No matching announcements"
       },
-      "targetingUsersLabel": "Individuals: {count}"
+      "targetingUsersLabel": "Individuals/companies: {users} individuals, {companies} companies"
     },
     "form": {
       "createTitle": "Create Announcement",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "This file type is not allowed (images or PDF only)",
         "attachmentsCountExceeded": "The maximum number of attachments (5) has been exceeded",
         "attachmentsReadFailed": "Failed to read the file. Please try again.",
-        "usersRequired": "Select at least one individual",
-        "usersUnavailable": "The selected individuals are deactivated or deleted and cannot be targeted"
+        "usersRequired": "Select at least one individual or company",
+        "usersUnavailable": "None of the selected individuals or companies can be targeted (deactivated or deleted)"
       },
       "actionRequiredLabel": "Action required",
       "actionRequiredTrueOption": "Action required",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "Translation saved",
       "retranslateFailed": "Translation failed for some languages. Please try again later.",
       "retranslateError": "Retranslation failed. Please try again later.",
-      "targetingUsersOption": "Specific individuals",
-      "usersLabel": "Target individuals",
+      "targetingUsersOption": "Specific individuals / companies",
+      "usersLabel": "Target individuals / companies",
       "usersSearchPlaceholder": "Search by name, email or company",
       "usersSearchHint": "Type to search for users",
       "usersNoResultsMessage": "No matching users",
       "usersSearchError": "Search failed",
-      "usersSelectedCountLabel": "{count} selected",
+      "usersSelectedCountLabel": "{companies} companies, {users} individuals selected",
       "usersRemoveChipButtonLabel": "Remove",
       "usersAlreadySelectedLabel": "Selected",
       "usersSearchingLabel": "Searching...",
       "usersResultsCountLabel": "{count} found",
-      "usersUnavailableLabel": "Unavailable"
+      "usersUnavailableLabel": "Unavailable",
+      "usersCompanyGroupLabel": "Company",
+      "usersUserGroupLabel": "Individual",
+      "usersCompanyMembersLabel": "{count} active accounts",
+      "usersCompanyNote": "Selecting a company delivers to all active accounts of that company"
     },
     "tracking": {
       "confirmedCount": "Confirmed {confirmed}/{total} people",

@@ -203,6 +203,8 @@ model Announcement {
   targetingCountries    String[]                      @default([])
   /// `targetingScope = users`のとき配信対象とする`ApplicantUser.id`の一覧
   targetingUserIds      String[]                      @default([])
+  /// `targetingScope = users`のとき、所属する有効な申請者全員を配信対象とする`Company.id`の一覧
+  targetingCompanyIds   String[]                      @default([])
   publishStartDate      DateTime?                     @db.Date
   publishEndDate        DateTime?                     @db.Date
   dueDate               DateTime?                     @db.Date

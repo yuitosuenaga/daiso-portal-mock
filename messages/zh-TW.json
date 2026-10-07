@@ -200,7 +200,7 @@
         "clearButton": "清空",
         "noResults": "沒有相關公告"
       },
-      "targetingUsersLabel": "指定個人：{count}人"
+      "targetingUsersLabel": "指定個人／公司：{users}人、{companies}間"
     },
     "form": {
       "createTitle": "建立新公告",
@@ -251,8 +251,8 @@
         "attachmentsTypeNotAllowed": "不允許的檔案格式（僅限圖片或PDF）",
         "attachmentsCountExceeded": "超過可附加檔案數量的上限（5個）",
         "attachmentsReadFailed": "無法讀取檔案。請重試。",
-        "usersRequired": "請至少選擇一位個人",
-        "usersUnavailable": "所選人員已停用或已刪除，無法作為發送對象"
+        "usersRequired": "請至少選擇一位個人或一間公司",
+        "usersUnavailable": "所選個人或公司皆無法作為發送對象（已停用或已刪除）"
       },
       "actionRequiredLabel": "對應必要性",
       "actionRequiredTrueOption": "需要對應",
@@ -286,18 +286,22 @@
       "retranslateSuccess": "已儲存翻譯",
       "retranslateFailed": "部分語言翻譯失敗，請稍後再試。",
       "retranslateError": "重新翻譯失敗，請稍後再試。",
-      "targetingUsersOption": "指定個人",
-      "usersLabel": "目標個人",
+      "targetingUsersOption": "指定個人／公司",
+      "usersLabel": "目標個人／公司",
       "usersSearchPlaceholder": "依姓名、電子郵件或公司搜尋",
       "usersSearchHint": "輸入關鍵字以搜尋使用者",
       "usersNoResultsMessage": "沒有符合的使用者",
       "usersSearchError": "搜尋失敗",
-      "usersSelectedCountLabel": "已選擇{count}人",
+      "usersSelectedCountLabel": "已選擇 {companies} 間公司、{users} 位個人",
       "usersRemoveChipButtonLabel": "刪除",
       "usersAlreadySelectedLabel": "已選擇",
       "usersSearchingLabel": "搜尋中...",
       "usersResultsCountLabel": "找到 {count} 筆",
-      "usersUnavailableLabel": "無法使用"
+      "usersUnavailableLabel": "無法使用",
+      "usersCompanyGroupLabel": "公司",
+      "usersUserGroupLabel": "個人",
+      "usersCompanyMembersLabel": "有效帳號 {count} 個",
+      "usersCompanyNote": "選擇公司後，將發送給該公司所有有效帳號"
     },
     "tracking": {
       "confirmedCount": "已確認 {confirmed}/{total}人",
