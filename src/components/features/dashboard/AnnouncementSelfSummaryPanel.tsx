@@ -65,6 +65,7 @@ export async function AnnouncementSelfSummaryPanel({
       maintenance: tCategories("maintenance"),
       policy: tCategories("policy"),
       incident: tCategories("incident"),
+      hearing: tCategories("hearing"),
       other: tCategories("other"),
     });
 

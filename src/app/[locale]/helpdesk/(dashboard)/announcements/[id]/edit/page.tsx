@@ -124,6 +124,8 @@ export default async function HelpdeskAnnouncementEditPage({
           sendEmailNotification: announcement.sendEmailNotification,
           publishStartDate: announcement.publishStartDate ?? "",
           publishEndDate: announcement.publishEndDate ?? "",
+          publishStartTime: announcement.publishStartTime ?? "",
+          publishEndTime: announcement.publishEndTime ?? "",
           dueDate: announcement.dueDate ?? "",
           // `Announcement.attachments`の`fileType`はドメイン型として`string`だが、
           // 保存済みデータは常に`announcementFormSchema`で検証済みのため、
@@ -184,6 +186,8 @@ export default async function HelpdeskAnnouncementEditPage({
         countriesRemoveChipButtonLabel={t("countriesRemoveChipButtonLabel")}
         publishStartDateLabel={t("publishStartDateLabel")}
         publishEndDateLabel={t("publishEndDateLabel")}
+        publishStartTimeLabel={t("publishStartTimeLabel")}
+        publishEndTimeLabel={t("publishEndTimeLabel")}
         publishPeriodHint={t("publishPeriodHint")}
         publishEndDateBeforeStartErrorMessage={t("validation.publishEndDateBeforeStart")}
         dueDateLabel={t("dueDateLabel")}

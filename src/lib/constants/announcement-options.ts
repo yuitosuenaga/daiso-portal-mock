@@ -7,5 +7,6 @@ export const ANNOUNCEMENT_CATEGORY_CODES = [
   "maintenance",
   "policy",
   "incident",
+  "hearing",
   "other",
 ] as const satisfies readonly Announcement["category"][];

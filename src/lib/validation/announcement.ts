@@ -47,6 +47,12 @@ const optionalDateField = z
     return trimmed === "" ? null : trimmed;
   });
 
+/** 空文字・nullを`null`に変換する任意入力の時刻（HH:mm、日本時間）フィールド。 */
+const optionalTimeField = z
+  .union([z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), z.literal(""), z.null()])
+  .optional()
+  .transform((value) => value || null);
+
 /**
  * お知らせ新規作成・編集フォームの入力値を検証する zod スキーマ。
  * タイトル・本文・種別を必須とし、配信対象を「特定の国・地域を指定」にした場合は
@@ -68,6 +74,8 @@ export const announcementFormSchema = z
     publishWithoutTranslation: z.boolean().default(false),
     publishStartDate: optionalDateField,
     publishEndDate: optionalDateField,
+    publishStartTime: optionalTimeField,
+    publishEndTime: optionalTimeField,
     dueDate: optionalDateField,
     attachments: inquiryAttachmentsArraySchema.default([]),
     linkedDocumentIds: linkedDocumentIdsSchema.default([]),
@@ -76,7 +84,8 @@ export const announcementFormSchema = z
     if (
       values.publishStartDate &&
       values.publishEndDate &&
-      values.publishEndDate < values.publishStartDate
+      `${values.publishEndDate}T${values.publishEndTime ?? "23:59"}` <
+        `${values.publishStartDate}T${values.publishStartTime ?? "00:00"}`
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -95,6 +104,8 @@ export const announcementFormSchema = z
   .transform((values) => ({
     ...values,
     dueDate: values.actionRequired ? values.dueDate : null,
+    publishStartTime: values.publishStartDate ? values.publishStartTime : null,
+    publishEndTime: values.publishEndDate ? values.publishEndTime : null,
   }));
 
 /**

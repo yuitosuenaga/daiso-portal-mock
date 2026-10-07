@@ -11,6 +11,7 @@ const badgeVariants = cva(
         maintenance: "bg-accent text-accent-foreground",
         policy: "bg-secondary text-secondary-foreground",
         incident: "bg-destructive text-destructive-foreground",
+        hearing: "bg-primary text-primary-foreground",
         other: "bg-muted text-muted-foreground",
         "status-new": "bg-secondary text-secondary-foreground",
         "status-in_progress": "bg-accent text-accent-foreground",

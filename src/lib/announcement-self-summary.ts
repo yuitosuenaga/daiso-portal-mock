@@ -71,6 +71,7 @@ const ANNOUNCEMENT_CATEGORY_ORDER: Announcement["category"][] = [
   "maintenance",
   "policy",
   "incident",
+  "hearing",
   "other",
 ];
 
@@ -82,6 +83,7 @@ export function countAnnouncementsByCategory(
     maintenance: 0,
     policy: 0,
     incident: 0,
+    hearing: 0,
     other: 0,
   };
   for (const announcement of announcements) {

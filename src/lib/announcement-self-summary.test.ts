@@ -178,6 +178,7 @@ describe("countAnnouncementsByCategory", () => {
       maintenance: 2,
       policy: 0,
       incident: 0,
+      hearing: 0,
       other: 1,
     });
   });
@@ -187,18 +188,20 @@ describe("countAnnouncementsByCategory", () => {
       maintenance: 0,
       policy: 0,
       incident: 0,
+      hearing: 0,
       other: 0,
     });
   });
 });
 
 describe("toAnnouncementCategoryBarRows", () => {
-  it("固定順4行に変換し、最大値を100%とするbarPercentを付与する", () => {
-    const byCategory = { maintenance: 1, policy: 3, incident: 0, other: 2 };
+  it("固定順5行に変換し、最大値を100%とするbarPercentを付与する", () => {
+    const byCategory = { maintenance: 1, policy: 3, incident: 0, hearing: 0, other: 2 };
     const rows = toAnnouncementCategoryBarRows(byCategory, {
       maintenance: "メンテナンス",
       policy: "制度変更",
       incident: "障害情報",
+      hearing: "商品部 ヒアリング",
       other: "その他",
     });
 
@@ -206,6 +209,7 @@ describe("toAnnouncementCategoryBarRows", () => {
       { key: "maintenance", label: "メンテナンス", count: 1, barPercent: (1 / 3) * 100 },
       { key: "policy", label: "制度変更", count: 3, barPercent: 100 },
       { key: "incident", label: "障害情報", count: 0, barPercent: 0 },
+      { key: "hearing", label: "商品部 ヒアリング", count: 0, barPercent: 0 },
       { key: "other", label: "その他", count: 2, barPercent: (2 / 3) * 100 },
     ]);
   });

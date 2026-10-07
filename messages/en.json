@@ -262,7 +262,9 @@
       "sendEmailNotificationFalseOption": "Do not send email",
       "publishStartDateLabel": "Publish start date",
       "publishEndDateLabel": "Publish end date",
-      "publishPeriodHint": "Leave blank to publish at all times",
+      "publishStartTimeLabel": "Publish start time",
+      "publishEndTimeLabel": "Publish end time",
+      "publishPeriodHint": "Leave blank to publish at all times (times are JST; blank = 0:00 on start date / 23:59 on end date)",
       "dueDateLabel": "Due date",
       "attachmentsLabel": "Attachments",
       "attachmentsHint": "Images or PDF, up to 5MB each, up to 5 files can be uploaded directly.",
@@ -912,6 +914,7 @@
       "maintenance": "Maintenance",
       "policy": "Policy",
       "incident": "Incident",
+      "hearing": "Merchandising Hearing",
       "other": "Other"
     },
     "detail": {

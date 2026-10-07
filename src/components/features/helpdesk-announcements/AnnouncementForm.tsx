@@ -76,6 +76,8 @@ export interface AnnouncementFormProps {
   countriesRemoveChipButtonLabel: string;
   publishStartDateLabel: string;
   publishEndDateLabel: string;
+  publishStartTimeLabel: string;
+  publishEndTimeLabel: string;
   publishPeriodHint: string;
   publishEndDateBeforeStartErrorMessage: string;
   dueDateLabel: string;
@@ -159,6 +161,8 @@ export function AnnouncementForm({
   countriesRemoveChipButtonLabel,
   publishStartDateLabel,
   publishEndDateLabel,
+  publishStartTimeLabel,
+  publishEndTimeLabel,
   publishPeriodHint,
   publishEndDateBeforeStartErrorMessage,
   dueDateLabel,
@@ -218,6 +222,8 @@ export function AnnouncementForm({
       publishWithoutTranslation: false,
       publishStartDate: "",
       publishEndDate: "",
+      publishStartTime: "",
+      publishEndTime: "",
       dueDate: "",
       attachments: [],
       linkedDocumentIds: [],
@@ -401,6 +407,13 @@ export function AnnouncementForm({
             type="date"
             {...register("publishStartDate")}
           />
+          <Input
+            id="announcement-publish-start-time"
+            type="time"
+            aria-label={publishStartTimeLabel}
+            className="mt-2"
+            {...register("publishStartTime")}
+          />
         </FormField>
         <FormField
           label={publishEndDateLabel}
@@ -413,6 +426,13 @@ export function AnnouncementForm({
             type="date"
             aria-invalid={errors.publishEndDate ? true : undefined}
             {...register("publishEndDate")}
+          />
+          <Input
+            id="announcement-publish-end-time"
+            type="time"
+            aria-label={publishEndTimeLabel}
+            className="mt-2"
+            {...register("publishEndTime")}
           />
         </FormField>
       </div>

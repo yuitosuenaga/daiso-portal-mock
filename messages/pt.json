@@ -262,7 +262,9 @@
       "sendEmailNotificationFalseOption": "Não enviar e-mail",
       "publishStartDateLabel": "Data de início da publicação",
       "publishEndDateLabel": "Data de término da publicação",
-      "publishPeriodHint": "Se não preenchido, será publicado permanentemente",
+      "publishStartTimeLabel": "Hora de início da publicação",
+      "publishEndTimeLabel": "Hora de término da publicação",
+      "publishPeriodHint": "Se não preenchido, será publicado permanentemente (horário do Japão; vazio = 0:00 na data de início / 23:59 na data de término)",
       "dueDateLabel": "Prazo de resposta",
       "attachmentsLabel": "Anexos",
       "attachmentsHint": "Você pode fazer upload direto de imagens ou PDF, até 5MB por arquivo, máximo de 5 arquivos.",
@@ -912,6 +914,7 @@
       "maintenance": "Manutenção",
       "policy": "Mudança de política",
       "incident": "Informações de Incidentes",
+      "hearing": "Entrevista do Departamento de Mercadorias",
       "other": "Outros"
     },
     "detail": {

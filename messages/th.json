@@ -262,7 +262,9 @@
       "sendEmailNotificationFalseOption": "อย่าส่งอีเมล",
       "publishStartDateLabel": "วันที่เริ่มเผยแพร่",
       "publishEndDateLabel": "วันที่สิ้นสุดการเผยแพร่",
-      "publishPeriodHint": "หากไม่ได้ป้อนข้อมูล ระบบจะเผยแพร่ตลอดเวลา",
+      "publishStartTimeLabel": "เวลาเริ่มเผยแพร่",
+      "publishEndTimeLabel": "เวลาสิ้นสุดการเผยแพร่",
+      "publishPeriodHint": "หากไม่ได้ป้อนข้อมูล ระบบจะเผยแพร่ตลอดเวลา (เวลาญี่ปุ่น; ถ้าว่าง = 0:00 วันเริ่มต้น / 23:59 วันสิ้นสุด)",
       "dueDateLabel": "กำหนดการ",
       "attachmentsLabel": "ไฟล์แนบ",
       "attachmentsHint": "คุณสามารถอัปโหลดรูปภาพหรือ PDF ได้โดยตรง ไฟล์ละ 5MB สูงสุด 5 ไฟล์",
@@ -912,6 +914,7 @@
       "maintenance": "บำรุงรักษา",
       "policy": "การเปลี่ยนแปลงนโยบาย",
       "incident": "ข้อมูลความผิดพลาด",
+      "hearing": "สัมภาษณ์ฝ่ายสินค้า",
       "other": "อื่นๆ"
     },
     "detail": {

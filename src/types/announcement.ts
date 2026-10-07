@@ -4,7 +4,7 @@
 import type { InquiryAttachment } from "@/types/attachment";
 
 /** お知らせの種別（category）。ヒアリング後に選択肢が変更される前提の仮値。 */
-export type AnnouncementCategory = "maintenance" | "policy" | "incident" | "other";
+export type AnnouncementCategory = "maintenance" | "policy" | "incident" | "hearing" | "other";
 
 /**
  * お知らせに直接アップロードする添付ファイル。`inquiry-form`spec所有の`InquiryAttachment`と
@@ -62,6 +62,10 @@ export interface Announcement {
   publishStartDate?: string | null;
   /** 公開期間の終了日（ISO日付 YYYY-MM-DD）。未設定の場合は終了日による制限なし（開始日・終了日ともに未設定なら常時公開）。 */
   publishEndDate?: string | null;
+  /** 公開開始時刻（日本時間 HH:mm）。未設定の場合は開始日の0:00。 */
+  publishStartTime?: string | null;
+  /** 公開終了時刻（日本時間 HH:mm）。未設定の場合は終了日の23:59。 */
+  publishEndTime?: string | null;
   /** 対応期限（ISO日付 YYYY-MM-DD）。actionRequiredが真の場合のみ設定される。 */
   dueDate?: string | null;
   /** 作成日時（ISO 8601形式）。ヘルプデスク側一覧の並び順に使用する。 */
