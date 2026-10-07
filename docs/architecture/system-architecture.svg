@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1160" font-family="system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#52514e"/>
+    </marker>
+  </defs>
+
+  <!-- page background -->
+  <rect x="0" y="0" width="1600" height="1160" fill="#f9f9f7"/>
+
+  <!-- title -->
+  <text x="800" y="42" text-anchor="middle" font-size="26" font-weight="700" fill="#0b0b0b">ヘルプデスクポータル システム構成図（インフラレビュー用）</text>
+  <text x="800" y="68" text-anchor="middle" font-size="14" fill="#52514e">作成日: 2026-09-07 ／ 実装状況（実装済み・一部実装・想定のみ）をステータスバッジで区別</text>
+
+  <!-- ==================== 利用者ゾーン ==================== -->
+  <rect x="60" y="96" width="640" height="180" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+  <text x="80" y="122" font-size="15" font-weight="700" fill="#0b0b0b">利用者（daisojapan.com ドメインの Google アカウント保有）</text>
+
+  <rect x="90" y="140" width="270" height="110" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <text x="225" y="185" text-anchor="middle" font-size="16" font-weight="700" fill="#0b0b0b">日本大創</text>
+  <text x="225" y="208" text-anchor="middle" font-size="13" fill="#52514e">ヘルプデスク担当者</text>
+  <text x="225" y="226" text-anchor="middle" font-size="12" fill="#898781">問い合わせ対応／各種管理</text>
+
+  <rect x="390" y="140" width="270" height="110" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <text x="525" y="178" text-anchor="middle" font-size="16" font-weight="700" fill="#0b0b0b">海外販社・代理店担当者</text>
+  <text x="525" y="200" text-anchor="middle" font-size="13" fill="#52514e">（20か国以上）</text>
+  <text x="525" y="222" text-anchor="middle" font-size="12" fill="#898781">問い合わせ提出／閲覧</text>
+
+  <!-- users -> cloud -->
+  <path d="M225,250 L225,275 L390,275 L390,300" fill="none" stroke="#52514e" stroke-width="2"/>
+  <path d="M525,250 L525,300" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M225,275 L225,300" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="300" y="270" font-size="12" fill="#52514e">HTTPS</text>
+
+  <!-- ==================== クラウド環境ゾーン ==================== -->
+  <rect x="60" y="310" width="640" height="360" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+  <text x="80" y="336" font-size="15" font-weight="700" fill="#0b0b0b">クラウド環境（GCP / AWS 想定）</text>
+
+  <rect x="100" y="360" width="280" height="100" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <text x="240" y="392" text-anchor="middle" font-size="15" font-weight="700" fill="#0b0b0b">Webアプリケーション</text>
+  <text x="240" y="412" text-anchor="middle" font-size="12" fill="#52514e">Next.js（フロント＋API一体）</text>
+  <text x="240" y="430" text-anchor="middle" font-size="12" fill="#898781">［現行: Cloud Run］</text>
+
+  <rect x="100" y="500" width="280" height="100" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <text x="240" y="532" text-anchor="middle" font-size="15" font-weight="700" fill="#0b0b0b">データベース</text>
+  <text x="240" y="552" text-anchor="middle" font-size="12" fill="#52514e">PostgreSQL</text>
+  <text x="240" y="570" text-anchor="middle" font-size="12" fill="#898781">［現行: Cloud SQL］</text>
+
+  <rect x="420" y="500" width="240" height="100" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <text x="540" y="527" text-anchor="middle" font-size="14" font-weight="700" fill="#0b0b0b">定期実行ジョブ</text>
+  <text x="540" y="547" text-anchor="middle" font-size="12" fill="#52514e">お知らせ督促・</text>
+  <text x="540" y="562" text-anchor="middle" font-size="12" fill="#52514e">エスカレーション通知</text>
+  <text x="540" y="582" text-anchor="middle" font-size="11" fill="#898781">［現行: Cloud Scheduler］</text>
+
+  <path d="M240,460 L240,500" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M420,550 L380,550" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- legend -->
+  <text x="80" y="655" font-size="13" font-weight="700" fill="#0b0b0b">ステータス凡例：</text>
+  <circle cx="230" cy="650" r="7" fill="#0ca30c"/>
+  <text x="244" y="655" font-size="12" fill="#0b0b0b">実装済み</text>
+  <circle cx="340" cy="650" r="7" fill="#fab219"/>
+  <text x="354" y="655" font-size="12" fill="#0b0b0b">一部実装／未接続</text>
+  <circle cx="500" cy="650" r="7" fill="#d03b3b"/>
+  <text x="514" y="655" font-size="12" fill="#0b0b0b">想定のみ・未実装</text>
+
+  <!-- ==================== 外部サービス連携ゾーン ==================== -->
+  <rect x="760" y="96" width="780" height="820" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+  <text x="780" y="122" font-size="15" font-weight="700" fill="#0b0b0b">外部サービス連携</text>
+
+  <!-- box: Google Workspace SSO -->
+  <rect x="800" y="150" width="700" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <rect x="1400" y="164" width="86" height="26" rx="13" fill="#d03b3b"/>
+  <text x="1443" y="182" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">想定のみ</text>
+  <text x="820" y="182" font-size="15" font-weight="700" fill="#0b0b0b">① Google Workspace SSO</text>
+  <text x="820" y="204" font-size="12" fill="#52514e">daisojapan.com ドメイン限定の Google 認証</text>
+  <text x="820" y="224" font-size="12" fill="#52514e">用途: 利用者認証</text>
+  <text x="820" y="248" font-size="12" fill="#898781">現状: 未実装。メール＋パスワードの</text>
+  <text x="820" y="266" font-size="12" fill="#898781">Credentials 認証（DB内bcryptハッシュ）で代替</text>
+  <text x="820" y="286" font-size="12" fill="#898781">将来的にドメイン限定のGoogle OAuthへ切替想定</text>
+
+  <!-- box: SMTP mail -->
+  <rect x="800" y="320" width="700" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <rect x="1360" y="334" width="126" height="26" rx="13" fill="#fab219"/>
+  <text x="1423" y="352" text-anchor="middle" font-size="12" font-weight="700" fill="#0b0b0b">一部実装</text>
+  <text x="820" y="352" font-size="15" font-weight="700" fill="#0b0b0b">② メール配信サービス（SMTP）</text>
+  <text x="820" y="374" font-size="12" fill="#52514e">用途: お知らせの緊急通知・督促メール送信</text>
+  <text x="820" y="398" font-size="12" fill="#898781">現状: nodemailerによるSMTP送信コードは実装済み。</text>
+  <text x="820" y="416" font-size="12" fill="#898781">本番環境のSMTP接続情報（ホスト・認証情報等）は</text>
+  <text x="820" y="434" font-size="12" fill="#898781">未設定のため現状は無効（送信スキップ）</text>
+
+  <!-- box: Google Drive -->
+  <rect x="800" y="490" width="700" height="170" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <rect x="1360" y="504" width="126" height="26" rx="13" fill="#fab219"/>
+  <text x="1423" y="522" text-anchor="middle" font-size="12" font-weight="700" fill="#0b0b0b">一部実装</text>
+  <text x="820" y="522" font-size="15" font-weight="700" fill="#0b0b0b">③ Google Drive／Docs／Sheets／Slides</text>
+  <text x="820" y="544" font-size="12" fill="#52514e">用途: ヘルプデスク登録資料の共有リンクを</text>
+  <text x="820" y="562" font-size="12" fill="#52514e">申請者側で埋め込み表示</text>
+  <text x="820" y="584" font-size="12" fill="#898781">現状: 公開共有リンクURLを &lt;iframe&gt; でそのまま埋め込むのみ。</text>
+  <text x="820" y="602" font-size="12" fill="#898781">Drive APIによる認可連携・一覧取得は未使用。利用者単位の</text>
+  <text x="820" y="620" font-size="12" fill="#898781">アクセス出し分けは現在検討中</text>
+  <text x="820" y="642" font-size="12" font-weight="700" fill="#52514e">※ 外部共有サービス「CmosyPocket」への置き換えも検討中</text>
+
+  <!-- box: Translation API -->
+  <rect x="800" y="680" width="700" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+  <rect x="1400" y="694" width="86" height="26" rx="13" fill="#d03b3b"/>
+  <text x="1443" y="712" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">想定のみ</text>
+  <text x="820" y="712" font-size="15" font-weight="700" fill="#0b0b0b">④ Google Cloud Translation API</text>
+  <text x="820" y="734" font-size="12" fill="#52514e">用途: 問い合わせ・申請フォーム自由記述欄の多言語翻訳</text>
+  <text x="820" y="758" font-size="12" fill="#898781">現状: 未実装。開発フェーズ3以降で対応予定。</text>
+  <text x="820" y="776" font-size="12" fill="#898781">データモデル上は翻訳結果を保持するフィールドのみ用意済み</text>
+
+  <!-- Webアプリ -> external services (折れ線ルーティングで他ボックスとの交差を回避) -->
+  <path d="M380,372 L705,372 L705,225 L800,225" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <path d="M380,392 L720,392 L720,410 L800,410" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <path d="M380,412 L735,412 L735,575 L800,575" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <path d="M380,432 L750,432 L750,755 L800,755" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+  <!-- ==================== インフラチームへの確認事項 ==================== -->
+  <rect x="60" y="940" width="1480" height="210" rx="10" fill="#ffffff" stroke="#c3c2b7" stroke-width="2"/>
+  <text x="80" y="968" font-size="15" font-weight="700" fill="#0b0b0b">インフラチームへの確認事項</text>
+  <text x="80" y="994" font-size="13" fill="#0b0b0b">・Google Workspace SSO導入時、ドメイン制限（daisojapan.comのみ許可）をIdP側／アプリ側どちらで担保するか</text>
+  <text x="80" y="1018" font-size="13" fill="#0b0b0b">・SMTP送信先を外部メール配信サービスにするか社内SMTPリレー経由にするか、送信元ドメインのSPF／DKIM設定</text>
+  <text x="80" y="1042" font-size="13" fill="#0b0b0b">・Google Driveの共有リンクをユーザー単位で出し分ける場合、Drive API連携（OAuth委任・サービスアカウント等）への切替要否。CmosyPocket採用案との比較</text>
+  <text x="80" y="1066" font-size="13" fill="#0b0b0b">・Cloud Run（allUsersにinvoker権限を付与し一般公開）＋Cloud SQL（組み込みAuth Proxy経由）構成のまま本番化してよいか</text>
+  <text x="80" y="1090" font-size="13" fill="#0b0b0b">・Translation API導入時の送信データ（自由記述欄の内容）の越境処理・データ保持ポリシー</text>
+  <text x="80" y="1120" font-size="12" fill="#898781">詳細な補足・状態一覧は同ディレクトリの system-architecture.md を参照</text>
+</svg>
