@@ -80,7 +80,7 @@ describe("PriorityInquiriesPreviewPanel", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
-  it("対象が6件以上ある場合は上位5件のみ表示する", async () => {
+  it("対象が4件以上ある場合は上位3件のみ表示する", async () => {
     getAllInquiriesMock.mockResolvedValueOnce(
       Array.from({ length: 7 }, (_, i) =>
         makeInquiry({ id: `${i}`, status: "new" })
@@ -92,7 +92,7 @@ describe("PriorityInquiriesPreviewPanel", () => {
     });
     render(jsx);
 
-    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
   });
 
   it("対象が0件の場合は空状態メッセージを表示する", async () => {

@@ -13,7 +13,7 @@ import {
 } from "@/lib/constants/inquiry-options";
 import type { Inquiry } from "@/types/inquiry";
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 3;
 const SKELETON_ITEM_COUNT = 3;
 const UNRESOLVED_STATUSES: Inquiry["status"][] = ["new", "in_progress"];
 
@@ -27,7 +27,7 @@ export interface PriorityInquiriesPreviewPanelProps {
  * 「対応が必要な申請」プレビューパネル。
  *
  * 全社の問い合わせのうちステータスが新規または対応中のものを対象に、
- * 未着手優先・緊急度・受付日時の順で並び替えた上位5件を一覧表示する。
+ * 未着手優先・緊急度・受付日時の順で並び替えた上位3件を一覧表示する。
  * データ取得に失敗した場合は例外を上位へ伝播させず、パネル内にエラー状態を表示する。
  */
 export async function PriorityInquiriesPreviewPanel({
