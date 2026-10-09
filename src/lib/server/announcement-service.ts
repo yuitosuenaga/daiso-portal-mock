@@ -77,25 +77,25 @@ function visibleToCountryWhere(
   };
 }
 
-function parseDateOnlyStartOfDay(isoDate: string): Date {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  return new Date(year, month - 1, day, 0, 0, 0, 0);
+/** 公開開始日（＋任意の時刻 HH:mm、未設定は9:00）を日本時間として解釈した時刻を返す。 */
+function parsePublishStart(isoDate: string, time: string | null | undefined): Date {
+  return new Date(`${isoDate}T${time || "09:00"}:00.000+09:00`);
 }
 
-function parseDateOnlyEndOfDay(isoDate: string): Date {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  return new Date(year, month - 1, day, 23, 59, 59, 999);
+/** 公開終了日（＋任意の時刻 HH:mm、未設定は23:59）を日本時間として解釈した時刻を返す（その分の終わりまで公開）。 */
+function parsePublishEnd(isoDate: string, time: string | null | undefined): Date {
+  return new Date(`${isoDate}T${time || "23:59"}:59.999+09:00`);
 }
 
 /** 公開開始日・終了日を基準に、現在時刻が公開期間内かどうかを判定する。 */
 function isWithinPublishPeriod(announcement: Announcement, referenceDate: Date): boolean {
   if (announcement.publishStartDate) {
-    if (referenceDate < parseDateOnlyStartOfDay(announcement.publishStartDate)) {
+    if (referenceDate < parsePublishStart(announcement.publishStartDate, announcement.publishStartTime)) {
       return false;
     }
   }
   if (announcement.publishEndDate) {
-    if (referenceDate > parseDateOnlyEndOfDay(announcement.publishEndDate)) {
+    if (referenceDate > parsePublishEnd(announcement.publishEndDate, announcement.publishEndTime)) {
       return false;
     }
   }
@@ -295,6 +295,8 @@ export async function createAnnouncementRecord(
       ...targetingToColumns(targeting),
       publishStartDate: dateOnlyToColumn(input.publishStartDate),
       publishEndDate: dateOnlyToColumn(input.publishEndDate),
+      publishStartTime: input.publishStartDate ? input.publishStartTime || null : null,
+      publishEndTime: input.publishEndDate ? input.publishEndTime || null : null,
       dueDate: dateOnlyToColumn(input.dueDate),
       attachments: {
         create: input.attachments.map((attachment) => ({
@@ -380,6 +382,8 @@ export async function updateAnnouncementRecord(
         ...targetingToColumns(targeting),
         publishStartDate: dateOnlyToColumn(input.publishStartDate),
         publishEndDate: dateOnlyToColumn(input.publishEndDate),
+        publishStartTime: input.publishStartDate ? input.publishStartTime || null : null,
+        publishEndTime: input.publishEndDate ? input.publishEndTime || null : null,
         dueDate: dateOnlyToColumn(input.dueDate),
         attachments: {
           deleteMany: {},

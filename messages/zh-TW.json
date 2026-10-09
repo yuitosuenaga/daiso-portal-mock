@@ -262,7 +262,9 @@
       "sendEmailNotificationFalseOption": "不發送郵件",
       "publishStartDateLabel": "公開開始日期",
       "publishEndDateLabel": "公開結束日期",
-      "publishPeriodHint": "如果未輸入，將持續公開",
+      "publishStartTimeLabel": "公開開始時間",
+      "publishEndTimeLabel": "公開結束時間",
+      "publishPeriodHint": "如果未輸入，將持續公開（時間為日本時間；未輸入則開始日9:00、結束日23:59）",
       "dueDateLabel": "對應期限",
       "attachmentsLabel": "附件",
       "attachmentsHint": "可直接上傳圖片或PDF，每個檔案最大5MB，最多5個檔案。",
@@ -912,6 +914,7 @@
       "maintenance": "維護",
       "policy": "制度變更",
       "incident": "故障資訊",
+      "hearing": "訪談（商品本部）",
       "other": "其他"
     },
     "detail": {

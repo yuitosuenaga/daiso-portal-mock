@@ -105,8 +105,12 @@ export function AnnouncementManagementListClient({
     if (!publishStartDate && !publishEndDate) {
       return publishPeriodAlwaysLabel;
     }
-    const start = publishStartDate ? formatDate(publishStartDate) : "";
-    const end = publishEndDate ? formatDate(publishEndDate) : "";
+    const start = publishStartDate
+      ? `${formatDate(publishStartDate)} ${announcement.publishStartTime ?? ""}`.trim()
+      : "";
+    const end = publishEndDate
+      ? `${formatDate(publishEndDate)} ${announcement.publishEndTime ?? ""}`.trim()
+      : "";
     return `${publishPeriodLabel}: ${start} ${publishPeriodToSeparator} ${end}`.trim();
   }
 

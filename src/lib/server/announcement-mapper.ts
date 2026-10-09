@@ -108,6 +108,8 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
     sendEmailNotification: record.sendEmailNotification,
     publishStartDate: mapDateOnly(record.publishStartDate),
     publishEndDate: mapDateOnly(record.publishEndDate),
+    publishStartTime: record.publishStartTime,
+    publishEndTime: record.publishEndTime,
     dueDate: mapDateOnly(record.dueDate),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),

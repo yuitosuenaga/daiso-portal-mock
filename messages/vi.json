@@ -262,7 +262,9 @@
       "sendEmailNotificationFalseOption": "Không gửi email",
       "publishStartDateLabel": "Ngày bắt đầu công khai",
       "publishEndDateLabel": "Ngày kết thúc công khai",
-      "publishPeriodHint": "Nếu không nhập, sẽ được công khai mọi lúc",
+      "publishStartTimeLabel": "Giờ bắt đầu công khai",
+      "publishEndTimeLabel": "Giờ kết thúc công khai",
+      "publishPeriodHint": "Nếu không nhập, sẽ được công khai mọi lúc (giờ Nhật Bản; để trống = 9:00 ngày bắt đầu / 23:59 ngày kết thúc)",
       "dueDateLabel": "Hạn xử lý",
       "attachmentsLabel": "Tệp đính kèm",
       "attachmentsHint": "Bạn có thể tải lên trực tiếp hình ảnh hoặc PDF, tối đa 5MB cho mỗi tệp, tối đa 5 tệp.",
@@ -912,6 +914,7 @@
       "maintenance": "Bảo trì",
       "policy": "Thay đổi chính sách",
       "incident": "Thông tin sự cố",
+      "hearing": "Phỏng vấn (Khối hàng hóa)",
       "other": "Khác"
     },
     "detail": {

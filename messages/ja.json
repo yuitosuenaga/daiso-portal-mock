@@ -255,14 +255,16 @@
         "usersUnavailable": "選択した個人・会社には配信できる対象がありません（無効化または削除済み）"
       },
       "actionRequiredLabel": "対応要否",
-      "actionRequiredTrueOption": "対応が必要",
+      "actionRequiredTrueOption": "要対応",
       "actionRequiredFalseOption": "対応不要",
       "sendEmailNotificationLabel": "メール送信",
       "sendEmailNotificationTrueOption": "メールを送信する",
       "sendEmailNotificationFalseOption": "メールを送信しない",
       "publishStartDateLabel": "公開開始日",
       "publishEndDateLabel": "公開終了日",
-      "publishPeriodHint": "未入力の場合は常時公開になります",
+      "publishStartTimeLabel": "公開開始時刻",
+      "publishEndTimeLabel": "公開終了時刻",
+      "publishPeriodHint": "未入力の場合は常時公開になります（時刻は日本時間。未入力なら開始日9:00・終了日23:59）",
       "dueDateLabel": "対応期限",
       "attachmentsLabel": "添付ファイル",
       "attachmentsHint": "画像またはPDF、1件5MBまで、最大5件まで直接アップロードできます。",
@@ -912,6 +914,7 @@
       "maintenance": "メンテナンス",
       "policy": "制度変更",
       "incident": "障害情報",
+      "hearing": "ヒアリング（商品本部）",
       "other": "その他"
     },
     "detail": {

@@ -87,6 +87,8 @@ export default async function HelpdeskAnnouncementNewPage() {
         countriesRemoveChipButtonLabel={t("countriesRemoveChipButtonLabel")}
         publishStartDateLabel={t("publishStartDateLabel")}
         publishEndDateLabel={t("publishEndDateLabel")}
+        publishStartTimeLabel={t("publishStartTimeLabel")}
+        publishEndTimeLabel={t("publishEndTimeLabel")}
         publishPeriodHint={t("publishPeriodHint")}
         publishEndDateBeforeStartErrorMessage={t("validation.publishEndDateBeforeStart")}
         dueDateLabel={t("dueDateLabel")}
