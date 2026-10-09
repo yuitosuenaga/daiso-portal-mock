@@ -201,7 +201,7 @@ describe("toAnnouncementCategoryBarRows", () => {
       maintenance: "メンテナンス",
       policy: "制度変更",
       incident: "障害情報",
-      hearing: "商品部 ヒアリング",
+      hearing: "ヒアリング（商品本部）",
       other: "その他",
     });
 
@@ -209,7 +209,7 @@ describe("toAnnouncementCategoryBarRows", () => {
       { key: "maintenance", label: "メンテナンス", count: 1, barPercent: (1 / 3) * 100 },
       { key: "policy", label: "制度変更", count: 3, barPercent: 100 },
       { key: "incident", label: "障害情報", count: 0, barPercent: 0 },
-      { key: "hearing", label: "商品部 ヒアリング", count: 0, barPercent: 0 },
+      { key: "hearing", label: "ヒアリング（商品本部）", count: 0, barPercent: 0 },
       { key: "other", label: "その他", count: 2, barPercent: (2 / 3) * 100 },
     ]);
   });
