@@ -915,7 +915,7 @@
       "maintenance": "Mantenimiento",
       "policy": "Cambios de política",
       "incident": "Información de incidencias",
-      "hearing": "Consulta (División de Productos)",
+      "hearing": "Sondeo (División de Productos)",
       "other": "Otros"
     },
     "detail": {
@@ -1062,7 +1062,7 @@
       "sizeExceeded": "El tamaño del archivo supera el límite (20 MB)",
       "typeNotAllowed": "Solo se pueden registrar archivos PDF",
       "readFailed": "No se pudo leer el archivo",
-      "googleUrlInvalid": "Introduzca un enlace compartido válido de Documentos, Hojas de cálculo o Presentaciones de Google",
+      "googleUrlInvalid": "Ingrese un enlace compartido válido de Documentos, Hojas de cálculo o Presentaciones de Google",
       "requiredIndicator": "Obligatorio",
       "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde."
     }
@@ -1076,7 +1076,7 @@
     "fields": {
       "title": {
         "label": "Título",
-        "placeholder": "Introduzca el título (asunto)"
+        "placeholder": "Ingrese el título (asunto)"
       },
       "category": {
         "label": "Tipo de caso",
@@ -1088,11 +1088,11 @@
       },
       "storeRegion": {
         "label": "Tienda / Región",
-        "placeholder": "Introduzca la tienda o la región"
+        "placeholder": "Ingrese la tienda o la región"
       },
       "originalText": {
         "label": "Contenido de la consulta (descripción libre)",
-        "placeholder": "Introduzca el contenido de la consulta",
+        "placeholder": "Ingrese el contenido de la consulta",
         "remainingCharacters": "Quedan {count} caracteres"
       },
       "originalLanguage": {
@@ -1101,7 +1101,7 @@
       },
       "companyName": {
         "label": "Nombre de la empresa",
-        "placeholder": "Introduzca el nombre de la empresa"
+        "placeholder": "Ingrese el nombre de la empresa"
       },
       "country": {
         "label": "País",
@@ -1241,7 +1241,7 @@
     "message": {
       "sectionTitle": "Enviar un mensaje adicional",
       "bodyLabel": "Contenido del mensaje",
-      "bodyPlaceholder": "Introduzca el mensaje",
+      "bodyPlaceholder": "Ingrese el mensaje",
       "submitButton": "Enviar",
       "submitting": "Enviando...",
       "successMessage": "El mensaje se ha enviado",
@@ -1401,7 +1401,7 @@
       "createChildTitle": "Agregar subcategoría",
       "editTitle": "Editar categoría",
       "nameLabel": "Nombre",
-      "namePlaceholder": "Introduzca el nombre de la categoría",
+      "namePlaceholder": "Ingrese el nombre de la categoría",
       "targetingLabel": "Alcance de publicación",
       "targetingAllOption": "Publicación general",
       "targetingCountriesOption": "Especificar países y regiones",
@@ -1418,7 +1418,7 @@
         "removeButton": "Eliminar este idioma",
         "localeCodeLabel": "Código de idioma",
         "localeCodePlaceholder": "Ej.: th, vi, zh",
-        "localeDuplicateError": "Introduzca un código de idioma que no esté en uso en otro idioma"
+        "localeDuplicateError": "Ingrese un código de idioma que no esté en uso en otro idioma"
       },
       "validation": {
         "required": "Este campo es obligatorio",
@@ -1501,9 +1501,9 @@
       "notFound": "No se encontró el manual",
       "backToList": "Volver a la lista",
       "titleLabel": "Título",
-      "titlePlaceholder": "Introduzca el título del manual",
+      "titlePlaceholder": "Ingrese el título del manual",
       "descriptionLabel": "Descripción",
-      "descriptionPlaceholder": "Introduzca una descripción complementaria (opcional)",
+      "descriptionPlaceholder": "Ingrese una descripción complementaria (opcional)",
       "language": {
         "jaTab": "Japonés",
         "enTab": "Inglés"
@@ -1538,7 +1538,7 @@
         "sizeExceeded": "El tamaño del archivo supera el límite (20 MB)",
         "typeNotAllowed": "Formato de archivo no permitido (solo PDF)",
         "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
-        "googleUrlInvalid": "Introduzca un enlace compartido de Documentos, Hojas de cálculo o Presentaciones de Google",
+        "googleUrlInvalid": "Ingrese un enlace compartido de Documentos, Hojas de cálculo o Presentaciones de Google",
         "categoryRequired": "Seleccione una categoría"
       },
       "translationPartialFailure": "No se pudo traducir a algunos idiomas. Podrá volver a traducir más tarde.",
