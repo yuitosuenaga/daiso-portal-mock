@@ -44,7 +44,7 @@ import { autoTranslateFields } from "@/lib/server/auto-translation";
 import { findDocumentById, upsertDocumentTranslations } from "@/lib/server/document-service";
 import type { Document, DocumentFormInput } from "@/types/document";
 
-const ALL_LOCALES = ["en", "pt", "th", "zh-TW", "zh", "vi"];
+const ALL_LOCALES = ["en", "es", "pt", "th", "zh-TW", "zh", "vi"];
 
 function translatedAll(prefix = "T") {
   return {
@@ -208,7 +208,7 @@ describe("createDocumentAction", () => {
       { locales: ALL_LOCALES }
     );
     const passed = vi.mocked(createDocument).mock.calls[0][0];
-    expect(passed.translations).toHaveLength(6);
+    expect(passed.translations).toHaveLength(7);
     expect(passed.translations).toContainEqual({
       locale: "vi",
       title: "T-vi-title",
@@ -245,7 +245,7 @@ describe("createDocumentAction", () => {
 
     const passed = vi.mocked(createDocument).mock.calls[0][0];
     expect(passed.translations.map((t) => t.locale)).not.toContain("th");
-    expect(passed.translations).toHaveLength(5);
+    expect(passed.translations).toHaveLength(6);
     expect(result.failedLocales).toEqual(["th"]);
   });
 });
@@ -321,7 +321,7 @@ describe("updateDocumentAction / deleteDocumentAction", () => {
 
     expect(autoTranslateFields).toHaveBeenCalledTimes(1);
     const passed = vi.mocked(updateDocument).mock.calls[0][1];
-    expect(passed.translations).toHaveLength(6);
+    expect(passed.translations).toHaveLength(7);
     expect(passed.translations.find((t) => t.locale === "en")?.title).toBe("T-en-title");
   });
 

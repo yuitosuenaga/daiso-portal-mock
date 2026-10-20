@@ -8,6 +8,7 @@ import type { SupportedLocale } from "@/lib/constants/locales";
 export const LOCALE_LABELS: Record<SupportedLocale, string> = {
   ja: "日本語",
   en: "English",
+  es: "Español",
   pt: "Português",
   th: "ไทย",
   "zh-TW": "繁體中文",

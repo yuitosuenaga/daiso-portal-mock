@@ -101,6 +101,6 @@ describe("カテゴリ名の翻訳", () => {
 
 describe("findMissingLocales", () => {
   it("既存に無い翻訳対象localeを返す", () => {
-    expect(findMissingLocales(["en", "vi"])).toEqual(["pt", "th", "zh-TW", "zh"]);
+    expect(findMissingLocales(["en", "vi"])).toEqual(["es", "pt", "th", "zh-TW", "zh"]);
   });
 });
