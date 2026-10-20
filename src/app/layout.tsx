@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 import { Noto_Sans, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 
@@ -19,13 +20,15 @@ export const metadata: Metadata = {
   description: "海外運用ポータル",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html>
+    <html lang={locale}>
       <body
         className={`${notoSans.variable} ${notoSansJP.variable} font-sans`}
       >
