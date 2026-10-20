@@ -87,7 +87,7 @@ function manual(overrides: Partial<Manual> = {}): Manual {
   } as Manual;
 }
 
-const ALL_LOCALES = ["en", "pt", "th", "zh-TW", "zh", "vi"];
+const ALL_LOCALES = ["en", "es", "pt", "th", "zh-TW", "zh", "vi"];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -274,19 +274,19 @@ describe("retranslateManualAction", () => {
     );
     vi.mocked(autoTranslateFields).mockResolvedValue({
       translations: { pt: { title: "PT" } },
-      failedLocales: ["th", "zh-TW", "zh", "vi"],
+      failedLocales: ["es", "th", "zh-TW", "zh", "vi"],
     });
     vi.mocked(updateManual).mockResolvedValue(manual());
 
     const result = await retranslateManualAction("manual-1");
 
     expect(autoTranslateFields).toHaveBeenCalledWith(expect.anything(), {
-      locales: ["pt", "th", "zh-TW", "zh", "vi"],
+      locales: ["es", "pt", "th", "zh-TW", "zh", "vi"],
     });
     const saved = vi.mocked(updateManual).mock.calls[0][1];
     expect(saved.translations.map((t) => t.locale)).toEqual(["en", "pt"]);
     expect("id" in saved).toBe(false);
-    expect(result.failedLocales).toEqual(["th", "zh-TW", "zh", "vi"]);
+    expect(result.failedLocales).toEqual(["es", "th", "zh-TW", "zh", "vi"]);
   });
 
   it("全言語の翻訳が揃っていればAPIを呼ばない", async () => {

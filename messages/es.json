@@ -1,0 +1,1557 @@
+{
+  "login": {
+    "applicantTitle": "Inicio de sesión de distribuidor en el extranjero",
+    "helpdeskTitle": "Inicio de sesión de Daiso Japón",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "Ingrese su correo electrónico",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Ingrese su contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión…",
+    "errorInvalidCredentials": "El correo electrónico o la contraseña no son correctos.",
+    "validation": {
+      "emailRequired": "Ingrese su correo electrónico",
+      "passwordRequired": "Ingrese su contraseña"
+    },
+    "switchToHelpdeskLogin": "Ir al inicio de sesión de Daiso Japón",
+    "switchToApplicantLogin": "Ir al inicio de sesión de distribuidor en el extranjero"
+  },
+  "header": {
+    "portalName": "Portal de Operaciones en el Extranjero",
+    "screenName": "Vista del distribuidor en el extranjero",
+    "logout": "Cerrar sesión"
+  },
+  "helpdeskHeader": {
+    "portalName": "Portal de Operaciones en el Extranjero",
+    "screenName": "Vista de Daiso Japón",
+    "logout": "Cerrar sesión"
+  },
+  "helpdeskNav": {
+    "sidebarLabel": "Navegación del servicio de asistencia",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "home": "Panel de control",
+    "inquiryForm": "Consulta",
+    "inquiries": "Gestión de consultas",
+    "templates": "Gestión de plantillas",
+    "links": "Enlaces",
+    "faq": "Preguntas frecuentes",
+    "announcements": "Gestión de avisos",
+    "documents": "Gestión de documentos",
+    "companies": "Gestión de distribuidores",
+    "salesFloorMeeting": "Reunión de revisión de sala de ventas (video)",
+    "pop": "POP",
+    "manuals": "Manuales"
+  },
+  "helpdeskDocuments": {
+    "list": {
+      "title": "Gestión de documentos",
+      "description": "Permite cargar, editar y eliminar documentos de trabajo (PDF) para los distribuidores en el extranjero.",
+      "empty": "No hay documentos",
+      "error": "No se pudieron obtener los documentos",
+      "addButton": "Agregar nuevo documento",
+      "editLink": "Editar",
+      "deleteButton": "Eliminar",
+      "deleteConfirmTitle": "Eliminar documento",
+      "deleteConfirm": "Se eliminará «{title}». Esta acción no se puede deshacer. ¿Desea continuar?",
+      "deleteConfirmButton": "Eliminar",
+      "deleteCancelButton": "Cancelar",
+      "deleteError": "No se pudo eliminar. Inténtelo de nuevo más tarde.",
+      "targetingAllLabel": "Publicado para todos",
+      "targetingCountriesLabel": "Países y regiones de destino",
+      "targetingCompaniesLabel": "Distribuidores de destino",
+      "fileSizeLabel": "Tamaño del archivo",
+      "uploadedAtLabel": "Fecha de carga",
+      "sourceTypeUploadBadge": "Carga",
+      "sourceTypeGoogleBadge": "Enlace de Google",
+      "statusDraftBadge": "Borrador",
+      "statusPublishedBadge": "Publicado",
+      "filter": {
+        "keywordLabel": "Búsqueda por palabra clave",
+        "keywordPlaceholder": "Palabras incluidas en el título o la descripción",
+        "sourceTypeLabel": "Método de registro",
+        "sourceTypeAll": "Todos los métodos de registro",
+        "sourceTypeUpload": "Carga",
+        "sourceTypeGoogle": "Enlace de Google",
+        "scopeLabel": "Alcance de publicación",
+        "scopeAll": "Todos los alcances de publicación",
+        "scopeAllScope": "Publicado para todos",
+        "scopeCountries": "Por país",
+        "scopeCompanies": "Por distribuidor",
+        "clearButton": "Borrar condiciones",
+        "noResults": "No hay documentos que coincidan",
+        "categoryLabel": "Categoría principal",
+        "categoryAll": "Todas las categorías principales",
+        "categoryUnassigned": "Sin asignar",
+        "subCategoryLabel": "Subcategoría",
+        "subCategoryAll": "Todas las subcategorías"
+      },
+      "pagination": {
+        "previousLabel": "Anterior",
+        "nextLabel": "Siguiente",
+        "pageStatus": "Página {current} de {total}"
+      },
+      "categoryLabel": "Categoría principal",
+      "subCategoryLabel": "Subcategoría",
+      "categoryUnassigned": "Sin asignar",
+      "manageCategoriesLink": "Gestión de categorías"
+    },
+    "form": {
+      "createTitle": "Crear documento",
+      "editTitle": "Editar documento",
+      "notFound": "No se encontró el documento",
+      "backToList": "Volver a la lista",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingrese el título del documento",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Ingrese una descripción complementaria (opcional)",
+      "language": {
+        "jaTab": "Japonés",
+        "enTab": "Inglés",
+        "addButton": "Agregar idioma",
+        "removeButton": "Eliminar este idioma",
+        "localeCodeLabel": "Código de idioma",
+        "localeCodePlaceholder": "p. ej. th, vi, zh",
+        "localeDuplicateError": "Ingrese un código de idioma que no esté en uso por otro idioma"
+      },
+      "statusLabel": "Estado de publicación",
+      "statusDraftOption": "Borrador",
+      "statusPublishedOption": "Publicado",
+      "targetingLabel": "Alcance de publicación",
+      "targetingAllOption": "Publicado para todos",
+      "targetingCountriesOption": "Especificar países y regiones",
+      "targetingCompaniesOption": "Especificar distribuidores",
+      "countriesLabel": "Países y regiones (se permite selección múltiple)",
+      "companiesLabel": "Distribuidores (se permite selección múltiple)",
+      "sourceTypeLabel": "Método de registro",
+      "sourceTypeUploadOption": "Cargar un archivo",
+      "sourceTypeGoogleOption": "Registrar un enlace compartido de documento de Google",
+      "fileLabel": "Archivo PDF",
+      "fileHint": "Solo PDF, hasta 20 MB.",
+      "currentFileLabel": "Archivo registrado",
+      "removeButtonLabel": "Eliminar",
+      "googleUrlLabel": "Enlace compartido del documento de Google",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Antes de registrar el enlace, configure el acceso compartido de Google Docs/Hojas de cálculo/Presentaciones como \"Cualquier persona con el enlace puede ver\".",
+      "submitButton": "Guardar",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "countriesRequired": "Seleccione al menos un país o región",
+        "companiesRequired": "Seleccione al menos un distribuidor",
+        "fileRequired": "Seleccione un archivo PDF",
+        "sizeExceeded": "El tamaño del archivo supera el límite (20 MB)",
+        "typeNotAllowed": "Tipo de archivo no permitido (solo PDF)",
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
+        "googleUrlInvalid": "Ingrese un enlace compartido de Google Docs, Hojas de cálculo o Presentaciones",
+        "categoryRequired": "Seleccione una categoría principal",
+        "categoryPairInvalid": "La subcategoría seleccionada no corresponde a la categoría principal"
+      },
+      "detailTitle": "Detalles del documento",
+      "editButton": "Editar",
+      "cancelButton": "Cancelar",
+      "downloadLink": "Descargar",
+      "openOriginalLink": "Abrir el documento original",
+      "categoryLabel": "Categoría principal",
+      "categoryPlaceholderOption": "Seleccione una opción",
+      "subCategoryLabel": "Subcategoría",
+      "subCategoryNoneOption": "Ninguna",
+      "translationPartialFailed": "Falló la traducción de algunos idiomas. Puede volver a traducir más tarde",
+      "retranslateButton": "Volver a traducir",
+      "retranslateSuccess": "Traducción completada"
+    }
+  },
+  "helpdeskAnnouncements": {
+    "list": {
+      "title": "Gestión de avisos",
+      "description": "Permite crear, editar y eliminar avisos para los distribuidores en el extranjero.",
+      "empty": "No hay avisos",
+      "error": "No se pudieron obtener los avisos",
+      "addButton": "Crear nuevo aviso",
+      "editLink": "Editar",
+      "createdBy": "Creado por",
+      "deleteButton": "Eliminar",
+      "deleteConfirmTitle": "Eliminar aviso",
+      "deleteConfirm": "Se eliminará «{title}». Esta acción no se puede deshacer. ¿Desea continuar?",
+      "deleteConfirmButton": "Eliminar",
+      "deleteCancelButton": "Cancelar",
+      "deleteError": "No se pudo eliminar. Inténtelo de nuevo más tarde.",
+      "targetingAllLabel": "Todos los países",
+      "targetingCountriesLabel": "Países de destino de la distribución",
+      "actionRequiredBadge": "Requiere acción",
+      "publishPeriodAlwaysLabel": "Publicación permanente",
+      "publishPeriodLabel": "Período de publicación",
+      "publishPeriodToSeparator": "a",
+      "dueDateLabel": "Fecha límite de atención",
+      "statusBadgeDraft": "Borrador",
+      "filter": {
+        "keywordLabel": "Búsqueda por título",
+        "keywordPlaceholder": "Palabras incluidas en el título",
+        "categoryLabel": "Tipo",
+        "categoryAll": "Todos los tipos",
+        "actionRequiredLabel": "Necesidad de acción",
+        "actionRequiredAll": "Todos",
+        "actionRequiredTrue": "Solo los que requieren acción",
+        "actionRequiredFalse": "Solo los que no requieren acción",
+        "statusLabel": "Estado de publicación",
+        "statusAll": "Todos",
+        "statusDraft": "Borrador",
+        "statusPublished": "Publicado",
+        "clearButton": "Borrar",
+        "noResults": "No hay avisos que coincidan"
+      },
+      "targetingUsersLabel": "Personas/empresas específicas: {users} personas y {companies} empresas"
+    },
+    "form": {
+      "createTitle": "Crear aviso",
+      "editTitle": "Editar aviso",
+      "notFound": "No se encontró el aviso",
+      "backToList": "Volver a la lista",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingrese el título del aviso",
+      "bodyLabel": "Contenido",
+      "bodyPlaceholder": "Ingrese el contenido del aviso",
+      "language": {
+        "jaTab": "Japonés",
+        "enTab": "Inglés",
+        "addButton": "Agregar idioma",
+        "removeButton": "Eliminar este idioma",
+        "localeCodeLabel": "Código de idioma",
+        "localeCodePlaceholder": "p. ej. th, vi, zh",
+        "localeDuplicateError": "Ingrese un código de idioma que no esté en uso por otro idioma"
+      },
+      "categoryLabel": "Tipo",
+      "categoryPlaceholder": "Seleccione un tipo",
+      "statusLabel": "Estado de publicación",
+      "statusDraftOption": "Borrador",
+      "statusPublishedOption": "Publicado",
+      "targetingLabel": "Destinatarios de la distribución",
+      "targetingAllOption": "Todos los países",
+      "targetingCountriesOption": "Especificar países y regiones",
+      "countriesLabel": "Países y regiones (se permite selección múltiple)",
+      "countriesSearchPlaceholder": "Buscar por nombre de país",
+      "countriesSelectAllButtonLabel": "Seleccionar todo",
+      "countriesClearAllButtonLabel": "Anular toda la selección",
+      "countriesSelectedCountLabel": "{count} seleccionados",
+      "countriesNoResultsMessage": "No hay países ni regiones que coincidan",
+      "countriesRemoveChipButtonLabel": "Eliminar",
+      "submitButton": "Guardar",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "enAutoTranslateHint": "Si se deja en blanco, se traducirá automáticamente del japonés al guardar.",
+      "translateFromJaButton": "Traducir automáticamente del japonés",
+      "translateFromJaPending": "Traduciendo...",
+      "translateFromJaError": "La traducción automática falló. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "countriesRequired": "Seleccione al menos un país o región",
+        "enBothOrNeither": "Ingrese el título y el contenido en inglés, o deje ambos en blanco",
+        "publishEndDateBeforeStart": "La fecha de finalización debe ser igual o posterior a la fecha de inicio",
+        "dueDateRequired": "Si se requiere acción, ingrese la fecha límite de atención",
+        "attachmentsSizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
+        "attachmentsTypeNotAllowed": "Tipo de archivo no permitido (solo imágenes o PDF)",
+        "attachmentsCountExceeded": "Se superó el número máximo de archivos adjuntos (5)",
+        "attachmentsReadFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
+        "usersRequired": "Seleccione al menos una persona o empresa como destinataria de la distribución",
+        "usersUnavailable": "Ninguna de las personas o empresas seleccionadas puede recibir la distribución (desactivadas o eliminadas)"
+      },
+      "actionRequiredLabel": "Necesidad de acción",
+      "actionRequiredTrueOption": "Requiere acción",
+      "actionRequiredFalseOption": "No requiere acción",
+      "sendEmailNotificationLabel": "Envío de correo electrónico",
+      "sendEmailNotificationTrueOption": "Enviar correo electrónico",
+      "sendEmailNotificationFalseOption": "No enviar correo electrónico",
+      "publishStartDateLabel": "Fecha de inicio de publicación",
+      "publishEndDateLabel": "Fecha de finalización de publicación",
+      "publishStartTimeLabel": "Hora de inicio de publicación",
+      "publishEndTimeLabel": "Hora de finalización de publicación",
+      "publishPeriodHint": "Si se deja en blanco, se publicará de forma permanente (las horas son hora de Japón; si se deja en blanco: 9:00 en la fecha de inicio y 23:59 en la fecha de finalización)",
+      "dueDateLabel": "Fecha límite de atención",
+      "attachmentsLabel": "Archivos adjuntos",
+      "attachmentsHint": "Puede cargar directamente imágenes o PDF, de hasta 5 MB cada uno y un máximo de 5 archivos.",
+      "attachmentsRemoveButtonLabel": "Eliminar",
+      "linkedDocumentsLabel": "Vinculación de documentos",
+      "linkedDocumentsPickButtonLabel": "Seleccionar de los documentos",
+      "linkedDocumentsEmptyMessage": "No hay documentos vinculados",
+      "linkedDocumentRemoveButtonLabel": "Eliminar",
+      "linkedDocumentsDialogTitle": "Seleccionar documentos",
+      "linkedDocumentsDialogConfirmLabel": "Confirmar selección",
+      "linkedDocumentsDialogCancelLabel": "Cancelar",
+      "linkedDocumentsDialogNoDocumentsMessage": "No hay documentos registrados",
+      "linkedDocumentsTargetingAllLabel": "Publicado para todos",
+      "linkedDocumentsTargetingCountriesPrefixLabel": "País de destino:",
+      "linkedDocumentsTargetingCompaniesPrefixLabel": "Empresa de destino:",
+      "translationFailedDraft": "Se guardó como borrador porque la traducción falló",
+      "publishWithoutTranslationLabel": "Publicar aunque la traducción falle (la traducción se puede volver a ejecutar más tarde)",
+      "translationFailedPublished": "Falló la traducción de algunos idiomas, pero se mantuvo la publicación. Puede volver a ejecutar la traducción más tarde",
+      "retranslateButton": "Volver a traducir",
+      "retranslatePending": "Traduciendo...",
+      "retranslateSuccess": "Traducción guardada",
+      "retranslateFailed": "Falló la traducción de algunos idiomas. Inténtelo de nuevo más tarde.",
+      "retranslateError": "No se pudo volver a ejecutar la traducción. Inténtelo de nuevo más tarde",
+      "targetingUsersOption": "Especificar personas/empresas",
+      "usersLabel": "Personas/empresas destinatarias de la distribución",
+      "usersSearchPlaceholder": "Buscar por nombre, correo electrónico o nombre de la empresa",
+      "usersSearchHint": "Ingrese un término de búsqueda para ver sugerencias",
+      "usersNoResultsMessage": "No hay usuarios que coincidan",
+      "usersSearchError": "La búsqueda falló",
+      "usersSelectedCountLabel": "{companies} empresas y {users} personas seleccionadas",
+      "usersRemoveChipButtonLabel": "Eliminar",
+      "usersAlreadySelectedLabel": "Seleccionado",
+      "usersSearchingLabel": "Buscando...",
+      "usersResultsCountLabel": "Se encontraron {count}",
+      "usersUnavailableLabel": "No disponible",
+      "usersCompanyGroupLabel": "Empresa",
+      "usersUserGroupLabel": "Persona",
+      "usersCompanyMembersLabel": "{count} cuentas activas",
+      "usersCompanyNote": "Al seleccionar una empresa, la distribución se enviará a todas las cuentas activas de esa empresa"
+    },
+    "tracking": {
+      "confirmedCount": "Confirmado {confirmed}/{total} personas",
+      "completedCount": "Realizado {completed}/{total} empresas",
+      "dialogTitleConfirmed": "Responsables sin confirmar",
+      "dialogTitleCompleted": "Empresas con acción pendiente",
+      "columnContact": "Nombre del responsable",
+      "columnEmail": "Correo electrónico",
+      "columnCompany": "Empresa",
+      "columnCountry": "País/región",
+      "remindButton": "Recordatorio",
+      "remindAllButton": "Enviar recordatorio a todos",
+      "remindSuccessMessage": "Se envió el recordatorio",
+      "remindErrorMessage": "No se pudo enviar. Inténtelo de nuevo más tarde.",
+      "alreadyRemindedLabel": "Enviado",
+      "allRespondedMessage": "Todos ya respondieron",
+      "confirmersButton": "Lista de confirmantes",
+      "dialogTitleConfirmers": "Lista de confirmantes",
+      "confirmersEmptyMessage": "No hay confirmantes con nombre ingresado",
+      "columnConfirmerName": "Nombre del confirmante",
+      "columnConfirmedAt": "Fecha y hora de confirmación"
+    }
+  },
+  "helpdeskInquiries": {
+    "list": {
+      "title": "Gestión de consultas",
+      "description": "Consulte las consultas de todas las empresas, ordenadas por estado de atención y urgencia.",
+      "empty": "No hay consultas",
+      "error": "No se pudieron obtener las consultas",
+      "noResults": "No hay consultas que coincidan con los filtros",
+      "untitled": "(Sin título)"
+    },
+    "detail": {
+      "notFound": "No se encontró la consulta",
+      "error": "No se pudo obtener la consulta",
+      "backToList": "Volver a la lista",
+      "attachmentsLabel": "Archivos adjuntos",
+      "translatedTextLabel": "Traducción (automática)",
+      "originalTextLabel": "Texto original",
+      "translationUnavailable": "La traducción automática falló o aún no se ha ejecutado. Consulte el texto original que aparece a continuación.",
+      "retryTranslationButton": "Volver a traducir",
+      "retryTranslationError": "No se pudo volver a traducir. Inténtelo de nuevo más tarde.",
+      "untitled": "(Sin título)"
+    },
+    "filter": {
+      "companyLabel": "Empresa",
+      "companyPlaceholder": "Filtrar por nombre de empresa",
+      "keywordLabel": "Palabra clave",
+      "keywordPlaceholder": "Filtrar por palabra clave del texto",
+      "countryLabel": "País",
+      "countryAll": "Todos los países",
+      "categoryLabel": "Tipo de asunto",
+      "categoryAll": "Todos los tipos",
+      "statusLabel": "Estado de atención",
+      "statusAll": "Todos los estados",
+      "urgencyLabel": "Urgencia",
+      "urgencyAll": "Todos los niveles de urgencia",
+      "unclaimedOnlyLabel": "Solo sin iniciar",
+      "claimedByLabel": "Responsable",
+      "claimedByAll": "Todos los responsables",
+      "clearButton": "Borrar filtros"
+    },
+    "claim": {
+      "inProgressBadge": "En atención",
+      "claimButton": "Marcar como en atención",
+      "releaseButton": "Dejar de atender",
+      "claimedByLabel": "Responsable",
+      "error": "La operación falló. Inténtelo de nuevo más tarde.",
+      "notOwnerErrorMessage": "No se puede liberar porque otro responsable la está atendiendo"
+    },
+    "stats": {
+      "title": "Resumen del estado de atención",
+      "scopeAll": "Se incluyen todos los casos",
+      "scopeFiltered": "Se incluyen los {count} casos filtrados",
+      "unclaimedLabel": "Sin iniciar",
+      "unclaimedCaption": "Casos que nadie ha comenzado a atender",
+      "unclaimedNone": "Todas las consultas pendientes tienen un responsable",
+      "highUrgencyAlert": "{count} con urgencia \"alta\"",
+      "staleUnclaimedAlert": "{count} sin iniciar durante más de 24 horas",
+      "mineLabel": "Asignadas a mí",
+      "mineCaption": "Casos sin resolver que usted está atendiendo",
+      "statusBreakdownTitle": "Desglose por estado de atención",
+      "staffLoadTitle": "Casos por responsable",
+      "staffLoadEmpty": "No hay consultas en atención",
+      "staffOthers": "{count} más",
+      "unit": "",
+      "percent": "{value}%",
+      "tableToggle": "Ver en tabla",
+      "tableHeaderItem": "Elemento",
+      "tableHeaderCount": "Cantidad",
+      "tableHeaderShare": "Proporción"
+    },
+    "status": {
+      "sectionTitle": "Cambiar el estado de atención",
+      "label": "Estado de atención",
+      "error": "No se pudo cambiar el estado de atención. Inténtelo de nuevo más tarde."
+    },
+    "reply": {
+      "sectionTitle": "Respuesta",
+      "templateLabel": "Plantilla",
+      "templatePlaceholder": "Seleccione una plantilla",
+      "noTemplates": "No hay plantillas para esta categoría",
+      "bodyLabel": "Contenido de la respuesta",
+      "bodyPlaceholder": "Ingrese el contenido de la respuesta",
+      "submitButton": "Enviar",
+      "submitting": "Enviando...",
+      "successMessage": "La respuesta se ha registrado",
+      "error": "No se pudo enviar. Inténtelo de nuevo más tarde.",
+      "attachments": {
+        "label": "Archivos adjuntos",
+        "hint": "Imágenes o PDF, de hasta 5 MB cada uno, con un máximo de 5 archivos.",
+        "removeButton": "Eliminar",
+        "sizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
+        "typeNotAllowed": "Formato de archivo no permitido (solo imágenes o PDF)",
+        "countExceeded": "Se superó el número máximo de archivos adjuntos (5)",
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo."
+      }
+    },
+    "history": {
+      "sectionTitle": "Historial de atención",
+      "empty": "No hay historial de atención",
+      "types": {
+        "claimed": "Se marcó como en atención",
+        "released": "Se dejó de atender",
+        "status_changed": "Se cambió el estado de atención",
+        "reply_sent": "Se envió una respuesta",
+        "requester_message": "Mensaje del solicitante"
+      }
+    }
+  },
+  "helpdeskTemplates": {
+    "list": {
+      "title": "Gestión de plantillas",
+      "description": "Permite registrar y administrar varias plantillas de respuesta por categoría.",
+      "addButton": "Agregar nueva plantilla",
+      "editLink": "Editar",
+      "empty": "No hay plantillas",
+      "templateCount": "{count}"
+    },
+    "form": {
+      "createTitle": "Crear plantilla",
+      "editTitle": "Editar plantilla",
+      "notFound": "No se encontró la plantilla",
+      "nameLabel": "Nombre de la plantilla",
+      "namePlaceholder": "Ingrese el nombre de la plantilla",
+      "categoryLabel": "Tipo de caso",
+      "categoryPlaceholder": "Seleccione un tipo de caso",
+      "bodyLabel": "Contenido",
+      "bodyPlaceholder": "Ingrese el contenido de la plantilla",
+      "submitButton": "Guardar",
+      "backToList": "Volver a la lista",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "nameTooLong": "El nombre de la plantilla debe tener 40 caracteres o menos"
+      },
+      "translationFailed": "Falló la traducción de algunos idiomas. Puede volver a traducir más tarde",
+      "retranslateButton": "Volver a traducir"
+    }
+  },
+  "helpdeskFaq": {
+    "list": {
+      "title": "Gestión de preguntas frecuentes",
+      "description": "Permite registrar, editar y eliminar preguntas frecuentes y sus respuestas para los distribuidores en el extranjero.",
+      "empty": "No hay preguntas frecuentes",
+      "error": "No se pudieron obtener las preguntas frecuentes",
+      "addButton": "Agregar nueva pregunta frecuente",
+      "editLink": "Editar",
+      "deleteButton": "Eliminar",
+      "deleteConfirmTitle": "Eliminar pregunta frecuente",
+      "deleteConfirm": "Se eliminará «{question}». Esta acción no se puede deshacer. ¿Desea continuar?",
+      "deleteConfirmButton": "Eliminar",
+      "deleteCancelButton": "Cancelar",
+      "deleteError": "No se pudo eliminar. Inténtelo de nuevo más tarde.",
+      "filter": {
+        "keywordLabel": "Búsqueda por palabra clave",
+        "keywordPlaceholder": "Palabras incluidas en la pregunta o la respuesta",
+        "categoryLabel": "Categoría",
+        "categoryAll": "Todas",
+        "clearButton": "Borrar condiciones",
+        "noResults": "No hay preguntas frecuentes que coincidan"
+      },
+      "pagination": {
+        "previousLabel": "Anterior",
+        "nextLabel": "Siguiente",
+        "pageStatus": "{current} / {total} páginas"
+      }
+    },
+    "form": {
+      "createTitle": "Crear pregunta frecuente",
+      "editTitle": "Editar pregunta frecuente",
+      "notFound": "No se encontró la pregunta frecuente",
+      "questionLabel": "Pregunta",
+      "questionPlaceholder": "Ingrese la pregunta",
+      "categoryLabel": "Categoría",
+      "categoryPlaceholder": "Seleccione una categoría",
+      "answerLabel": "Respuesta",
+      "answerPlaceholder": "Ingrese la respuesta",
+      "language": {
+        "jaTab": "Japonés",
+        "enTab": "Inglés",
+        "addButton": "Agregar idioma",
+        "removeButton": "Eliminar este idioma",
+        "localeCodeLabel": "Código de idioma",
+        "localeCodePlaceholder": "p. ej. th, vi, zh",
+        "localeDuplicateError": "Ingrese un código de idioma que no esté en uso por otro idioma"
+      },
+      "submitButton": "Guardar",
+      "backToList": "Volver a la lista",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio"
+      },
+      "translationFailed": "Falló la traducción de algunos idiomas. Puede volver a traducir más tarde",
+      "retranslateButton": "Volver a traducir"
+    }
+  },
+  "helpdeskLinks": {
+    "list": {
+      "title": "Gestión de enlaces",
+      "description": "Puede registrar, editar y eliminar los enlaces de trabajo para los distribuidores en el extranjero.",
+      "empty": "No hay enlaces",
+      "error": "No se pudieron obtener los enlaces",
+      "addButton": "Agregar nuevo enlace",
+      "editLink": "Editar",
+      "deleteButton": "Eliminar",
+      "deleteConfirmTitle": "Eliminar enlace",
+      "deleteConfirm": "Se eliminará «{title}». Esta acción no se puede deshacer. ¿Desea continuar?",
+      "deleteConfirmButton": "Eliminar",
+      "deleteCancelButton": "Cancelar",
+      "deleteError": "No se pudo eliminar. Inténtelo de nuevo más tarde.",
+      "categoryUnset": "Sin definir",
+      "manageCategoriesLink": "Gestión de categorías",
+      "filter": {
+        "keywordLabel": "Búsqueda por palabra clave",
+        "keywordPlaceholder": "Palabras incluidas en el título, la URL o la descripción",
+        "categoryLabel": "Categoría principal",
+        "categoryAll": "Todas las categorías principales",
+        "categoryUnsetOption": "Sin definir (sin categoría asignada)",
+        "subCategoryLabel": "Subcategoría",
+        "subCategoryAll": "Todas las subcategorías",
+        "clearButton": "Borrar filtros",
+        "noResults": "No hay enlaces que coincidan"
+      },
+      "pagination": {
+        "previousLabel": "Anterior",
+        "nextLabel": "Siguiente",
+        "pageStatus": "Página {current} de {total}"
+      }
+    },
+    "form": {
+      "createTitle": "Crear enlace",
+      "editTitle": "Editar enlace",
+      "notFound": "No se encontró el enlace",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingrese el título",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "categoryLabel": "Categoría principal",
+      "categoryPlaceholder": "Seleccione una categoría principal",
+      "subCategoryLabel": "Subcategoría (opcional)",
+      "subCategoryPlaceholder": "Seleccione una subcategoría",
+      "subCategoryNoneOption": "Sin subcategoría",
+      "descriptionLabel": "Descripción (opcional)",
+      "descriptionPlaceholder": "Ingrese una descripción complementaria",
+      "submitButton": "Guardar",
+      "backToList": "Volver a la lista",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "invalidUrl": "Ingrese una URL válida"
+      },
+      "translationFailed": "Falló la traducción en algunos idiomas. Puede volver a traducir más tarde",
+      "retranslateButton": "Volver a traducir"
+    },
+    "categories": {
+      "list": {
+        "title": "Gestión de categorías de enlaces",
+        "description": "Puede agregar, editar, eliminar y reordenar las categorías principales y subcategorías de los enlaces.",
+        "backToLinks": "Volver a la gestión de enlaces",
+        "empty": "No hay categorías",
+        "error": "No se pudieron obtener las categorías",
+        "addParentButton": "Agregar categoría principal",
+        "addChildButton": "Agregar subcategoría",
+        "editButton": "Editar",
+        "moveUpButton": "Subir",
+        "moveDownButton": "Bajar",
+        "linkCountLabel": "Enlaces: {count}",
+        "subCategoryCountLabel": "Subcategorías: {count}",
+        "delete": {
+          "buttonLabel": "Eliminar",
+          "confirmTitle": "Eliminar categoría",
+          "confirmMessage": "Se eliminará «{name}». Esta acción no se puede deshacer. ¿Desea continuar?",
+          "confirmButtonLabel": "Eliminar",
+          "cancelButtonLabel": "Cancelar",
+          "errorMessage": "No se pudo eliminar. Inténtelo de nuevo más tarde.",
+          "blockedByLinks": "No se puede eliminar «{name}» porque tiene {count} enlaces asociados. Primero cambie la categoría de los enlaces correspondientes.",
+          "blockedByChildren": "No se puede eliminar «{name}» porque tiene {count} subcategorías. Primero elimine las subcategorías."
+        },
+        "retranslateButton": "Volver a traducir"
+      },
+      "form": {
+        "createParentTitle": "Agregar categoría principal",
+        "createChildTitle": "Agregar subcategoría",
+        "editTitle": "Editar categoría",
+        "nameLabel": "Nombre",
+        "namePlaceholder": "Ingrese el nombre de la categoría",
+        "submitButton": "Guardar",
+        "cancelButton": "Cancelar",
+        "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+        "language": {
+          "jaTab": "日本語",
+          "enTab": "Inglés",
+          "addButton": "Agregar idioma",
+          "removeButton": "Eliminar este idioma",
+          "localeCodeLabel": "Código de idioma",
+          "localeCodePlaceholder": "p. ej. th, vi, zh",
+          "localeDuplicateError": "Ingrese un código de idioma que no esté repetido en otro idioma"
+        },
+        "validation": {
+          "required": "Este campo es obligatorio",
+          "nameConflict": "Ya existe una categoría con el mismo nombre en este nivel"
+        },
+        "translationFailed": "Falló la traducción en algunos idiomas. Puede volver a traducir más tarde"
+      }
+    },
+    "preview": {
+      "triggerButton": "Ver la vista del solicitante",
+      "dialogTitle": "Vista previa: lista de enlaces del solicitante",
+      "localeTabJa": "日本語",
+      "localeTabEn": "English",
+      "error": "No se pudo obtener la vista previa"
+    }
+  },
+  "helpdeskCompanies": {
+    "list": {
+      "title": "Gestión de distribuidores",
+      "description": "Consulte los distribuidores en el extranjero registrados y administre las cuentas de solicitante.",
+      "empty": "No hay distribuidores registrados",
+      "noResults": "No hay distribuidores que coincidan",
+      "error": "No se pudieron obtener los distribuidores",
+      "addButton": "Agregar nuevo distribuidor",
+      "searchLabel": "Buscar por nombre de empresa o código de distribuidor",
+      "searchPlaceholder": "Ingrese el nombre de la empresa o el código de distribuidor",
+      "nameHeader": "Nombre de la empresa",
+      "countryHeader": "País",
+      "companyCodeHeader": "Código de distribuidor",
+      "applicantUserCountHeader": "N.º de cuentas de solicitante",
+      "detailLink": "Detalles",
+      "detailLinkLabel": "Ver los detalles de {name}"
+    },
+    "form": {
+      "createTitle": "Crear distribuidor",
+      "editTitle": "Editar distribuidor",
+      "notFound": "No se encontró la empresa",
+      "backToList": "Volver a la lista",
+      "nameLabel": "Nombre de la empresa",
+      "namePlaceholder": "Ingrese el nombre de la empresa",
+      "countryLabel": "País",
+      "countryPlaceholder": "Seleccione un país",
+      "companyCodeLabel": "Código de distribuidor",
+      "companyCodePlaceholder": "vn-daiso-vietnam",
+      "companyCodeHelpText": "Ingréselo con el formato «código de país ISO de 2 letras en minúsculas-daiso-nombre del país (en minúsculas, separado por guiones)» (p. ej. vn-daiso-vietnam). Solo se permiten letras minúsculas, números y guiones, y el código debe ser único entre todos los distribuidores.",
+      "submitButton": "Guardar",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "companyCodeFormat": "Use solo letras minúsculas, números y guiones, sin guiones al inicio, al final ni consecutivos (p. ej. vn-daiso-vietnam)",
+        "companyCodeDuplicate": "Este código de distribuidor ya está en uso"
+      }
+    },
+    "detail": {
+      "backToList": "Volver a la lista",
+      "editButton": "Editar datos de la empresa",
+      "countryLabel": "País",
+      "companyCodeLabel": "Código de distribuidor",
+      "applicantUsersTitle": "Cuentas de solicitante",
+      "addApplicantUserButton": "Agregar cuenta de solicitante",
+      "applicantUsersEmpty": "No hay cuentas de solicitante registradas",
+      "emailHeader": "Correo electrónico",
+      "displayNameHeader": "Nombre para mostrar",
+      "statusHeader": "Estado",
+      "activeStatus": "Activa",
+      "inactiveStatus": "Inactiva",
+      "editLink": "Editar"
+    },
+    "applicantUserForm": {
+      "createTitle": "Crear cuenta de solicitante",
+      "editTitle": "Editar cuenta de solicitante",
+      "notFound": "No se encontró la cuenta",
+      "backToDetail": "Volver a los detalles de la empresa",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "Ingrese el correo electrónico",
+      "displayNameLabel": "Nombre para mostrar",
+      "displayNamePlaceholder": "Ingrese el nombre para mostrar",
+      "passwordLabel": "Contraseña",
+      "passwordCreatePlaceholder": "Ingrese la contraseña inicial (mínimo 8 caracteres)",
+      "passwordEditPlaceholder": "Ingrésela solo si desea cambiarla (mínimo 8 caracteres)",
+      "passwordCreateHint": "El personal del servicio de asistencia establece directamente la contraseña inicial.",
+      "passwordEditHint": "Si se guarda con el campo vacío, la contraseña actual no se modifica.",
+      "preferredLocaleLabel": "Idioma de las notificaciones",
+      "preferredLocaleOptions": {
+        "en": "Inglés",
+        "ja": "Japonés",
+        "zh": "Chino (simplificado)",
+        "zh-TW": "Chino (tradicional)",
+        "ko": "Coreano",
+        "th": "Tailandés",
+        "vi": "Vietnamita",
+        "id": "Indonesio",
+        "ms": "Malayo",
+        "tl": "Tagalo",
+        "es": "Español",
+        "pt": "Portugués"
+      },
+      "submitButton": "Guardar",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "emailInvalid": "Ingrese un correo electrónico válido",
+        "emailDuplicate": "Este correo electrónico ya está en uso",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres"
+      }
+    },
+    "toggleActive": {
+      "deactivateButton": "Desactivar",
+      "activateButton": "Reactivar",
+      "deactivateConfirmTitle": "Desactivar cuenta",
+      "activateConfirmTitle": "Reactivar cuenta",
+      "deactivateConfirm": "Se desactivará «{name}». Una vez desactivada, no se podrá iniciar sesión con esta cuenta. ¿Desea continuar?",
+      "activateConfirm": "Se reactivará «{name}». Una vez reactivada, se podrá volver a iniciar sesión. ¿Desea continuar?",
+      "deactivateConfirmButton": "Ejecutar desactivación",
+      "activateConfirmButton": "Ejecutar reactivación",
+      "cancelButton": "Cancelar",
+      "toggleError": "No se pudo actualizar. Inténtelo de nuevo más tarde."
+    },
+    "import": {
+      "title": "Registro masivo de distribuidores por CSV",
+      "description": "Al cargar un archivo CSV que contenga las 3 columnas «name,country,companyCode» (la primera fila es el encabezado), podrá revisar los resultados de validación de todas las filas antes del registro. Si hay un error en alguna fila, no se registrará ninguna.",
+      "backToList": "Volver a la lista",
+      "templateDownloadLabel": "Descargar plantilla CSV",
+      "fileInputLabel": "Seleccionar archivo CSV",
+      "uploadButtonLabel": "Validar y cargar",
+      "uploadingLabel": "Validando…",
+      "resultsHeading": "Resultados de la validación",
+      "rowNumberHeader": "N.º de fila",
+      "rowNameHeader": "Nombre de la empresa",
+      "rowCompanyCodeHeader": "Código de distribuidor",
+      "rowStatusHeader": "Resultado",
+      "rowErrorsHeader": "Detalle del error",
+      "statusOk": "Se puede registrar",
+      "statusError": "Error",
+      "successMessage": "Se registraron '{count}' empresas",
+      "noFileSelected": "Seleccione un archivo CSV",
+      "genericError": "Falló la validación o el registro. Inténtelo de nuevo más tarde.",
+      "errors": {
+        "required": "El nombre de la empresa, el país y el código de distribuidor son obligatorios",
+        "companyCodeFormat": "El formato del código de distribuidor no es válido (solo letras minúsculas, números y guiones; sin guiones al inicio, al final ni consecutivos)",
+        "invalidCountry": "El código de país no es válido",
+        "companyCodeDuplicate": "Este código de distribuidor ya está registrado",
+        "duplicateInFile": "El código de distribuidor está repetido en este CSV"
+      },
+      "fileErrors": {
+        "empty": "El archivo CSV está vacío",
+        "headerMismatch": "La fila de encabezado no coincide con «name,country,companyCode»",
+        "noDataRows": "No hay filas de datos"
+      }
+    },
+    "bulkDeactivate": {
+      "selectAllLabel": "Seleccionar todo",
+      "selectRowLabel": "Seleccionar '{name}'",
+      "selectedCount": "'{count}' empresas seleccionadas",
+      "bulkDeactivateButton": "Desactivar en bloque los distribuidores seleccionados",
+      "confirmTitle": "Desactivación en bloque de distribuidores",
+      "confirmMessage": "Se desactivarán en total '{userCount}' cuentas de solicitante activas pertenecientes a las '{companyCount}' empresas seleccionadas. Las cuentas desactivadas no podrán iniciar sesión. ¿Desea continuar?",
+      "confirmButton": "Ejecutar desactivación en bloque",
+      "cancelButton": "Cancelar",
+      "successMessage": "Se desactivaron '{count}' cuentas de solicitante",
+      "errorMessage": "Falló la desactivación en bloque. Inténtelo de nuevo más tarde."
+    }
+  },
+  "dashboard": {
+    "inquiryForm": {
+      "title": "Consultas",
+      "description": "Envíe una nueva consulta."
+    },
+    "inquiryList": {
+      "title": "Lista de consultas",
+      "description": "Consulte el estado de las consultas enviadas por su empresa."
+    },
+    "documents": {
+      "title": "Documentos compartidos",
+      "description": "Consulte los documentos de trabajo publicados por la sede central."
+    },
+    "salesFloorMeeting": {
+      "title": "Revisión de sala de ventas (video)",
+      "description": "Consulte los materiales en video de la revisión de sala de ventas."
+    },
+    "manuals": {
+      "title": "Manuales",
+      "description": "Consulte los manuales de trabajo."
+    },
+    "pop": {
+      "title": "POP",
+      "description": "Consulte los materiales POP de tienda."
+    },
+    "links": {
+      "title": "Enlaces",
+      "description": "Consulte los enlaces a sitios internos y externos utilizados en el trabajo."
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "description": "Consulte las preguntas frecuentes y sus respuestas."
+    },
+    "announcementsPreview": {
+      "title": "Últimos avisos",
+      "empty": "No hay avisos para mostrar.",
+      "error": "No se pudieron obtener los avisos.",
+      "viewAll": "Ver la lista de avisos"
+    },
+    "announcementSummary": {
+      "title": "Estado de atención de los avisos",
+      "unconfirmedLabel": "Sin confirmar",
+      "actionPendingLabel": "Confirmado, acción pendiente",
+      "confirmedCompleteLabel": "Confirmado, acción completada",
+      "categoryBreakdownTitle": "Cantidad por tipo",
+      "unit": "",
+      "totalCaption": "Avisos incluidos: {count}",
+      "empty": "No hay avisos para mostrar.",
+      "error": "No se pudo obtener el estado de atención de los avisos.",
+      "viewAll": "Ver la lista de avisos"
+    },
+    "reminderAnnouncements": {
+      "title": "Recordatorios desde Japón"
+    },
+    "priorityInquiriesPreview": {
+      "title": "Consultas que requieren atención",
+      "empty": "No hay consultas que requieran atención.",
+      "error": "No se pudieron obtener las consultas.",
+      "viewAll": "Ver la lista de consultas"
+    }
+  },
+  "helpdeskDashboard": {
+    "sections": {
+      "support": "Tareas de atención",
+      "reference": "Información de referencia"
+    },
+    "kpi": {
+      "title": "Estado de las consultas",
+      "unresolvedLabel": "Casos pendientes de todas las empresas",
+      "unclaimedLabel": "Sin iniciar",
+      "todayLabel": "Recibidas hoy",
+      "todayUnresolvedCaption": "De ellas, {count} pendientes",
+      "todayNone": "Hoy no se han recibido consultas",
+      "none": "Sin casos pendientes",
+      "viewAll": "Ver la lista de consultas",
+      "error": "No se pudo obtener el número de casos pendientes"
+    },
+    "companies": {
+      "description": "Administre la lista de distribuidores en el extranjero registrados y sus cuentas de solicitante."
+    },
+    "salesFloorMeeting": {
+      "description": "Administre los materiales mensuales de la revisión de sala de ventas."
+    },
+    "pop": {
+      "description": "Administre los materiales POP mensuales."
+    },
+    "templates": {
+      "title": "Gestión de plantillas",
+      "description": "Administre las plantillas utilizadas para las respuestas."
+    },
+    "announcements": {
+      "title": "Gestión de avisos",
+      "description": "Puede ver la lista de avisos, y crearlos, editarlos y eliminarlos."
+    },
+    "documents": {
+      "title": "Gestión de documentos",
+      "description": "Puede ver la lista de documentos, y crearlos, editarlos y eliminarlos."
+    },
+    "manuals": {
+      "title": "Manuales",
+      "description": "Consulte los manuales de trabajo."
+    },
+    "inquiryForm": {
+      "title": "Consultas",
+      "description": "Puede crear una nueva consulta."
+    },
+    "links": {
+      "title": "Enlaces",
+      "description": "Consulte los enlaces a sitios internos y externos utilizados en el trabajo."
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "description": "Consulte las preguntas frecuentes y sus respuestas."
+    }
+  },
+  "common": {
+    "comingSoon": "En preparación"
+  },
+  "announcements": {
+    "list": {
+      "title": "Avisos",
+      "description": "Consulte en una lista los comunicados de la sede central.",
+      "empty": "No hay avisos",
+      "error": "No se pudieron obtener los avisos",
+      "noResults": "No hay avisos que coincidan"
+    },
+    "categories": {
+      "maintenance": "Mantenimiento",
+      "policy": "Cambios de política",
+      "incident": "Información de incidencias",
+      "hearing": "Sondeo (División de Productos)",
+      "other": "Otros"
+    },
+    "detail": {
+      "publishedAtLabel": "Fecha de publicación",
+      "categoryLabel": "Tipo",
+      "notFound": "No se encontró el aviso",
+      "error": "No se pudo obtener el aviso",
+      "backToList": "Volver a la lista",
+      "attachmentsSectionTitle": "Archivos adjuntos"
+    },
+    "actionRequiredBadge": "Requiere acción",
+    "reminderBadge": "Se ha recibido un recordatorio",
+    "dueDateLabel": "Fecha límite de atención",
+    "overdueBadge": "Plazo vencido",
+    "selfReport": {
+      "confirmed": "Confirmado",
+      "completeButton": "Marcar como completado",
+      "completed": "Completado",
+      "confirmerLabel": "Nombre de quien confirma",
+      "confirmerPlaceholder": "Nombre completo de la persona que confirmó",
+      "confirmerAddButton": "Registrar como confirmante",
+      "confirmerError": "No se pudo registrar. Inténtelo de nuevo más tarde.",
+      "confirmersLabel": "Confirmado por"
+    },
+    "filter": {
+      "keywordLabel": "Buscar por título",
+      "keywordPlaceholder": "Palabras incluidas en el título",
+      "categoryLabel": "Tipo",
+      "categoryAll": "Todos los tipos",
+      "actionRequiredLabel": "Necesidad de acción",
+      "actionRequiredAll": "Todos",
+      "actionRequiredTrue": "Solo los que requieren acción",
+      "clearButton": "Borrar"
+    }
+  },
+  "documents": {
+    "list": {
+      "title": "Documentos",
+      "description": "Consulte los documentos operativos publicados por la sede central.",
+      "empty": "No hay documentos",
+      "error": "No se pudieron obtener los documentos",
+      "downloadLink": "Descargar",
+      "openOriginalLink": "Abrir el documento original",
+      "fileSizeLabel": "Tamaño del archivo",
+      "uploadedAtLabel": "Fecha de carga",
+      "newBadge": "Nuevo",
+      "googlePreviewError": "No se pudo mostrar la vista previa",
+      "googlePreviewHint": "Si la vista previa no se muestra, abra el documento original"
+    },
+    "search": {
+      "keywordLabel": "Búsqueda por palabra clave",
+      "keywordPlaceholder": "Palabras incluidas en el título o la descripción",
+      "clearButton": "Borrar filtros",
+      "noResults": "No hay documentos que coincidan",
+      "subCategoryLabel": "Filtrar por subcategoría",
+      "subCategoryAll": "Todas las subcategorías"
+    },
+    "categories": {
+      "documentCount": "{count}"
+    },
+    "category": {
+      "notFound": "No se encontraron los documentos",
+      "backToCategories": "Volver a la lista de categorías principales"
+    }
+  },
+  "monthlyMaterials": {
+    "salesFloorMeeting": {
+      "pageTitle": "Reunión de revisión de sala de ventas (video)",
+      "pageDescription": "Consulte los materiales mensuales de la reunión de revisión de sala de ventas."
+    },
+    "pop": {
+      "pageTitle": "POP",
+      "pageDescription": "Consulte los materiales POP mensuales."
+    },
+    "departments": {
+      "seasonalEvent": "Temporada y eventos",
+      "storage": "Almacenamiento y organización",
+      "kitchen": "Cocina y vajilla",
+      "cleaning": "Limpieza y lavandería",
+      "beautyHealth": "Belleza y salud",
+      "stationery": "Papelería y oficina",
+      "interior": "Decoración y artículos varios",
+      "craftDiy": "Manualidades y bricolaje",
+      "food": "Alimentos y dulces",
+      "other": "Otros",
+      "localPopsList": "Local POPs List",
+      "globalPopsList": "Global POPs List",
+      "endPopsList": "End POPs List"
+    },
+    "filter": {
+      "departmentLabel": "Filtrar por categoría",
+      "departmentAll": "Todas las categorías",
+      "yearLabel": "Filtrar por año",
+      "yearAll": "Todos los años",
+      "monthLabel": "Filtrar por mes",
+      "monthAll": "Todos los meses",
+      "clearButton": "Borrar filtros",
+      "noResults": "No hay materiales que coincidan"
+    },
+    "list": {
+      "error": "No se pudieron obtener los materiales",
+      "empty": "No hay materiales",
+      "downloadLink": "Descargar",
+      "openOriginalLink": "Abrir el documento original",
+      "googlePreviewError": "No se pudo mostrar la vista previa",
+      "googlePreviewHint": "Si la vista previa no se muestra, abra el documento original",
+      "addButton": "Agregar nuevo",
+      "editButton": "Editar",
+      "expandButton": "Ampliar"
+    },
+    "delete": {
+      "buttonLabel": "Eliminar",
+      "confirmTitle": "Eliminar material",
+      "confirmMessage": "Se eliminará el material «{heading}». Esta acción no se puede deshacer. ¿Desea continuar?",
+      "confirmButton": "Eliminar",
+      "cancelButton": "Cancelar",
+      "errorMessage": "No se pudo eliminar. Inténtelo de nuevo más tarde."
+    },
+    "form": {
+      "departmentLabel": "Categoría",
+      "yearLabel": "Año",
+      "monthLabel": "Mes",
+      "sourceTypeLabel": "Método de registro",
+      "sourceTypeUploadOption": "Cargar un archivo",
+      "sourceTypeGoogleOption": "Registrar un enlace compartido de un documento de Google",
+      "fileLabel": "Archivo",
+      "fileHint": "Seleccione un archivo PDF (hasta 20 MB)",
+      "removeFileButtonLabel": "Eliminar",
+      "googleUrlLabel": "URL del enlace compartido",
+      "googleUrlPlaceholder": "https://docs.google.com/...",
+      "googleUrlHint": "Pegue el enlace compartido de Documentos, Hojas de cálculo o Presentaciones de Google",
+      "targetingLabel": "Alcance de publicación",
+      "targetingAllOption": "Publicación general",
+      "targetingCountriesOption": "Especificar países y regiones",
+      "targetingCompaniesOption": "Especificar distribuidores",
+      "countriesLabel": "Países y regiones destinatarios",
+      "companiesLabel": "Distribuidores destinatarios",
+      "submitButton": "Guardar",
+      "cancelButton": "Cancelar",
+      "requiredError": "Campo obligatorio",
+      "countriesRequiredError": "Seleccione al menos una opción",
+      "companiesRequiredError": "Seleccione al menos una opción",
+      "fileRequiredError": "Seleccione un archivo",
+      "sizeExceeded": "El tamaño del archivo supera el límite (20 MB)",
+      "typeNotAllowed": "Solo se pueden registrar archivos PDF",
+      "readFailed": "No se pudo leer el archivo",
+      "googleUrlInvalid": "Ingrese un enlace compartido válido de Documentos, Hojas de cálculo o Presentaciones de Google",
+      "requiredIndicator": "Obligatorio",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde."
+    }
+  },
+  "inquiryForm": {
+    "title": "Formulario de consultas",
+    "description": "Complete los campos de selección y la descripción libre, y envíe su consulta.",
+    "requiredMark": "Obligatorio",
+    "backToList": "Volver a la lista",
+    "loadError": "No se pudo obtener la información necesaria para mostrar el formulario. Inténtelo de nuevo más tarde.",
+    "fields": {
+      "title": {
+        "label": "Título",
+        "placeholder": "Ingrese el título (asunto)"
+      },
+      "category": {
+        "label": "Tipo de caso",
+        "placeholder": "Seleccione el tipo de caso"
+      },
+      "urgency": {
+        "label": "Urgencia",
+        "placeholder": "Seleccione el nivel de urgencia"
+      },
+      "storeRegion": {
+        "label": "Tienda / Región",
+        "placeholder": "Ingrese la tienda o la región"
+      },
+      "originalText": {
+        "label": "Contenido de la consulta (descripción libre)",
+        "placeholder": "Ingrese el contenido de la consulta",
+        "remainingCharacters": "Quedan {count} caracteres"
+      },
+      "originalLanguage": {
+        "label": "Idioma original",
+        "placeholder": "Seleccione el idioma del texto original"
+      },
+      "companyName": {
+        "label": "Nombre de la empresa",
+        "placeholder": "Ingrese el nombre de la empresa"
+      },
+      "country": {
+        "label": "País",
+        "placeholder": "Seleccione un país"
+      },
+      "targetCompany": {
+        "label": "Empresa destinataria",
+        "placeholder": "Seleccione la empresa para la que se registrará la consulta",
+        "empty": "No hay empresas disponibles para seleccionar. Comuníquese con el administrador."
+      },
+      "attachments": {
+        "label": "Archivos adjuntos",
+        "hint": "Imágenes o PDF, hasta 5 MB por archivo y un máximo de 5 archivos.",
+        "removeButton": "Eliminar"
+      }
+    },
+    "options": {
+      "category": {
+        "defect": "Defecto",
+        "order": "Relacionado con pedidos",
+        "system": "Relacionado con el sistema",
+        "other": "Otros"
+      },
+      "urgency": {
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+      "country": {
+        "JP": "Japón",
+        "US": "Estados Unidos",
+        "CN": "China",
+        "KR": "Corea del Sur",
+        "TH": "Tailandia",
+        "VN": "Vietnam",
+        "ID": "Indonesia",
+        "PH": "Filipinas",
+        "MY": "Malasia",
+        "SG": "Singapur",
+        "IN": "India",
+        "TW": "Taiwán",
+        "HK": "Hong Kong",
+        "GB": "Reino Unido",
+        "FR": "Francia",
+        "DE": "Alemania",
+        "IT": "Italia",
+        "ES": "España",
+        "AU": "Australia",
+        "BR": "Brasil",
+        "MX": "México",
+        "CA": "Canadá",
+        "AE": "Emiratos Árabes Unidos"
+      },
+      "originalLanguage": {
+        "ja": "Japonés",
+        "en": "Inglés",
+        "zh": "Chino (simplificado)",
+        "zh-TW": "Chino (tradicional)",
+        "ko": "Coreano",
+        "th": "Tailandés",
+        "vi": "Vietnamita",
+        "id": "Indonesio",
+        "ms": "Malayo",
+        "tl": "Tagalo",
+        "hi": "Hindi",
+        "fr": "Francés",
+        "de": "Alemán",
+        "es": "Español",
+        "pt": "Portugués",
+        "ar": "Árabe"
+      }
+    },
+    "validation": {
+      "required": "Este campo es obligatorio",
+      "maxLength": "Se ha superado el límite de caracteres",
+      "targetCompanyRequired": "Seleccione la empresa destinataria",
+      "attachments": {
+        "sizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
+        "typeNotAllowed": "Formato de archivo no permitido (solo imágenes o PDF)",
+        "countExceeded": "Se ha superado el número máximo de archivos adjuntos (5)",
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo."
+      }
+    },
+    "submit": {
+      "button": "Enviar",
+      "submitting": "Enviando...",
+      "successTitle": "Envío completado",
+      "successDescription": "Hemos recibido su consulta.",
+      "errorTitle": "Error al enviar",
+      "errorDescription": "Inténtelo de nuevo más tarde.",
+      "viewInquiryListLink": "Ver la lista de consultas"
+    }
+  },
+  "inquiryList": {
+    "list": {
+      "title": "Lista de consultas",
+      "description": "Consulte la lista de consultas enviadas por su empresa y su estado de atención.",
+      "empty": "No hay consultas",
+      "error": "No se pudieron obtener las consultas",
+      "untitled": "(Sin título)",
+      "newBadge": "Nuevo"
+    },
+    "status": {
+      "new": "Nueva",
+      "in_progress": "En atención",
+      "resolved": "Resuelta"
+    },
+    "detail": {
+      "createdAtLabel": "Fecha y hora de envío",
+      "categoryLabel": "Tipo de caso",
+      "urgencyLabel": "Urgencia",
+      "storeRegionLabel": "Región",
+      "statusLabel": "Estado de atención",
+      "originalTextLabel": "Descripción libre",
+      "translatedTextLabel": "Descripción libre (traducción automática)",
+      "translationUnavailable": "La traducción automática falló o aún no se ha ejecutado. A continuación se muestra el texto original.",
+      "submittedByLabel": "Información del solicitante",
+      "notFound": "No se encontró la consulta",
+      "error": "No se pudo obtener la consulta",
+      "backToList": "Volver a la lista",
+      "inProgressBadge": "En atención",
+      "attachmentsLabel": "Archivos adjuntos",
+      "untitled": "(Sin título)"
+    },
+    "history": {
+      "title": "Historial de atención",
+      "empty": "Aún no hay historial de atención",
+      "error": "No se pudo obtener el historial de atención",
+      "replyLabel": "Respuesta",
+      "claimedLabel": "Inicio de atención",
+      "claimedMessage": "La consulta pasó a estar en atención",
+      "releasedLabel": "Atención liberada",
+      "releasedMessage": "Se liberó el estado de en atención",
+      "statusChangedLabel": "Cambio de estado",
+      "requesterMessageLabel": "Mensaje enviado"
+    },
+    "message": {
+      "sectionTitle": "Enviar un mensaje adicional",
+      "bodyLabel": "Contenido del mensaje",
+      "bodyPlaceholder": "Ingrese el mensaje",
+      "submitButton": "Enviar",
+      "submitting": "Enviando...",
+      "successMessage": "El mensaje se ha enviado",
+      "error": "No se pudo enviar. Inténtelo de nuevo más tarde.",
+      "attachments": {
+        "label": "Archivos adjuntos",
+        "hint": "Imágenes o PDF, hasta 5 MB por archivo y un máximo de 5 archivos.",
+        "removeButton": "Eliminar",
+        "sizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
+        "typeNotAllowed": "Formato de archivo no permitido (solo imágenes o PDF)",
+        "countExceeded": "Se ha superado el número máximo de archivos adjuntos (5)",
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo."
+      }
+    },
+    "filter": {
+      "keywordLabel": "Búsqueda por palabra clave",
+      "keywordPlaceholder": "Palabras incluidas en el título o la descripción libre",
+      "statusLabel": "Estado de atención",
+      "statusAll": "Todos los estados",
+      "categoryLabel": "Tipo de caso",
+      "categoryAll": "Todos los tipos de caso",
+      "urgencyLabel": "Urgencia",
+      "urgencyAll": "Todos los niveles de urgencia",
+      "unreadOnlyLabel": "Solo novedades",
+      "clearButton": "Borrar",
+      "noResults": "No hay consultas que coincidan"
+    },
+    "stats": {
+      "title": "Resumen del estado de atención",
+      "scopeAll": "Se incluyen todas las consultas",
+      "scopeFiltered": "Se incluyen {count} consultas filtradas",
+      "unreadLabel": "Novedades sin revisar",
+      "unreadCaption": "Número de respuestas o cambios de estado del servicio de asistencia sin revisar",
+      "unreadNone": "No hay actualizaciones sin revisar",
+      "highUrgencyAlert": "{count} consultas sin resolver con urgencia «Alta»",
+      "awaitingResponseLabel": "En espera de respuesta",
+      "awaitingResponseCaption": "Número de consultas en espera de respuesta o de inicio de atención por parte del servicio de asistencia",
+      "staleAwaitingResponseAlert": "{count} consultas llevan más de 72 horas en espera de respuesta",
+      "unresolvedLabel": "Sin resolver",
+      "unresolvedCaption": "Número de consultas con estado «Nueva» o «En atención»",
+      "statusBreakdownTitle": "Desglose por estado de atención",
+      "urgencyBreakdownTitle": "Consultas sin resolver por urgencia",
+      "urgencyBreakdownEmpty": "No hay consultas sin resolver",
+      "unit": "",
+      "percent": "{value}%",
+      "tableToggle": "Ver en tabla",
+      "tableHeaderItem": "Elemento",
+      "tableHeaderCount": "Cantidad",
+      "tableHeaderShare": "Porcentaje"
+    }
+  },
+  "inquiryAnalytics": {
+    "aging": {
+      "title": "Antigüedad de consultas sin resolver",
+      "lt24h": "Menos de 24 horas",
+      "h24to72": "24 a 72 horas",
+      "d3to7": "3 a 7 días",
+      "gte7d": "7 días o más",
+      "over24h": "Más de 24 horas transcurridas",
+      "over72h": "Más de 72 horas transcurridas",
+      "empty": "No hay consultas sin resolver",
+      "oldest": "Más antigua sin resolver: {hours} horas desde su recepción"
+    },
+    "category": {
+      "title": "Desglose por tipo de caso",
+      "empty": "No hay consultas"
+    },
+    "country": {
+      "title": "Consultas sin resolver por país",
+      "others": "y {count} países más",
+      "empty": "No hay consultas sin resolver"
+    },
+    "intake": {
+      "receivedTitle": "Consultas recibidas en los últimos 7 días",
+      "submittedTitle": "Consultas enviadas en los últimos 7 días",
+      "empty": "No hay consultas en los últimos 7 días",
+      "columnLabel": "{date}: {count}"
+    },
+    "filter": {
+      "unresolvedOnlyLabel": "Solo sin resolver",
+      "agingLabel": "Antigüedad",
+      "agingAll": "Todas las antigüedades",
+      "receivedOnLabel": "Fecha de recepción"
+    }
+  },
+  "links": {
+    "list": {
+      "title": "Enlaces",
+      "description": "Consulte, por categoría, los enlaces a sitios internos y externos utilizados en las operaciones.",
+      "empty": "No hay enlaces",
+      "error": "No se pudieron obtener los enlaces"
+    },
+    "uncategorized": "Sin categoría",
+    "item": {
+      "opensInNewTab": "(se abre en una pestaña nueva)",
+      "newBadge": "Nuevo"
+    },
+    "search": {
+      "keywordLabel": "Búsqueda por palabra clave",
+      "keywordPlaceholder": "Palabras incluidas en el título, la descripción o la URL",
+      "clearButton": "Borrar filtros",
+      "noResults": "No hay enlaces que coincidan"
+    }
+  },
+  "faq": {
+    "list": {
+      "title": "Preguntas frecuentes",
+      "description": "Consulte las preguntas frecuentes y sus respuestas, organizadas por categoría.",
+      "empty": "No hay preguntas frecuentes",
+      "error": "No se pudieron obtener las preguntas frecuentes",
+      "updatedLabel": "Fecha de actualización",
+      "newBadge": "Nuevo"
+    },
+    "categories": {
+      "inquiry_method": "Cómo realizar consultas",
+      "form_input": "Llenado del formulario",
+      "status": "Estado de atención",
+      "other": "Otros"
+    },
+    "search": {
+      "keywordLabel": "Búsqueda por palabra clave",
+      "keywordPlaceholder": "Palabras incluidas en la pregunta o la respuesta",
+      "noResults": "No hay preguntas frecuentes que coincidan",
+      "clearButton": "Borrar filtros"
+    }
+  },
+  "helpdeskDocumentCategories": {
+    "list": {
+      "title": "Gestión de categorías de documentos",
+      "description": "Agregue, edite, elimine y reordene las categorías principales y subcategorías de los documentos.",
+      "backToDocuments": "Volver a la gestión de documentos",
+      "empty": "No hay categorías",
+      "error": "No se pudieron obtener las categorías",
+      "addParentButton": "Agregar categoría principal",
+      "addChildButton": "Agregar subcategoría",
+      "editButton": "Editar",
+      "moveUpButton": "Subir",
+      "moveDownButton": "Bajar",
+      "documentCountLabel": "Documentos: {count}",
+      "subCategoryCountLabel": "Subcategorías: {count}",
+      "targetingAllLabel": "Publicación general",
+      "targetingCountriesLabel": "Países y regiones destinatarios",
+      "targetingCompaniesLabel": "Distribuidores destinatarios",
+      "delete": {
+        "buttonLabel": "Eliminar",
+        "confirmTitle": "Eliminar categoría",
+        "confirmMessage": "Se eliminará «{name}». Esta acción no se puede deshacer. ¿Desea continuar?",
+        "confirmButtonLabel": "Eliminar",
+        "cancelButtonLabel": "Cancelar",
+        "errorMessage": "No se pudo eliminar. Inténtelo de nuevo más tarde.",
+        "blockedByDocuments": "No se puede eliminar «{name}» porque tiene {count} documentos asociados. Primero cambie la categoría de los documentos correspondientes.",
+        "blockedByChildren": "No se puede eliminar «{name}» porque tiene {count} subcategorías. Primero elimine las subcategorías."
+      }
+    },
+    "form": {
+      "createParentTitle": "Agregar categoría principal",
+      "createChildTitle": "Agregar subcategoría",
+      "editTitle": "Editar categoría",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Ingrese el nombre de la categoría",
+      "targetingLabel": "Alcance de publicación",
+      "targetingAllOption": "Publicación general",
+      "targetingCountriesOption": "Especificar países y regiones",
+      "targetingCompaniesOption": "Especificar distribuidores",
+      "countriesLabel": "Países y regiones (selección múltiple)",
+      "companiesLabel": "Distribuidores (selección múltiple)",
+      "submitButton": "Guardar",
+      "cancelButton": "Cancelar",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "language": {
+        "jaTab": "Japonés",
+        "enTab": "Inglés",
+        "addButton": "Agregar idioma",
+        "removeButton": "Eliminar este idioma",
+        "localeCodeLabel": "Código de idioma",
+        "localeCodePlaceholder": "Ej.: th, vi, zh",
+        "localeDuplicateError": "Ingrese un código de idioma que no esté en uso en otro idioma"
+      },
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "nameConflict": "Ya existe una categoría con el mismo nombre en este nivel",
+        "countriesRequired": "Seleccione al menos un país o región",
+        "companiesRequired": "Seleccione al menos un distribuidor"
+      },
+      "translationPartialFailed": "No se pudo traducir a algunos idiomas. Podrá volver a traducir más tarde.",
+      "retranslateButton": "Volver a traducir",
+      "retranslateSuccess": "La traducción se completó",
+      "closeButton": "Cerrar"
+    }
+  },
+  "manuals": {
+    "list": {
+      "title": "Manuales",
+      "description": "Busque y consulte los manuales operativos por categoría y fecha.",
+      "empty": "No hay manuales",
+      "error": "No se pudieron obtener los manuales",
+      "downloadLink": "Descargar",
+      "openOriginalLink": "Abrir el documento original",
+      "revisionLabel": "Fecha de revisión"
+    },
+    "categories": {
+      "storeOperations": "Operación de tiendas",
+      "registerPayment": "Caja y pagos",
+      "inventoryOrdering": "Pedidos y gestión de inventario",
+      "salesFloorDisplay": "Sala de ventas y exhibición",
+      "promotion": "Promoción y operación de POP",
+      "safetyHygiene": "Seguridad, higiene y prevención de desastres",
+      "hrTraining": "Recursos humanos, laboral y capacitación",
+      "systemOperation": "Operación del sistema",
+      "accounting": "Contabilidad",
+      "other": "Otros"
+    },
+    "filter": {
+      "keywordLabel": "Búsqueda por palabra clave",
+      "keywordPlaceholder": "Palabras incluidas en el título o la descripción",
+      "categoryLabel": "Categoría",
+      "categoryAll": "Todas las categorías",
+      "yearLabel": "Año",
+      "yearAll": "Todos los años",
+      "monthLabel": "Mes",
+      "monthAll": "Todos los meses",
+      "clearButton": "Borrar filtros",
+      "noResults": "No hay manuales que coincidan"
+    }
+  },
+  "helpdeskManuals": {
+    "list": {
+      "title": "Gestión de manuales",
+      "description": "Cargue, edite y elimine manuales operativos (PDF) para los distribuidores en el extranjero.",
+      "newButton": "Agregar nuevo manual",
+      "editLink": "Editar",
+      "empty": "No hay manuales",
+      "error": "No se pudieron obtener los manuales",
+      "categoryLabel": "Categoría",
+      "revisionLabel": "Fecha de revisión",
+      "sourceTypeUploadBadge": "Carga",
+      "sourceTypeGoogleBadge": "Enlace de Google",
+      "targetingAllLabel": "Publicación general",
+      "targetingCountriesLabel": "Países y regiones destinatarios",
+      "targetingCompaniesLabel": "Distribuidores destinatarios",
+      "filter": {
+        "keywordLabel": "Búsqueda por palabra clave",
+        "keywordPlaceholder": "Palabras incluidas en el título o la descripción",
+        "categoryLabel": "Categoría",
+        "categoryAll": "Todas las categorías",
+        "yearLabel": "Año",
+        "yearAll": "Todos los años",
+        "monthLabel": "Mes",
+        "monthAll": "Todos los meses",
+        "clearButton": "Borrar filtros",
+        "noResults": "No hay manuales que coincidan"
+      }
+    },
+    "form": {
+      "createTitle": "Crear manual",
+      "editTitle": "Editar manual",
+      "notFound": "No se encontró el manual",
+      "backToList": "Volver a la lista",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingrese el título del manual",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Ingrese una descripción complementaria (opcional)",
+      "language": {
+        "jaTab": "Japonés",
+        "enTab": "Inglés"
+      },
+      "categoryLabel": "Categoría",
+      "categoryPlaceholderOption": "Seleccione una opción",
+      "yearLabel": "Año",
+      "monthLabel": "Mes",
+      "sourceTypeLabel": "Método de registro",
+      "sourceTypeUploadOption": "Cargar un archivo",
+      "sourceTypeGoogleOption": "Registrar un enlace compartido de un documento de Google",
+      "fileLabel": "Archivo PDF",
+      "fileHint": "Solo PDF, hasta 20 MB.",
+      "removeButtonLabel": "Eliminar",
+      "googleUrlLabel": "Enlace compartido del documento de Google",
+      "googleUrlPlaceholder": "https://docs.google.com/document/d/...",
+      "googleUrlHint": "Antes de registrar, configure el uso compartido del documento, la hoja de cálculo o la presentación de Google como «Cualquier persona con el enlace puede ver».",
+      "targetingLabel": "Alcance de publicación",
+      "targetingAllOption": "Publicación general",
+      "targetingCountriesOption": "Especificar países y regiones",
+      "targetingCompaniesOption": "Especificar distribuidores",
+      "countriesLabel": "Países y regiones (selección múltiple)",
+      "companiesLabel": "Distribuidores (selección múltiple)",
+      "submitButton": "Guardar",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "requiredIndicator": "Obligatorio",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "countriesRequired": "Seleccione al menos un país o región",
+        "companiesRequired": "Seleccione al menos un distribuidor",
+        "fileRequired": "Seleccione un archivo PDF",
+        "sizeExceeded": "El tamaño del archivo supera el límite (20 MB)",
+        "typeNotAllowed": "Formato de archivo no permitido (solo PDF)",
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
+        "googleUrlInvalid": "Ingrese un enlace compartido de Documentos, Hojas de cálculo o Presentaciones de Google",
+        "categoryRequired": "Seleccione una categoría"
+      },
+      "translationPartialFailure": "No se pudo traducir a algunos idiomas. Podrá volver a traducir más tarde.",
+      "retranslateButton": "Volver a traducir",
+      "retranslateError": "No se pudo volver a traducir. Inténtelo de nuevo más tarde."
+    },
+    "delete": {
+      "buttonLabel": "Eliminar",
+      "confirmTitle": "Eliminar manual",
+      "confirmMessage": "Se eliminará «{title}». Esta acción no se puede deshacer. ¿Desea continuar?",
+      "confirmButton": "Eliminar",
+      "cancelButton": "Cancelar",
+      "errorMessage": "No se pudo eliminar. Inténtelo de nuevo más tarde."
+    }
+  }
+}

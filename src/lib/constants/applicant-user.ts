@@ -18,6 +18,7 @@ export const APPLICANT_USER_PREFERRED_LOCALE_CODES = [
   "id",
   "ms",
   "tl",
+  "es",
   "pt",
 ] as const;
 

@@ -38,7 +38,7 @@ import {
 } from "@/lib/server/document-category-service";
 import type { DocumentCategory } from "@/types/document-category";
 
-const ALL_LOCALES = ["en", "pt", "th", "zh-TW", "zh", "vi"];
+const ALL_LOCALES = ["en", "es", "pt", "th", "zh-TW", "zh", "vi"];
 
 function translatedAll() {
   return {
@@ -81,7 +81,7 @@ describe("createDocumentCategoryAction", () => {
       { locales: ALL_LOCALES }
     );
     const passed = vi.mocked(createDocumentCategory).mock.calls[0][0];
-    expect(passed.translations).toHaveLength(6);
+    expect(passed.translations).toHaveLength(7);
     expect(passed.translations).toContainEqual({ locale: "vi", name: "N-vi" });
     expect(result.failedLocales).toEqual([]);
   });
@@ -147,7 +147,7 @@ describe("updateDocumentCategoryAction", () => {
       { locales: ALL_LOCALES }
     );
     const passed = vi.mocked(updateDocumentCategory).mock.calls[0][1];
-    expect(passed.translations).toHaveLength(6);
+    expect(passed.translations).toHaveLength(7);
   });
 });
 
