@@ -12,20 +12,36 @@
 - 初回リリースでは、**Googleアカウントでのログインを自社ドメインのユーザーのみに限定**する（現行のメール＋パスワード認証から Google OAuth へ切替）
 - 現行プロジェクト `rvp-ai-proto-camp` は、`terraform import` の**検証台**として使ってよい（合意済み）
 
-## 2. 対象資源（コード・ドキュメントから判明した分）
+## 2. 対象資源
 
-2026-10-23時点で gcloud の認証が切れており、実環境の棚卸しは未実施。Phase 1 で確定する。
+`rvp-ai-proto-camp` は他用途（sandbox 系の Cloud Functions / Cloud Run / Scheduler 等）と共用の検証プロジェクトで、`portal-mock` に関係するのは以下のみ。import 対象はこの範囲に限定する。
 
-- Cloud Run `portal-mock`（asia-northeast1、min-instances=0、`allUsers` に invoker）
-  - 環境変数: `DATABASE_URL` / `AUTH_SECRET` / `AUTH_TRUST_HOST` / `AUTH_URL`
-  - Secret 注入: `ANTHROPIC_API_KEY`
-  - Cloud SQL 接続（`--add-cloudsql-instances`）
-- Cloud SQL for PostgreSQL `portal-mock-backend-db`（最小構成）
-- Secret Manager（`anthropic-api-key-suenaga-daiso-portal` ほか）
-- Cloud Scheduler（`/api/cron/announcement-escalation`、`CRON_SECRET` 認証）。現行で稼働しているかは要確認
-- Cloud Build / Artifact Registry（`gcloud run deploy --source .` が自動生成。Dockerfile は無し）
-- サービスアカウント・IAM・有効化済み API（実態は未確認）
+### 2.1 実環境の棚卸し結果（2026-10-23、gcloud による読み取りのみ）
+
+- **Cloud Run `portal-mock`**（asia-northeast1）
+  - 実行SA: デフォルト compute SA（`700069905019-compute@developer.gserviceaccount.com`）
+  - cpu 1 / memory 512Mi / concurrency 80 / timeout 300s / startup-cpu-boost / **maxScale=1** / ingress=all
+  - Cloud SQL 接続: `rvp-ai-proto-camp:asia-northeast1:portal-mock-backend-db`
+  - IAM: `allUsers` に `roles/run.invoker`
+  - 環境変数: `DATABASE_URL` / `AUTH_SECRET` / `AUTH_TRUST_HOST` / `AUTH_URL` は**すべて平文**。`ANTHROPIC_API_KEY` のみ Secret 参照
+  - イメージ: Artifact Registry `cloud-run-source-deploy/portal-mock`（`--source` デプロイの自動生成リポジトリ）
+- **Cloud SQL `portal-mock-backend-db`**
+  - POSTGRES_16 / `db-f1-micro` / ZONAL / ディスク10GB / `activationPolicy=ALWAYS`（`db-end` スキルで停止運用）
+  - **自動バックアップ無効**、PITR 無効、`deletion_protection` 無効
+  - public IP 有効、SSL 強制なし（`ALLOW_UNENCRYPTED_AND_ENCRYPTED`）
+- **Secret Manager**: `anthropic-api-key-suenaga-daiso-portal`（portal-mock が使用。同名ではない `ANTHROPIC_API_KEY` secret は別用途の可能性があり対象外）
+- **Cloud Scheduler**: `portal-mock` 向けジョブは**存在しない**（`/api/cron/announcement-escalation` を叩くジョブは未作成。IaC 側で新規定義する）
+- **サービスアカウント**: portal-mock 専用SAは無い（compute SA を共用）
+- 有効 API: `run` / `sqladmin` / `secretmanager` / `cloudbuild` / `artifactregistry` / `cloudscheduler` / `iam` / `cloudresourcemanager` / `monitoring` / `logging` ほか（クライアント環境で有効化すべき最小セットは Phase 2 で確定）
 - 未接続: SMTP、Google SSO
+
+### 2.2 棚卸しから分かった、クライアント環境で改善すべき点
+
+- 機密値（`DATABASE_URL` の DB パスワード、`AUTH_SECRET`）が Cloud Run の平文 env にある → Secret Manager 化
+- 専用SA（最小権限）に切り替え、compute SA の共用をやめる
+- Cloud SQL にバックアップ・PITR・削除保護・SSL 強制がない → 本番は有効化（dev は費用と相談）
+- Scheduler ジョブが未作成のため、エスカレーション自動実行は現状動いていない（アクセス時トリガーのみ）
+- maxScale=1 は検証用設定。prod の値は要検討
 
 ## 3. 重要な制約と対処（Editor 権限・Google ログイン）
 
@@ -66,7 +82,7 @@ Editor は IAM ポリシーを変更できない（`resourcemanager.projects.set
 
 ## 5. フェーズ
 
-### Phase 1: 前提確定・棚卸し
+### Phase 1: 前提確定・棚卸し（棚卸しは2026-10-23完了、§2.1。クライアント確認は未了）
 - gcloud 再認証 → 現行 `rvp-ai-proto-camp` の Cloud Run / Cloud SQL / Secret / Scheduler / IAM / 有効 API を JSON で取得し、§2 を確定
 - クライアントへ権限・組織ポリシー・ドメイン・リージョンを確認（§7）
 
