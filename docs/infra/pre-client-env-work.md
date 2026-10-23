@@ -35,8 +35,8 @@
 
 ## 未了
 
-- 段階4a: Cloud SQL の自動バックアップ有効化・削除保護(保存 plan 作成済み。ユーザーの apply 待ち)
-- 段階4b: Cloud SQL の TLS 必須化(`db_ssl_mode=ENCRYPTED_ONLY`)。4a 適用後に plan を作り直して実施
+- 段階4b: Cloud SQL の TLS 必須化(`db_ssl_mode=ENCRYPTED_ONLY`)。保存 plan 作成済み(update のみ、replace/destroy なし)。ユーザーの apply 待ち
+- (段階4a は適用済み: 自動バックアップ有効・削除保護有効。再起動なし、Cloud Run のエラーなしを確認)
 - 段階5: 後始末(旧 revision の削除、旧 secret version の無効化、GCS 上の state 旧世代の整理、作業用ファイルの削除)
 - `feature/google-login` に含まれる spec 変更の取り消し(spec 管理は停止中のため)
 - 各ブランチの push / PR(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
@@ -54,5 +54,5 @@ SMTP の本接続と Cloud Scheduler、バックアップの定期エクスポ�
 
 ## 判断待ち(ユーザー)
 
-1. 段階4a の apply 実行(保存 plan 確認済みのものをユーザーが `!` で実行)、および 4b の実行承認
+1. 段階4b の apply 実行(保存 plan 確認済みのものをユーザーが `!` で実行)
 2. 各ブランチの push / PR 方針(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
