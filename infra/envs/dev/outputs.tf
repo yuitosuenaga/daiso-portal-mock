@@ -17,11 +17,7 @@ output "required_project_roles" {
 }
 
 output "manual_secrets_to_populate" {
-  value = [
-    local.secret_names.anthropic_api_key,
-    local.secret_names.auth_google_id,
-    local.secret_names.auth_google_secret,
-  ]
+  value       = local.manual_secret_ids
   description = "値を手動登録する secret（gcloud secrets versions add <id> --data-file=-）"
 }
 

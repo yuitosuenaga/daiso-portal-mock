@@ -63,6 +63,26 @@ variable "allow_public_access" {
   default = true
 }
 
+variable "concurrency" {
+  type    = number
+  default = 80
+}
+
+variable "timeout_seconds" {
+  type    = number
+  default = 300
+}
+
+variable "startup_cpu_boost" {
+  type    = bool
+  default = true
+}
+
+variable "ingress" {
+  type    = string
+  default = "INGRESS_TRAFFIC_ALL"
+}
+
 variable "deletion_protection" {
   type    = bool
   default = true
@@ -72,13 +92,13 @@ resource "google_cloud_run_v2_service" "this" {
   project             = var.project_id
   name                = var.name
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  ingress             = var.ingress
   deletion_protection = var.deletion_protection
 
   template {
     service_account                  = var.service_account_email
-    max_instance_request_concurrency = 80
-    timeout                          = "300s"
+    max_instance_request_concurrency = var.concurrency
+    timeout                          = "${var.timeout_seconds}s"
 
     scaling {
       min_instance_count = var.min_instances
@@ -100,7 +120,8 @@ resource "google_cloud_run_v2_service" "this" {
           cpu    = var.cpu
           memory = var.memory
         }
-        startup_cpu_boost = true
+        startup_cpu_boost = var.startup_cpu_boost
+        cpu_idle          = true # リクエスト時のみ CPU 割当（API 既定と同じ）
       }
 
       volume_mounts {
@@ -136,6 +157,8 @@ resource "google_cloud_run_v2_service" "this" {
       template[0].containers[0].image,
       client,
       client_version,
+      build_config, # `gcloud run deploy --source` が付与するビルド情報。Terraform は触らない
+      scaling,      # サービス単位の scaling ブロック（API が既定値を返す）
     ]
   }
 }

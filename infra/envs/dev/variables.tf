@@ -108,3 +108,91 @@ variable "scheduler_schedule" {
   type    = string
   default = "0 9 * * *"
 }
+
+# --- 既存環境の取り込み（import）用。デフォルトはすべて新規構築向けの挙動 ---
+variable "db_instance_name" {
+  type        = string
+  default     = null
+  description = "Cloud SQL インスタンス名。null なら <name_prefix>-db。既存名に合わせる場合に指定"
+}
+
+variable "db_name" {
+  type    = string
+  default = "portal_mock"
+}
+
+variable "db_user" {
+  type    = string
+  default = "portal_mock"
+}
+
+variable "db_ssl_mode" {
+  type    = string
+  default = "ENCRYPTED_ONLY"
+}
+
+variable "manage_db_password" {
+  type        = bool
+  default     = true
+  description = "false: DB パスワードを生成・変更しない（既存ユーザーを import して使う）"
+}
+
+variable "use_existing_secrets" {
+  type        = bool
+  default     = false
+  description = "true: DATABASE_URL / AUTH_SECRET / CRON_SECRET は secret の枠のみ管理し、値は手動登録（Terraform は値を生成・保持しない）"
+}
+
+variable "secret_name_overrides" {
+  type        = map(string)
+  default     = {}
+  description = "secret 名の上書き。キーは database_url / auth_secret / cron_secret / anthropic_api_key / auth_google_id / auth_google_secret"
+}
+
+variable "existing_service_account_email" {
+  type        = string
+  default     = null
+  description = "既存SA（例: デフォルト compute SA）を実行SAとして使う。null なら専用SAを作成"
+}
+
+variable "enable_cron_secret" {
+  type        = bool
+  default     = true
+  description = "CRON_SECRET を生成して Cloud Run に注入する。false なら注入しない（enable_scheduler=false とセットで使う）"
+}
+
+variable "cloudrun_cpu" {
+  type    = string
+  default = "1"
+}
+
+variable "cloudrun_memory" {
+  type    = string
+  default = "512Mi"
+}
+
+variable "cloudrun_concurrency" {
+  type    = number
+  default = 80
+}
+
+variable "cloudrun_timeout_seconds" {
+  type    = number
+  default = 300
+}
+
+variable "cloudrun_startup_cpu_boost" {
+  type    = bool
+  default = true
+}
+
+variable "cloudrun_ingress" {
+  type    = string
+  default = "INGRESS_TRAFFIC_ALL"
+}
+
+variable "db_deletion_protection_enabled" {
+  type        = bool
+  default     = null
+  description = "Cloud SQL の GCP 側削除保護。null なら deletion_protection に従う"
+}
