@@ -1,51 +1,58 @@
 # クライアントGCP環境が用意されるまでに進められる作業
 
-作成日: 2026-10-23
-関連: `docs/infra/iac-plan.md`(全体計画)、`docs/infra/import-current.md`(現行環境の取り込み。作成中)
+作成日: 2026-10-23(同日、現状に更新)
+関連: `docs/infra/iac-plan.md`(全体計画)、`docs/infra/import-current.md`(現行環境の取り込み手順。確定済み)
 
 ## 前提と合意事項
 
 - クライアントのGCP環境(新規プロジェクト)は、まだ受け取れない想定
 - `apply` は自社担当者(suenaga)がローカルから実施。クライアントから付与予定の権限は Editor 相当
 - 環境は dev / prod の2面。ツールは Terraform
-- 現行の自社GCP(`rvp-ai-proto-camp`)の `portal-mock` は、**作り直さず Terraform に取り込み(import)**、中身(アプリイメージ・DBデータ・公開URL・`AUTH_URL`・`AUTH_SECRET`)を変えずに段階的に設定を直す
+- 現行の自社GCP(`rvp-ai-proto-camp`)の `portal-mock` は、**作り直さず Terraform に取り込み(import)**、アプリイメージ・DBデータ・公開URL・`AUTH_URL` を変えずに段階的に設定を直す
 - Google ログインは「許可ドメインのみ」。確認期間は自社+クライアントの複数ドメイン、本番はクライアントのみ。既存アカウントとの対応づけは案A(DB登録済みユーザーのみ、自動作成なし)
-- 作業は別エージェントに依頼して進める(ユーザー指示)。共用プロジェクトへの `apply` は権限分類器にブロックされるため、ユーザーが `!` で実行するか許可ルールを追加する
+- 作業は別エージェントに依頼して進める(ユーザー指示)。共用プロジェクトへの `apply` は権限分類器にブロックされるため、ユーザーが `!` で実行する
 
-## 進められる作業と現状
+## 決定事項(2026-10-23)
 
-### A. アプリ側(環境に依存しない)
-- [x] Google ログイン(ドメイン限定、サーバー側検証)。ブランチ `feature/google-login`(コミット 86970e3、push・PR 未)。実OAuthの往復は未検証
-  - 未決: 「未登録/無効化済み」のエラー表示を区別するか、`design.md`/`tasks.md` の更新要否
-- [ ] Dockerfile 化と、`prisma migrate deploy` の Cloud Run Job 化。ブランチ `chore/dockerfile-migrate-job`(実行中)
-- [ ] 認証まわりの堅牢化(ロックアウト、ログイン試行制限、監査ログ、セキュリティヘッダ)
-- [ ] SMTP を接続先差し替え可能にし、検証アカウントで送信確認
-- [ ] 保持期間を過ぎたデータの削除、バックアップ用エクスポートのバッチ
+- 機密値(DBパスワード・`AUTH_SECRET`)は**ローテーションする(案A)**。旧 revision へのロールバックは不可(合意済)
+- secret 参照への切替は、3a(同値移行)を省いて**3b(ローテーション込み)に一本化**
+- Terraform の検証先プロジェクト: 空プロジェクトの新規作成は不可のため**保留**。現行環境の取り込みで実環境に対する plan/apply 検証を兼ねる
+- Google ログインのエラー表示: 「未登録 / 無効化済み / ドメイン不許可 / その他」の**4種類を区別したまま**とする
+- spec 管理(`design.md` / `tasks.md` 更新): kiro の spec 駆動フローが停止中のため**更新不要**
 
-### B. IaC 側(自社GCPで検証)
-- [x] Terraform 一式(`infra/`: bootstrap / modules / envs dev・prod)。許可ドメインの複数対応済み。ブランチ `chore/iac-terraform-plan`
-- [ ] **自社GCPでの `plan` / `apply` 検証**(別 prefix の dev を作成 → 検証後 destroy)。**止まっている**: 共用プロジェクトへの `apply` が分類器にブロックされた。検証先の決定が必要
-  - 選択肢: `rvp-ai-proto-camp` のまま / 自社で空のプロジェクトを新規作成 / 別の既存プロジェクト
-  - `apply` は、ユーザーが `! terraform ... apply <保存したplan>` を実行する方式が安全
-- [ ] **現行 `portal-mock` の取り込み**(`import`)。段階 0〜1(スナップショット、モジュール拡張、差分ゼロ確認)は実行中。以降の段階的 `apply` は、段階ごとにユーザー承認
-  - 段階 0 の残り: Cloud SQL のオンデマンドバックアップと GCS へのエクスポート(要承認)
-  - 段階 2: secret・専用SA・IAM 付与(加算のみ) → 段階 3: Cloud Run を secret 参照・専用SAへ切替 → 段階 4: Cloud SQL のバックアップ・削除保護・TLS 必須 → 段階 5: Scheduler(SMTP 利用可能後)
+## 完了済み
 
-### C. 運用面
-- [ ] 運用手順書(リリース、バックアップからの復旧、障害対応)
-- [ ] 監視・アラート定義の雛形
+- 段階0〜3(現行環境の取り込み)
+  - Cloud SQL オンデマンドバックアップ作成(バックアップ ID 1792737901348)
+  - bootstrap(GCS state バケット `rvp-ai-proto-camp-portal-iac-tfstate`)作成
+  - Terraform 取り込み(import)16件
+  - 機密値のローテーション(`rotate-secrets.sh`)
+  - Cloud Run を secret 参照へ切替(ブラウザでの正常動作確認済み)
+- Dockerfile 化(コミット f503ec0、ブランチ `chore/dockerfile-migrate-job`)
+- Google ログイン(ドメイン限定、サーバー側検証。コミット 86970e3、ブランチ `feature/google-login`。実OAuthの往復は未検証)
+- 許可メールドメインの複数指定対応(コミット 94534d1、ブランチ `chore/iac-terraform-plan`)
+- Terraform 一式(`infra/`: bootstrap / modules / envs dev・prod)と取り込み手順書
 
-### D. クライアントとの並行調整(早めに依頼)
-- [ ] ギャップ一覧(「本番に必須 / リリース後でよい / 不要」)の合意
-- [ ] クライアント環境の申請(プロジェクト作成、請求先、Editor 付与)
-- [ ] Workspace 管理者への依頼事項の一覧(OAuth 同意画面・クライアント、許可ドメイン、サードパーティアプリの許可)
-- [ ] セキュリティ質問票への回答(暗号化・二要素認証・SSO・アクセス元制限)。現状は二要素認証・SSO ともに未対応、IP 制限なし
+## 未了
+
+- 段階4a: Cloud SQL の自動バックアップ有効化・削除保護(保存 plan 作成済み。ユーザーの apply 待ち)
+- 段階4b: Cloud SQL の TLS 必須化(`db_ssl_mode=ENCRYPTED_ONLY`)。4a 適用後に plan を作り直して実施
+- 段階5: 後始末(旧 revision の削除、旧 secret version の無効化、GCS 上の state 旧世代の整理、作業用ファイルの削除)
+- `feature/google-login` に含まれる spec 変更の取り消し(spec 管理は停止中のため)
+- 各ブランチの push / PR(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
+- アプリ側の残り: `prisma migrate deploy` の Cloud Run Job 化、認証まわりの堅牢化(ロックアウト、ログイン試行制限、監査ログ、セキュリティヘッダ)、SMTP の接続先差し替え対応と検証、保持期間超過データの削除
+- 運用面: 運用手順書(リリース、バックアップからの復旧、障害対応)、監視・アラート定義の雛形
+- クライアントとの並行調整(早めに依頼)
+  - ギャップ一覧(「本番に必須 / リリース後でよい / 不要」)の合意
+  - クライアント環境の申請(プロジェクト作成、請求先、Editor 付与)
+  - Workspace 管理者への依頼事項(OAuth 同意画面・クライアント、許可ドメイン、サードパーティアプリの許可)
+  - セキュリティ質問票への回答(現状は二要素認証・SSO ともに未対応、IP 制限なし)
 
 ## 後回しでよいもの(クライアントの要件確定後)
-バックアップ用の定期エクスポート(保持期間・RPO の確認が先)、監視、CI/CD、Cloud Armor / IAP、カスタムドメイン、Cloud SQL の private IP 化
+
+SMTP の本接続と Cloud Scheduler、バックアップの定期エクスポート(保持期間・RPO の確認が先)、監視、CI/CD、Cloud Armor / IAP、カスタムドメイン、Cloud SQL の private IP 化
 
 ## 判断待ち(ユーザー)
-1. Terraform 検証先のプロジェクト
-2. Google ログインのエラー表示方針
-3. `design.md` / `tasks.md` の更新要否
-4. 現行取り込みの段階 0(バックアップ)実行の承認
+
+1. 段階4a の apply 実行(保存 plan 確認済みのものをユーザーが `!` で実行)、および 4b の実行承認
+2. 各ブランチの push / PR 方針(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
