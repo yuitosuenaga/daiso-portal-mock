@@ -1,0 +1,30 @@
+output "service_url" {
+  value = module.cloudrun.uri
+}
+
+output "auth_url" {
+  value       = local.auth_url
+  description = "Google OAuth クライアントの承認済みリダイレクトURI（<auth_url>/api/auth/callback/google）の元になる"
+}
+
+output "app_service_account" {
+  value = module.iam.app_service_account_email
+}
+
+output "required_project_roles" {
+  value       = module.iam.required_roles
+  description = "manage_iam=false の場合に、アプリSAへクライアント管理者が付与するロール"
+}
+
+output "manual_secrets_to_populate" {
+  value = [
+    local.secret_names.anthropic_api_key,
+    local.secret_names.auth_google_id,
+    local.secret_names.auth_google_secret,
+  ]
+  description = "値を手動登録する secret（gcloud secrets versions add <id> --data-file=-）"
+}
+
+output "cloudsql_connection_name" {
+  value = module.cloudsql.connection_name
+}

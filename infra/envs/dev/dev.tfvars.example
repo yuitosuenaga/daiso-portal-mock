@@ -1,0 +1,18 @@
+# cp dev.tfvars.example dev.tfvars して編集（*.tfvars は git 管理外）
+project_id  = "client-portal-dev"
+name_prefix = "portal-mock-dev"
+
+# dev は作り直しを許可し、コストを抑える
+deletion_protection       = false
+db_backup_enabled         = false
+min_instances             = 0
+max_instances             = 1
+
+# Editor 権限のみで実施する場合は false（SA のロール付与を管理者に依頼）
+manage_iam          = true
+allow_public_access = true
+
+# 手動登録が済んでから true にする
+enable_translation  = false
+enable_google_login = false
+allowed_email_domain = ""

@@ -125,3 +125,54 @@ Editor は IAM ポリシーを変更できない（`resourcemanager.projects.set
 - [ ] ログイン許可ドメイン、Google Workspace 組織配下か（同意画面 Internal 可否）
 - [ ] dev / prod の環境分離単位（同一プロジェクト内 or プロジェクト別）。**現状は新規プロジェクト1つに2環境か、環境ごとにプロジェクトか未確定**
 - [ ] SMTP の方針（SendGrid 等 or 社内リレー）
+
+## 8. Google 側の管理権限が自社に無い点への対処
+
+現行環境（`rvp-ai-proto-camp`）は自社のプロジェクトをクライアントに見せている状態で、クライアント側の Google Workspace / GCP 組織の管理権限は自社に無い。したがって次はクライアント管理者の作業になり、Terraform だけでは完結しない。
+
+- GCP プロジェクト作成、請求先リンク、自社メンバーへの Editor 付与
+- bootstrap 時の IAM 権限の一時付与（§3.1）
+- 組織ポリシーの確認・例外設定（`allUsers` 公開など）
+- OAuth 同意画面と OAuth クライアント（Web）の作成、承認済みリダイレクトURIの登録（`<auth_url>/api/auth/callback/google`）。作成後の client id / secret を `<prefix>-auth-google-id` / `<prefix>-auth-google-secret` に登録してもらう
+- 許可ドメインの確定（Workspace 組織配下なら同意画面を Internal にできるか）
+
+コード側は、これらが揃っていなくても `apply` できるようにしてある（`enable_google_login=false` / `enable_translation=false` / `manage_iam=false` / `allow_public_access=false` のトグル）。
+
+## 9. 作成したコード（`infra/`）
+
+```
+infra/
+  bootstrap/          state 用 GCS バケット（バージョニング・公開禁止）。初回のみローカル state
+  modules/
+    services/         必要 API の有効化
+    cloudsql/         PostgreSQL 16、ランダムパスワード、DATABASE_URL 生成（Unix ソケット形式）
+    secrets/          生成値の secret（DATABASE_URL / AUTH_SECRET / CRON_SECRET）と手動登録用の枠
+    iam/              アプリ専用SA。ロール付与は manage_iam で切替
+    cloudrun/         Cloud Run v2。image・client は ignore_changes。allUsers は切替可
+    scheduler/        /api/cron/announcement-escalation を x-cron-secret 付きで POST
+  envs/dev, envs/prod 同一の main/variables/outputs。差分は *.tfvars.example のみ
+```
+
+`terraform validate` は bootstrap と envs/dev で成功。`plan` / `apply` は未実施（クライアント環境の資格情報待ち）。
+
+### 実行手順（クライアントの新規プロジェクトで）
+
+1. `gcloud auth application-default login`
+2. bootstrap: `terraform -chdir=infra/bootstrap init` → `terraform -chdir=infra/bootstrap apply -var project_id=<id> -var state_bucket_name=<id>-tfstate`
+3. dev: `envs/dev/dev.tfvars.example` を `dev.tfvars` にコピーして編集し、
+   `terraform -chdir=infra/envs/dev init -backend-config="bucket=<id>-tfstate" -backend-config="prefix=dev"` → `plan -var-file=dev.tfvars` → `apply`
+4. 初回デプロイ。Cloud Run は初回プレースホルダイメージで作成される。マイグレーション（`prisma migrate deploy`）は `deploy-main` の手順に従い、アプリのデプロイより先に実行する
+5. 手動登録 secret に値を入れ、該当トグルを true にして再 `apply`（例: `gcloud secrets versions add <prefix>-anthropic-api-key --data-file=-`）
+6. prod も同様（`prefix=prod`）
+
+### 現行環境での検証方針（Phase 2 の見直し）
+
+現行 `portal-mock` は専用SAなし・secret 名が本コードと異なるため、そのまま `import` すると差分が出る。検証は「現行に合わせた import」ではなく、**別 prefix の dev を `rvp-ai-proto-camp` 上に新規作成して `apply` が通ること**を確認する方針とする（既存資源を壊さず、モジュールの再現性を確認できる）。
+
+### 既知の制約・注意
+
+- DB パスワード・`AUTH_SECRET`・`CRON_SECRET` は Terraform が生成するため **state に平文で残る**。state バケットへのアクセスを限定する。`CRON_SECRET` は Scheduler ジョブ定義にも入る
+- Cloud SQL は `ssl_mode=ENCRYPTED_ONLY`。Cloud Run の組み込みコネクタは TLS のため影響なし。ローカルから接続する際は Cloud SQL Auth Proxy を使う
+- Cloud SQL は public IP（コネクタ経由）。private IP 化は Phase 5
+- Google ログイン用の env 名（`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` / `ALLOWED_EMAIL_DOMAIN`）はアプリ側実装（Phase 3）で確定させる。現状のアプリは未対応で、`enable_google_login` は false のままにする
+- SMTP、監視アラート、budget alert、CI/CD、カスタムドメイン、`db-end` 相当の停止運用は未実装
