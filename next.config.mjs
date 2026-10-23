@@ -4,6 +4,8 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // コンテナ（Dockerfile）向けに最小構成で出力する
+  output: "standalone",
   experimental: {
     serverActions: {
       // 添付ファイル付きの返信（Base64データURL化で最大約34MB相当）を送信できるよう、
