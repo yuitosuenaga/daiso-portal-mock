@@ -17,4 +17,5 @@ allow_public_access = true
 # 手動登録が済んでから true にする
 enable_translation   = false
 enable_google_login  = false
-allowed_email_domain = ""
+# enable_google_login=true の場合は必須。本番はクライアントのドメインのみ
+allowed_email_domains = []   # 例: ["client.example"]

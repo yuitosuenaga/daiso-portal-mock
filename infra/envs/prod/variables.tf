@@ -85,17 +85,17 @@ variable "enable_translation" {
 variable "enable_google_login" {
   type        = bool
   default     = false
-  description = "Google ログイン用の AUTH_GOOGLE_ID/SECRET と ALLOWED_EMAIL_DOMAIN を注入する（アプリ側実装が前提）"
+  description = "Google ログイン用の AUTH_GOOGLE_ID/SECRET と ALLOWED_EMAIL_DOMAINS を注入する（アプリ側実装が前提）。true の場合は allowed_email_domains が必須（空だと失敗する）"
 }
 
-variable "allowed_email_domain" {
-  type        = string
-  default     = ""
-  description = "ログインを許可するメールドメイン（例: example.com）"
+variable "allowed_email_domains" {
+  type        = list(string)
+  default     = []
+  description = "ログインを許可するメールドメインのリスト（例: [\"example.com\"]）。アプリには ALLOWED_EMAIL_DOMAINS としてカンマ区切りで渡す"
 
   validation {
-    condition     = var.allowed_email_domain == "" || can(regex("^[a-z0-9.-]+\\.[a-z]{2,}$", var.allowed_email_domain))
-    error_message = "allowed_email_domain はドメイン形式（例: example.com）で指定する。"
+    condition     = alltrue([for d in var.allowed_email_domains : can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\\.[a-z]{2,}$", d))])
+    error_message = "allowed_email_domains の各要素は小文字のドメイン形式（例: example.com）で指定する。空要素は不可。"
   }
 }
 

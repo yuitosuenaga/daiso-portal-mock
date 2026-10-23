@@ -15,4 +15,5 @@ allow_public_access = true
 # 手動登録が済んでから true にする
 enable_translation  = false
 enable_google_login = false
-allowed_email_domain = ""
+# enable_google_login=true の場合は必須。確認期間は自社+クライアントの複数ドメイン
+allowed_email_domains = []   # 例: ["our-company.example", "client.example"]

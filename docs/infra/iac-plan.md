@@ -66,7 +66,9 @@ Editor は IAM ポリシーを変更できない（`resourcemanager.projects.set
 - 実装はアプリ側（Auth.js の Google Provider + `hd` 指定、およびサーバー側での email ドメイン検証。`hd` はクライアント側ヒントのためサーバー検証が必須）
 - **OAuth 同意画面・OAuth クライアント（Web）は Terraform で作成できない**（標準の Web OAuth クライアントは未サポート）。手動作成して client id / secret を Secret Manager に登録し、Terraform からは参照のみにする
 - 同意画面の User Type は、クライアントが Google Workspace 組織配下なら **Internal** を選べる（自社ドメイン限定が同意画面側でも担保される）。組織外なら External + アプリ側検証
-- 対象ドメイン名（構成図上は仮の `daisojapan.com`）は要確認。Terraform 変数 `allowed_email_domain` としてアプリへ環境変数注入する
+- 対象ドメイン名（構成図上は仮の `daisojapan.com`）は要確認。Terraform 変数 `allowed_email_domains`（list(string)）をカンマ区切りの環境変数 `ALLOWED_EMAIL_DOMAINS` としてアプリへ注入する
+- **許可ドメインの方針**: 確認期間（dev）は自社+クライアントの複数ドメインを許可し、本番（prod）はクライアントのドメインのみとする
+- fail closed: `enable_google_login=true` で `allowed_email_domains` が空の場合は precondition で失敗させる（空のまま全ドメイン許可になることを防ぐ）。各要素は小文字のドメイン形式で、空要素は不可
 - Cloud Run を `allUsers` 公開にするか、IAP 等で前段保護するかは別論点（組織ポリシー `iam.allowedPolicyMemberDomains` が有効だと `allUsers` が付けられない）
 
 ## 4. 方針
@@ -174,5 +176,5 @@ infra/
 - DB パスワード・`AUTH_SECRET`・`CRON_SECRET` は Terraform が生成するため **state に平文で残る**。state バケットへのアクセスを限定する。`CRON_SECRET` は Scheduler ジョブ定義にも入る
 - Cloud SQL は `ssl_mode=ENCRYPTED_ONLY`。Cloud Run の組み込みコネクタは TLS のため影響なし。ローカルから接続する際は Cloud SQL Auth Proxy を使う
 - Cloud SQL は public IP（コネクタ経由）。private IP 化は Phase 5
-- Google ログイン用の env 名（`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` / `ALLOWED_EMAIL_DOMAIN`）はアプリ側実装（Phase 3）で確定させる。現状のアプリは未対応で、`enable_google_login` は false のままにする
+- Google ログイン用の env 名（`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` / `ALLOWED_EMAIL_DOMAINS`（カンマ区切り））はアプリ側実装（Phase 3）と共有して確定済み。現状のアプリは未対応で、`enable_google_login` は false のままにする
 - SMTP、監視アラート、budget alert、CI/CD、カスタムドメイン、`db-end` 相当の停止運用は未実装

@@ -48,7 +48,7 @@ locals {
       AUTH_TRUST_HOST = "true"
       AUTH_URL        = local.auth_url
     },
-    var.enable_google_login ? { ALLOWED_EMAIL_DOMAIN = var.allowed_email_domain } : {},
+    var.enable_google_login ? { ALLOWED_EMAIL_DOMAINS = join(",", var.allowed_email_domains) } : {},
   )
 
   app_secret_env = merge(
@@ -63,6 +63,16 @@ locals {
       AUTH_GOOGLE_SECRET = local.secret_names.auth_google_secret
     } : {},
   )
+}
+
+# fail closed: Google ログイン有効時に許可ドメインが空なら apply させない
+resource "terraform_data" "require_allowed_domains" {
+  lifecycle {
+    precondition {
+      condition     = !var.enable_google_login || length(var.allowed_email_domains) > 0
+      error_message = "enable_google_login=true の場合は allowed_email_domains に1つ以上のドメインを指定すること（空のままでは全ドメイン許可になり得るため拒否する）。"
+    }
+  }
 }
 
 resource "random_password" "auth_secret" {
