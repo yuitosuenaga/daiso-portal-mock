@@ -9,6 +9,14 @@
     "submit": "Log In",
     "submitting": "Logging in...",
     "errorInvalidCredentials": "The email address or password is incorrect.",
+    "orDivider": "or",
+    "googleSubmit": "Sign in with Google",
+    "googleError": {
+      "domain_not_allowed": "This Google account's domain is not allowed. Please sign in with your company Google account.",
+      "email_not_verified": "Your Google account email address has not been verified, so you cannot sign in.",
+      "not_registered": "This email address is not registered in the portal. Please contact your administrator.",
+      "account_inactive": "This account has been deactivated. Please contact your administrator."
+    },
     "validation": {
       "emailRequired": "Please enter your email address",
       "passwordRequired": "Please enter your password"

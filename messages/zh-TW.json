@@ -9,6 +9,14 @@
     "submit": "登入",
     "submitting": "登入中…",
     "errorInvalidCredentials": "電子郵件地址或密碼不正確。",
+    "orDivider": "或",
+    "googleSubmit": "使用 Google 登入",
+    "googleError": {
+      "domain_not_allowed": "此 Google 帳號的網域不在允許範圍內。請使用公司的 Google 帳號登入。",
+      "email_not_verified": "此 Google 帳號的電子郵件地址尚未驗證，無法登入。",
+      "not_registered": "此電子郵件地址尚未在入口網站註冊。請聯絡管理員。",
+      "account_inactive": "此帳號已被停用。請聯絡管理員。"
+    },
     "validation": {
       "emailRequired": "請輸入電子郵件地址",
       "passwordRequired": "請輸入密碼"

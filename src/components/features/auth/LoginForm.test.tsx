@@ -49,6 +49,44 @@ describe("LoginForm", () => {
     });
   });
 
+  it("googleLoginAction未指定ではGoogleログインボタンを表示しない", () => {
+    renderLoginForm(vi.fn());
+    expect(screen.queryByRole("button", { name: "Googleでログイン" })).toBeNull();
+  });
+
+  it("googleLoginAction指定時はボタンを表示し、押すと呼ばれる", async () => {
+    const googleLoginAction = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <NextIntlClientProvider locale="ja" messages={messages}>
+        <LoginForm
+          role="applicant"
+          locale="ja"
+          loginAction={vi.fn()}
+          googleLoginAction={googleLoginAction}
+        />
+      </NextIntlClientProvider>
+    );
+    await user.click(screen.getByRole("button", { name: "Googleでログイン" }));
+    await waitFor(() => expect(googleLoginAction).toHaveBeenCalledTimes(1));
+  });
+
+  it("googleErrorが渡されると対応する拒否メッセージを表示する", () => {
+    render(
+      <NextIntlClientProvider locale="ja" messages={messages}>
+        <LoginForm
+          role="applicant"
+          locale="ja"
+          loginAction={vi.fn()}
+          googleError="not_registered"
+        />
+      </NextIntlClientProvider>
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "このメールアドレスはポータルに登録されていません"
+    );
+  });
+
   it("未入力のまま送信するとloginActionが呼ばれない", async () => {
     const loginAction = vi.fn();
     const user = userEvent.setup();

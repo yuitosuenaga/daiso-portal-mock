@@ -9,6 +9,14 @@
     "submit": "ล็อกอิน",
     "submitting": "กำลังล็อกอิน…",
     "errorInvalidCredentials": "ที่อยู่อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "orDivider": "หรือ",
+    "googleSubmit": "เข้าสู่ระบบด้วย Google",
+    "googleError": {
+      "domain_not_allowed": "โดเมนของบัญชี Google นี้ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบด้วยบัญชี Google ของบริษัท",
+      "email_not_verified": "ที่อยู่อีเมลของบัญชี Google ยังไม่ได้รับการยืนยัน จึงไม่สามารถเข้าสู่ระบบได้",
+      "not_registered": "ที่อยู่อีเมลนี้ไม่ได้ลงทะเบียนในพอร์ทัล กรุณาติดต่อผู้ดูแลระบบ",
+      "account_inactive": "บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ"
+    },
     "validation": {
       "emailRequired": "กรุณากรอกที่อยู่อีเมล",
       "passwordRequired": "กรุณากรอกรหัสผ่าน"
