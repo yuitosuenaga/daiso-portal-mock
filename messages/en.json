@@ -9,6 +9,7 @@
     "submit": "Log In",
     "submitting": "Logging in...",
     "errorInvalidCredentials": "The email address or password is incorrect.",
+    "errorAccountLocked": "Too many failed login attempts. Your account is temporarily locked. Please try again in about 15 minutes.",
     "orDivider": "or",
     "googleSubmit": "Sign in with Google",
     "googleError": {

@@ -61,7 +61,11 @@ export function LoginForm({
     try {
       const result = await loginAction({ ...values, locale });
       if (result?.error) {
-        setErrorMessage(t("errorInvalidCredentials"));
+        setErrorMessage(
+          result.error === "account_locked"
+            ? t("errorAccountLocked")
+            : t("errorInvalidCredentials")
+        );
       }
     } finally {
       setIsSubmitting(false);

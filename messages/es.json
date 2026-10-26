@@ -9,6 +9,7 @@
     "submit": "Iniciar sesión",
     "submitting": "Iniciando sesión…",
     "errorInvalidCredentials": "El correo electrónico o la contraseña no son correctos.",
+    "errorAccountLocked": "Demasiados intentos de inicio de sesión fallidos. Su cuenta está bloqueada temporalmente. Inténtelo de nuevo en unos 15 minutos.",
     "orDivider": "o",
     "googleSubmit": "Iniciar sesión con Google",
     "googleError": {

@@ -9,6 +9,7 @@
     "submit": "Login",
     "submitting": "Efetuando login...",
     "errorInvalidCredentials": "O endereço de e-mail ou a senha está incorreto.",
+    "errorAccountLocked": "Muitas tentativas de login malsucedidas. Sua conta foi bloqueada temporariamente. Tente novamente em cerca de 15 minutos.",
     "orDivider": "ou",
     "googleSubmit": "Entrar com o Google",
     "googleError": {

@@ -9,6 +9,7 @@
     "submit": "登入",
     "submitting": "登入中…",
     "errorInvalidCredentials": "電子郵件地址或密碼不正確。",
+    "errorAccountLocked": "登入失敗次數過多，帳號已暫時鎖定。請於約 15 分鐘後再試。",
     "orDivider": "或",
     "googleSubmit": "使用 Google 登入",
     "googleError": {

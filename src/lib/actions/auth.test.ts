@@ -8,6 +8,11 @@ vi.mock("@/auth", () => ({
   signIn: vi.fn(),
 }));
 
+vi.mock("@/lib/server/login-throttle", () => ({
+  isLoginLocked: vi.fn().mockResolvedValue(false),
+}));
+
+import { isLoginLocked } from "@/lib/server/login-throttle";
 import { AuthError as MockAuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { applicantLoginAction, helpdeskLoginAction } from "@/lib/actions/auth";
@@ -43,6 +48,34 @@ describe("applicantLoginAction", () => {
     });
 
     expect(result).toEqual({ error: "invalid_credentials" });
+  });
+
+  it("認証エラーかつロック中のとき、account_lockedを返す", async () => {
+    vi.mocked(signIn).mockRejectedValue(new MockAuthError("CredentialsSignin"));
+    vi.mocked(isLoginLocked).mockResolvedValueOnce(true);
+
+    const result = await applicantLoginAction({
+      email: "applicant@example.com",
+      password: "wrong",
+      locale: "ja",
+    });
+
+    expect(isLoginLocked).toHaveBeenCalledWith("applicant", "applicant@example.com");
+    expect(result).toEqual({ error: "account_locked" });
+  });
+
+  it("ヘルプデスクでもロック中はaccount_lockedを返す", async () => {
+    vi.mocked(signIn).mockRejectedValue(new MockAuthError("CredentialsSignin"));
+    vi.mocked(isLoginLocked).mockResolvedValueOnce(true);
+
+    const result = await helpdeskLoginAction({
+      email: "staff@example.com",
+      password: "wrong",
+      locale: "ja",
+    });
+
+    expect(isLoginLocked).toHaveBeenCalledWith("helpdesk", "staff@example.com");
+    expect(result).toEqual({ error: "account_locked" });
   });
 
   it("認証以外のエラーは再送出する", async () => {

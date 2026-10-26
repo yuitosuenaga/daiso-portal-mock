@@ -9,6 +9,7 @@
     "submit": "ログイン",
     "submitting": "ログイン中…",
     "errorInvalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+    "errorAccountLocked": "ログインの失敗が続いたため、アカウントを一時的にロックしました。15分ほど経ってから再度お試しください。",
     "orDivider": "または",
     "googleSubmit": "Googleでログイン",
     "googleError": {

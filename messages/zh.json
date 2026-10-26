@@ -9,6 +9,7 @@
     "submit": "登录",
     "submitting": "登录中…",
     "errorInvalidCredentials": "电子邮件地址或密码不正确。",
+    "errorAccountLocked": "登录失败次数过多，账号已被暂时锁定。请约 15 分钟后重试。",
     "orDivider": "或",
     "googleSubmit": "使用 Google 登录",
     "googleError": {
