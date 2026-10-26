@@ -188,6 +188,21 @@ module "cloudrun" {
   depends_on = [module.secrets, module.iam]
 }
 
+module "migrate_job" {
+  count                    = var.enable_migrate_job ? 1 : 0
+  source                   = "../../modules/migrate-job"
+  project_id               = var.project_id
+  region                   = var.region
+  name                     = "${var.name_prefix}-migrate"
+  service_account_email    = module.iam.app_service_account_email
+  cloudsql_connection_name = module.cloudsql.connection_name
+  database_url_secret_id   = local.secret_names.database_url
+  timeout_seconds          = var.migrate_job_timeout_seconds
+  deletion_protection      = var.deletion_protection
+
+  depends_on = [module.secrets, module.iam]
+}
+
 module "scheduler" {
   count       = var.enable_scheduler ? 1 : 0
   source      = "../../modules/scheduler"
@@ -197,6 +212,23 @@ module "scheduler" {
   service_url = module.cloudrun.uri
   cron_secret = random_password.cron_secret[0].result
   schedule    = var.scheduler_schedule
+
+  depends_on = [module.services]
+}
+
+# 監視・アラート（末尾に集約。enable_monitoring=false なら何も作らない）
+module "monitoring" {
+  count                  = var.enable_monitoring ? 1 : 0
+  source                 = "../../modules/monitoring"
+  project_id             = var.project_id
+  name_prefix            = var.name_prefix
+  cloudrun_service_name  = module.cloudrun.name
+  cloudrun_uri           = module.cloudrun.uri
+  cloudsql_instance_name = module.cloudsql.instance_name
+  alert_emails           = var.alert_emails
+
+  enable_uptime_check        = var.enable_uptime_check
+  enable_cloudsql_down_alert = var.enable_cloudsql_down_alert
 
   depends_on = [module.services]
 }
