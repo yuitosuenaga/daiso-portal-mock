@@ -74,7 +74,9 @@ gcloud builds submit --project $PROJECT --tag $IMAGE/app:$(git rev-parse --short
 
 migrate イメージは、リポジトリ直下の `cloudbuild.migrate.yaml` で build する(`gcloud builds submit --config cloudbuild.migrate.yaml --substitutions _IMAGE=$IMAGE,_TAG=<tag> .`。詳細は `container-build.md`)。
 
-注意: 上記のタグ付き build / push 手順は `container-build.md` の記載どおりであり、**現行環境では実行していない(未検証)**。Artifact Registry のリポジトリ(`portal-mock`)は、Terraform ではまだ作成していないため、**この手順の前提として事前に作成が必要**である(未作成だと push に失敗する)。
+検証済み(2026-10-26): migrate イメージを `cloudbuild.migrate.yaml` で build した(タグは `main` の短縮コミットハッシュ `a216d00`、所要 5分21秒)。アプリイメージのタグ付き build / push(上記の `gcloud builds submit --tag`)は、現行環境では実行していない(**未検証**)。
+
+注意: Artifact Registry のリポジトリ(`portal-mock`)が未作成の環境では、**事前の作成が必要**である(未作成だと push に失敗する)。
 
 ```bash
 gcloud artifacts repositories create $REPO --project $PROJECT --location $REGION --repository-format=docker
@@ -84,7 +86,11 @@ gcloud artifacts repositories create $REPO --project $PROJECT --location $REGION
 
 `migrate` ターゲットの Cloud Run Job(`portal-mock-migrate`)による適用が目標の形である。
 
-- **現状**: Job は Terraform 定義済み(`enable_migrate_job=true` で作成)。Dockerfile の `migrate` ターゲットと実行手順は `container-build.md` にあるが、**実環境での Job の作成・実行は未検証**。
+- **現状**: Job は Terraform 定義済み(`enable_migrate_job=true` で作成)。**2026-10-26 に現行環境で Job の作成・実行を検証済み**(下記)。
+  - 事前に `gcloud sql backups create`(オンデマンドバックアップ。ID 1793005128274)を取得した。
+  - `cloudbuild.migrate.yaml` で migrate イメージを build(タグ=`main` の短縮ハッシュ `a216d00`、5分21秒)→ `gcloud run jobs update --image` → `gcloud run jobs execute --wait`。実行は19秒で成功した。
+  - 38 件の migration を検出し、1 件を適用した(`20261026000000_add_auth_throttle_and_audit`)。ログに接続文字列は出なかった。初回実行でも問題はなかった。
+  - Terraform 側は Job の image を `ignore_changes` にしているため、image 更新による plan の差分は出ない。
 - **現状の運用(実績あり)**: `deploy-main` スキルの手順3に従い、Cloud SQL Auth Proxy 経由でローカルから `prisma migrate deploy` を実行する。本番 `DATABASE_URL` を扱うため、手順は次の注意を守る。
   - `DATABASE_URL` を含むファイルを作ったり、作業ディレクトリに残したりしない。画面に出さない(`echo` しない)。作業後にソケットディレクトリを削除し、シェル変数を `unset` する。
   - `gcloud run services describe ... --format=json` の全体出力は、環境変数(平文の場合は機密値)を含むため、画面に出さない。**現行環境では `DATABASE_URL` は Secret 参照のため、`describe` の env から `.value` を取る旧手順(`jq .value`)では空になる。** Secret Manager から直接読む。
@@ -113,7 +119,18 @@ gcloud run jobs execute portal-mock-migrate --project $PROJECT --region $REGION 
 
 ```bash
 # 独立した一時 worktree で origin/main を detached HEAD にし、そのディレクトリで実行する
-gcloud run deploy portal-mock --source . --project rvp-ai-proto-camp --region asia-northeast1 --quiet
+gcloud run deploy portal-mock --source . --clear-base-image --project rvp-ai-proto-camp --region asia-northeast1 --quiet
+```
+
+**`Dockerfile` 導入後は `--clear-base-image` が必須**(2026-10-26 に確認)。付けないと `Missing required argument [--clear-base-image]` で即エラーになり、revision は作られない。付けても env / Secret / Cloud SQL の設定は変わらない(デプロイ前後で annotations は同一。増えたのは `client-name` / `client-version` のみ)。ビルドを含めて 120 秒を超える(正確な所要時間は未計測)。
+
+実績(2026-10-26): 新 revision `portal-mock-00033-dcr`(digest 先頭 `sha256:de17840d03a8`)、トラフィック 100%、起動 6.6 秒、8080 の待受を確認、ERROR ログ 0 件。認証プロバイダ API、`/ja/login`、`/ja/helpdesk/login` は 200、静的アセットも 200、セキュリティヘッダ 6 種を確認した(HSTS は `max-age=31536000` のみで `includeSubDomains` は無し)。画面での正常表示もユーザーが確認した。
+
+デプロイ前に設定を控える場合は、env を出力せずに次で確認できる(`--format=json` の全体出力は避ける)。
+
+```bash
+gcloud run services describe portal-mock --region asia-northeast1 --project rvp-ai-proto-camp \
+  --format="value(spec.template.metadata.annotations)"
 ```
 
 タグ付きイメージを使う場合(`container-build.md`):
@@ -158,7 +175,7 @@ gcloud run deploy portal-mock --project $PROJECT --region $REGION \
 
 ### 1.7 ロールバック
 
-現行環境で保持している revision は **`portal-mock-00030` / `00031` / `00032` の3つのみ**(旧 revision は削除済み。`00032` が 100% を受けている)。ロールバック先はこの範囲に限られる。
+現行環境で保持している revision は **`portal-mock-00030` / `00031` / `00032-mcg` / `00033-dcr`**(旧 revision は削除済み。2026-10-26 のデプロイ以降は `00033-dcr` が 100% を受けている)。ロールバック先はこの範囲に限られ、直前の正常な revision は `00032-mcg`(保持中)である。ロールバックの実行自体は**未検証**(コマンドは下記)。
 
 **重要: `00030` / `00031` は Secret 参照への切替前の revision で、平文 env の旧値(DB パスワード、`AUTH_SECRET`)を持つ。これらの旧値はローテーション済みで無効のため、`00030` / `00031` へトラフィックを戻しても、DB 接続も `AUTH_SECRET` も合わず動かない。** 実質、安全に戻せる先は Secret 参照後の `00032`(現行)だけと考える。
 
@@ -574,11 +591,12 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 
 ## 付録: 未検証の項目一覧
 
+2026-10-26 に検証済みとなった項目(本表から除外): migrate Cloud Run Job の作成と実行(§1.3)、migrate イメージの build(§1.2)、`--clear-base-image` を付けたソースデプロイ(§1.4)。
+
 | 項目 | 節 |
 |---|---|
-| Artifact Registry へのタグ付きイメージの build / push とデプロイ | §1.2 |
-| migrate Cloud Run Job の作成と実行(Terraform 定義済み、実環境では未検証) | §1.3 |
-| Cloud Run の revision 切替によるロールバックの所要時間 | §1.7 |
+| Artifact Registry へのアプリ用タグ付きイメージの build / push とデプロイ(migrate イメージの build は 2026-10-26 に検証済み) | §1.2 |
+| Cloud Run の revision 切替によるロールバックの実行と所要時間(`00032-mcg` は保持中だが、実際には戻していない) | §1.7 |
 | バックアップからの復元(同一インスタンス、クローン)、PITR クローン | §2.3 |
 | 復元・クローン後の接続先切替と Terraform state の整合 | §2.3 |
 | RPO / RTO の実測値 | §2.4 |
