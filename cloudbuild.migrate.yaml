@@ -1,0 +1,11 @@
+# migrate ターゲットを build して Artifact Registry へ push する。
+# 使い方: docs/infra/container-build.md 参照
+#   gcloud builds submit --config cloudbuild.migrate.yaml \
+#     --substitutions _IMAGE=<region>-docker.pkg.dev/<project>/<repo>,_TAG=<tag> .
+substitutions:
+  _IMAGE: ""
+  _TAG: ""
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "--target", "migrate", "-t", "${_IMAGE}/migrate:${_TAG}", "."]
+images: ["${_IMAGE}/migrate:${_TAG}"]

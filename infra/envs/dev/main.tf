@@ -188,6 +188,21 @@ module "cloudrun" {
   depends_on = [module.secrets, module.iam]
 }
 
+module "migrate_job" {
+  count                    = var.enable_migrate_job ? 1 : 0
+  source                   = "../../modules/migrate-job"
+  project_id               = var.project_id
+  region                   = var.region
+  name                     = "${var.name_prefix}-migrate"
+  service_account_email    = module.iam.app_service_account_email
+  cloudsql_connection_name = module.cloudsql.connection_name
+  database_url_secret_id   = local.secret_names.database_url
+  timeout_seconds          = var.migrate_job_timeout_seconds
+  deletion_protection      = var.deletion_protection
+
+  depends_on = [module.secrets, module.iam]
+}
+
 module "scheduler" {
   count       = var.enable_scheduler ? 1 : 0
   source      = "../../modules/scheduler"

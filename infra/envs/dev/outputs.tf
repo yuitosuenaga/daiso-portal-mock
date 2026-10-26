@@ -21,6 +21,11 @@ output "manual_secrets_to_populate" {
   description = "値を手動登録する secret（gcloud secrets versions add <id> --data-file=-）"
 }
 
+output "migrate_job_name" {
+  value       = one(module.migrate_job[*].name)
+  description = "enable_migrate_job=true の場合の migrate Job 名（無効時は null）"
+}
+
 output "cloudsql_connection_name" {
   value = module.cloudsql.connection_name
 }
