@@ -367,6 +367,60 @@ describe("runAnnouncementAutoEscalation", () => {
     expect(notifyAnnouncementEscalation).not.toHaveBeenCalled();
   });
 
+  it("締切到達後は新規のお知らせの処理（送信）を始めず、abortedByDeadlineを返す", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      announcementRecord({ id: "announcement-1" }),
+      announcementRecord({ id: "announcement-2" }),
+      announcementRecord({ id: "announcement-3" }),
+    ] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([
+      recipientStatus({ recipientId: "r-1", companyCode: "vn-daiso-vietnam", completedAt: null }),
+    ] as never);
+    // 1件目の送信中に時間が締切（1000ms）を超える状況を模擬する。
+    let nowMs = 1_000_000;
+    const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+    vi.mocked(notifyAnnouncementEscalation).mockImplementation((async () => {
+      nowMs += 1_500;
+      return SENT(["a@example.com"]);
+    }) as never);
+
+    try {
+      const result = await runAnnouncementAutoEscalation(NOW, { deadlineMs: 1_000 });
+
+      expect(result.abortedByDeadline).toBe(true);
+      expect(notifyAnnouncementEscalation).toHaveBeenCalledTimes(1);
+      expect(getAnnouncementRecipientStatuses).toHaveBeenCalledTimes(1);
+    } finally {
+      dateNowSpy.mockRestore();
+    }
+  });
+
+  it("締切内で完了した場合はabortedByDeadlineはfalse", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([
+      recipientStatus({ recipientId: "r-1", companyCode: "vn-daiso-vietnam", completedAt: null }),
+    ] as never);
+
+    const result = await runAnnouncementAutoEscalation(NOW);
+
+    expect(result.abortedByDeadline).toBe(false);
+  });
+
+  it("エラーログにPrismaのエラーコードを含める（メッセージは含めない）", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockRejectedValue(
+      Object.assign(new Error("secret-user@example.com"), { name: "PrismaClientKnownRequestError", code: "P2024" })
+    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runAnnouncementAutoEscalation(NOW);
+
+    const logged = JSON.stringify(errorSpy.mock.calls);
+    expect(logged).toContain("P2024");
+    expect(logged).not.toContain("secret-user@example.com");
+    errorSpy.mockRestore();
+  });
+
   it("dryRunは送信・打刻・ロック取得をせず、対象件数のみ集計する", async () => {
     vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
     vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([

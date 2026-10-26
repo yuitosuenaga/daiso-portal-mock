@@ -8,6 +8,7 @@ import {
   mapAnnouncement,
   targetApplicantUsersWhere,
 } from "@/lib/server/announcement-mapper";
+import { safeErrorLabel } from "@/lib/server/error-label";
 import { notifyAnnouncementEscalation } from "@/lib/server/announcement-notifications";
 import { getAnnouncementRecipientStatuses } from "@/lib/server/announcement-service";
 import type { Announcement } from "@/types/announcement";
@@ -36,6 +37,8 @@ export interface EscalationRunResult {
   failedAnnouncements: number;
   /** 別プロセスが実行中（advisory lock取得不可）のため何も処理せず終了した場合true。 */
   skippedByLock: boolean;
+  /** 処理時間の上限（締切）に達したため、残りのお知らせ・宛先の処理を打ち切った場合true。未処理分は次回実行で処理される。 */
+  abortedByDeadline: boolean;
   /** 送信・打刻・ログ記録を行わず対象件数のみ集計した場合true。 */
   dryRun: boolean;
 }
@@ -43,6 +46,11 @@ export interface EscalationRunResult {
 export interface EscalationRunOptions {
   /** trueのとき、メール送信・`reminderSentAt`更新・ログ記録・ロック取得を行わず件数のみ集計する。 */
   dryRun?: boolean;
+  /**
+   * 処理開始（ロック取得後）からの締切（ミリ秒）。到達後は新規の送信を始めず打ち切る。
+   * 既定は`ESCALATION_RUN_DEADLINE_MS`。テスト用に注入可能。
+   */
+  deadlineMs?: number;
 }
 
 /**
@@ -54,6 +62,15 @@ const ESCALATION_ADVISORY_LOCK_KEY = 7_203_803_001;
 /** advisory lockを保持するトランザクションの上限（Cloud Run timeout 300s未満）。 */
 const ESCALATION_LOCK_TRANSACTION_TIMEOUT_MS = 290_000;
 
+/**
+ * 処理の締切。トランザクション上限（290s）より十分前に必ず終わらせる。上限を超えるとPrismaが
+ * トランザクションをロールバックしてlockが解放されるが、コールバック内の処理は止まらず、
+ * 並走実行による二重送信を招くため、この締切で新規送信を止める。
+ * 締切到達後も、すでに開始済みの1お知らせ分の送信バッチは完了まで走るため、
+ * 290sとの間に50s程度の余裕を置く。
+ */
+const ESCALATION_RUN_DEADLINE_MS = 240_000;
+
 function newResult(dryRun: boolean): EscalationRunResult {
   return {
     overdueAnnouncements: 0,
@@ -64,6 +81,7 @@ function newResult(dryRun: boolean): EscalationRunResult {
     failedRecipients: 0,
     failedAnnouncements: 0,
     skippedByLock: false,
+    abortedByDeadline: false,
     dryRun,
   };
 }
@@ -79,7 +97,8 @@ async function processOverdueAnnouncement(
   announcement: Announcement,
   now: Date,
   result: EscalationRunResult,
-  dryRun: boolean
+  dryRun: boolean,
+  deadlineAt: number
 ): Promise<void> {
   try {
     const statuses = await getAnnouncementRecipientStatuses(announcement.id);
@@ -133,6 +152,12 @@ async function processOverdueAnnouncement(
       return;
     }
 
+    // 送信の直前にも締切を確認する（送信・打刻前に打ち切れば、次回実行で当該宛先を再処理できる）。
+    if (Date.now() >= deadlineAt) {
+      result.abortedByDeadline = true;
+      return;
+    }
+
     const summary = await notifyAnnouncementEscalation(
       announcement.id,
       companyCodes,
@@ -169,11 +194,9 @@ async function processOverdueAnnouncement(
     );
   } catch (error) {
     result.failedAnnouncements += 1;
-    // エラーオブジェクト本体（メッセージに宛先等のPIIを含みうる）は出さず、名前のみ記録する。
+    // エラーメッセージ（宛先等のPIIを含みうる）は出さず、名前とPrismaコードのみ記録する。
     console.error(
-      `[announcement-escalation] Failed to process escalation for announcement ${announcement.id}: ${
-        error instanceof Error ? error.name : "UnknownError"
-      }`
+      `[announcement-escalation] Failed to process escalation for announcement ${announcement.id}: ${safeErrorLabel(error)}`
     );
   }
 }
@@ -181,8 +204,10 @@ async function processOverdueAnnouncement(
 async function runEscalation(
   now: Date,
   result: EscalationRunResult,
-  dryRun: boolean
+  dryRun: boolean,
+  deadlineMs: number
 ): Promise<void> {
+  const deadlineAt = Date.now() + deadlineMs;
   const records = await prisma.announcement.findMany({
     where: { status: "published", actionRequired: true, dueDate: { not: null } },
     include: ANNOUNCEMENT_INCLUDE,
@@ -195,7 +220,11 @@ async function runEscalation(
   result.overdueAnnouncements = overdueAnnouncements.length;
 
   for (const announcement of overdueAnnouncements) {
-    await processOverdueAnnouncement(announcement, now, result, dryRun);
+    if (!dryRun && Date.now() >= deadlineAt) {
+      result.abortedByDeadline = true;
+      break;
+    }
+    await processOverdueAnnouncement(announcement, now, result, dryRun, deadlineAt);
   }
 }
 
@@ -217,15 +246,20 @@ export async function runAnnouncementAutoEscalation(
   options: EscalationRunOptions = {}
 ): Promise<EscalationRunResult> {
   const dryRun = options.dryRun === true;
+  const deadlineMs = options.deadlineMs ?? ESCALATION_RUN_DEADLINE_MS;
   const result = newResult(dryRun);
 
   if (dryRun) {
-    await runEscalation(now, result, true);
+    await runEscalation(now, result, true, deadlineMs);
     return result;
   }
 
   // トランザクション内でtransaction-levelのadvisory lockを取得し、処理完了（または失敗）まで保持する。
   // 同一コネクションでロックの取得・保持・解放を行うため、プール環境でもロックが漏れない。
+  // 注意: このトランザクションは実行中1接続を占有し、内側のクエリ（グローバルprisma）は別接続を
+  // 取るため、DATABASE_URLの`connection_limit`は2以上（推奨3以上）が必須（1だとP2024で毎回失敗）。
+  // Prismaのinteractive transactionはロック保持以外に処理を止められないため、処理側で締切
+  // （`ESCALATION_RUN_DEADLINE_MS`）を確認して打ち切る。
   await prisma.$transaction(
     async (tx) => {
       const rows = await tx.$queryRaw<{ locked: boolean }[]>`
@@ -235,7 +269,7 @@ export async function runAnnouncementAutoEscalation(
         result.skippedByLock = true;
         return;
       }
-      await runEscalation(now, result, false);
+      await runEscalation(now, result, false, deadlineMs);
     },
     { maxWait: 5_000, timeout: ESCALATION_LOCK_TRANSACTION_TIMEOUT_MS }
   );
@@ -266,9 +300,7 @@ export async function triggerAutoEscalationBestEffort(now: Date = new Date()): P
     await runAnnouncementAutoEscalation(now);
   } catch (error) {
     console.error(
-      `[announcement-escalation] triggerAutoEscalationBestEffort failed: ${
-        error instanceof Error ? error.name : "UnknownError"
-      }`
+      `[announcement-escalation] triggerAutoEscalationBestEffort failed: ${safeErrorLabel(error)}`
     );
   } finally {
     lastTriggeredDateKey = todayKey;

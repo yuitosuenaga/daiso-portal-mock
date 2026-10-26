@@ -330,6 +330,7 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 | TLS 必須化(`ENCRYPTED_ONLY`)に非対応の接続 | TLS 無しで接続するクライアントだけが接続エラーになる | 現行環境は適用済みで、Cloud Run(Cloud SQL コネクタ経由)は適用後も正常稼働を確認済み。ローカルからの接続は Cloud SQL Auth Proxy を使う。 |
 | 接続数の上限 | `too many connections` | `db-f1-micro` は接続数に余裕がない。インスタンスサイズの見直し、`max_instances` の見直し。 |
 | ディスク満杯 | Cloud SQL のメトリクス | 自動拡張は有効。上限や費用を確認する。 |
+| 接続プール枯渇(督促 cron で `P2024`) | cron が 500 を返し、ログに `PrismaClientKnownRequestError P2024` | `DATABASE_URL` の `connection_limit` を **1 にしてはならない(最低 2、推奨 3 以上)**。督促 cron(`/api/cron/announcement-escalation`)は同時実行防止の advisory lock のため、実行中に 1 接続をトランザクションで占有し、内側のクエリが別の接続を使う。未指定(既定)なら問題ない。 |
 
 secret を更新した後に Cloud Run に反映するには、新しい revision を作る(`latest` は revision の起動時にのみ読まれる)。**テンプレートが変わらない更新(同一設定の再適用、ラベルのみの変更など)では、新 revision が作られない可能性がある(未検証)。** 実行後は必ず `gcloud run revisions list` で新 revision ができたこと、`latestReadyRevisionName` が変わったことを確認する。
 

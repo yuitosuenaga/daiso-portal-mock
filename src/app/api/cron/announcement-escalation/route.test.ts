@@ -26,6 +26,7 @@ function summary(overrides: Partial<EscalationRunResult> = {}): EscalationRunRes
     failedRecipients: 0,
     failedAnnouncements: 0,
     skippedByLock: false,
+    abortedByDeadline: false,
     dryRun: false,
     ...overrides,
   };
