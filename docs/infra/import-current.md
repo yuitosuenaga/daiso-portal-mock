@@ -179,7 +179,7 @@ enable_google_login = false
      - `curl -s https://portal-mock-700069905019.asia-northeast1.run.app/api/auth/providers` が JSON を返す
      - ログ: `gcloud run services logs read portal-mock --region asia-northeast1 --project rvp-ai-proto-camp --limit 50` に DB 接続エラー（`password authentication failed` 等）が無い
      - `gcloud run services describe portal-mock --region asia-northeast1 --project rvp-ai-proto-camp --format=json | jq '[.spec.template.spec.containers[0].env[] | {name, secret: (.valueFrom != null)}]'` で `DATABASE_URL` / `AUTH_SECRET` が `secret: true`（値は表示されない形式）
-   - 戻し方: 動作しない場合は 3-1 を再実行して secret と DB を一致させ、`gcloud run services update portal-mock --region asia-northeast1 --project rvp-ai-proto-camp --update-labels=redeploy=$(date +%s)` で新 revision を作る。
+   - 戻し方: 動作しない場合は 3-1 を再実行して secret と DB を一致させ、現行イメージを指定した `gcloud run deploy portal-mock --image <現行イメージ>` で新 revision を作る(手順は `runbook.md` §3.3 末尾。`--update-labels` は新 revision が作られる保証がないため使わない)。
 
 ### 段階4: Cloud SQL 設定の改善（個別 apply）
 

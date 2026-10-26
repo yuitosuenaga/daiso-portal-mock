@@ -72,6 +72,8 @@ IMAGE=$REGION-docker.pkg.dev/$PROJECT/$REPO
 gcloud builds submit --project $PROJECT --tag $IMAGE/app:$(git rev-parse --short HEAD) .
 ```
 
+migrate イメージは、リポジトリ直下の `cloudbuild.migrate.yaml` で build する(`gcloud builds submit --config cloudbuild.migrate.yaml --substitutions _IMAGE=$IMAGE,_TAG=<tag> .`。詳細は `container-build.md`)。
+
 注意: 上記のタグ付き build / push 手順は `container-build.md` の記載どおりであり、**現行環境では実行していない(未検証)**。Artifact Registry のリポジトリ(`portal-mock`)は、Terraform ではまだ作成していないため、**この手順の前提として事前に作成が必要**である(未作成だと push に失敗する)。
 
 ```bash
@@ -82,7 +84,7 @@ gcloud artifacts repositories create $REPO --project $PROJECT --location $REGION
 
 `migrate` ターゲットの Cloud Run Job(`portal-mock-migrate`)による適用が目標の形である。
 
-- **現状**: Job の Terraform 定義は**追加予定**(別PRで作業中。未マージ)。Dockerfile の `migrate` ターゲットと、`gcloud run jobs create / execute` の手順は `container-build.md` にあるが、**Job は現行環境では作成・実行していない(未検証)**。
+- **現状**: Job は Terraform 定義済み(`enable_migrate_job=true` で作成)。Dockerfile の `migrate` ターゲットと実行手順は `container-build.md` にあるが、**実環境での Job の作成・実行は未検証**。
 - **現状の運用(実績あり)**: `deploy-main` スキルの手順3に従い、Cloud SQL Auth Proxy 経由でローカルから `prisma migrate deploy` を実行する。本番 `DATABASE_URL` を扱うため、手順は次の注意を守る。
   - `DATABASE_URL` を含むファイルを作ったり、作業ディレクトリに残したりしない。画面に出さない(`echo` しない)。作業後にソケットディレクトリを削除し、シェル変数を `unset` する。
   - `gcloud run services describe ... --format=json` の全体出力は、環境変数(平文の場合は機密値)を含むため、画面に出さない。**現行環境では `DATABASE_URL` は Secret 参照のため、`describe` の env から `.value` を取る旧手順(`jq .value`)では空になる。** Secret Manager から直接読む。
@@ -103,7 +105,7 @@ gcloud run jobs update portal-mock-migrate --project $PROJECT --region $REGION -
 gcloud run jobs execute portal-mock-migrate --project $PROJECT --region $REGION --wait
 ```
 
-実行結果は Cloud Run Job の実行履歴とログで確認する(§3.5)。失敗した場合は、サービスのデプロイに進まない。
+実行結果は Cloud Run Job の実行履歴とログで確認する(§3.5)。失敗した場合は、サービスのデプロイに進まない。マイグレーションが失敗状態で止まった場合は、原因を解消したうえで `prisma migrate resolve`(`--applied` / `--rolled-back`)で状態を解決してから再実行する。
 
 ### 1.4 Cloud Run へのデプロイ
 
@@ -575,7 +577,7 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 | 項目 | 節 |
 |---|---|
 | Artifact Registry へのタグ付きイメージの build / push とデプロイ | §1.2 |
-| migrate Cloud Run Job の作成と実行(Job の Terraform 定義は追加予定) | §1.3 |
+| migrate Cloud Run Job の作成と実行(Terraform 定義済み、実環境では未検証) | §1.3 |
 | Cloud Run の revision 切替によるロールバックの所要時間 | §1.7 |
 | バックアップからの復元(同一インスタンス、クローン)、PITR クローン | §2.3 |
 | 復元・クローン後の接続先切替と Terraform state の整合 | §2.3 |
