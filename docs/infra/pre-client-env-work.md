@@ -37,7 +37,11 @@
 
 - 段階4b: Cloud SQL の TLS 必須化(`db_ssl_mode=ENCRYPTED_ONLY`)。保存 plan 作成済み(update のみ、replace/destroy なし)。ユーザーの apply 待ち
 - (段階4a は適用済み: 自動バックアップ有効・削除保護有効。再起動なし、Cloud Run のエラーなしを確認)
-- 段階5: 後始末(旧 revision の削除、旧 secret version の無効化、GCS 上の state 旧世代の整理、作業用ファイルの削除)
+- 段階5: 後始末
+  - 旧 revision の削除: 完了(00001〜00029 を削除。00030/00031 は保持、00032 が 100% 配信)
+  - 旧 secret version: 無し(対応不要)
+  - GCS 上の state 旧世代: 巻き戻し用に保持
+  - 作業用ファイルの削除: 未了
 - `feature/google-login` に含まれる spec 変更の取り消し(spec 管理は停止中のため)
 - 各ブランチの push / PR(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
 - アプリ側の残り: `prisma migrate deploy` の Cloud Run Job 化、認証まわりの堅牢化(ロックアウト、ログイン試行制限、監査ログ、セキュリティヘッダ)、SMTP の接続先差し替え対応と検証、保持期間超過データの削除
