@@ -191,6 +191,9 @@ export async function InquiryDetail({ id }: { id: string }) {
               "attachments.countExceeded"
             )}
             attachmentsReadFailedMessage={tMessage("attachments.readFailed")}
+            attachmentsTotalSizeExceededMessage={tMessage(
+              "attachments.totalSizeExceeded"
+            )}
           />
         </CardContent>
       </Card>

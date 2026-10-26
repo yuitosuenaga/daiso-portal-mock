@@ -28,6 +28,19 @@ const applicantSession = {
   },
 };
 
+
+const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+function pngAttachment(size: number, fileSize = size) {
+  const bytes = Buffer.concat([PNG_HEAD, Buffer.alloc(size - PNG_HEAD.length)]);
+  return {
+    id: "att-1",
+    fileName: "photo.png",
+    fileType: "image/png",
+    fileSize,
+    dataUrl: `data:image/png;base64,${bytes.toString("base64")}`,
+  };
+}
+
 function request(body: unknown) {
   return new NextRequest("http://localhost/api/inquiries/inquiry-1/history", {
     method: "POST",
@@ -65,6 +78,49 @@ describe("POST /api/inquiries/[id]/history", () => {
       })
     );
     expect(response.status).toBe(201);
+  });
+
+  it("申請者の正当な添付は201で通る", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue({ id: "inquiry-1" } as never);
+    vi.mocked(appendHistoryEntry).mockResolvedValue({ id: "history-1" } as never);
+
+    const response = await POST(
+      request({ type: "requester_message", detail: "x", attachments: [pngAttachment(100)] }),
+      { params: { id: "inquiry-1" } }
+    );
+
+    expect(response.status).toBe(201);
+  });
+
+  it("fileSizeを偽装した添付は400になり履歴に記録されない", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(appendHistoryEntry).mockClear();
+
+    const response = await POST(
+      request({ type: "reply_sent", detail: "x", attachments: [pngAttachment(1000, 1)] }),
+      { params: { id: "inquiry-1" } }
+    );
+
+    expect(response.status).toBe(400);
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+  });
+
+  it("合計上限を超える添付は400になる", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(appendHistoryEntry).mockClear();
+    const five = Array.from({ length: 5 }, (_, i) => ({
+      ...pngAttachment(5 * 1024 * 1024),
+      id: `att-${i}`,
+    }));
+
+    const response = await POST(
+      request({ type: "reply_sent", detail: "x", attachments: five }),
+      { params: { id: "inquiry-1" } }
+    );
+
+    expect(response.status).toBe(400);
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("申請者が他社の問い合わせに追加しようとすると404を返す", async () => {

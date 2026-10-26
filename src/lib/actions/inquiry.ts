@@ -9,7 +9,7 @@ import {
   appendHistoryEntry,
   findInquiryForCompany,
 } from "@/lib/server/inquiry-service";
-import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
+import { inquiryAttachmentsStrictSchema } from "@/lib/validation/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 
@@ -48,7 +48,7 @@ export async function sendApplicantMessageAction(
 ): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
   const messageBody = messageBodySchema.parse(body);
-  const validatedAttachments = inquiryAttachmentsArraySchema.parse(attachments);
+  const validatedAttachments = inquiryAttachmentsStrictSchema.parse(attachments);
 
   const { claims } = await requireApplicantSession();
 

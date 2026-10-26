@@ -30,7 +30,7 @@ import {
   replyTemplateFormSchema,
   type ReplyTemplateFormValues,
 } from "@/lib/validation/reply-template";
-import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
+import { inquiryAttachmentsStrictSchema } from "@/lib/validation/inquiry";
 import type { Inquiry } from "@/types/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
 import type {
@@ -146,7 +146,7 @@ export async function changeInquiryStatusAction(
 
 /**
  * 返信送信内容（添付ファイルを含む）を対応履歴に記録し、一覧・詳細ルートを再検証する。
- * 添付ファイルは`inquiry-form`spec所有の`inquiryAttachmentsArraySchema`（件数上限・サイズ・形式を検証）でサーバー側検証する。
+ * 添付ファイルは`inquiry-form`spec所有の`inquiryAttachmentsStrictSchema`（件数上限・サイズ・形式を検証）でサーバー側検証する。
  *
  * 送信直前の`status`が`new`（新規）の場合、返信をもって対応が開始されたとみなし
  * `in_progress`（対応中）へ自動的に変更する（変更内容は対応履歴にも記録する）。
@@ -165,7 +165,7 @@ export async function sendInquiryReplyAction(
 ): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
   const body = replyBodySchema.parse(replyBody);
-  const validatedAttachments = inquiryAttachmentsArraySchema.parse(attachments);
+  const validatedAttachments = inquiryAttachmentsStrictSchema.parse(attachments);
   const { claims } = await requireHelpdeskStaffSession();
 
   await appendInquiryHistoryEntry({
