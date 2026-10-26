@@ -65,6 +65,14 @@ describe("authorizeApplicantCredentials", () => {
     expect(result).toBeNull();
   });
 
+  it("該当ユーザーが存在しなくてもbcrypt照合を1回実行し、応答時間を揃える", async () => {
+    vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue(null);
+    const spy = vi.spyOn(bcrypt, "compare");
+    await authorizeApplicantCredentials("nobody@example.com", "x");
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
   it("該当ユーザーが存在しないとき、nullを返す", async () => {
     vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue(null);
 

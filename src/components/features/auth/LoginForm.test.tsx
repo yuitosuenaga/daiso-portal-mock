@@ -49,6 +49,20 @@ describe("LoginForm", () => {
     });
   });
 
+  it("loginActionがaccount_lockedを返すとロックのメッセージを表示する", async () => {
+    const loginAction = vi.fn().mockResolvedValue({ error: "account_locked" });
+    const user = userEvent.setup();
+    renderLoginForm(loginAction);
+
+    await user.type(screen.getByLabelText(/メールアドレス/), "applicant@example.com");
+    await user.type(screen.getByLabelText(/パスワード/), "wrong-password");
+    await user.click(screen.getByRole("button", { name: "ログイン" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(messages.login.errorAccountLocked)).toBeTruthy();
+    });
+  });
+
   it("googleLoginAction未指定ではGoogleログインボタンを表示しない", () => {
     renderLoginForm(vi.fn());
     expect(screen.queryByRole("button", { name: "Googleでログイン" })).toBeNull();

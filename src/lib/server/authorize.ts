@@ -9,6 +9,17 @@ import type {
 } from "@/types/session";
 
 /**
+ * 存在しないメールでもbcryptを1回実行し、応答時間でアカウントの存否を判別されないようにする。
+ * （有効なbcryptハッシュ。どのパスワードとも一致しない前提のダミー）
+ */
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$LD98kjvtmaUcczHiaCb1/O8cfIoFrQ2eTJhRpoz738qGe.H1AgwNm";
+
+async function burnPasswordCheck(password: string): Promise<void> {
+  await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+}
+
+/**
  * 申請者側企業ユーザーの認証情報を照合するモックAPI関数。
  * メールアドレスに対応する`ApplicantUser`が存在し、パスワードハッシュが一致する場合のみ
  * セッションクレームを返す。
@@ -23,6 +34,7 @@ export async function authorizeApplicantCredentials(
   });
 
   if (!applicantUser) {
+    await burnPasswordCheck(password);
     return null;
   }
 
@@ -61,6 +73,7 @@ export async function authorizeHelpdeskCredentials(
   const staff = await prisma.helpdeskStaff.findUnique({ where: { email } });
 
   if (!staff) {
+    await burnPasswordCheck(password);
     return null;
   }
 

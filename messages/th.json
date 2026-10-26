@@ -9,6 +9,7 @@
     "submit": "ล็อกอิน",
     "submitting": "กำลังล็อกอิน…",
     "errorInvalidCredentials": "ที่อยู่อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "errorAccountLocked": "พยายามเข้าสู่ระบบไม่สำเร็จหลายครั้ง บัญชีของคุณถูกล็อกชั่วคราว โปรดลองอีกครั้งในอีกประมาณ 15 นาที",
     "orDivider": "หรือ",
     "googleSubmit": "เข้าสู่ระบบด้วย Google",
     "googleError": {

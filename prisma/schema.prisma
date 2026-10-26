@@ -702,3 +702,42 @@ model ManualTranslation {
   @@unique([manualId, locale])
   @@index([manualId])
 }
+
+/// ログイン試行制限（アカウントロックアウト）の状態。キーはポータル+メールアドレスのHMACで、
+/// 存在しないメールアドレスにも同様に記録する（アカウントの存否を外部へ漏らさないため）。
+/// メールアドレスは平文で保持しない。
+model LoginThrottle {
+  /// `${portal}:${identifierHash}`
+  key          String    @id
+  failedCount  Int       @default(0)
+  lastFailedAt DateTime?
+  lockedUntil  DateTime?
+  updatedAt    DateTime  @updatedAt
+}
+
+enum AuthEventType {
+  login_success
+  login_failure
+  login_locked
+  login_blocked
+}
+
+/// 認証イベントの監査ログ。メールアドレス・パスワードは平文で保存しない
+/// （識別子はHMACのハッシュ、IPは匿名化した概要のみ）。
+model AuthEvent {
+  id             String        @id @default(cuid())
+  type           AuthEventType
+  /// "credentials" | "google"
+  method         String
+  /// "applicant" | "helpdesk"
+  portal         String
+  userId         String?
+  identifierHash String?
+  ipSummary      String?
+  reason         String?
+  createdAt      DateTime      @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([identifierHash])
+}

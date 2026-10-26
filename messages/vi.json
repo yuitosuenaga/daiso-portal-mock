@@ -9,6 +9,7 @@
     "submit": "Đăng nhập",
     "submitting": "Đang đăng nhập…",
     "errorInvalidCredentials": "Địa chỉ email hoặc mật khẩu không chính xác.",
+    "errorAccountLocked": "Đăng nhập thất bại quá nhiều lần. Tài khoản của bạn tạm thời bị khóa. Vui lòng thử lại sau khoảng 15 phút.",
     "orDivider": "hoặc",
     "googleSubmit": "Đăng nhập bằng Google",
     "googleError": {

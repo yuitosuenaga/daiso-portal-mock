@@ -11,14 +11,35 @@ import {
 } from "@/lib/auth/google-login-policy";
 import { GOOGLE_LOGIN_CONTEXT_COOKIE } from "@/lib/constants/google-login";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/constants/locales";
+import { isLoginLocked } from "@/lib/server/login-throttle";
 import { isGoogleLoginEnabled } from "@/lib/server/google-login-config";
 
-export type LoginActionResult = { error: "invalid_credentials" } | undefined;
+export type LoginActionResult =
+  | { error: "invalid_credentials" | "account_locked" }
+  | undefined;
 
 interface LoginActionInput {
   email: string;
   password: string;
   locale: string;
+}
+
+/**
+ * 認証失敗時のエラー種別を決める。ロック中なら`account_locked`、それ以外は
+ * `invalid_credentials`（アカウントの存否は区別しない。ロックは存在しないメールにも同様に掛かる）。
+ */
+async function resolveLoginError(
+  portal: "applicant" | "helpdesk",
+  email: string
+): Promise<LoginActionResult> {
+  try {
+    if (await isLoginLocked(portal, email)) {
+      return { error: "account_locked" };
+    }
+  } catch {
+    // ロック状態を取得できなくても、通常の認証失敗として扱う
+  }
+  return { error: "invalid_credentials" };
 }
 
 /**
@@ -36,7 +57,7 @@ export async function applicantLoginAction(
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "invalid_credentials" };
+      return resolveLoginError("applicant", input.email);
     }
     throw error;
   }
@@ -54,7 +75,7 @@ export async function helpdeskLoginAction(
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "invalid_credentials" };
+      return resolveLoginError("helpdesk", input.email);
     }
     throw error;
   }

@@ -14,6 +14,8 @@ import {
   authorizeApplicantCredentials,
   authorizeHelpdeskCredentials,
 } from "@/lib/server/authorize";
+import { recordAuthEvent, hashIdentifier } from "@/lib/server/auth-audit";
+import { runProtectedCredentialsLogin } from "@/lib/server/login-throttle";
 import { authorizeGoogleLogin } from "@/lib/server/google-authorize";
 import {
   getAllowedEmailDomains,
@@ -49,13 +51,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         portal: context.portal,
         allowedDomains: getAllowedEmailDomains(),
       });
+      const googleEmail = profile?.email ?? user.email;
+      const identifierHash = googleEmail ? hashIdentifier(googleEmail) : null;
       if (!result.ok) {
+        await recordAuthEvent({
+          type: "login_failure",
+          method: "google",
+          portal: context.portal,
+          identifierHash,
+          reason: result.error,
+        });
         return buildGoogleLoginErrorPath(
           context.portal,
           context.locale,
           result.error
         );
       }
+      await recordAuthEvent({
+        type: "login_success",
+        method: "google",
+        portal: context.portal,
+        userId: result.user.id,
+        identifierHash,
+      });
       // Googleのプロフィール（name/image等）をセッションに残さず、既存と同じ形に置き換える
       for (const key of Object.keys(user)) {
         delete (user as unknown as Record<string, unknown>)[key];
@@ -96,9 +114,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ) {
           return null;
         }
-        return authorizeApplicantCredentials(
-          credentials.email,
-          credentials.password
+        const { email, password } = credentials;
+        return runProtectedCredentialsLogin("applicant", email, () =>
+          authorizeApplicantCredentials(email, password)
         );
       },
     }),
@@ -116,9 +134,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ) {
           return null;
         }
-        return authorizeHelpdeskCredentials(
-          credentials.email,
-          credentials.password
+        const { email, password } = credentials;
+        return runProtectedCredentialsLogin("helpdesk", email, () =>
+          authorizeHelpdeskCredentials(email, password)
         );
       },
     }),
