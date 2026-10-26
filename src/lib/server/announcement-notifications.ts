@@ -64,6 +64,9 @@ function resolveUiLocale(preferredLocale: string): string {
     : "en";
 }
 
+/** 宛先1件の送信結果。`AnnouncementNotificationLog.status`と同値。 */
+export type SendOutcome = "sent" | "skipped" | "failed";
+
 interface NotificationRecipient {
   email: string;
   preferredLocale: string;
@@ -78,7 +81,7 @@ async function sendAndLog(
   announcement: Announcement,
   kind: "publish" | "reminder" | "target_added" | "escalation" | "read_reminder",
   recipient: NotificationRecipient
-): Promise<void> {
+): Promise<SendOutcome> {
   const { title, body } = resolveAnnouncementContent(announcement, recipient.preferredLocale);
   const uiLocale = resolveUiLocale(recipient.preferredLocale);
   const detailUrl = `${resolveAppBaseUrl()}/${uiLocale}${ANNOUNCEMENT_DETAIL_PATH_PREFIX}/${announcement.id}`;
@@ -103,12 +106,15 @@ async function sendAndLog(
         status: "sent",
       },
     });
+    return "sent";
   } catch (error) {
     const isNotConfigured = error instanceof MailerNotConfiguredError;
     if (!isNotConfigured) {
+      // 宛先メールアドレス・エラーメッセージ（SMTPが宛先を含みうる）はログに出さない（PII対策）。
       console.error(
-        `[announcement-notifications] Failed to send ${kind} mail for announcement ${announcement.id} to ${recipient.email}:`,
-        error
+        `[announcement-notifications] Failed to send ${kind} mail for announcement ${announcement.id}: ${
+          error instanceof Error ? error.name : "UnknownError"
+        }`
       );
     }
     await prisma.announcementNotificationLog.create({
@@ -121,6 +127,7 @@ async function sendAndLog(
         errorMessage: isNotConfigured ? null : (error as Error).message,
       },
     });
+    return isNotConfigured ? "skipped" : "failed";
   }
 }
 
@@ -231,6 +238,16 @@ export async function notifyAnnouncementUserReadReminder(
   );
 }
 
+/** `notifyAnnouncementEscalation`の送信結果サマリ（宛先のPII以外は件数のみ）。 */
+export interface EscalationSendSummary {
+  /** 実際に送信に成功した宛先メール（呼び出し元が会社単位の打刻判定にのみ使う。ログ・レスポンスへ出さない）。 */
+  sentEmails: string[];
+  /** SMTP未設定により送信しなかった件数。 */
+  skipped: number;
+  /** 送信に失敗した件数。 */
+  failed: number;
+}
+
 /**
  * 対応期限超過の自動エスカレーション（要件38）により、指定した会社コードに属する
  * `ApplicantUser`のうち、当日まだ督促（`escalation`/手動`reminder`）を受け取っていない
@@ -243,14 +260,15 @@ export async function notifyAnnouncementEscalation(
   announcementId: string,
   companyCodes: string[],
   alreadyNotifiedEmails: ReadonlySet<string>
-): Promise<void> {
+): Promise<EscalationSendSummary> {
+  const summary: EscalationSendSummary = { sentEmails: [], skipped: 0, failed: 0 };
   if (companyCodes.length === 0) {
-    return;
+    return summary;
   }
 
   const announcement = await findAnnouncementForNotification(announcementId);
   if (!announcement) {
-    return;
+    return summary;
   }
 
   const recipients = await prisma.applicantUser.findMany({
@@ -265,5 +283,20 @@ export async function notifyAnnouncementEscalation(
 
   const targets = recipients.filter((recipient) => !alreadyNotifiedEmails.has(recipient.email));
 
-  await Promise.all(targets.map((recipient) => sendAndLog(announcement, "escalation", recipient)));
+  const outcomes = await Promise.all(
+    targets.map(async (recipient) => ({
+      email: recipient.email,
+      outcome: await sendAndLog(announcement, "escalation", recipient),
+    }))
+  );
+  for (const { email, outcome } of outcomes) {
+    if (outcome === "sent") {
+      summary.sentEmails.push(email);
+    } else if (outcome === "skipped") {
+      summary.skipped += 1;
+    } else {
+      summary.failed += 1;
+    }
+  }
+  return summary;
 }

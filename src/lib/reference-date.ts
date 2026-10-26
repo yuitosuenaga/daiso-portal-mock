@@ -20,3 +20,11 @@ const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
 export function toReferenceDateKey(date: Date): string {
   return dateKeyFormatter.format(date);
 }
+
+/**
+ * 指定時刻が属する日本時間（JST）の暦日の開始時刻（JST 0:00）を、絶対時刻（Date）で返す。
+ * 実行環境のタイムゾーン（Cloud RunではUTC）に依存しない。JSTはDSTなしのため固定オフセット+09:00。
+ */
+export function startOfReferenceDay(date: Date): Date {
+  return new Date(`${toReferenceDateKey(date)}T00:00:00+09:00`);
+}

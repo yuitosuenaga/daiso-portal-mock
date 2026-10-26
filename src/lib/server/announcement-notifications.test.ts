@@ -586,10 +586,32 @@ describe("notifyAnnouncementEscalation", () => {
 
     await expect(
       notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set())
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ sentEmails: [], skipped: 1, failed: 0 });
 
     expect(prisma.announcementNotificationLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ kind: "escalation", status: "skipped", errorMessage: null }),
     });
+  });
+
+  it("送信結果をsent/skipped/failedに仕分けて返し、失敗ログに宛先メールを出さない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(announcementRecord() as never);
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "ok@example.com", preferredLocale: "ja" },
+      { email: "ng@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockImplementation((async ({ to }: { to: string }) => {
+      if (to === "ng@example.com") throw new Error("SMTP timeout");
+    }) as never);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const summary = await notifyAnnouncementEscalation(
+      "announcement-1",
+      ["vn-daiso-vietnam"],
+      new Set()
+    );
+
+    expect(summary).toEqual({ sentEmails: ["ok@example.com"], skipped: 0, failed: 1 });
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("example.com");
+    errorSpy.mockRestore();
   });
 });
