@@ -42,11 +42,11 @@
   - 旧 secret version: 無し(対応不要)
   - GCS 上の state 旧世代: 巻き戻し用に保持
   - 作業用ファイルの削除: 未了
-- `feature/google-login` に含まれる spec 変更の取り消し(spec 管理は停止中のため)
-- 各ブランチの push / PR(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
-- メモ: PR #155(migrate Job)は未マージ。マージ後に、`runbook.md` §1.3 の「追加予定」の記述を更新する
-- アプリ側の残り: `prisma migrate deploy` の Cloud Run Job 化、認証まわりの堅牢化(ロックアウト、ログイン試行制限、監査ログ、セキュリティヘッダ)、SMTP の接続先差し替え対応と検証、保持期間超過データの削除
-- 運用面: 運用手順書(リリース、バックアップからの復旧、障害対応)、監視・アラート定義の雛形
+- (完了) `feature/google-login` の spec 変更の取り消し、各ブランチの push / PR
+- (完了) migrate Job(PR #155、Terraform 定義済み。実環境での作成・実行は未検証)、監視(PR #156)、運用手順書(PR #157)は main にマージ済み
+- 認証まわりの堅牢化(ロックアウト、ログイン試行制限、監査ログ、セキュリティヘッダ)は PR #158 で対応中(未マージ)
+- アプリ側の残り: SMTP の接続先差し替え対応と検証、保持期間超過データの削除
+- 運用面: 運用手順書(リリース、バックアップからの復旧、障害対応)、監視・アラート定義の雛形(いずれも main に反映済み。実環境での検証は未了)
 - クライアントとの並行調整(早めに依頼)
   - ギャップ一覧(「本番に必須 / リリース後でよい / 不要」)の合意
   - クライアント環境の申請(プロジェクト作成、請求先、Editor 付与)
@@ -59,4 +59,4 @@ SMTP の本接続と Cloud Scheduler、バックアップの定期エクスポ�
 
 ## 判断待ち(ユーザー)
 
-1. 各ブランチの push / PR 方針(`feature/google-login`、`chore/dockerfile-migrate-job`、`chore/iac-terraform-plan`)
+1. (解消済み) 各ブランチの push / PR は完了
