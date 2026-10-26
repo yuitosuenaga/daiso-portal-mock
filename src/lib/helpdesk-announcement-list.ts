@@ -1,4 +1,4 @@
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 
 /**
  * ヘルプデスク側お知らせ管理一覧の検索・絞り込み条件。
@@ -23,10 +23,10 @@ export const EMPTY_HELPDESK_ANNOUNCEMENT_FILTERS: HelpdeskAnnouncementFilters = 
  * タイトル（部分一致・大文字小文字を区別しない）・種別・対応要否・公開状態のAND条件で
  * お知らせを絞り込む。引数の配列の順序は変更しない。
  */
-export function filterAnnouncementsForHelpdesk(
-  announcements: Announcement[],
+export function filterAnnouncementsForHelpdesk<T extends AnnouncementSummary>(
+  announcements: T[],
   filters: HelpdeskAnnouncementFilters
-): Announcement[] {
+): T[] {
   const keyword = filters.keyword.trim().toLowerCase();
 
   return announcements.filter((announcement) => {

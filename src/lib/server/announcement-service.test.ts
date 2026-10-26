@@ -61,6 +61,7 @@ import {
   getAnnouncementRecipientStatuses,
   getAnnouncementSelfStatusForCompany,
   getAnnouncementSelfStatuses,
+  getAnnouncementTrackingStatusesBulk,
   getAnnouncementTrackingSummary,
   getAnnouncementUserReadStatuses,
   getUserSelfConfirmation,
@@ -2036,5 +2037,209 @@ describe("個人単位の確認済み記録・会社単位の実施済み記録�
     );
 
     expect(unresolved).toHaveLength(0);
+  });
+});
+
+
+describe("一覧・集計クエリは添付本体（dataUrl）を読み込まない", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.announcement.findMany).mockReset();
+    vi.mocked(prisma.announcement.findUnique).mockReset();
+  });
+
+  it("listAnnouncementsVisibleToCountryは添付をメタデータだけselectし、結果にdataUrlを含めない", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      baseAnnouncementRecord({
+        id: "1",
+        attachments: [
+          {
+            id: "att-1",
+            fileName: "a.png",
+            fileType: "image/png",
+            fileSize: 10,
+            // 万一select漏れで返ってきても、整形結果には含めない
+            dataUrl: "data:image/png;base64,AAAA",
+            announcementId: "1",
+          },
+        ],
+      }),
+    ] as never);
+
+    const result = await listAnnouncementsVisibleToCountry("VN");
+
+    const args = vi.mocked(prisma.announcement.findMany).mock.calls[0][0] as {
+      include: { attachments: unknown };
+    };
+    expect(args.include.attachments).toEqual({
+      select: { id: true, fileName: true, fileType: true, fileSize: true },
+    });
+    expect(result[0].attachments).toEqual([
+      { id: "att-1", fileName: "a.png", fileType: "image/png", fileSize: 10 },
+    ]);
+  });
+
+  it("listAllAnnouncementsは添付をメタデータだけselectし、作成者名を含める", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      { ...baseAnnouncementRecord({ id: "1" }), createdBy: { displayName: "担当A" } },
+    ] as never);
+
+    const result = await listAllAnnouncements();
+
+    const args = vi.mocked(prisma.announcement.findMany).mock.calls[0][0] as {
+      include: { attachments: unknown; createdBy: unknown };
+    };
+    expect(args.include.attachments).toEqual({
+      select: { id: true, fileName: true, fileType: true, fileSize: true },
+    });
+    expect(args.include.createdBy).toEqual({ select: { displayName: true } });
+    expect(result[0].createdByName).toBe("担当A");
+  });
+
+  it("findAnnouncementByIdは従来どおり添付本体を含めて取得する（編集画面用）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+
+    await findAnnouncementById("1");
+
+    expect(prisma.announcement.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ include: expect.objectContaining({ attachments: true }) })
+    );
+  });
+
+  it("トラッキング集計系は添付・翻訳を読み込まず、配信対象と対応要否の列だけselectする", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+
+    await getAnnouncementRecipientStatuses("1");
+    await getAnnouncementUserReadStatuses("1");
+    await isReminderPendingForCompany("1", "X");
+
+    const calls = vi.mocked(prisma.announcement.findUnique).mock.calls;
+    expect(calls.length).toBeGreaterThanOrEqual(3);
+    for (const [args] of calls) {
+      const typed = args as { select?: Record<string, boolean>; include?: unknown };
+      expect(typed.include).toBeUndefined();
+      expect(typed.select).toEqual({
+        id: true,
+        actionRequired: true,
+        targetingScope: true,
+        targetingCountries: true,
+        targetingUserIds: true,
+        targetingCompanyIds: true,
+      });
+    }
+  });
+});
+
+describe("getAnnouncementTrackingStatusesBulk", () => {
+  function recipientWithStatuses(
+    id: string,
+    companyCode: string,
+    country: string,
+    statuses: { announcementId: string; completedAt: Date | null; reminderSentAt: Date | null }[]
+  ) {
+    return { ...recipientRecord(id, companyCode, country), statuses };
+  }
+
+  function userWithReceipts(
+    id: string,
+    companyCode: string,
+    country: string,
+    receipts: {
+      announcementId: string;
+      confirmedAt: Date | null;
+      readReminderSentAt: Date | null;
+    }[],
+    isActive = true
+  ) {
+    return { ...applicantUserRecord(id, companyCode, country), isActive, announcementReadReceipts: receipts };
+  }
+
+  beforeEach(() => {
+    vi.mocked(prisma.announcementRecipient.findMany).mockReset();
+    vi.mocked(prisma.applicantUser.findMany).mockReset();
+    vi.mocked(prisma.announcement.findUnique).mockReset();
+    vi.mocked(prisma.announcement.findMany).mockReset();
+  });
+
+  it("お知らせが0件ならクエリを発行せず空を返す", async () => {
+    const result = await getAnnouncementTrackingStatusesBulk([]);
+
+    expect(result).toEqual({ recipientStatuses: {}, userReadStatuses: {} });
+    expect(prisma.announcementRecipient.findMany).not.toHaveBeenCalled();
+    expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
+  });
+
+  it("お知らせ件数によらず、担当者・申請者の2クエリだけで済み、お知らせ本体は読み込まない", async () => {
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([] as never);
+
+    await getAnnouncementTrackingStatusesBulk(
+      Array.from({ length: 50 }, (_, index) => ({
+        id: `a${index}`,
+        targeting: { scope: "all" as const },
+      }))
+    );
+
+    expect(prisma.announcementRecipient.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.announcement.findUnique).not.toHaveBeenCalled();
+    expect(prisma.announcement.findMany).not.toHaveBeenCalled();
+    const recipientArgs = vi.mocked(prisma.announcementRecipient.findMany).mock.calls[0][0] as {
+      include: { statuses: { where: { announcementId: { in: string[] } } } };
+    };
+    expect(recipientArgs.include.statuses.where.announcementId.in).toHaveLength(50);
+  });
+
+  it("配信対象ごとに、1件ずつ取得した場合と同じ母集団・状態に振り分ける", async () => {
+    const t = new Date("2026-02-01T00:00:00.000Z");
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientWithStatuses("r-vn", "VN1", "VN", [
+        { announcementId: "a-all", completedAt: t, reminderSentAt: null },
+        { announcementId: "a-vn", completedAt: null, reminderSentAt: t },
+      ]),
+      recipientWithStatuses("r-th", "TH1", "TH", []),
+      recipientWithStatuses("r-us", "US1", "US", []),
+    ] as never);
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      userWithReceipts("u-vn", "VN1", "VN", [
+        { announcementId: "a-all", confirmedAt: t, readReminderSentAt: null },
+        { announcementId: "a-vn", confirmedAt: null, readReminderSentAt: null },
+      ]),
+      userWithReceipts("u-th", "TH1", "TH", []),
+      // 無効化済み: 個人単位の母集団からは除外されるが、所属会社は個人指定の会社単位の母集団に残る
+      userWithReceipts("u-us-inactive", "US1", "US", [], false),
+    ] as never);
+
+    const result = await getAnnouncementTrackingStatusesBulk([
+      { id: "a-all", targeting: { scope: "all" } },
+      { id: "a-vn", targeting: { scope: "countries", countries: ["VN"] } },
+      {
+        id: "a-users",
+        targeting: { scope: "users", userIds: ["u-us-inactive"], companyIds: ["company-TH1"] },
+      },
+    ]);
+
+    const companyCodes = (views: { companyCode: string }[]) => views.map((v) => v.companyCode);
+    expect(companyCodes(result.recipientStatuses["a-all"])).toEqual(["VN1", "TH1", "US1"]);
+    expect(companyCodes(result.recipientStatuses["a-vn"])).toEqual(["VN1"]);
+    expect(companyCodes(result.recipientStatuses["a-users"])).toEqual(["TH1", "US1"]);
+
+    // 状態はお知らせIDごとに分かれる
+    expect(result.recipientStatuses["a-all"][0]).toEqual(
+      expect.objectContaining({ completedAt: t.toISOString(), reminderSentAt: null })
+    );
+    expect(result.recipientStatuses["a-vn"][0]).toEqual(
+      expect.objectContaining({ completedAt: null, reminderSentAt: t.toISOString() })
+    );
+
+    expect(result.userReadStatuses["a-all"].map((v) => v.applicantUserId)).toEqual(["u-vn", "u-th"]);
+    expect(result.userReadStatuses["a-vn"].map((v) => v.applicantUserId)).toEqual(["u-vn"]);
+    // 無効化済みユーザーを個人指定しても、個人単位の母集団には入らない。会社指定のTH1所属は入る
+    expect(result.userReadStatuses["a-users"].map((v) => v.applicantUserId)).toEqual(["u-th"]);
+    expect(result.userReadStatuses["a-all"][0].confirmedAt).toBe(t.toISOString());
+    expect(result.userReadStatuses["a-vn"][0].confirmedAt).toBeNull();
   });
 });
