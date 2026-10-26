@@ -15,6 +15,7 @@ import {
   ApplicantInfoSection,
   type ProxyCompanyOption,
 } from "@/components/features/inquiry-form/ApplicantInfoSection";
+import { ATTACHMENT_MAX_TOTAL_SIZE_BYTES } from "@/lib/constants/attachment";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { createInquiryAction } from "@/lib/actions/inquiry";
 import { toCreateInquiryInput } from "@/lib/inquiry-form-mapper";
@@ -148,6 +149,10 @@ export function InquiryForm({
                   "validation.attachments.countExceeded"
                 )}
                 readFailedMessage={t("validation.attachments.readFailed")}
+                maxTotalBytes={ATTACHMENT_MAX_TOTAL_SIZE_BYTES}
+                totalSizeExceededMessage={t(
+                  "validation.attachments.totalSizeExceeded"
+                )}
               />
             )}
           />

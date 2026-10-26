@@ -423,12 +423,13 @@
       "error": "Gửi không thành công. Vui lòng thử lại sau.",
       "attachments": {
         "label": "Tệp đính kèm",
-        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB mỗi tệp, tối đa 5 tệp.",
+        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB mỗi tệp, tối đa 5 tệp, tổng cộng tối đa 20MB.",
         "removeButton": "Xóa",
         "sizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
         "typeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
         "countExceeded": "Vượt quá số lượng tệp tối đa có thể đính kèm (5 tệp)",
-        "readFailed": "Không thể đọc tệp. Vui lòng thử lại."
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại.",
+        "totalSizeExceeded": "Tổng dung lượng tệp đính kèm vượt quá giới hạn (20MB)"
       }
     },
     "history": {
@@ -1123,7 +1124,7 @@
       },
       "attachments": {
         "label": "Tệp đính kèm",
-        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB cho mỗi tệp, tối đa 5 tệp.",
+        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB cho mỗi tệp, tối đa 5 tệp, tổng cộng tối đa 20MB.",
         "removeButton": "Xóa"
       }
     },
@@ -1191,7 +1192,8 @@
         "sizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
         "typeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
         "countExceeded": "Đã vượt quá giới hạn số tệp có thể đính kèm (5 tệp)",
-        "readFailed": "Không thể đọc tệp. Vui lòng thử lại."
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại.",
+        "totalSizeExceeded": "Tổng dung lượng tệp đính kèm vượt quá giới hạn (20MB)"
       }
     },
     "submit": {
@@ -1257,12 +1259,13 @@
       "error": "Gửi không thành công. Vui lòng thử lại sau.",
       "attachments": {
         "label": "Tệp đính kèm",
-        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB mỗi tệp, tối đa 5 tệp.",
+        "hint": "Có thể đính kèm hình ảnh hoặc PDF, tối đa 5MB mỗi tệp, tối đa 5 tệp, tổng cộng tối đa 20MB.",
         "removeButton": "Xóa",
         "sizeExceeded": "Kích thước tệp vượt quá giới hạn (5MB)",
         "typeNotAllowed": "Định dạng tệp không được phép (chỉ hình ảnh hoặc PDF)",
         "countExceeded": "Vượt quá giới hạn số lượng tệp có thể đính kèm (5 tệp)",
-        "readFailed": "Không thể đọc tệp. Vui lòng thử lại."
+        "readFailed": "Không thể đọc tệp. Vui lòng thử lại.",
+        "totalSizeExceeded": "Tổng dung lượng tệp đính kèm vượt quá giới hạn (20MB)"
       }
     },
     "filter": {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
+import { inquiryAttachmentsStrictSchema } from "@/lib/validation/inquiry";
 import { getSession } from "@/lib/server/get-session";
 import { toErrorResponse } from "@/lib/server/api-errors";
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
@@ -19,7 +19,7 @@ const historyBodySchema = z.object({
     "requester_message",
   ]),
   detail: z.string().optional(),
-  attachments: inquiryAttachmentsArraySchema.optional(),
+  attachments: inquiryAttachmentsStrictSchema.optional(),
 });
 
 interface RouteParams {

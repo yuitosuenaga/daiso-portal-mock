@@ -423,12 +423,13 @@
       "error": "No se pudo enviar. Inténtelo de nuevo más tarde.",
       "attachments": {
         "label": "Archivos adjuntos",
-        "hint": "Imágenes o PDF, de hasta 5 MB cada uno, con un máximo de 5 archivos.",
+        "hint": "Imágenes o PDF, de hasta 5 MB cada uno, con un máximo de 5 archivos, 20 MB en total.",
         "removeButton": "Eliminar",
         "sizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
         "typeNotAllowed": "Formato de archivo no permitido (solo imágenes o PDF)",
         "countExceeded": "Se superó el número máximo de archivos adjuntos (5)",
-        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo."
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
+        "totalSizeExceeded": "El tamaño total de los archivos adjuntos supera el límite (20 MB)"
       }
     },
     "history": {
@@ -1123,7 +1124,7 @@
       },
       "attachments": {
         "label": "Archivos adjuntos",
-        "hint": "Imágenes o PDF, hasta 5 MB por archivo y un máximo de 5 archivos.",
+        "hint": "Imágenes o PDF, hasta 5 MB por archivo y un máximo de 5 archivos, 20 MB en total.",
         "removeButton": "Eliminar"
       }
     },
@@ -1191,7 +1192,8 @@
         "sizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
         "typeNotAllowed": "Formato de archivo no permitido (solo imágenes o PDF)",
         "countExceeded": "Se ha superado el número máximo de archivos adjuntos (5)",
-        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo."
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
+        "totalSizeExceeded": "El tamaño total de los archivos adjuntos supera el límite (20 MB)"
       }
     },
     "submit": {
@@ -1257,12 +1259,13 @@
       "error": "No se pudo enviar. Inténtelo de nuevo más tarde.",
       "attachments": {
         "label": "Archivos adjuntos",
-        "hint": "Imágenes o PDF, hasta 5 MB por archivo y un máximo de 5 archivos.",
+        "hint": "Imágenes o PDF, hasta 5 MB por archivo y un máximo de 5 archivos, 20 MB en total.",
         "removeButton": "Eliminar",
         "sizeExceeded": "El tamaño del archivo supera el límite (5 MB)",
         "typeNotAllowed": "Formato de archivo no permitido (solo imágenes o PDF)",
         "countExceeded": "Se ha superado el número máximo de archivos adjuntos (5)",
-        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo."
+        "readFailed": "No se pudo leer el archivo. Inténtelo de nuevo.",
+        "totalSizeExceeded": "El tamaño total de los archivos adjuntos supera el límite (20 MB)"
       }
     },
     "filter": {

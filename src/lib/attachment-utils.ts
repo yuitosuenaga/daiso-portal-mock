@@ -6,15 +6,18 @@ import {
 
 export type AttachmentValidationResult =
   | { valid: true }
-  | { valid: false; reason: "size" | "type" | "count" };
+  | { valid: false; reason: "size" | "type" | "count" | "total" };
 
 /**
  * 添付ファイルの件数・形式・サイズを検証する。
  * `existingCount` は既に選択済みの添付ファイル件数（このファイルを含まない）。
+ * `totalLimit` を渡すと、既選択分のバイト数（`existingTotalBytes`）との合計も検証する
+ * （省略時は合計チェックなし。お知らせ等の共用側の挙動を変えないため）。
  */
 export function validateAttachmentFile(
   file: File,
-  existingCount: number
+  existingCount: number,
+  totalLimit?: { existingTotalBytes: number; maxTotalBytes: number }
 ): AttachmentValidationResult {
   if (existingCount >= ATTACHMENT_MAX_COUNT) {
     return { valid: false, reason: "count" };
@@ -28,6 +31,12 @@ export function validateAttachmentFile(
   }
   if (file.size > ATTACHMENT_MAX_FILE_SIZE_BYTES) {
     return { valid: false, reason: "size" };
+  }
+  if (
+    totalLimit &&
+    totalLimit.existingTotalBytes + file.size > totalLimit.maxTotalBytes
+  ) {
+    return { valid: false, reason: "total" };
   }
   return { valid: true };
 }

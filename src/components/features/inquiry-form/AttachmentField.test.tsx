@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import * as attachmentUtils from "@/lib/attachment-utils";
-import { ATTACHMENT_MAX_FILE_SIZE_BYTES } from "@/lib/constants/attachment";
+import {
+  ATTACHMENT_MAX_FILE_SIZE_BYTES,
+  ATTACHMENT_MAX_TOTAL_SIZE_BYTES,
+} from "@/lib/constants/attachment";
 import type { InquiryAttachment } from "@/types/attachment";
 
 const labels = {
@@ -112,6 +115,59 @@ describe("AttachmentField", () => {
       screen.getByText("ファイルサイズが上限（5MB）を超えています")
     ).toBeTruthy();
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("合計サイズの上限を渡すと、既選択分との合計超過でエラーを表示し追加しない", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const existing = Array.from({ length: 4 }, (_, i) =>
+      buildAttachment({
+        id: `att-${i}`,
+        fileName: `file-${i}.png`,
+        fileSize: ATTACHMENT_MAX_FILE_SIZE_BYTES,
+      })
+    );
+    render(
+      <AttachmentField
+        value={existing}
+        onChange={onChange}
+        {...labels}
+        maxTotalBytes={ATTACHMENT_MAX_TOTAL_SIZE_BYTES}
+        totalSizeExceededMessage="合計サイズが上限（20MB）を超えています"
+      />
+    );
+
+    const file = new File([new Uint8Array(1)], "one-more.png", {
+      type: "image/png",
+    });
+    const input = screen.getByLabelText("添付ファイル") as HTMLInputElement;
+    await user.upload(input, file);
+
+    expect(
+      screen.getByText("合計サイズが上限（20MB）を超えています")
+    ).toBeTruthy();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("合計サイズの上限を渡さなければ（お知らせ等）合計では弾かない", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const existing = Array.from({ length: 4 }, (_, i) =>
+      buildAttachment({
+        id: `att-${i}`,
+        fileName: `file-${i}.png`,
+        fileSize: ATTACHMENT_MAX_FILE_SIZE_BYTES,
+      })
+    );
+    render(<AttachmentField value={existing} onChange={onChange} {...labels} />);
+
+    const file = new File([new Uint8Array(1)], "one-more.png", {
+      type: "image/png",
+    });
+    const input = screen.getByLabelText("添付ファイル") as HTMLInputElement;
+    await user.upload(input, file);
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
   });
 
   it("許可されていない形式のファイルを選択するとエラーメッセージを表示する", () => {
