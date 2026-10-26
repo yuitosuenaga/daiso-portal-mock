@@ -9,14 +9,13 @@ import { getAllDocumentCategories } from "@/lib/api/document-categories";
 import { toDocumentCategoryFormOptions } from "@/lib/document-category-utils";
 
 type HelpdeskDocumentEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskDocumentEditPage({
-  params,
-}: HelpdeskDocumentEditPageProps) {
+export default async function HelpdeskDocumentEditPage(props: HelpdeskDocumentEditPageProps) {
+  const params = await props.params;
   const [t, tListLabels, tCountries, tInquiryForm, locale, categories] =
     await Promise.all([
       getTranslations("helpdeskDocuments.form"),

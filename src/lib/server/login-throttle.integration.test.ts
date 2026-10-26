@@ -15,7 +15,7 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 vi.mock("next/headers", () => ({
-  headers: () => new Headers({ "x-forwarded-for": "203.0.113.45" }),
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.45" }),
 }));
 
 import { MAX_FAILED_ATTEMPTS } from "@/lib/auth/login-throttle-policy";

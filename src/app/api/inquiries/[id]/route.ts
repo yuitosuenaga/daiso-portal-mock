@@ -9,13 +9,11 @@ import {
 } from "@/lib/server/inquiry-service";
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export async function GET(
-  _request: Request,
-  { params }: RouteParams
-): Promise<NextResponse> {
+export async function GET(_request: Request, props: RouteParams): Promise<NextResponse> {
+  const params = await props.params;
   try {
     const session = await getSession();
     if (!session?.claims) {

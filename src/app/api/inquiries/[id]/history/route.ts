@@ -23,13 +23,11 @@ const historyBodySchema = z.object({
 });
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: RouteParams
-): Promise<NextResponse> {
+export async function POST(request: NextRequest, props: RouteParams): Promise<NextResponse> {
+  const params = await props.params;
   try {
     const session = await getSession();
     if (!session?.claims) {

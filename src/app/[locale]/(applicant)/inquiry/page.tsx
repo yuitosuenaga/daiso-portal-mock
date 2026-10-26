@@ -5,11 +5,12 @@ import {
 } from "@/components/features/inquiry-list/InquiryList";
 import type { InquiryListSearchParams } from "@/lib/inquiry-filter-query";
 
-export default function InquiryListPage({
-  searchParams,
-}: {
-  searchParams?: InquiryListSearchParams;
-}) {
+export default async function InquiryListPage(
+  props: {
+    searchParams?: Promise<InquiryListSearchParams>;
+  }
+) {
+  const searchParams = await props.searchParams;
   return (
     <div className="max-w-6xl">
       <Suspense fallback={<InquiryListSkeleton />}>

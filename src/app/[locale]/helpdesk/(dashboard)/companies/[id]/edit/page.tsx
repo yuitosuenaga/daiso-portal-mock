@@ -6,14 +6,13 @@ import { getCompanyById } from "@/lib/server/company-service";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 
 type HelpdeskCompanyEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskCompanyEditPage({
-  params,
-}: HelpdeskCompanyEditPageProps) {
+export default async function HelpdeskCompanyEditPage(props: HelpdeskCompanyEditPageProps) {
+  const params = await props.params;
   const [t, tCountries] = await Promise.all([
     getTranslations("helpdeskCompanies.form"),
     getTranslations("inquiryForm.options.country"),
