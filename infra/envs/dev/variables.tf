@@ -198,8 +198,9 @@ variable "enable_migrate_job" {
 }
 
 variable "migrate_job_timeout_seconds" {
-  type    = number
-  default = 600
+  type        = number
+  default     = 600
+  description = "migrate Job のタスクタイムアウト（秒）。プレースホルダ image のまま実行するとこの時間まで待って失敗する"
 }
 
 variable "db_deletion_protection_enabled" {
