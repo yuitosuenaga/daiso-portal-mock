@@ -490,24 +490,3 @@ links-page領域の実DB化完了を受け、次の対象を`reply-templates`（
 3. When ユーザーがログイン画面間の相互リンクを操作したとき、the ヘルプデスクポータル shall 現在選択中の言語ロケールを維持したまま遷移先のログイン画面を表示する。
 4. The ヘルプデスクポータル shall 既存のポータル切り替えリンク（`Header.tsx`の`switchToHelpdesk`・`HelpdeskHeader.tsx`の`switchToApplicant`）と一貫した文言・スタイルでログイン画面間の相互リンクを表示する。
 3. The プロジェクト shall 既存の`vitest`テストスイートに、公開期間フィルタ（開始日未到来・終了日超過・両方未設定の場合の表示可否、ヘルプデスク側は絞り込みを行わないこと）を検証するテストケースを追加した上で成功する状態を維持する。
-
----
-
-## 追加ラウンド（2026-10-23）: Googleアカウントでのログイン（許可ドメイン限定）
-
-### 要件 28: Googleアカウントでのログイン（許可ドメイン限定）
-
-**目的:** クライアントのユーザーとして、会社のGoogleアカウントでポータルにログインしたい。そうすることで、パスワードを別途管理せずに利用開始できる。なお既存のメール+パスワード認証は確認期間中は併用して残す（削除しない）。
-
-#### 受け入れ基準
-
-1. The ヘルプデスクポータル shall Auth.jsのGoogle Providerを用いたログインを、申請者側ログイン画面（`/[locale]/login`）・ヘルプデスク側ログイン画面（`/[locale]/helpdesk/login`）の双方に「Googleでログイン」ボタンとして提供し、既存のメール+パスワード認証と併用できるようにする。
-2. While 環境変数`AUTH_GOOGLE_ID`または`AUTH_GOOGLE_SECRET`が未設定のとき、the ヘルプデスクポータル shall Googleログインを無効化し、ボタンを表示しない（ローカル・既存環境の動作を変えない）。
-3. The ヘルプデスクポータル shall 環境変数`ALLOWED_EMAIL_DOMAINS`（カンマ区切り・前後空白と大文字小文字は正規化）に完全一致するドメインのメールアドレスのみGoogleログインを許可し、サブドメインは許可しない。この検証はサーバー側（Auth.jsの`signIn`コールバック）で必須とし、Googleへ渡す`hd`パラメータはヒントに留めて検証の代わりにしない。
-4. If `ALLOWED_EMAIL_DOMAINS`が未設定または空のとき、the ヘルプデスクポータル shall すべてのGoogleログインを拒否する（fail closed）。
-5. The ヘルプデスクポータル shall Googleが返すメールが確認済み（`email_verified === true`）の場合のみGoogleログインを許可する。
-6. The ヘルプデスクポータル shall Googleのメールアドレスが、ログインを開始した画面に対応する既存アカウント（申請者側は`ApplicantUser`、ヘルプデスク側は`HelpdeskStaff`）に登録済みで、かつ申請者側は`isActive`が真の場合のみログインを許可する。メール比較は大文字小文字を無視し、未登録メールのアカウントは自動作成しない。`HelpdeskStaff`には無効化の概念が無いため、登録済みであれば有効として扱う。
-7. If Googleログインが拒否されたとき（許可外ドメイン・メール未確認・未登録・無効化済み）、the ヘルプデスクポータル shall 開始元のログイン画面へ戻し、拒否理由に応じたエラーメッセージを表示する。
-8. The ヘルプデスクポータル shall Googleログインのボタン文言・区切り文言・拒否時エラーメッセージを`messages/`の全ロケールの翻訳キー（`login.googleSubmit`・`login.orDivider`・`login.googleError.*`）経由で表示し、ハードコードしない。
-9. The プロジェクト shall `.env.example`に`AUTH_GOOGLE_ID`・`AUTH_GOOGLE_SECRET`・`ALLOWED_EMAIL_DOMAINS`を、許可ドメイン検証がサーバー側で行われること・未設定時の挙動・リダイレクトURI（`<AUTH_URL>/api/auth/callback/google`）の注記付きで記載する。
-10. The プロジェクト shall ドメイン判定を副作用のない純関数として切り出し、複数ドメイン・大文字小文字・サブドメイン非許可・未設定時拒否・`email_verified`未確認拒否・未登録メール拒否・無効ユーザー拒否を`vitest`で検証する。
