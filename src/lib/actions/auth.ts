@@ -2,7 +2,16 @@
 
 import { AuthError } from "next-auth";
 
+import { cookies } from "next/headers";
+
 import { signIn } from "@/auth";
+import {
+  encodeLoginContext,
+  type GoogleLoginPortal,
+} from "@/lib/auth/google-login-policy";
+import { GOOGLE_LOGIN_CONTEXT_COOKIE } from "@/lib/constants/google-login";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/constants/locales";
+import { isGoogleLoginEnabled } from "@/lib/server/google-login-config";
 
 export type LoginActionResult = { error: "invalid_credentials" } | undefined;
 
@@ -49,4 +58,38 @@ export async function helpdeskLoginAction(
     }
     throw error;
   }
+}
+
+/**
+ * Googleログインを開始する。どちらの画面から開始したか・ロケールをOAuth往復の間だけ
+ * Cookieに保持し（signInコールバックで該当ポータルのアカウントのみ照会するため）、
+ * Googleの認可画面へリダイレクトする。Googleログインが無効な環境では何もしない。
+ * 許可ドメイン等の検証はここではなくAuth.jsのsignInコールバック（サーバー側）で行う。
+ */
+export async function googleLoginAction(input: {
+  portal: GoogleLoginPortal;
+  locale: string;
+}): Promise<void> {
+  if (!isGoogleLoginEnabled()) {
+    return;
+  }
+  // クライアントから渡されたlocaleはそのままリダイレクト先に使わず、対応ロケールに限定する
+  const locale = (SUPPORTED_LOCALES as readonly string[]).includes(input.locale)
+    ? input.locale
+    : DEFAULT_LOCALE;
+  cookies().set(
+    GOOGLE_LOGIN_CONTEXT_COOKIE,
+    encodeLoginContext(input.portal, locale),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 600,
+    }
+  );
+  await signIn("google", {
+    redirectTo:
+      input.portal === "helpdesk" ? `/${locale}/helpdesk` : `/${locale}`,
+  });
 }

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import type { LoginActionResult } from "@/lib/actions/auth";
+import type { GoogleLoginErrorCode } from "@/lib/auth/google-login-policy";
 
 const loginFormSchema = z.object({
   email: z.string().trim().min(1).email(),
@@ -27,12 +28,25 @@ export interface LoginFormProps {
     password: string;
     locale: string;
   }) => Promise<LoginActionResult>;
+  /** 指定時のみ「Googleでログイン」ボタンを表示する（Googleログインが無効な環境では渡さない）。 */
+  googleLoginAction?: () => Promise<void>;
+  /** Googleログイン拒否後にリダイレクトされてきた場合のエラーコード。 */
+  googleError?: GoogleLoginErrorCode | null;
 }
 
-export function LoginForm({ role, locale, loginAction }: LoginFormProps) {
+export function LoginForm({
+  role,
+  locale,
+  loginAction,
+  googleLoginAction,
+  googleError = null,
+}: LoginFormProps) {
   const t = useTranslations("login");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    googleError ? t(`googleError.${googleError}`) : null
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -97,6 +111,32 @@ export function LoginForm({ role, locale, loginAction }: LoginFormProps) {
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? t("submitting") : t("submit")}
       </Button>
+
+      {googleLoginAction && (
+        <>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            <span>{t("orDivider")}</span>
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting || isGoogleSubmitting}
+            onClick={async () => {
+              setErrorMessage(null);
+              setIsGoogleSubmitting(true);
+              try {
+                await googleLoginAction();
+              } finally {
+                setIsGoogleSubmitting(false);
+              }
+            }}
+          >
+            {t("googleSubmit")}
+          </Button>
+        </>
+      )}
     </form>
   );
 }

@@ -1,14 +1,18 @@
 import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/features/auth/LoginForm";
 import { LoginSwitchLink } from "@/components/features/auth/LoginSwitchLink";
-import { helpdeskLoginAction } from "@/lib/actions/auth";
+import { helpdeskLoginAction, googleLoginAction } from "@/lib/actions/auth";
+import { parseGoogleLoginError } from "@/lib/auth/google-login-policy";
+import { isGoogleLoginEnabled } from "@/lib/server/google-login-config";
 
 interface HelpdeskLoginPageProps {
   params: Promise<{ locale: string }>;
+  searchParams?: { googleError?: string | string[] };
 }
 
 export default async function HelpdeskLoginPage({
   params,
+  searchParams,
 }: HelpdeskLoginPageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "login" });
@@ -24,6 +28,12 @@ export default async function HelpdeskLoginPage({
           role="helpdesk"
           locale={locale}
           loginAction={helpdeskLoginAction}
+          googleLoginAction={
+            isGoogleLoginEnabled()
+              ? googleLoginAction.bind(null, { portal: "helpdesk", locale })
+              : undefined
+          }
+          googleError={parseGoogleLoginError(searchParams?.googleError)}
         />
       </div>
     </div>

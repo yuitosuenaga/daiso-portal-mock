@@ -9,6 +9,14 @@
     "submit": "ログイン",
     "submitting": "ログイン中…",
     "errorInvalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+    "orDivider": "または",
+    "googleSubmit": "Googleでログイン",
+    "googleError": {
+      "domain_not_allowed": "許可されていないドメインのGoogleアカウントです。会社のGoogleアカウントでログインしてください。",
+      "email_not_verified": "Googleアカウントのメールアドレスが確認できていないため、ログインできません。",
+      "not_registered": "このメールアドレスはポータルに登録されていません。管理者にお問い合わせください。",
+      "account_inactive": "このアカウントは無効化されています。管理者にお問い合わせください。"
+    },
     "validation": {
       "emailRequired": "メールアドレスを入力してください",
       "passwordRequired": "パスワードを入力してください"

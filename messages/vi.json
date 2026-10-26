@@ -9,6 +9,14 @@
     "submit": "Đăng nhập",
     "submitting": "Đang đăng nhập…",
     "errorInvalidCredentials": "Địa chỉ email hoặc mật khẩu không chính xác.",
+    "orDivider": "hoặc",
+    "googleSubmit": "Đăng nhập bằng Google",
+    "googleError": {
+      "domain_not_allowed": "Tên miền của tài khoản Google này không được phép. Vui lòng đăng nhập bằng tài khoản Google của công ty.",
+      "email_not_verified": "Địa chỉ email của tài khoản Google chưa được xác minh nên không thể đăng nhập.",
+      "not_registered": "Địa chỉ email này chưa được đăng ký trên cổng thông tin. Vui lòng liên hệ quản trị viên.",
+      "account_inactive": "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
+    },
     "validation": {
       "emailRequired": "Vui lòng nhập địa chỉ email",
       "passwordRequired": "Vui lòng nhập mật khẩu"

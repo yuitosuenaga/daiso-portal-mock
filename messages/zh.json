@@ -9,6 +9,14 @@
     "submit": "登录",
     "submitting": "登录中…",
     "errorInvalidCredentials": "电子邮件地址或密码不正确。",
+    "orDivider": "或",
+    "googleSubmit": "使用 Google 登录",
+    "googleError": {
+      "domain_not_allowed": "该 Google 账号的域名不在允许范围内。请使用公司的 Google 账号登录。",
+      "email_not_verified": "该 Google 账号的邮箱地址尚未验证，无法登录。",
+      "not_registered": "该邮箱地址未在门户中注册。请联系管理员。",
+      "account_inactive": "该账号已被停用。请联系管理员。"
+    },
     "validation": {
       "emailRequired": "请输入电子邮件地址",
       "passwordRequired": "请输入密码"

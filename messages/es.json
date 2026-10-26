@@ -9,6 +9,14 @@
     "submit": "Iniciar sesión",
     "submitting": "Iniciando sesión…",
     "errorInvalidCredentials": "El correo electrónico o la contraseña no son correctos.",
+    "orDivider": "o",
+    "googleSubmit": "Iniciar sesión con Google",
+    "googleError": {
+      "domain_not_allowed": "El dominio de esta cuenta de Google no está permitido. Inicie sesión con la cuenta de Google de su empresa.",
+      "email_not_verified": "El correo electrónico de la cuenta de Google no ha sido verificado, por lo que no se puede iniciar sesión.",
+      "not_registered": "Este correo electrónico no está registrado en el portal. Póngase en contacto con el administrador.",
+      "account_inactive": "Esta cuenta ha sido desactivada. Póngase en contacto con el administrador."
+    },
     "validation": {
       "emailRequired": "Ingrese su correo electrónico",
       "passwordRequired": "Ingrese su contraseña"

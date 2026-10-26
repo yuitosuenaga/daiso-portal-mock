@@ -9,6 +9,14 @@
     "submit": "Login",
     "submitting": "Efetuando login...",
     "errorInvalidCredentials": "O endereço de e-mail ou a senha está incorreto.",
+    "orDivider": "ou",
+    "googleSubmit": "Entrar com o Google",
+    "googleError": {
+      "domain_not_allowed": "O domínio desta conta Google não é permitido. Entre com a conta Google da sua empresa.",
+      "email_not_verified": "O e-mail da conta Google não foi verificado, por isso não é possível entrar.",
+      "not_registered": "Este e-mail não está cadastrado no portal. Entre em contato com o administrador.",
+      "account_inactive": "Esta conta foi desativada. Entre em contato com o administrador."
+    },
     "validation": {
       "emailRequired": "Por favor, insira seu endereço de e-mail",
       "passwordRequired": "Por favor, insira sua senha"
