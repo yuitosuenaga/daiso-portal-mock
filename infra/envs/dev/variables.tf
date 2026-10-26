@@ -191,6 +191,17 @@ variable "cloudrun_ingress" {
   default = "INGRESS_TRAFFIC_ALL"
 }
 
+variable "enable_migrate_job" {
+  type        = bool
+  default     = false
+  description = "prisma migrate deploy 用の Cloud Run Job（<name_prefix>-migrate）を作成する。image は初期プレースホルダで、migrate ターゲットのイメージは gcloud run jobs update で設定する"
+}
+
+variable "migrate_job_timeout_seconds" {
+  type    = number
+  default = 600
+}
+
 variable "db_deletion_protection_enabled" {
   type        = bool
   default     = null

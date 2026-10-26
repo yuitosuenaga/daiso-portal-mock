@@ -71,4 +71,55 @@ gcloud run jobs execute portal-mock-migrate --project $PROJECT --region $REGION 
 ```
 
 運用順序: **migrate Job 実行 → サービスをデプロイ**(追加のみのマイグレーションは旧コードと後方互換)。
-イメージ更新時は `gcloud run jobs update portal-mock-migrate --image ...` を使う。Terraform の Job 定義は別途追加予定。
+イメージ更新時は `gcloud run jobs update portal-mock-migrate --image ...` を使う。
+
+## Terraform による Job 定義(`enable_migrate_job`)
+
+`infra/modules/migrate-job` が Job(`<name_prefix>-migrate`)を定義する。既定は無効(`enable_migrate_job = false`)で、既存環境の plan には差分が出ない。
+
+- アプリと同じ SA、`/cloudsql` マウント、`DATABASE_URL` は `database_url` secret(latest)を参照
+- `max_retries = 0`、タイムアウトは `migrate_job_timeout_seconds`(既定 600 秒)
+- image は初期プレースホルダ(hello)で、`ignore_changes` により Terraform は以後触らない
+
+### 手順(クライアント環境移行時のスキーマ更新)
+
+```bash
+PROJECT=<project-id>; REGION=asia-northeast1; REPO=portal-mock
+IMAGE=$REGION-docker.pkg.dev/$PROJECT/$REPO
+TAG=$(git rev-parse --short HEAD)
+JOB=<name_prefix>-migrate   # 例: portal-mock-migrate
+
+# 1. Job を作成(tfvars で enable_migrate_job=true にして terraform apply。plan で Job 1件の追加のみであることを確認)
+
+# 2. migrate イメージを build / push(cloudbuild.migrate.yaml は上記参照)
+gcloud builds submit --project $PROJECT --config cloudbuild.migrate.yaml \
+  --substitutions _IMAGE=$IMAGE,_TAG=$TAG .
+
+# 3. Job のイメージを更新(初回はプレースホルダから差し替え)
+gcloud run jobs update $JOB --project $PROJECT --region $REGION --image $IMAGE/migrate:$TAG
+
+# 4. 実行(完了まで待つ。失敗すると非ゼロで終了)
+gcloud run jobs execute $JOB --project $PROJECT --region $REGION --wait
+
+# 5. サービスをデプロイ(migrate 成功後)
+```
+
+### 失敗時の確認
+
+```bash
+# 直近の実行一覧(ステータス・失敗タスク)
+gcloud run jobs executions list --project $PROJECT --region $REGION --job $JOB --limit 5
+
+# 実行ログ(prisma のエラー本文)
+gcloud logging read \
+  "resource.type=cloud_run_job AND resource.labels.job_name=$JOB" \
+  --project $PROJECT --limit 50 --format='value(textPayload)'
+```
+
+よくある原因:
+
+- `P1001`(接続不可): Cloud SQL が停止中、`/cloudsql` の接続名違い、SA の `roles/cloudsql.client` 不足
+- `P1000`(認証失敗)/ secret 取得失敗: `database_url` secret に version が無い、SA の `roles/secretmanager.secretAccessor` 不足
+- マイグレーション SQL のエラー: 途中まで適用された場合は `_prisma_migrations` の失敗レコードを確認し、`prisma migrate resolve` で解消してから再実行(`max_retries = 0` なので自動再試行はしない)
+
+Terraform 側の `image` は `ignore_changes` のため、`jobs update` で変えても次回 plan に差分は出ない。
