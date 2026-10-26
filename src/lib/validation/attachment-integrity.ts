@@ -37,7 +37,7 @@ const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
 
 /** MIME ごとに許可するファイル拡張子（小文字、ドットなし）。 */
 const EXTENSIONS_BY_MIME: Record<string, readonly string[]> = {
-  "image/jpeg": ["jpg", "jpeg"],
+  "image/jpeg": ["jpg", "jpeg", "jfif", "jpe"],
   "image/png": ["png"],
   "image/gif": ["gif"],
   "image/webp": ["webp"],

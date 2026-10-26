@@ -44,6 +44,8 @@ describe("verifyAttachmentIntegrity", () => {
     ["image/png", "a.png", PNG_HEAD],
     ["image/jpeg", "a.JPG", JPEG_HEAD],
     ["image/jpeg", "a.jpeg", JPEG_HEAD],
+    ["image/jpeg", "a.jfif", JPEG_HEAD],
+    ["image/jpeg", "a.jpe", JPEG_HEAD],
     ["image/gif", "a.gif", GIF_HEAD],
     ["image/webp", "a.webp", WEBP_HEAD],
     ["application/pdf", "a.pdf", PDF_HEAD],
