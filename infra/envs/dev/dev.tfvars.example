@@ -17,3 +17,10 @@ enable_translation  = false
 enable_google_login = false
 # enable_google_login=true の場合は必須。確認期間は自社+クライアントの複数ドメイン
 allowed_email_domains = []   # 例: ["our-company.example", "client.example"]
+
+# 監視（docs/infra/monitoring.md）。通知先確定後に true
+# enable_monitoring = false
+# alert_emails      = ["ops@example.com"]
+# dev は db-end で夜間に DB 停止するため、停止アラートは false 推奨
+# enable_cloudsql_down_alert = false
+# enable_uptime_check        = true  # min_instances=0 だと5分間隔でウォーム維持になる。不要なら false

@@ -208,3 +208,28 @@ variable "db_deletion_protection_enabled" {
   default     = null
   description = "Cloud SQL の GCP 側削除保護。null なら deletion_protection に従う"
 }
+
+# --- 監視（modules/monitoring。既定 false で既存挙動不変） ---
+variable "enable_monitoring" {
+  type        = bool
+  default     = false
+  description = "Cloud Run / Cloud SQL の監視・アラートを作成する"
+}
+
+variable "enable_uptime_check" {
+  type        = bool
+  default     = true
+  description = "稼働確認（uptime check とそのアラート）を作成する。ingress 制限時や min_instances=0 でウォーム維持したくない場合は false"
+}
+
+variable "enable_cloudsql_down_alert" {
+  type        = bool
+  default     = true
+  description = "Cloud SQL 停止アラートを作成する。db-end で夜間停止する dev では false 推奨"
+}
+
+variable "alert_emails" {
+  type        = list(string)
+  default     = []
+  description = "アラート通知先メール。空なら通知チャネルを作らない"
+}
