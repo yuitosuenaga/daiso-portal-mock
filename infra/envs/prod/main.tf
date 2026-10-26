@@ -200,3 +200,17 @@ module "scheduler" {
 
   depends_on = [module.services]
 }
+
+# 監視・アラート（末尾に集約。enable_monitoring=false なら何も作らない）
+module "monitoring" {
+  count                  = var.enable_monitoring ? 1 : 0
+  source                 = "../../modules/monitoring"
+  project_id             = var.project_id
+  name_prefix            = var.name_prefix
+  cloudrun_service_name  = module.cloudrun.name
+  cloudrun_uri           = module.cloudrun.uri
+  cloudsql_instance_name = coalesce(var.db_instance_name, "${var.name_prefix}-db")
+  alert_emails           = var.alert_emails
+
+  depends_on = [module.services]
+}

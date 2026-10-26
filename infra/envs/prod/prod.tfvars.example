@@ -1,5 +1,8 @@
 # cp prod.tfvars.example prod.tfvars して編集（*.tfvars は git 管理外）
 project_id  = "client-portal-prod"
+# 監視（docs/infra/monitoring.md）。通知先確定後に true
+# enable_monitoring = false
+# alert_emails      = ["ops@example.com"]
 name_prefix = "portal-mock-prod"
 
 # prod は削除保護・バックアップ・PITR を有効にする

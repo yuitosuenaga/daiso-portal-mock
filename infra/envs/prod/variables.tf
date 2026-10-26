@@ -196,3 +196,16 @@ variable "db_deletion_protection_enabled" {
   default     = null
   description = "Cloud SQL の GCP 側削除保護。null なら deletion_protection に従う"
 }
+
+# --- 監視（modules/monitoring。既定 false で既存挙動不変） ---
+variable "enable_monitoring" {
+  type        = bool
+  default     = false
+  description = "Cloud Run / Cloud SQL の監視・アラートを作成する"
+}
+
+variable "alert_emails" {
+  type        = list(string)
+  default     = []
+  description = "アラート通知先メール。空なら通知チャネルを作らない"
+}
