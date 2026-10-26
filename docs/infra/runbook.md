@@ -18,7 +18,7 @@
 |---|---|
 | 公開URL / `AUTH_URL` | `https://portal-mock-700069905019.asia-northeast1.run.app`(ログイン確認はこのホストで行う) |
 | Cloud Run | `portal-mock`。イメージは `--source` デプロイで Artifact Registry `cloud-run-source-deploy/portal-mock` に保存される |
-| Cloud SQL | `portal-mock-backend-db`(PostgreSQL 16、`db-f1-micro`、ZONAL)。自動バックアップと削除保護は有効化済み(段階4a)。TLS 必須化(段階4b)は apply 待ちだった(適用状況は §5.6 のコマンドで確認する) |
+| Cloud SQL | `portal-mock-backend-db`(PostgreSQL 16、`db-f1-micro`、ZONAL)。自動バックアップ(PITR は無効)と削除保護は適用済み(段階4a)。TLS 必須化(`sslMode=ENCRYPTED_ONLY`)も適用済み(段階4b)で、適用後に Cloud Run の正常稼働を確認済み。確認コマンドと期待値は §5.6 |
 | Secret Manager | `portal-mock-database-url` / `portal-mock-auth-secret`(ローテーション対象)、`anthropic-api-key-suenaga-daiso-portal`(手動登録) |
 | Terraform state | GCS バケット `rvp-ai-proto-camp-portal-iac-tfstate`(prefix `dev`) |
 | Cloud Scheduler | 現行環境にはジョブなし。エスカレーションの定期実行は未稼働(アクセス時トリガーのみ) |
@@ -28,7 +28,10 @@
 
 ## 1. リリース手順
 
-流れは次のとおり。**マイグレーションを先、アプリのデプロイを後**にする(追加のみのマイグレーションは旧コードと後方互換のため、先に適用しても稼働中のサービスを壊さない。順序を逆にすると、新しいテーブルやカラムを参照する画面がエラーまたは0件表示になる。過去に複数回発生している)。
+> **警告: マイグレーションはデプロイより先に適用する。** 追加のみのマイグレーションは旧コードと後方互換のため、先に適用しても稼働中のサービスを壊さない。順序を逆にすると、新しいテーブルやカラムを参照する機能がエラーまたは0件表示になる(過去に複数回発生している)。
+> 具体例: PR #158(認証ハードニング)のマイグレーション `20261026000000_add_auth_throttle_and_audit` を先に適用せずにデプロイすると、**Credentials(メール+パスワード)ログインが不能になる**(Google ログインは動く)。
+
+流れは次のとおり。
 
 1. 対象コミットの確定(`main` の最新)
 2. 事前確認(Cloud SQL の起動、新規マイグレーションの有無、バックアップ)
@@ -48,9 +51,12 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 # 停止中なら起動する(現行の手動運用の場合)
 gcloud sql instances patch portal-mock-backend-db --project rvp-ai-proto-camp --activation-policy=ALWAYS --quiet
 
-# 今回のデプロイ範囲に新規マイグレーションがあるか
+# 今回のデプロイ範囲に新規マイグレーションがあるか(先に最新の origin/main を取得する)
+git fetch origin
 git log --oneline <前回デプロイ済みコミット>..origin/main -- prisma/migrations
 ```
+
+「前回デプロイ済みコミット」は、前回のリリース記録(§1.6)に残したコミットを使う。記録が無い場合は、稼働中の revision の作成日時(`gcloud run revisions list` の DEPLOYED 列)より前の `origin/main` のコミットを `git log --before=<日時>` で辿る。迷う場合は、適用済みマイグレーションを `npx prisma migrate status`(§1.3 の接続方法)で確認するのが確実である。
 
 新規マイグレーションがある場合、またはデータを書き換える作業(バックフィル等)がある場合は、**デプロイ前にオンデマンドバックアップを取る**(§2.2)。
 
@@ -66,7 +72,11 @@ IMAGE=$REGION-docker.pkg.dev/$PROJECT/$REPO
 gcloud builds submit --project $PROJECT --tag $IMAGE/app:$(git rev-parse --short HEAD) .
 ```
 
-注意: 上記のタグ付き build / push 手順は `container-build.md` の記載どおりであり、**現行環境では実行していない(未検証)**。Artifact Registry のリポジトリ(`portal-mock`)は、Terraform ではまだ作成していない。
+注意: 上記のタグ付き build / push 手順は `container-build.md` の記載どおりであり、**現行環境では実行していない(未検証)**。Artifact Registry のリポジトリ(`portal-mock`)は、Terraform ではまだ作成していないため、**この手順の前提として事前に作成が必要**である(未作成だと push に失敗する)。
+
+```bash
+gcloud artifacts repositories create $REPO --project $PROJECT --location $REGION --repository-format=docker
+```
 
 ### 1.3 マイグレーションの適用(`prisma migrate deploy`)
 
@@ -74,9 +84,16 @@ gcloud builds submit --project $PROJECT --tag $IMAGE/app:$(git rev-parse --short
 
 - **現状**: Job の Terraform 定義は**追加予定**(別PRで作業中。未マージ)。Dockerfile の `migrate` ターゲットと、`gcloud run jobs create / execute` の手順は `container-build.md` にあるが、**Job は現行環境では作成・実行していない(未検証)**。
 - **現状の運用(実績あり)**: `deploy-main` スキルの手順3に従い、Cloud SQL Auth Proxy 経由でローカルから `prisma migrate deploy` を実行する。本番 `DATABASE_URL` を扱うため、手順は次の注意を守る。
-  - `DATABASE_URL` を含むファイルを作業ディレクトリに残さない。画面に出さない。作業後に一時ファイルとソケットディレクトリを削除する。
-  - `gcloud run services describe ... --format=json` の全体出力は、環境変数(平文の場合は機密値)を含むため、画面に出さない。現行環境では `DATABASE_URL` は Secret 参照に移行済みのため、Secret Manager の値を直接読む場合も同様に画面に出さない。
-  - 手順: Cloud SQL Auth Proxy を起動 → `npx prisma migrate status` で未適用を確認 → 未適用があれば `npx prisma migrate deploy` → 再度 `migrate status` で `Database schema is up to date!` を確認 → Proxy を停止して一時ファイルを削除。
+  - `DATABASE_URL` を含むファイルを作ったり、作業ディレクトリに残したりしない。画面に出さない(`echo` しない)。作業後にソケットディレクトリを削除し、シェル変数を `unset` する。
+  - `gcloud run services describe ... --format=json` の全体出力は、環境変数(平文の場合は機密値)を含むため、画面に出さない。**現行環境では `DATABASE_URL` は Secret 参照のため、`describe` の env から `.value` を取る旧手順(`jq .value`)では空になる。** Secret Manager から直接読む。
+  - `DATABASE_URL` の取得(シェル変数に直接代入する。ファイルに書かない、`echo` しない):
+
+    ```bash
+    DB_URL=$(gcloud secrets versions access latest --secret portal-mock-database-url --project rvp-ai-proto-camp)
+    ```
+
+    値は `postgresql://user:pass@localhost/db?host=/cloudsql/<connection-name>` というUnixソケット形式。`?host=/cloudsql/...` の部分を、Cloud SQL Auth Proxy のソケットディレクトリ(`--unix-socket <一時ディレクトリ>` で起動した場合は `<一時ディレクトリ>/<connection-name>`)に置換した値を `DATABASE_URL` として `npx prisma ...` に渡す(例: `DATABASE_URL="${DB_URL%%\?host=*}?host=<一時ディレクトリ>/<connection-name>" npx prisma migrate status`。置換後の値も画面に出さない)。
+  - 手順: Cloud SQL Auth Proxy を起動 → `npx prisma migrate status` で未適用を確認 → 未適用があれば `npx prisma migrate deploy` → 再度 `migrate status` で `Database schema is up to date!` を確認 → Proxy を停止してソケットディレクトリを削除し、`unset DB_URL`。
 
 Job が整備された後の運用(`container-build.md` に基づく):
 
@@ -94,7 +111,7 @@ gcloud run jobs execute portal-mock-migrate --project $PROJECT --region $REGION 
 
 ```bash
 # 独立した一時 worktree で origin/main を detached HEAD にし、そのディレクトリで実行する
-gcloud run deploy portal-mock --source . --region asia-northeast1 --quiet
+gcloud run deploy portal-mock --source . --project rvp-ai-proto-camp --region asia-northeast1 --quiet
 ```
 
 タグ付きイメージを使う場合(`container-build.md`):
@@ -131,27 +148,40 @@ gcloud run deploy portal-mock --project $PROJECT --region $REGION \
 
 ### 1.6 リリース記録
 
-実施日時、対象コミット、適用したマイグレーション名、デプロイ後の revision 名を記録する(§6 のチェックリストに含める)。
+実施日時、対象コミット、適用したマイグレーション名、デプロイ後の revision 名を記録する(§6 のチェックリストに含める)。次回の「前回デプロイ済みコミット」(§1.1)の起点になる。記録例:
+
+| 日時 | 対象コミット | 適用したマイグレーション | revision 名 | 実施者 |
+|---|---|---|---|---|
+| 2026-MM-DD HH:MM | `<短縮ハッシュ>` | `20261026000000_add_auth_throttle_and_audit`(なければ「なし」) | `portal-mock-000NN-xxx` | `<氏名>` |
 
 ### 1.7 ロールバック
 
-アプリのコードだけの問題であれば、Cloud Run の revision を切り替えて戻せる。
+現行環境で保持している revision は **`portal-mock-00030` / `00031` / `00032` の3つのみ**(旧 revision は削除済み。`00032` が 100% を受けている)。ロールバック先はこの範囲に限られる。
+
+**重要: `00030` / `00031` は Secret 参照への切替前の revision で、平文 env の旧値(DB パスワード、`AUTH_SECRET`)を持つ。これらの旧値はローテーション済みで無効のため、`00030` / `00031` へトラフィックを戻しても、DB 接続も `AUTH_SECRET` も合わず動かない。** 実質、安全に戻せる先は Secret 参照後の `00032`(現行)だけと考える。
+
+したがって、ロールバックの実質的な手段は次のどちらかである。
+
+1. **現行イメージ・設定の再デプロイ**: 新 revision を作り直して、起動時の一時的な不具合(Secret の読み込み失敗など)を解消する(§3.3 末尾の手順)。
+2. **修正版の前進デプロイ(forward fix)**: 問題のコミットを `main` で修正または revert し、§1 の手順で再度デプロイする。コードの問題はこちらが基本である。
+
+今後、Secret 参照後の revision が複数できた場合(新しいデプロイを重ねた後)は、Secret 参照後の直前の revision へ、次のコマンドでトラフィックを戻せる。
 
 ```bash
 # revision の一覧(新しい順)
 gcloud run revisions list --service portal-mock --region asia-northeast1 --project rvp-ai-proto-camp
 
-# 直前の正常な revision へトラフィックを 100% 戻す
+# Secret 参照後の、直前の正常な revision へトラフィックを 100% 戻す
 gcloud run services update-traffic portal-mock --region asia-northeast1 --project rvp-ai-proto-camp \
   --to-revisions <正常だった revision 名>=100
 ```
 
-Cloud Run の画面(リビジョン > トラフィックの管理)からも同じ操作ができる。ロールバックは数十秒から数分で完了する見込みだが、**実測していない(未検証)**。
+Cloud Run の画面(リビジョン > トラフィックの管理)からも同じ操作ができる。切替は数十秒から数分で完了する見込みだが、**実測していない(未検証)**。
 
 ロールバックできない、または注意が必要なケース:
 
 - **マイグレーションは戻らない。** revision を戻しても DB スキーマは新しいまま。追加のみのマイグレーション(カラム・テーブルの追加)であれば旧コードは動く。カラム削除や型変更を含むマイグレーションは、旧コードが動かなくなる可能性がある。その場合は、修正版をデプロイして前に進める(forward fix)か、バックアップから復元する(§2.3。データ損失を伴う)。
-- **DBパスワードまたは `AUTH_SECRET` をローテーションした後は、ローテーション前の revision へ戻しても動かない。** 平文 env を持っていた旧 revision は、旧パスワードを使うため DB に接続できない(現行環境では対象の旧 revision を削除済み)。戻す先は、Secret 参照に切り替えた後の revision に限る。
+- **DBパスワードまたは `AUTH_SECRET` をローテーションした後は、ローテーション前の revision へ戻しても動かない。** 平文 env を持っていた旧 revision(現行では `00030` / `00031`)は、旧パスワードを使うため DB に接続できない。戻す先は、Secret 参照に切り替えた後の revision に限る。
 - Secret 参照の revision は、`latest` を **revision の起動時に**解決する。ローテーション後に revision を戻した場合、戻した先の revision が起動時点の最新 secret を読む(新しいインスタンスは新しい値になる)。逆に、ローテーションの途中で失敗し secret と DB のパスワードが不一致の状態では、どの revision も DB に接続できない(§4)。
 - `AUTH_SECRET` を変更すると、既存のログインセッションはすべて無効になる(再ログインが必要)。
 - 旧 revision を削除していると、その revision へは戻せない。revision を整理する場合も、直近の正常な revision は最低1つ残す。
@@ -163,7 +193,7 @@ Cloud Run の画面(リビジョン > トラフィックの管理)からも同�
 ### 2.1 自動バックアップ
 
 - Terraform の変数 `db_backup_enabled` で制御する。`dev.tfvars.example` は `false`(費用削減)、`prod.tfvars.example` は `true` で、`db_point_in_time_recovery`(PITR、既定 `false`)も `prod.tfvars.example` で `true`。
-- 現行環境は、段階4a で自動バックアップと削除保護を有効化済み。PITR は無効。
+- 現行環境は、段階4a で自動バックアップと削除保護を有効化済み。PITR は無効。段階4b の TLS 必須化(`sslMode=ENCRYPTED_ONLY`)も適用済み。
 - バックアップの時刻は、Cloud SQL の既定(自動割当)を使っている。保持件数は Cloud SQL の既定(7件)。変更する場合は Terraform の変更(PR)として扱う。
 
 ```bash
@@ -258,7 +288,10 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 ### 3.2 ログインできない
 
 - **ログイン画面に戻される**: アクセスしているホストが `AUTH_URL` と一致しているか。`describe` が表示する別ホストではなく、`AUTH_URL` のホストで開く。`AUTH_SECRET` を変更した直後は、既存セッションが無効になるため再ログインが必要。
-- **メール+パスワードで入れない**: ユーザーが DB に登録されているか、アカウントが無効化されていないか、パスワードが正しいか。まず DB 接続エラー(§3.3)がないかをログで確認する。
+- **メール+パスワードで入れない**: ユーザーが DB に登録されているか、アカウントが無効化されていないか、パスワードが正しいか。まず DB 接続エラー(§3.3)がないかをログで確認する。次の2点も確認する(PR #158 の認証ハードニング導入後)。
+  - **ロックアウト**: パスワードを5回失敗すると15分間ログインできなくなる。正しいパスワードでも、待ち時間が過ぎるまで入れない。利用者には15分待つよう案内する。
+  - **マイグレーション未適用**: `20261026000000_add_auth_throttle_and_audit` が本番DBに未適用のままデプロイすると、Credentials ログインが全員不能になる(Google ログインは動く)。ログにテーブル/カラム不存在のエラーが出ていれば、§1.3 の手順でマイグレーションを適用する。
+  - **AuthEvent による監査ログ確認**: 認証の成否・ロックアウトは `AuthEvent` テーブルに記録される。ログイン試行の履歴は、DB へ読み取りで接続して `AuthEvent` を確認する(列名や値の種類は `prisma/schema.prisma` を参照。確認結果を共有する前に、メールアドレスや IP など個人情報が含まれていないか確認する)。なお、AuthEvent の保持期間・削除の運用は未整備(付録参照)。
 - **Google ログインで入れない**(Google ログイン導入後): 画面に表示されるエラーは「未登録 / 無効化済み / ドメイン不許可 / その他」の4種類に区別されている。
   - 未登録: DB にそのメールのユーザーが無い(自動作成はしない仕様)。ユーザーを登録する。
   - 無効化済み: アカウントが無効化されている。
@@ -275,17 +308,21 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 | Cloud SQL が停止中 | `state` / `activationPolicy` | 起動する。 |
 | パスワード不一致(ローテーションの途中失敗、復元後) | `password authentication failed` | `rotate-secrets.sh` を再実行し、secret と DB を一致させる(§4)。その後、新 revision を作って最新の secret を読ませる(下記)。 |
 | Cloud Run に Cloud SQL 接続が設定されていない | `run.googleapis.com/cloudsql-instances` 注釈の欠落 | Terraform の plan で差分を確認する。または `--add-cloudsql-instances` で再設定。 |
-| TLS 必須化の影響(`ENCRYPTED_ONLY`) | 適用直後から接続エラー | Cloud Run の組み込みコネクタは TLS のため影響しない想定。ローカルからの接続は Cloud SQL Auth Proxy を使う。 |
+| TLS 必須化(`ENCRYPTED_ONLY`)に非対応の接続 | TLS 無しで接続するクライアントだけが接続エラーになる | 現行環境は適用済みで、Cloud Run(Cloud SQL コネクタ経由)は適用後も正常稼働を確認済み。ローカルからの接続は Cloud SQL Auth Proxy を使う。 |
 | 接続数の上限 | `too many connections` | `db-f1-micro` は接続数に余裕がない。インスタンスサイズの見直し、`max_instances` の見直し。 |
 | ディスク満杯 | Cloud SQL のメトリクス | 自動拡張は有効。上限や費用を確認する。 |
 
-secret を更新した後に Cloud Run に反映するには、新しい revision を作る(`latest` は revision の起動時にのみ読まれる):
+secret を更新した後に Cloud Run に反映するには、新しい revision を作る(`latest` は revision の起動時にのみ読まれる)。**テンプレートが変わらない更新(同一設定の再適用、ラベルのみの変更など)では、新 revision が作られない可能性がある(未検証)。** 実行後は必ず `gcloud run revisions list` で新 revision ができたこと、`latestReadyRevisionName` が変わったことを確認する。
 
 ```bash
-gcloud run services update portal-mock --region asia-northeast1 --project rvp-ai-proto-camp \
-  --update-labels=redeploy=$(date +%s)
+# 方法1(推奨): 現行イメージを指定して再デプロイする(コードも設定も変えない)
+IMG=$(gcloud run services describe portal-mock --region asia-northeast1 --project rvp-ai-proto-camp \
+  --format="value(spec.template.spec.containers[0].image)")
+gcloud run deploy portal-mock --project rvp-ai-proto-camp --region asia-northeast1 --image "$IMG" --quiet
 ```
 
+- 新 revision ができない場合の代替は、`gcloud run services update portal-mock ... --update-env-vars=<NAME>=<値>` で非機密の env を1つ変更すること。ただし**この env は Terraform の管理外になり、次の plan でドリフト(差分)として表示される**。使った場合は、Terraform のコードに取り込むか、後で `--remove-env-vars` で外す。機密値を env で渡さない。
+- `--update-labels` によるラベル変更は、Terraform でもドリフトになるうえ、新 revision が作られる保証がないため使わない。
 ### 3.4 Secret 参照エラー
 
 revision が起動しない、ログに Secret Manager のエラー(`Permission denied on secret` / `Secret ... not found` / version が無効)が出る場合。
@@ -352,7 +389,7 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 
 - **旧値には戻せない。** ローテーション後、DB パスワードを変更するため、旧 revision(旧パスワードを使うもの)は DB に接続できない。
 - `AUTH_SECRET` を変更すると、全ユーザーのログインセッションが無効になる(再ログインが必要)。
-- Cloud Run が secret の `latest` を読むのは **revision の起動時のみ**。スクリプト完了後に、新しい revision を作る(再デプロイ、または `update --update-labels` など)までは、稼働中のインスタンスは旧 `DATABASE_URL` のまま動いている。DB パスワードは変更済みのため、**新規のインスタンスが起動(スケールアウト等)した時点で接続失敗**が起きうる。スクリプト実行後は速やかに新 revision を作る。
+- Cloud Run が secret の `latest` を読むのは **revision の起動時のみ**。スクリプト完了後に、新しい revision を作る(現行イメージ指定の再デプロイ。§3.3 末尾)までは、稼働中のインスタンスは旧 `DATABASE_URL` のまま動いている。DB パスワードは変更済みのため、**新規のインスタンスが起動(スケールアウト等)した時点で接続失敗**が起きうる。スクリプト実行後は速やかに新 revision を作る。
 - 利用者の少ない時間帯に実施する。メンテナンスの周知を行う。
 - 事前にオンデマンドバックアップを取る(§2.2)。
 - secret の枠(`portal-mock-auth-secret` / `portal-mock-database-url`)が存在すること(`terraform apply -target=module.secrets`)。
@@ -383,12 +420,7 @@ CONNECTION_NAME=<project>:<region>:<instance> \
 ### 4.3 実行後
 
 1. `[a]` `[c]` `[d]` の3行が出て、「完了」と表示されたことを確認する。**スクリプトが正常終了するまで、Cloud Run の反映(新 revision の作成)に進まない。**
-2. 新しい revision を作り、最新の secret を読ませる。
-
-   ```bash
-   gcloud run services update portal-mock --region asia-northeast1 --project rvp-ai-proto-camp \
-     --update-labels=redeploy=$(date +%s)
-   ```
+2. 新しい revision を作り、最新の secret を読ませる。手順と注意(新 revision が作られない可能性、Terraform のドリフト)は §3.3 末尾の「現行イメージを指定して再デプロイ」を使う。新 revision ができたことを `gcloud run revisions list` で確認する。
 
    Terraform で secret 参照に切り替える初回のみ、`terraform apply`(`import-current.md` 段階3-2)で revision が作られる。
 3. §1.5 の動作確認を行う。ログに `password authentication failed` が無いこと。
@@ -478,6 +510,7 @@ terraform -chdir=$E import -var-file=<env>.tfvars '<リソースアドレス>' '
 ```bash
 gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp \
   --format="value(settings.backupConfiguration.enabled,settings.deletionProtectionEnabled,settings.ipConfiguration.sslMode)"
+# 現行環境の期待値: True / True / ENCRYPTED_ONLY(自動バックアップ有効 / 削除保護 有効 / TLS 必須)
 gcloud run services describe portal-mock --region asia-northeast1 --project rvp-ai-proto-camp \
   --format="value(status.latestReadyRevisionName)"
 ```
@@ -506,7 +539,7 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 
 ### 毎週
 
-- [ ] 自動バックアップが成功している(`gcloud sql backups list`)
+- [ ] 自動バックアップが成功している(`gcloud sql backups list`)。停止運用(`db-end`)の日は、停止中に自動バックアップが取れない(バックアップの時間帯に DB が停止していれば、その日分は欠ける)ため、必要なら起動中にオンデマンドバックアップを取る(§2.2)
 - [ ] 費用(請求のレポート)に想定外の増加がない。`min_instances`、Cloud SQL のサイズ、ログ量を確認
 - [ ] 定期実行(Cloud Scheduler)を導入した後は、ジョブの実行結果の確認
 
@@ -549,3 +582,11 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 | RPO / RTO の実測値 | §2.4 |
 | state の旧世代からの復元 | §5.3 |
 | Google ログインの実際の OAuth 往復 | §3.2 |
+| Google ログインのエラー分類(未登録 / 無効化済み / ドメイン不許可 / その他)の画面での確認 | §3.2 |
+| AuthEvent の保持期間・削除ポリシー(PR #158 で未整備) | §3.2 |
+| `secrets versions disable` → `enable` による旧 version の復旧 | §4.3 |
+| 「DB を停止してもバックアップは削除されない」の根拠(公式ドキュメント等での裏取り) | §2.5 |
+| `gcloud sql instances clone --point-in-time` / `gcloud sql backups restore --backup-instance` のコマンド単位の動作(オプション・前提条件) | §2.3 |
+| 新 revision を作る再デプロイ(現行イメージ指定の `gcloud run deploy`、`--update-env-vars`)で、実際に新 revision ができること | §3.3 |
+| `terraform force-unlock` の運用(ロック残存時の判断と実行) | §5.3 |
+| `00030` / `00031` へ戻した場合の挙動(旧値の無効化による接続失敗は想定であり、実機では試していない) | §1.7 |
