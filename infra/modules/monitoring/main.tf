@@ -36,6 +36,12 @@ variable "enable_uptime_check" {
   default = true
 }
 
+variable "enable_cloudsql_down_alert" {
+  type        = bool
+  default     = true
+  description = "Cloud SQL 停止アラートを作成する。db-end で夜間停止する dev では false 推奨"
+}
+
 variable "uptime_check_path" {
   type    = string
   default = "/api/auth/providers"
@@ -204,8 +210,9 @@ resource "google_monitoring_alert_policy" "cloudsql_disk" {
 }
 
 # 停止判定: database/up が 1 未満（0）、またはメトリクス欠落（停止時は欠落しうる）。
-# db-end で意図的に停止する dev では通知が出る点に注意（docs/infra/monitoring.md 参照）。
+# db-end で意図的に停止する dev では毎晩通知が出るため、enable_cloudsql_down_alert=false にできる（docs/infra/monitoring.md 参照）。
 resource "google_monitoring_alert_policy" "cloudsql_down" {
+  count                 = var.enable_cloudsql_down_alert ? 1 : 0
   project               = var.project_id
   display_name          = "${var.name_prefix} Cloud SQL down"
   combiner              = "OR"
@@ -300,4 +307,10 @@ resource "google_monitoring_alert_policy" "uptime" {
 
 output "notification_channel_ids" {
   value = local.channel_ids
+}
+
+# count 化に伴うアドレス変更（適用済み環境の再作成を防ぐ）
+moved {
+  from = google_monitoring_alert_policy.cloudsql_down
+  to   = google_monitoring_alert_policy.cloudsql_down[0]
 }

@@ -25,9 +25,10 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 
 ## 注意点
 
-- dev は `db-end` スキルで Cloud SQL を夜間停止するため、「Cloud SQL 停止」アラートが毎晩発報する。dev では `alert_emails` を空にするか、このポリシーを無効化する運用を検討する。
-- Cloud Run の `ingress` を制限している場合、uptime check（Google 管理の外部 IP）が到達できず常時失敗になる。その場合は `enable_uptime_check = false`（モジュール変数）にする。
-- Cloud Run が `min_instances = 0` の場合、uptime check がコールドスタートを起こしレイテンシ p95 に影響しうる。
+- dev は `db-end` スキルで Cloud SQL を夜間停止するため、「Cloud SQL 停止」アラートが毎晩発報する。dev.tfvars に `enable_cloudsql_down_alert = false` を設定して停止アラートを作らない（既定 true。変更後は plan で該当ポリシーのみ destroy になることを確認）。
+- Cloud Run の `ingress` を制限している場合、uptime check（Google 管理の外部 IP）が到達できず常時失敗になる。その場合は tfvars で `enable_uptime_check = false` にする（既定 true）。
+- Cloud Run が `min_instances = 0` の場合、uptime check は既定5分間隔でアクセスするため実質ウォーム維持になり、スケールトゥゼロのコスト削減効果が薄れる（インスタンス稼働時間が増える）。またコールドスタートがレイテンシ p95 に影響しうる。不要なら `enable_uptime_check = false` か `uptime_check_period` を延ばす。
+- Cloud SQL 停止の absent 条件は、メトリクス欠落が続く間は発報するが、欠落状態のままだとインシデントが自動クローズされうる（復旧通知ではなくクローズ扱い）。停止の継続監視には向かない。
 - 本モジュールは `monitoring.googleapis.com` API が有効であることを前提とする（modules/services で有効化済み）。
 
 ## 通知先の決め方

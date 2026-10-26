@@ -204,6 +204,18 @@ variable "enable_monitoring" {
   description = "Cloud Run / Cloud SQL の監視・アラートを作成する"
 }
 
+variable "enable_uptime_check" {
+  type        = bool
+  default     = true
+  description = "稼働確認（uptime check とそのアラート）を作成する。ingress 制限時や min_instances=0 でウォーム維持したくない場合は false"
+}
+
+variable "enable_cloudsql_down_alert" {
+  type        = bool
+  default     = true
+  description = "Cloud SQL 停止アラートを作成する。db-end で夜間停止する dev では false 推奨"
+}
+
 variable "alert_emails" {
   type        = list(string)
   default     = []
