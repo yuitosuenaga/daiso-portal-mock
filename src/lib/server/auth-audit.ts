@@ -19,10 +19,15 @@ export type AuthPortal = "applicant" | "helpdesk";
 /**
  * メールアドレスを識別子ハッシュに変換する（HMAC-SHA256、先頭32桁）。
  * 監査ログ・ロックアウト台帳にメールアドレスを平文で残さないために使う。
- * 鍵は`AUTH_SECRET`（未設定時は固定値で動作するが、本番では必ず設定されている前提）。
+ * 鍵は`AUTH_SECRET`。本番（NODE_ENV=production）で未設定ならfail closedで例外にする。
+ * 開発・テストのみ固定値フォールバックを許可する。
  */
 export function hashIdentifier(email: string): string {
-  const key = process.env.AUTH_SECRET ?? "portal-mock-auth-audit";
+  const secret = process.env.AUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET is required in production");
+  }
+  const key = secret ?? "portal-mock-auth-audit";
   return createHmac("sha256", key)
     .update(normalizeEmail(email))
     .digest("hex")
