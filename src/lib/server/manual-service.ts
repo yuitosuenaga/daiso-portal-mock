@@ -13,6 +13,7 @@ import {
   type PrismaManualWithTranslations,
 } from "@/lib/server/manual-mapper";
 import type { CreateManualInput, Manual } from "@/types/manual";
+import { errorFields, logger } from "./logger";
 
 // `resolveManualContent`は`manual-mapper.ts`から再エクスポートし、`manual-mapper.ts`に
 // 依存する呼び出し元が本モジュール経由でも参照できるようにする
@@ -128,7 +129,7 @@ function mapManualsSkippingCorrupted(
       return [mapManual(record)];
     } catch (error) {
       if (error instanceof ManualDataIntegrityError) {
-        console.error(`[manual-service] Skipping corrupted record: ${error.message}`);
+        logger.error("[manual-service] Skipping corrupted record", errorFields(error));
         return [];
       }
       throw error;

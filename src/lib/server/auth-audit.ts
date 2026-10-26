@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { normalizeEmail } from "@/lib/auth/google-login-policy";
 import { summarizeIp } from "@/lib/auth/login-throttle-policy";
 import { prisma } from "@/lib/db/prisma";
+import { errorFields, logger } from "./logger";
 
 export type AuthEventType =
   | "login_success"
@@ -69,10 +70,10 @@ export async function recordAuthEvent(input: AuthEventInput): Promise<void> {
     reason: input.reason ?? null,
   };
   // Cloud Logging等で拾える構造化ログ（PIIなし）
-  console.info(JSON.stringify({ event: "auth", ...entry }));
+  logger.info("auth", { event: "auth", ...entry });
   try {
     await prisma.authEvent.create({ data: entry });
   } catch (error) {
-    console.error("auth audit log write failed", error);
+    logger.error("auth audit log write failed", errorFields(error));
   }
 }

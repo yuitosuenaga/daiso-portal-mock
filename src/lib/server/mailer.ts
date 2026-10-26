@@ -1,6 +1,7 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
+import { logger } from "./logger";
 
 /**
  * SMTP接続情報が環境変数で構成されていない場合に送出するエラー。
@@ -60,9 +61,7 @@ function readSmtpConfig(): SmtpConfig | null {
 export async function sendMail(options: SendMailOptions): Promise<void> {
   const config = readSmtpConfig();
   if (!config) {
-    console.warn(
-      `[mailer] SMTP is not configured. Skipping mail to ${options.to} (subject: ${options.subject}).`
-    );
+    logger.warn("[mailer] SMTP is not configured. Skipping mail.");
     throw new MailerNotConfiguredError();
   }
 

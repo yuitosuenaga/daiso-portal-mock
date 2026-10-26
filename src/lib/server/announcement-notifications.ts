@@ -12,6 +12,7 @@ import {
 } from "@/lib/server/announcement-mapper";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
 import type { Announcement } from "@/types/announcement";
+import { errorFields, logger } from "./logger";
 
 /**
  * 配信対象による絞り込みを行わず、指定したIDのお知らせを1件取得する。
@@ -106,10 +107,11 @@ async function sendAndLog(
   } catch (error) {
     const isNotConfigured = error instanceof MailerNotConfiguredError;
     if (!isNotConfigured) {
-      console.error(
-        `[announcement-notifications] Failed to send ${kind} mail for announcement ${announcement.id} to ${recipient.email}:`,
-        error
-      );
+      logger.error("[announcement-notifications] Failed to send mail", {
+        kind,
+        announcementId: announcement.id,
+        ...errorFields(error),
+      });
     }
     await prisma.announcementNotificationLog.create({
       data: {

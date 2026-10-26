@@ -11,7 +11,7 @@ import { autoTranslateFields } from "./auto-translation";
 describe("autoTranslateFields", () => {
   beforeEach(() => {
     getFieldsTranslatorMock.mockReset();
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
   });
 
   it("空でないフィールドだけを、言語ごとに1回ずつ（並列で）翻訳する", async () => {

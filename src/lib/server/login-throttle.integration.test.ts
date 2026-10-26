@@ -27,7 +27,7 @@ const KEY = `applicant:${hashIdentifier(EMAIL)}`;
 
 describe.skipIf(!url)("LoginThrottle 並列実行（実DB）", () => {
   beforeAll(() => {
-    vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
   });
   beforeEach(async () => {
     await testPrisma!.loginThrottle.deleteMany({ where: { key: KEY } });

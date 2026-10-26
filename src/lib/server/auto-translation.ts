@@ -2,6 +2,7 @@ import "server-only";
 
 import { TRANSLATED_LOCALES } from "@/lib/constants/locales";
 import { getFieldsTranslator } from "@/lib/server/translation-service";
+import { errorFields, logger } from "./logger";
 
 export type AutoTranslatedFields = Record<string, Record<string, string>>;
 
@@ -49,7 +50,7 @@ export async function autoTranslateFields(
         });
         return { locale, fields: translations[locale] };
       } catch (error) {
-        console.error(`[auto-translation] translation to "${locale}" failed:`, error);
+        logger.error("[auto-translation] translation failed", { locale, ...errorFields(error) });
         return { locale, fields: undefined };
       }
     })
