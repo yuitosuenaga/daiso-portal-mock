@@ -37,7 +37,7 @@ export interface EscalationRunResult {
   failedAnnouncements: number;
   /** 別プロセスが実行中（advisory lock取得不可）のため何も処理せず終了した場合true。 */
   skippedByLock: boolean;
-  /** 処理時間の上限（締切）に達したため、残りのお知らせ・宛先の処理を打ち切った場合true。未処理分は次回実行で処理される。 */
+  /** 処理時間の上限（締切）に達したため、残りのお知らせ・宛先の処理を打ち切った場合true。未処理分は翌日の実行で処理される（Schedulerは1日1回のため、打ち切りは翌日まで持ち越される）。 */
   abortedByDeadline: boolean;
   /** 送信・打刻・ログ記録を行わず対象件数のみ集計した場合true。 */
   dryRun: boolean;
@@ -63,13 +63,19 @@ const ESCALATION_ADVISORY_LOCK_KEY = 7_203_803_001;
 const ESCALATION_LOCK_TRANSACTION_TIMEOUT_MS = 290_000;
 
 /**
- * 処理の締切。トランザクション上限（290s）より十分前に必ず終わらせる。上限を超えるとPrismaが
- * トランザクションをロールバックしてlockが解放されるが、コールバック内の処理は止まらず、
- * 並走実行による二重送信を招くため、この締切で新規送信を止める。
- * 締切到達後も、すでに開始済みの1お知らせ分の送信バッチは完了まで走るため、
- * 290sとの間に50s程度の余裕を置く。
+ * 締切から、トランザクション上限までの余裕。締切到達時点で送信中の宛先（最大
+ * `ESCALATION_SEND_CONCURRENCY`件）が、mailerのタイムアウト（接続10s・greeting 10s・socket 30s）内に
+ * 終わる想定の余裕。送信ループ自体も締切後は新規送信を開始しない。
  */
-const ESCALATION_RUN_DEADLINE_MS = 240_000;
+const ESCALATION_DEADLINE_MARGIN_MS = 50_000;
+
+/**
+ * 処理の締切。トランザクション上限より十分前に必ず終わらせる。上限を超えるとPrismaが
+ * トランザクションをロールバックしてlockが解放されるが、コールバック内の処理は止まらず、
+ * 並走実行による二重送信を招くため、この締切で新規送信を止める（上限から導出）。
+ */
+const ESCALATION_RUN_DEADLINE_MS =
+  ESCALATION_LOCK_TRANSACTION_TIMEOUT_MS - ESCALATION_DEADLINE_MARGIN_MS;
 
 function newResult(dryRun: boolean): EscalationRunResult {
   return {
@@ -161,8 +167,12 @@ async function processOverdueAnnouncement(
     const summary = await notifyAnnouncementEscalation(
       announcement.id,
       companyCodes,
-      alreadyNotifiedEmails
+      alreadyNotifiedEmails,
+      { deadlineAt }
     );
+    if (summary.deadlineReached) {
+      result.abortedByDeadline = true;
+    }
     result.sentRecipients += summary.sentEmails.length;
     result.skippedRecipients += summary.skipped;
     result.failedRecipients += summary.failed;
@@ -246,7 +256,8 @@ export async function runAnnouncementAutoEscalation(
   options: EscalationRunOptions = {}
 ): Promise<EscalationRunResult> {
   const dryRun = options.dryRun === true;
-  const deadlineMs = options.deadlineMs ?? ESCALATION_RUN_DEADLINE_MS;
+  // 注入値も上限（トランザクション上限から導出した締切）で丸める。
+  const deadlineMs = Math.min(options.deadlineMs ?? ESCALATION_RUN_DEADLINE_MS, ESCALATION_RUN_DEADLINE_MS);
   const result = newResult(dryRun);
 
   if (dryRun) {
@@ -270,6 +281,18 @@ export async function runAnnouncementAutoEscalation(
         return;
       }
       await runEscalation(now, result, false, deadlineMs);
+      if (result.abortedByDeadline) {
+        // 打ち切り分は翌日の実行まで持ち越される。ログベースアラートで検知する。
+        console.warn(
+          `[announcement-escalation] Run aborted by deadline; remaining work is carried over to the next day's run. ${JSON.stringify(
+            {
+              overdueAnnouncements: result.overdueAnnouncements,
+              sentRecipients: result.sentRecipients,
+              failedRecipients: result.failedRecipients,
+            }
+          )}`
+        );
+      }
     },
     { maxWait: 5_000, timeout: ESCALATION_LOCK_TRANSACTION_TIMEOUT_MS }
   );

@@ -145,7 +145,8 @@ describe("runAnnouncementAutoEscalation", () => {
     expect(notifyAnnouncementEscalation).toHaveBeenCalledWith(
       "announcement-1",
       ["vn-daiso-vietnam"],
-      new Set()
+      new Set(),
+      expect.objectContaining({ deadlineAt: expect.any(Number) })
     );
     expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -187,7 +188,8 @@ describe("runAnnouncementAutoEscalation", () => {
     expect(notifyAnnouncementEscalation).toHaveBeenCalledWith(
       "announcement-1",
       ["vn-daiso-vietnam"],
-      new Set(["a@example.com"])
+      new Set(["a@example.com"]),
+      expect.objectContaining({ deadlineAt: expect.any(Number) })
     );
     expect(result.notifiedRecipients).toBe(0);
     expect(result.skippedByDedup).toBe(1);
@@ -390,6 +392,63 @@ describe("runAnnouncementAutoEscalation", () => {
       expect(result.abortedByDeadline).toBe(true);
       expect(notifyAnnouncementEscalation).toHaveBeenCalledTimes(1);
       expect(getAnnouncementRecipientStatuses).toHaveBeenCalledTimes(1);
+    } finally {
+      dateNowSpy.mockRestore();
+    }
+  });
+
+  it("処理途中（送信直前）で締切を超えたら、送信も打刻もしない", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
+    // 受信者状態の取得中に時間が締切を超える状況を模擬する（ループ先頭の確認は通過済み）。
+    let nowMs = 1_000_000;
+    const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+    vi.mocked(getAnnouncementRecipientStatuses).mockImplementation((async () => {
+      nowMs += 2_000;
+      return [
+        recipientStatus({ recipientId: "r-1", companyCode: "vn-daiso-vietnam", completedAt: null }),
+      ];
+    }) as never);
+
+    try {
+      const result = await runAnnouncementAutoEscalation(NOW, { deadlineMs: 1_000 });
+
+      expect(result.abortedByDeadline).toBe(true);
+      expect(notifyAnnouncementEscalation).not.toHaveBeenCalled();
+      expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+    } finally {
+      dateNowSpy.mockRestore();
+    }
+  });
+
+  it("送信ループが締切で打ち切られた場合（deadlineReached）もabortedByDeadlineを返し、送信済み分は打刻する", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([
+      recipientStatus({ recipientId: "r-1", companyCode: "vn-daiso-vietnam", completedAt: null }),
+    ] as never);
+    vi.mocked(notifyAnnouncementEscalation).mockResolvedValue({
+      ...SENT(["a@example.com"]),
+      deadlineReached: true,
+    });
+
+    const result = await runAnnouncementAutoEscalation(NOW);
+
+    expect(result.abortedByDeadline).toBe(true);
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("deadlineMsの注入値は導出した上限（トランザクション上限−余裕）で丸められる", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([
+      recipientStatus({ recipientId: "r-1", companyCode: "vn-daiso-vietnam", completedAt: null }),
+    ] as never);
+    const base = 5_000_000;
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(base);
+
+    try {
+      await runAnnouncementAutoEscalation(NOW, { deadlineMs: 10_000_000 });
+
+      const options = vi.mocked(notifyAnnouncementEscalation).mock.calls[0][3];
+      expect(options?.deadlineAt).toBe(base + 240_000);
     } finally {
       dateNowSpy.mockRestore();
     }

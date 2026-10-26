@@ -246,6 +246,16 @@ export interface EscalationSendSummary {
   skipped: number;
   /** 送信に失敗した件数。 */
   failed: number;
+  /** 締切（`deadlineAt`）到達により、未送信の宛先を残して打ち切った場合のみtrue。 */
+  deadlineReached?: boolean;
+}
+
+/** 督促メールの並列送信数の上限。SMTPサーバーへの同時接続と処理時間の見積りを有界にする。 */
+export const ESCALATION_SEND_CONCURRENCY = 5;
+
+export interface EscalationNotifyOptions {
+  /** この時刻（`Date.now()`基準のミリ秒）以降は新規の送信を開始しない。 */
+  deadlineAt?: number;
 }
 
 /**
@@ -259,7 +269,8 @@ export interface EscalationSendSummary {
 export async function notifyAnnouncementEscalation(
   announcementId: string,
   companyCodes: string[],
-  alreadyNotifiedEmails: ReadonlySet<string>
+  alreadyNotifiedEmails: ReadonlySet<string>,
+  options: EscalationNotifyOptions = {}
 ): Promise<EscalationSendSummary> {
   const summary: EscalationSendSummary = { sentEmails: [], skipped: 0, failed: 0 };
   if (companyCodes.length === 0) {
@@ -283,11 +294,26 @@ export async function notifyAnnouncementEscalation(
 
   const targets = recipients.filter((recipient) => !alreadyNotifiedEmails.has(recipient.email));
 
-  const outcomes = await Promise.all(
-    targets.map(async (recipient) => ({
-      email: recipient.email,
-      outcome: await sendAndLog(announcement, "escalation", recipient),
-    }))
+  // 並列数を`ESCALATION_SEND_CONCURRENCY`に制限したワーカープールで送信する（督促経路のみ。
+  // 他の通知経路は従来どおり）。締切到達後は新規の送信を開始しない。
+  const outcomes: { email: string; outcome: SendOutcome }[] = [];
+  let nextIndex = 0;
+  const worker = async (): Promise<void> => {
+    while (nextIndex < targets.length) {
+      if (options.deadlineAt !== undefined && Date.now() >= options.deadlineAt) {
+        summary.deadlineReached = true;
+        return;
+      }
+      const recipient = targets[nextIndex];
+      nextIndex += 1;
+      outcomes.push({
+        email: recipient.email,
+        outcome: await sendAndLog(announcement, "escalation", recipient),
+      });
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(ESCALATION_SEND_CONCURRENCY, targets.length) }, worker)
   );
   for (const { email, outcome } of outcomes) {
     if (outcome === "sent") {

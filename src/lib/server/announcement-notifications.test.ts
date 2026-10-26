@@ -593,6 +593,47 @@ describe("notifyAnnouncementEscalation", () => {
     });
   });
 
+  it("督促の並列送信数は上限（5）を超えない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(announcementRecord() as never);
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue(
+      Array.from({ length: 20 }, (_, i) => ({ email: `u${i}@example.com`, preferredLocale: "ja" })) as never
+    );
+    let inFlight = 0;
+    let maxInFlight = 0;
+    vi.mocked(sendMail).mockImplementation((async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+    }) as never);
+
+    const summary = await notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set());
+
+    expect(summary.sentEmails).toHaveLength(20);
+    expect(maxInFlight).toBeLessThanOrEqual(5);
+    expect(maxInFlight).toBeGreaterThan(1);
+  });
+
+  it("締切到達後は新規の送信を開始せずdeadlineReachedを返す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(announcementRecord() as never);
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
+      { email: "a@example.com", preferredLocale: "ja" },
+      { email: "b@example.com", preferredLocale: "ja" },
+    ] as never);
+    vi.mocked(sendMail).mockResolvedValue(undefined);
+
+    const summary = await notifyAnnouncementEscalation(
+      "announcement-1",
+      ["vn-daiso-vietnam"],
+      new Set(),
+      { deadlineAt: Date.now() - 1 }
+    );
+
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(summary.deadlineReached).toBe(true);
+    expect(summary.sentEmails).toEqual([]);
+  });
+
   it("送信結果をsent/skipped/failedに仕分けて返し、失敗ログに宛先メールを出さない", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(announcementRecord() as never);
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([

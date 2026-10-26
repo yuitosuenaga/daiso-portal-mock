@@ -332,6 +332,13 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 | ディスク満杯 | Cloud SQL のメトリクス | 自動拡張は有効。上限や費用を確認する。 |
 | 接続プール枯渇(督促 cron で `P2024`) | cron が 500 を返し、ログに `PrismaClientKnownRequestError P2024` | `DATABASE_URL` の `connection_limit` を **1 にしてはならない(最低 2、推奨 3 以上)**。督促 cron(`/api/cron/announcement-escalation`)は同時実行防止の advisory lock のため、実行中に 1 接続をトランザクションで占有し、内側のクエリが別の接続を使う。未指定(既定)なら問題ない。 |
 
+#### 督促 cron(`/api/cron/announcement-escalation`)の処理時間と打ち切り
+
+- 送信は並列 5(`ESCALATION_SEND_CONCURRENCY`)、SMTP のタイムアウトは接続 10s・greeting 10s・socket 30s。処理の締切は 240s(トランザクション上限 290s − 余裕 50s)で、到達後は新規の送信を始めずに打ち切る。
+- 合計時間の見積り: `宛先数 × 1通の所要時間 ÷ 5`。1通 2 秒なら、240s で約 600 宛先。宛先数がこれを超える見込みのときは、1回で終わらず複数日に分けて処理される。
+- **打ち切りは翌日まで持ち越される**(Scheduler は 1 日 1 回で、打ち切りは 200 で返るため再試行されない)。打ち切り時はログに `Run aborted by deadline`(warn)と、レスポンスに `abortedByDeadline: true` が出る。検知はログベースのアラート(monitoring、infra 側の別 PR の範囲)で行う。
+- 宛先が極端に多い場合や SMTP 接続直後の初回は、先に `?dryRun=1` で対象件数(`notifiedRecipients`)を確認する。
+
 secret を更新した後に Cloud Run に反映するには、新しい revision を作る(`latest` は revision の起動時にのみ読まれる)。**テンプレートが変わらない更新(同一設定の再適用、ラベルのみの変更など)では、新 revision が作られない可能性がある(未検証)。** 実行後は必ず `gcloud run revisions list` で新 revision ができたこと、`latestReadyRevisionName` が変わったことを確認する。
 
 ```bash
