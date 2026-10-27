@@ -33,13 +33,25 @@ export function redactSecrets(text: string): string {
     .replace(/\bAuthorization\s{0,16}[:=]\s{0,16}(?:(?:Basic|Digest|Token|Bearer)\s{1,16})?[^\s\"',;]{1,2048}/gi, `Authorization: ${REDACTED}`)
     .replace(/\b((?:set-)?cookie)\s{0,16}:[^\r\n]{1,8192}/gi, `$1: ${REDACTED}`)
     .replace(
-      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(["']?)[^\s"'&,;}]{1,1024}/gi,
-      `$1$2$3${REDACTED}`
+      // 値は「"..."/'...'」→「\"..\"/\'..\'（JSON埋め込み等のエスケープ済み引用符。バックスラッシュ1〜7個）」→「引用符なしの語」の順に試す。すべて有界。
+      // 引用符内は空白・改行・エスケープを含む全体を伏字にする。閉じ引用符がない場合、および上限9216に達した場合は、残り全体を伏字にする
+      // （clipを通さず直接呼ばれても後半を漏らさない。引用符で始まる値は末尾まで伏字になりうるが安全側）。
+      // 引用符内は[^"\\]と\\[\s\S]の排他的な繰り返し、エスケープ版は先読み付き1択の繰り返しなのでバックトラックは線形。
+      // 限界: 閉じは開きと同数のバックスラッシュ+引用符のみ認識する（値の途中に同じ並びが現れると、そこで値が終わったとみなす）。
+      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(?:"((?:[^"\\]|\\[\s\S]){0,9216})("|[\s\S]*)|'((?:[^'\\]|\\[\s\S]){0,9216})('|[\s\S]*)|(\\{1,7})(["'])((?:(?!\7\8)[\s\S]){0,9216})(\7\8|[\s\S]*)|["']?[^\s"'&,;}]{1,1024})/gi,
+      (m: string, key: string, sep: string, _d?: string, dTail?: string, _s?: string, sTail?: string, _bs?: string, _q?: string, _e?: string, eTail?: string) => {
+        const v = m.slice(key.length + sep.length);
+        const open = /^(?:\\{1,7}["']|["'])/.exec(v)?.[0] ?? "";
+        const tail = dTail ?? sTail ?? eTail ?? "";
+        // tailが閉じ引用符そのもの（開きと同形）のときだけ閉じを残す。それ以外（上限超過の残り・閉じなし）は伏字に含める。
+        const close = open !== "" && tail === open ? tail : "";
+        return `${key}${sep}${open}${REDACTED}${close}`;
+      }
     );
 }
 
 // 正規化（小文字化・区切り除去）したキー名が、秘密情報を表す語で始まる/終わる場合は値を伏字にする。
-const SENSITIVE_KEY = /^(secret|password|passwd|pwd|authorization|cookie)|(password|passwd|pwd|token|secret|apikey|authorization|cookie|credentials?|privatekey|sessionid)$/;
+const SENSITIVE_KEY = /^(secret|password|passwd|pwd|authorization|cookie|apikey|csrf|xsrf|otp)|(password|passwd|pwd|token|secret|apikey|authorization|cookie|credentials?|privatekey|sessionid|csrf|xsrf|otp)$|^(pin|pincode)$/;
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
 }
@@ -47,7 +59,7 @@ function isSensitiveKey(key: string): boolean {
 // 伏字の対象が切り詰め境界をまたぐ場合に断片を残さないための余白。
 const CLIP_MARGIN = 256;
 
-function clip(text: string): string {
+export function clip(text: string): string {
   // 先に切ってから伏字にする（巨大入力に対する正規表現の走査量を上限で抑える）。
   const head = text.length > MAX_STRING_LENGTH + CLIP_MARGIN ? text.slice(0, MAX_STRING_LENGTH + CLIP_MARGIN) : text;
   const redacted = redactSecrets(head);
@@ -55,6 +67,9 @@ function clip(text: string): string {
     ? `${redacted.slice(0, MAX_STRING_LENGTH)}...[truncated]`
     : redacted;
 }
+
+// describeErrorが生成済み（伏字・clip・深さ制限適用済み）のcause出力。write()での再適用でmetaが[max-depth]に潰れないよう素通しする。
+const SANITIZED = new WeakSet<object>();
 
 /** 任意の値を、循環・巨大化を防いでJSON化可能な形にする（文字列は伏字+上限）。 */
 function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknown {
@@ -72,6 +87,7 @@ function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknow
       return `[${typeof value}]`;
   }
   const obj = value as object;
+  if (SANITIZED.has(obj)) return obj;
   if (seen.has(obj)) return "[circular]";
   if (depth >= MAX_VALUE_DEPTH) return "[max-depth]";
   seen.add(obj);
@@ -158,7 +174,13 @@ function describeError(error: Error, depth: number, seen: Set<unknown>, opts: Er
     if (depth >= MAX_CAUSE_DEPTH) {
       fields.cause = "[max-cause-depth]";
     } else if (cause instanceof Error) {
-      fields.cause = seen.has(cause) ? "[circular]" : describeError(cause, depth + 1, seen, opts);
+      if (seen.has(cause)) {
+        fields.cause = "[circular]";
+      } else {
+        const described = describeError(cause, depth + 1, seen, opts);
+        SANITIZED.add(described);
+        fields.cause = described;
+      }
     } else {
       fields.cause = safeValue(cause, 0, new WeakSet());
     }
@@ -214,16 +236,45 @@ function oversizeFallback(severity: LogSeverity, message: string, fields: Record
 function write(severity: LogSeverity, message: string, fields?: Record<string, unknown>): void {
   // ログ出力の失敗（循環参照・BigInt・toJSONの例外・書き込み失敗）を呼び出し元へ伝播させない。
   try {
+    // 呼び出し側の誤用（生の値・機密キー・巨大文字列）でも素通りしないよう、fieldsとmessageをここで伏字・clip・安全化する。
+    // 各値を深さ0から処理するので、errorFieldsの出力（cause連鎖等）の構造は変わらない。
+    const safeFields: Record<string, unknown> = {};
+    if (fields) {
+      for (const key of Object.keys(fields).slice(0, MAX_KEYS * 2)) {
+        if (isSensitiveKey(key)) {
+          safeFields[key] = REDACTED;
+          continue;
+        }
+        try {
+          safeFields[key] = safeValue(fields[key], 0, new WeakSet());
+        } catch {
+          safeFields[key] = "[unreadable]";
+        }
+      }
+    }
+    const safeMessage = clip(String(message));
     // `severity` / `message` は予約。fieldsで上書きされないよう最後に置く。
-    let line = JSON.stringify({ ...fields, severity, message });
+    let line = JSON.stringify({ ...safeFields, severity, message: safeMessage });
     const bytes = Buffer.byteLength(line);
-    if (bytes > MAX_LINE_BYTES) line = oversizeFallback(severity, message, fields, bytes);
+    if (bytes > MAX_LINE_BYTES) line = oversizeFallback(severity, safeMessage, safeFields, bytes);
     emit(severity, line);
   } catch {
     try {
-      emit(severity, JSON.stringify({ severity, message, logError: "serialize failed" }));
+      // 生のmessageは出さない（伏字・clipを通す。String()がthrowする場合は固定文言）。
+      let fallbackMessage = "[unprintable message]";
+      try {
+        fallbackMessage = clip(String(message));
+      } catch {
+        // 固定文言のまま
+      }
+      emit(severity, JSON.stringify({ severity, message: fallbackMessage, logError: "serialize failed" }));
     } catch {
-      // 握りつぶす
+      // ログ失敗で業務を止めない。無音欠落を避けるため、機密を含まない固定1行だけstderrへ出す（それも失敗したら諦める）。
+      try {
+        process.stderr.write('{"severity":"ERROR","message":"logger write failed"}\n');
+      } catch {
+        // 握りつぶす
+      }
     }
   }
 }

@@ -113,4 +113,16 @@ describe("toErrorResponse", () => {
     warn.mockRestore();
     error.mockRestore();
   });
+
+  it("Zodのissue messageに含まれる受信値の機密・長大文字列を伏字/clipしてログに出す", () => {
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+    const long = "x".repeat(20_000);
+    const result = z.object({ a: z.string().refine(() => false, { message: `bad value Bearer sekret-token-1 ${long}` }) }).safeParse({ a: "v" });
+    toErrorResponse(result.success ? undefined : result.error);
+    const fields = warn.mock.calls[warn.mock.calls.length - 1][1] as { issues: Array<{ message: string }> };
+    const text = JSON.stringify(fields.issues);
+    expect(text).not.toContain("sekret-token-1");
+    expect(fields.issues[0].message.length).toBeLessThan(9000);
+    warn.mockRestore();
+  });
 });

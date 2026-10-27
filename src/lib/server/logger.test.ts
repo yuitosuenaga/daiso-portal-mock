@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { z } from "zod";
 
-import { errorFields, logger, MAX_LINE_BYTES } from "./logger";
+import { errorFields, logger, MAX_LINE_BYTES, redactSecrets } from "./logger";
 
 describe("logger", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -168,11 +168,126 @@ describe("logger", () => {
     });
   });
 
+  describe("write時のfields/message防御（M1）", () => {
+    it("fieldsの生の機密値・機密キー・巨大文字列・messageを素通りさせない", () => {
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      logger.error("failed Bearer abc123tok", {
+        id: "x1",
+        password: "pw-raw",
+        detail: "conn postgres://u:dbpass@h/db",
+        big: "z".repeat(20_000),
+        nested: { token: "tk-raw", ok: "fine" },
+        stack_trace: "at foo",
+      });
+      const line = String(err.mock.calls[0][0]);
+      const parsed = JSON.parse(line);
+      for (const s of ["abc123tok", "pw-raw", "dbpass", "tk-raw"]) expect(line).not.toContain(s);
+      expect(parsed.id).toBe("x1");
+      expect(parsed.nested.ok).toBe("fine");
+      expect(parsed.big.length).toBeLessThan(9000);
+      expect(parsed.stack_trace).toBe("at foo");
+      expect(parsed.severity).toBe("ERROR");
+      expect(parsed.message).toBe("failed Bearer [redacted]");
+    });
+
+    it("errorFieldsの出力（cause連鎖・errorProps）の構造は変わらない", () => {
+      const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+      const e = new Error("a", { cause: new Error("b", { cause: new Error("c", { cause: new Error("d") }) }) });
+      logger.info("m", errorFields(Object.assign(e, { request_id: "r1" })));
+      const parsed = JSON.parse(String(out.mock.calls[0][0]));
+      expect(parsed.errorProps).toEqual({ request_id: "r1" });
+      expect(parsed.cause.cause.cause.errorMessage).toBe("d");
+    });
+  });
+
+  describe("L3: 引用符内に空白を含む値", () => {
+    it("引用符付き値を全体伏字にする", () => {
+      const msg = `token: "abc def" and password='p q r' ok secret="x y`;
+      const out = errorFields(new Error(msg)).errorMessage as string;
+      for (const s of ["abc", "def", "p q", " r'", "x y"]) expect(out).not.toContain(s);
+      expect(out).toContain(`token: "[redacted]"`);
+      expect(out).toContain(`password='[redacted]'`);
+    });
+  });
+
+  describe("引用符付き値の取りこぼし（エスケープ・長値・改行）", () => {
+    const red = (s: string) => errorFields(new Error(s)).errorMessage as string;
+    it("エスケープされた引用符を含む値を全体伏字にする", () => {
+      const out = red(`{"token":"a\\"b c"} tail`);
+      expect(out).not.toContain("b c");
+      expect(out).toContain(`"token":"[redacted]"`);
+      expect(out).toContain("} tail");
+    });
+    it("1024文字を超える引用符内の値も全体伏字にする", () => {
+      const out = red(`token="${"a".repeat(1500)} LEAKTAIL more" ok`);
+      expect(out).not.toContain("LEAKTAIL");
+      expect(out).not.toContain("more");
+      expect(out).toContain(`token="[redacted]" ok`);
+    });
+    it("改行を含む引用符内の値も全体伏字にする", () => {
+      const out = red(`token="abc\ndef" ok`);
+      expect(out).not.toContain("def");
+      expect(out).toContain(`token="[redacted]" ok`);
+    });
+  });
+
+  describe("エスケープ引用符で囲まれた値・redactSecrets直接呼び出し", () => {
+    const red = (s: string) => errorFields(new Error(s)).errorMessage as string;
+    it("\\\"abc def\\\"で囲まれた値を全体伏字にする", () => {
+      const out = red(`password=\\"abc def\\" tail`);
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+      expect(out).toBe(`password=\\"[redacted]\\" tail`);
+    });
+    it("JSON.stringifyで文字列に埋め込んだ形も伏字にする", () => {
+      const out = red(JSON.stringify({ m: `password="abc def" x` }));
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+      expect(out).toContain(" x");
+    });
+    it("二重エスケープ（入れ子）でも漏らさない", () => {
+      const out = red(JSON.stringify(JSON.stringify({ m: `password="abc def" x` })));
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+    });
+    it("エスケープされた単引用符でも全体伏字にする", () => {
+      const out = red(`token=\\'p q r\\' ok`);
+      expect(out).not.toContain("p q");
+      expect(out).toContain("ok");
+    });
+    it("9216文字超の引用符値をclipを通さず直接渡しても後半が残らない", () => {
+      const out = redactSecrets(`token="${"a".repeat(9300)}LEAKTAIL"`);
+      expect(out).not.toContain("LEAKTAIL");
+      expect(out).not.toContain("aaaa");
+      const out2 = redactSecrets(`token=\\"${"a".repeat(9300)}LEAKTAIL\\"`);
+      expect(out2).not.toContain("LEAKTAIL");
+      expect(out2).not.toContain("aaaa");
+    });
+  });
+
+  it("深いcauseのmetaがwrite時の再適用で[max-depth]に潰れない", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const e3 = Object.assign(new Error("c3"), { meta: { target: ["a"] } });
+    const e0 = new Error("c0", { cause: new Error("c1", { cause: new Error("c2", { cause: e3 }) }) });
+    logger.error("m", errorFields(e0));
+    const line = String(err.mock.calls[0][0]);
+    expect(line).not.toContain("max-depth");
+    expect(line).toContain(`"target":["a"]`);
+  });
+
+  describe("L4: 機密キー名の追加", () => {
+    it("apiKey/csrf/otp/pin系のキーを伏字にし、正常キーは壊さない", () => {
+      const meta = { apiKey: "v1", api_key: "v2", csrfToken: "v3", csrf: "v4", otp: "v5", otpCode: "v6", pin: "v7", xsrfToken: "v8", clientSecret: "v9",
+        shipping: "ok1", pinned: "ok2", spinner: "ok3", topic: "ok4", optional: "ok5", mapping: "ok6" };
+      const json = JSON.stringify(errorFields(Object.assign(new Error("x"), { meta })));
+      for (let i = 1; i <= 9; i++) expect(json).not.toContain(`"v${i}"`);
+      for (let i = 1; i <= 6; i++) expect(json).toContain(`"ok${i}"`);
+    });
+  });
+
   describe("シリアライズ・書き込み失敗", () => {
     const cases: Array<[string, () => Record<string, unknown>]> = [
-      ["循環参照", () => { const o: Record<string, unknown> = {}; o.self = o; return { o }; }],
-      ["BigInt", () => ({ n: BigInt(1) })],
-      ["toJSONがthrow", () => ({ x: { toJSON() { throw new Error("nope"); } } })],
+      ["fields自体のキー列挙がthrow", () => new Proxy({}, { ownKeys() { throw new Error("nope"); } }) as Record<string, unknown>],
     ];
     it.each(cases)("%s でも例外を出さず最小ログを出す", (_name, make) => {
       const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
@@ -186,8 +301,49 @@ describe("logger", () => {
       expect(err).toHaveBeenCalledTimes(1);
     });
 
-    it("書き込み自体が失敗しても例外を出さない", () => {
+    it("フォールバックでも生messageを出さず伏字・clipする", () => {
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      const bad = new Proxy({}, { ownKeys() { throw new Error("nope"); } }) as Record<string, unknown>;
+      logger.warn("Bearer leakme123", bad);
+      logger.warn(`x${"y".repeat(20000)}`, bad);
+      const a = String(err.mock.calls[0][0]);
+      expect(a).not.toContain("leakme123");
+      expect(JSON.parse(a)).toEqual({ severity: "WARNING", message: "Bearer [redacted]", logError: "serialize failed" });
+      expect(JSON.parse(String(err.mock.calls[1][0])).message.length).toBeLessThan(8300);
+    });
+
+    it("String(message)がthrowしても固定文言で最小ログを出す", () => {
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      const evil = { toString() { throw new Error("no"); } } as unknown as string;
+      expect(() => logger.warn(evil)).not.toThrow();
+      expect(JSON.parse(String(err.mock.calls[0][0]))).toEqual({ severity: "WARNING", message: "[unprintable message]", logError: "serialize failed" });
+    });
+
+    it("循環参照・BigInt・toJSONのthrowはsafeValueで安全化され通常ログとして出る", () => {
+      const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+      const o: Record<string, unknown> = {};
+      o.self = o;
+      logger.info("m", { o, n: BigInt(1), x: { toJSON() { throw new Error("nope"); } } });
+      const parsed = JSON.parse(String(out.mock.calls[0][0]));
+      expect(parsed.message).toBe("m");
+      expect(parsed.o).toEqual({ self: "[circular]" });
+      expect(parsed.n).toBe("1");
+      expect(parsed.logError).toBeUndefined();
+    });
+
+    it("書き込み自体が失敗しても例外を出さず、固定1行をstderrへ出す", () => {
       vi.spyOn(process.stdout, "write").mockImplementation(() => { throw new Error("EPIPE"); });
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      expect(() => logger.info("secret-message-xyz")).not.toThrow();
+      expect(err).toHaveBeenCalledTimes(1);
+      const line = String(err.mock.calls[0][0]);
+      expect(JSON.parse(line)).toEqual({ severity: "ERROR", message: "logger write failed" });
+      expect(line).not.toContain("secret-message-xyz");
+    });
+
+    it("stderrも失敗しても例外を出さない", () => {
+      vi.spyOn(process.stdout, "write").mockImplementation(() => { throw new Error("EPIPE"); });
+      vi.spyOn(process.stderr, "write").mockImplementation(() => { throw new Error("EPIPE"); });
       expect(() => logger.info("x")).not.toThrow();
     });
   });
