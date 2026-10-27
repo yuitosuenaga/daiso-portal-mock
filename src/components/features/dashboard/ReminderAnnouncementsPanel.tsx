@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAnnouncements } from "@/lib/api/announcements";
 import { isReminderPendingForCompany } from "@/lib/api/announcement-tracking";
 import { requireApplicantSession } from "@/lib/server/auth-session";
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 
 /**
  * 申請者側ダッシュボードの最上部、「最新のお知らせ」プレビューパネルより前に表示する、
@@ -16,7 +16,7 @@ import type { Announcement } from "@/types/announcement";
  * そのまま利用し、判定ロジックを重複実装しない（要件9.6）。
  */
 export async function ReminderAnnouncementsPanel() {
-  let reminderAnnouncements: Announcement[];
+  let reminderAnnouncements: AnnouncementSummary[];
   // getAnnouncements呼び出しにUIロケールを渡すため、try節より前で取得する必要がある
   // （エラー時に多少のオーバーヘッドが乗るが、値自体は同期的に解決されるため無視できるコスト）。
   const locale = await getLocale();

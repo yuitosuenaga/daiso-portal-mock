@@ -16,7 +16,7 @@ import {
   ManagementListRow,
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
-import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementCategory, AnnouncementSummary } from "@/types/announcement";
 import type {
   AnnouncementRecipientStatusView,
   AnnouncementUserReadStatusView,
@@ -24,7 +24,7 @@ import type {
 
 export interface AnnouncementManagementListClientProps {
   /** 公開日降順で整列済みの全お知らせ */
-  announcements: Announcement[];
+  announcements: AnnouncementSummary[];
   categoryLabels: Record<AnnouncementCategory, string>;
   countryLabels: Record<string, string>;
   categoryOptions: SelectOption[];
@@ -78,7 +78,7 @@ export function AnnouncementManagementListClient({
     [announcements, filters]
   );
 
-  function targetingLabel(announcement: Announcement): string {
+  function targetingLabel(announcement: AnnouncementSummary): string {
     if (announcement.targeting.scope === "all") {
       return targetingAllLabel;
     }
@@ -100,7 +100,7 @@ export function AnnouncementManagementListClient({
     });
   }
 
-  function publishPeriodText(announcement: Announcement): string {
+  function publishPeriodText(announcement: AnnouncementSummary): string {
     const { publishStartDate, publishEndDate } = announcement;
     if (!publishStartDate && !publishEndDate) {
       return publishPeriodAlwaysLabel;

@@ -2,7 +2,7 @@ import { Bell } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { getAnnouncements } from "@/lib/api/announcements";
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 import { NavigationCard, type NavigationCardBadge } from "@/components/features/dashboard/NavigationCard";
 
 const DEFAULT_RECENT_DAYS = 7;
@@ -17,7 +17,7 @@ export interface AnnouncementsCardProps {
 }
 
 function countRecentAnnouncements(
-  announcements: Announcement[],
+  announcements: AnnouncementSummary[],
   recentDays: number
 ): number {
   const cutoff = Date.now() - recentDays * MS_PER_DAY;
