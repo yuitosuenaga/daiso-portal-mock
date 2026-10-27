@@ -15,6 +15,8 @@ interface HelpdeskDashboardLayoutProps {
  * ヘルプデスク側ダッシュボードの共通レイアウト。無効化されたスタッフの既存JWT
  * セッションを遮断するため、`requireHelpdeskStaffSession`（内部で`HelpdeskStaff.isActive`
  * をDB再照会する）が失敗した場合はログイン画面へリダイレクトする（多層防御）。
+ * クライアント遷移ではlayoutが再レンダーされないため、再検証の本体は各ページ・Action・
+ * Route Handler側の`require*`/`getSession`であり、layoutは多層防御に過ぎない。
  */
 export default async function HelpdeskDashboardLayout({
   children,
