@@ -92,7 +92,7 @@ describe("ApplicantUserForm（新規作成モード）", () => {
   });
 
   it("入力済みで送信するとcreateApplicantUserActionが呼ばれ会社詳細へ遷移する", async () => {
-    createApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    createApplicantUserActionMock.mockResolvedValue({ ok: true, user: { id: "applicant-1" } });
     render(<ApplicantUserForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
@@ -138,7 +138,7 @@ describe("ApplicantUserForm（新規作成モード）", () => {
   });
 
   it("通知言語を選択して送信するとcreateApplicantUserActionに選択値が渡される", async () => {
-    createApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    createApplicantUserActionMock.mockResolvedValue({ ok: true, user: { id: "applicant-1" } });
     render(<ApplicantUserForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
@@ -166,9 +166,10 @@ describe("ApplicantUserForm（新規作成モード）", () => {
   });
 
   it("メールアドレス重複エラーはemailフィールドに表示される", async () => {
-    createApplicantUserActionMock.mockRejectedValue(
-      new Error("Email already taken: tanaka@example.com")
-    );
+    createApplicantUserActionMock.mockResolvedValue({
+      ok: false,
+      reason: "emailTaken",
+    });
     render(<ApplicantUserForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
@@ -204,7 +205,7 @@ describe("ApplicantUserForm（新規作成モード）", () => {
 
 describe("ApplicantUserForm（編集モード）", () => {
   it("既存の値が初期表示され、パスワード空欄での更新時にpasswordが送信されない", async () => {
-    updateApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    updateApplicantUserActionMock.mockResolvedValue({ ok: true, user: { id: "applicant-1" } });
     render(
       <ApplicantUserForm
         mode="edit"
@@ -237,7 +238,7 @@ describe("ApplicantUserForm（編集モード）", () => {
   });
 
   it("パスワードに入力がある場合は更新データに含まれる", async () => {
-    updateApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    updateApplicantUserActionMock.mockResolvedValue({ ok: true, user: { id: "applicant-1" } });
     render(
       <ApplicantUserForm
         mode="edit"
@@ -285,7 +286,7 @@ describe("ApplicantUserForm（編集モード）", () => {
   });
 
   it("編集モードで通知言語を変更して保存すると更新データに新しい値が含まれる", async () => {
-    updateApplicantUserActionMock.mockResolvedValue({ id: "applicant-1" });
+    updateApplicantUserActionMock.mockResolvedValue({ ok: true, user: { id: "applicant-1" } });
     render(
       <ApplicantUserForm
         mode="edit"

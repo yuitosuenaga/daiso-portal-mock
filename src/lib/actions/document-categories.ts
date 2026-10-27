@@ -16,6 +16,7 @@ import {
   translateCategoryNames,
 } from "@/lib/server/document-auto-translation";
 import {
+  DocumentCategoryNameConflictError,
   DocumentCategoryNotFoundError,
   findDocumentCategoryForHelpdesk,
   upsertDocumentCategoryTranslations,
@@ -24,7 +25,7 @@ import { documentCategoryFormSchema } from "@/lib/validation/document-category";
 import type {
   DocumentCategoryFormInput,
   DocumentCategoryMoveDirection,
-  DocumentCategorySaveResult,
+  DocumentCategorySaveOutcome,
 } from "@/types/document-category";
 import type { RetranslateResult } from "@/types/document";
 
@@ -52,19 +53,28 @@ function revalidateDocumentCategoryRoutes() {
 /**
  * カテゴリを新規作成し、関連ルートを再検証する。`documentCategoryFormSchema`による
  * サーバー側再検証を行う（要件20.11・21.12）。日本語名称を全対応言語へ自動翻訳して保存し、
- * 翻訳に失敗しても保存は続行する（失敗した言語は`failedLocales`で返す）。名称重複・階層違反等、
- * スキーマで表現できない検証はサービス層の例外をそのまま送出する。
+ * 翻訳に失敗しても保存は続行する（失敗した言語は`failedLocales`で返す）。同一階層での名称重複は
+ * `{ ok: false, reason: "nameConflict" }`で返す。階層違反等、スキーマで表現できない
+ * その他の検証はサービス層の例外をそのまま送出する。
  */
 export async function createDocumentCategoryAction(
   input: DocumentCategoryFormInput
-): Promise<DocumentCategorySaveResult> {
+): Promise<DocumentCategorySaveOutcome> {
   await requireHelpdeskStaffSession();
   const parsed = documentCategoryFormSchema.parse(input);
   const { translations, failedLocales } = await planCategoryTranslations(parsed.name, null);
-  const created = await createDocumentCategory({ ...parsed, translations });
+  let created;
+  try {
+    created = await createDocumentCategory({ ...parsed, translations });
+  } catch (error) {
+    if (error instanceof DocumentCategoryNameConflictError) {
+      return { ok: false, reason: "nameConflict" };
+    }
+    throw error;
+  }
   revalidateDocumentCategoryRoutes();
 
-  return { category: created, failedLocales };
+  return { ok: true, category: created, failedLocales };
 }
 
 /**
@@ -74,7 +84,7 @@ export async function createDocumentCategoryAction(
 export async function updateDocumentCategoryAction(
   id: string,
   input: Omit<DocumentCategoryFormInput, "parentId">
-): Promise<DocumentCategorySaveResult> {
+): Promise<DocumentCategorySaveOutcome> {
   await requireHelpdeskStaffSession();
   const parsed = documentCategoryFormSchema.parse({ parentId: null, ...input });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -87,10 +97,18 @@ export async function updateDocumentCategoryAction(
     updateInput.name,
     existing
   );
-  const updated = await updateDocumentCategory(id, { ...updateInput, translations });
+  let updated;
+  try {
+    updated = await updateDocumentCategory(id, { ...updateInput, translations });
+  } catch (error) {
+    if (error instanceof DocumentCategoryNameConflictError) {
+      return { ok: false, reason: "nameConflict" };
+    }
+    throw error;
+  }
   revalidateDocumentCategoryRoutes();
 
-  return { category: updated, failedLocales };
+  return { ok: true, category: updated, failedLocales };
 }
 
 /**

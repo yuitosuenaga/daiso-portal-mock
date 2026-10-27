@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import {
-  ApplicantUserEmailTakenError,
   createApplicantUser,
   isApplicantUserEmailTaken,
   searchApplicantUsersForTargeting,
@@ -32,38 +31,49 @@ function revalidateApplicantUserRoutes() {
 }
 
 /**
+ * 申請者アカウントの保存系Server Actionの戻り値。メールアドレス重複は例外ではなく
+ * 種別コードで返す（本番ではServer Actionの例外メッセージがクライアントへ届く前にマスクされ、
+ * メッセージ文字列による判定が成立しないため）。
+ */
+export type ApplicantUserSaveResult =
+  | { ok: true; user: ApplicantUserSummary }
+  | { ok: false; reason: "emailTaken" };
+
+/**
  * 申請者アカウントを新規作成し、対象会社の詳細ルートを再検証する。
- * 不正な入力・メールアドレスの重複は保存せず例外を送出する。
+ * 不正な入力は保存せず例外を送出する。メールアドレスの重複は保存せず
+ * `{ ok: false, reason: "emailTaken" }`を返す。
  */
 export async function createApplicantUserAction(
   companyId: string,
   input: CreateApplicantUserInput
-): Promise<ApplicantUserSummary> {
+): Promise<ApplicantUserSaveResult> {
   const parsed = applicantUserCreateFormSchema.parse(input);
 
   if (await isApplicantUserEmailTaken(parsed.email)) {
-    throw new ApplicantUserEmailTakenError(parsed.email);
+    return { ok: false, reason: "emailTaken" };
   }
 
   const created = await createApplicantUser(companyId, parsed);
   revalidateApplicantUserRoutes();
 
-  return created;
+  return { ok: true, user: created };
 }
 
 /**
  * 既存の申請者アカウントを更新し、対象会社の詳細ルート・当該アカウントの編集ルートを
- * 再検証する。不正な入力・自分自身以外とのメールアドレスの重複は保存せず例外を送出する。
+ * 再検証する。不正な入力は保存せず例外を送出する。自分自身以外とのメールアドレスの重複は
+ * 保存せず`{ ok: false, reason: "emailTaken" }`を返す。
  * パスワード欄が空欄の場合は既存のパスワードハッシュを変更しない。
  */
 export async function updateApplicantUserAction(
   id: string,
   input: UpdateApplicantUserInput
-): Promise<ApplicantUserSummary> {
+): Promise<ApplicantUserSaveResult> {
   const parsed = applicantUserUpdateFormSchema.parse(input);
 
   if (await isApplicantUserEmailTaken(parsed.email, id)) {
-    throw new ApplicantUserEmailTakenError(parsed.email);
+    return { ok: false, reason: "emailTaken" };
   }
 
   const updated = await updateApplicantUser(id, {
@@ -74,7 +84,7 @@ export async function updateApplicantUserAction(
   });
   revalidateApplicantUserRoutes();
 
-  return updated;
+  return { ok: true, user: updated };
 }
 
 /**

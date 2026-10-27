@@ -93,6 +93,10 @@ export function LinkCategoryForm({
         mode === "edit" && category
           ? await updateLinkCategoryAction(category.id, { name: values.name })
           : await createLinkCategoryAction(values);
+      if (!result.ok) {
+        setNameConflictError(true);
+        return;
+      }
       if (result.failedLocales.length > 0) {
         // 保存は完了している。再翻訳できるよう、フォームを閉じずに案内する
         setSavedCategoryId(result.category.id);
@@ -100,14 +104,7 @@ export function LinkCategoryForm({
         return;
       }
       onSaved();
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("already exists in this hierarchy")
-      ) {
-        setNameConflictError(true);
-        return;
-      }
+    } catch {
       setHasSubmitError(true);
     }
   }

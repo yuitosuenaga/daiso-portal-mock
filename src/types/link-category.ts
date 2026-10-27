@@ -45,6 +45,14 @@ export interface LinkCategorySaveResult {
   failedLocales: string[];
 }
 
+/**
+ * カテゴリ作成・更新Server Actionの戻り値。同一階層での名称重複は例外ではなく種別コードで返す
+ * （本番ではServer Actionの例外メッセージがクライアントへ届く前にマスクされるため）。
+ */
+export type LinkCategorySaveOutcome =
+  | ({ ok: true } & LinkCategorySaveResult)
+  | { ok: false; reason: "nameConflict" };
+
 /** カテゴリの更新入力。所属大分類の付け替えは対象外のため`parentId`を含まない。 */
 export type UpdateLinkCategoryInput = Omit<CreateLinkCategoryInput, "parentId">;
 
