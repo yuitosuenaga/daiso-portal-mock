@@ -44,6 +44,7 @@ vi.mock("@/lib/server/announcement-notifications", () => ({
   notifyAnnouncementUserReadReminder: vi.fn().mockResolvedValue(undefined),
 }));
 
+import type { AnnouncementTargeting } from "@/types/announcement";
 import { prisma } from "@/lib/db/prisma";
 import {
   notifyAnnouncementPublished,
@@ -2241,5 +2242,184 @@ describe("getAnnouncementTrackingStatusesBulk", () => {
     expect(result.userReadStatuses["a-users"].map((v) => v.applicantUserId)).toEqual(["u-th"]);
     expect(result.userReadStatuses["a-all"][0].confirmedAt).toBe(t.toISOString());
     expect(result.userReadStatuses["a-vn"][0].confirmedAt).toBeNull();
+  });
+});
+
+describe("getAnnouncementTrackingStatusesBulk: 1件ずつ取得した結果との突き合わせ", () => {
+  // Prismaの`where`をメモリ上で評価する最小のオラクル。テストで使う形（in / OR / AND /
+  // 真偽値 / ネスト / applicantUsers.some）以外を受け取ったら、黙って通さず例外にする。
+  type Row = Record<string, unknown>;
+  function matches(row: Row, where: Row): boolean {
+    return Object.entries(where).every(([key, condition]) => {
+      if (key === "OR") {
+        return (condition as Row[]).some((sub) => matches(row, sub));
+      }
+      if (key === "AND") {
+        return (condition as Row[]).every((sub) => matches(row, sub));
+      }
+      if (key === "applicantUsers") {
+        const { some } = condition as { some: Row };
+        return (row.applicantUsers as Row[]).some((user) => matches(user, some));
+      }
+      const value = row[key];
+      if (typeof condition === "boolean" || typeof condition === "string") {
+        return value === condition;
+      }
+      const object = condition as Row;
+      if ("in" in object) {
+        return (object.in as unknown[]).includes(value);
+      }
+      if (value && typeof value === "object") {
+        return matches(value as Row, object);
+      }
+      throw new Error(`oracle: 未対応のwhere条件 ${key}`);
+    });
+  }
+
+  const t1 = new Date("2026-02-01T00:00:00.000Z");
+  const t2 = new Date("2026-03-01T00:00:00.000Z");
+  const companies = {
+    VN1: { id: "company-VN1", companyCode: "VN1", name: "Company VN1", country: "VN" },
+    TH1: { id: "company-TH1", companyCode: "TH1", name: "Company TH1", country: "TH" },
+    US1: { id: "company-US1", companyCode: "US1", name: "Company US1", country: "US" },
+    JP1: { id: "company-JP1", companyCode: "JP1", name: "Company JP1", country: "JP" },
+  };
+  const userSeeds = [
+    { id: "u-vn-a", code: "VN1", isActive: true },
+    { id: "u-vn-b", code: "VN1", isActive: true },
+    { id: "u-vn-off", code: "VN1", isActive: false },
+    { id: "u-th", code: "TH1", isActive: true },
+    { id: "u-us-off", code: "US1", isActive: false },
+  ] as const;
+
+  // 状態（既読・確認済み・実施済み）の有無を、お知らせ・会社・個人ごとに混在させる
+  const recipientStatusRows: Record<string, Record<string, Row>> = {
+    VN1: { "a-all": { completedAt: t1, reminderSentAt: null }, "a-vn": { completedAt: null, reminderSentAt: t2 } },
+    TH1: { "a-users-company": { completedAt: t2, reminderSentAt: t1 } },
+    US1: {},
+    JP1: { "a-all": { completedAt: null, reminderSentAt: null } },
+  };
+  const receiptRows: Record<string, Record<string, Row>> = {
+    "u-vn-a": { "a-all": { confirmedAt: t1, readReminderSentAt: null, confirmers: [{ name: "A", confirmedAt: t1 }] } },
+    "u-vn-b": { "a-vn": { confirmedAt: null, readReminderSentAt: t2, confirmers: [] } },
+    "u-th": { "a-users-company": { confirmedAt: t2, readReminderSentAt: null, confirmers: [] } },
+  };
+
+  const scenarios: { id: string; targeting: AnnouncementTargeting }[] = [
+    { id: "a-all", targeting: { scope: "all" } },
+    { id: "a-vn", targeting: { scope: "countries", countries: ["VN"] } },
+    { id: "a-vn-us", targeting: { scope: "countries", countries: ["VN", "US"] } },
+    { id: "a-no-country", targeting: { scope: "countries", countries: [] } },
+    { id: "a-users-person", targeting: { scope: "users", userIds: ["u-vn-a"], companyIds: [] } },
+    { id: "a-users-company", targeting: { scope: "users", userIds: [], companyIds: ["company-TH1"] } },
+    { id: "a-users-empty", targeting: { scope: "users", userIds: [], companyIds: [] } },
+    { id: "a-users-inactive-person", targeting: { scope: "users", userIds: ["u-us-off"], companyIds: [] } },
+    {
+      id: "a-users-mixed",
+      targeting: { scope: "users", userIds: ["u-vn-off", "u-th"], companyIds: ["company-JP1"] },
+    },
+  ];
+
+  const users = userSeeds.map((seed) => ({
+    id: seed.id,
+    email: `${seed.id}@example.com`,
+    displayName: `担当者-${seed.id}`,
+    companyId: companies[seed.code].id,
+    isActive: seed.isActive,
+    preferredLocale: "en",
+    company: companies[seed.code],
+    announcementReadReceipts: Object.entries(receiptRows[seed.id] ?? {}).map(([announcementId, row]) => ({
+      announcementId,
+      ...row,
+    })),
+  }));
+  const recipients = (Object.keys(companies) as (keyof typeof companies)[]).map((code) => ({
+    id: `r-${code}`,
+    companyId: companies[code].id,
+    contactName: `担当者-r-${code}`,
+    company: {
+      ...companies[code],
+      applicantUsers: users.filter((user) => user.companyId === companies[code].id),
+    },
+    statuses: Object.entries(recipientStatusRows[code]).map(([announcementId, row]) => ({
+      announcementId,
+      ...row,
+    })),
+  }));
+
+  // `include`内の`where`（お知らせIDでのネスト絞り込み）も再現する
+  function withNestedFilter(rows: Row[], key: string, args: { include?: Row }): Row[] {
+    const nested = (args.include?.[key] as { where?: Row } | undefined)?.where;
+    return rows.map((row) => ({
+      ...row,
+      [key]: (row[key] as Row[]).filter((child) => matches(child, nested ?? {})),
+    }));
+  }
+
+  beforeEach(() => {
+    vi.mocked(prisma.announcementRecipient.findMany).mockReset();
+    vi.mocked(prisma.applicantUser.findMany).mockReset();
+    vi.mocked(prisma.announcement.findUnique).mockReset();
+    vi.mocked(prisma.announcementRecipient.findMany).mockImplementation((async (args: {
+      where?: Row;
+      include?: Row;
+    }) =>
+      withNestedFilter(
+        recipients.filter((recipient) => matches(recipient, args.where ?? {})),
+        "statuses",
+        args
+      )) as never);
+    vi.mocked(prisma.applicantUser.findMany).mockImplementation((async (args: {
+      where?: Row;
+      include?: Row;
+    }) =>
+      withNestedFilter(
+        users.filter((user) => matches(user, args.where ?? {})),
+        "announcementReadReceipts",
+        args
+      )) as never);
+    vi.mocked(prisma.announcement.findUnique).mockImplementation((async (args: { where: { id: string } }) => {
+      const scenario = scenarios.find((item) => item.id === args.where.id);
+      if (!scenario) {
+        return null;
+      }
+      const { targeting } = scenario;
+      return baseAnnouncementRecord({
+        id: scenario.id,
+        targetingScope: targeting.scope,
+        targetingCountries: targeting.scope === "countries" ? targeting.countries : [],
+        targetingUserIds: targeting.scope === "users" ? targeting.userIds : [],
+        targetingCompanyIds: targeting.scope === "users" ? targeting.companyIds : [],
+      });
+    }) as never);
+  });
+
+  it("全スコープ・全ケースで、一括版と1件ずつ版の結果（母集団・順序・状態）が一致する", async () => {
+    const bulk = await getAnnouncementTrackingStatusesBulk(scenarios);
+
+    for (const { id } of scenarios) {
+      expect(bulk.recipientStatuses[id], `recipientStatuses: ${id}`).toEqual(
+        await getAnnouncementRecipientStatuses(id)
+      );
+      expect(bulk.userReadStatuses[id], `userReadStatuses: ${id}`).toEqual(
+        await getAnnouncementUserReadStatuses(id)
+      );
+    }
+  });
+
+  it("突き合わせの前提確認: 無効ユーザー除外・空指定・複数ユーザー会社が実際に検証対象に含まれる", async () => {
+    const ids = async (id: string) =>
+      (await getAnnouncementUserReadStatuses(id)).map((view) => view.applicantUserId);
+
+    // 同一会社に複数ユーザー。無効ユーザーは個人単位から除外
+    expect(await ids("a-vn")).toEqual(["u-vn-a", "u-vn-b"]);
+    // 空指定は誰も対象にならない
+    expect(await ids("a-users-empty")).toEqual([]);
+    expect((await getAnnouncementRecipientStatuses("a-users-empty")).length).toBe(0);
+    // 無効ユーザーを個人指定しても個人単位は空、会社単位では所属会社が残る
+    expect(await ids("a-users-inactive-person")).toEqual([]);
+    expect(
+      (await getAnnouncementRecipientStatuses("a-users-inactive-person")).map((view) => view.companyCode)
+    ).toEqual(["US1"]);
   });
 });

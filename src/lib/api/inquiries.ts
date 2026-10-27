@@ -84,6 +84,9 @@ export async function getInquiries(): Promise<Inquiry[]> {
  * ヘルプデスクのダッシュボードではKPIパネルと優先対応プレビューが同じ全件取得を行うため、
  * `requestCache()`（React `cache()`）で1リクエスト内の重複呼び出しを1回にまとめる（キャッシュはリクエスト単位で、
  * リクエストをまたいで共有されない。認可チェックは初回呼び出しの1回で足りる）。
+ *
+ * 返却配列は同一リクエスト内の複数パネルで同じ参照が共有されるため、読み取り専用として扱うこと。
+ * `sort`等の破壊的操作はせず、並べ替えが必要なら`[...inquiries]`等で複製してから行う。
  */
 export const getAllInquiries = requestCache(async (): Promise<Inquiry[]> => {
   await requireHelpdeskStaffSession();
