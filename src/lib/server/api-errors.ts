@@ -9,14 +9,14 @@ import {
   DoubleClaimError,
   InquiryNotFoundError,
 } from "@/lib/server/inquiry-service";
-import { errorFields, logger } from "@/lib/server/logger";
+import { clip, errorFields, logger } from "@/lib/server/logger";
 
 /**
  * Route Handler内で送出された例外を、design.mdのAPI Contractで定義された
  * HTTPステータスコードに変換する。
  * レスポンス本文には例外メッセージ（ID等を含みうる）やZodのissuesを載せず、固定文言のみを返す。
  * 応答から外した詳細（元メッセージ・例外プロパティのID・Zodのissues）はサーバーログへ出す
- * （リクエスト本文全体は出さず、Zodはissuesのpath/code/messageのみ）。
+ * （リクエスト本文全体は出さず、Zodはissuesのpath/code/messageのみ。Zodのmessageは受信値を含みうるため伏字+長さ上限を通す）。
  */
 // 想定内エラー(400/401/403/404/409)はstack_traceを出さない。500の想定外例外のみ従来どおり全情報。
 const EXPECTED = { stack: false } as const;
@@ -29,7 +29,7 @@ export function toErrorResponse(error: unknown): NextResponse {
   if (error instanceof ZodError) {
     logger.warn("[api-errors] Invalid request", {
       ...errorFields(error, EXPECTED),
-      issues: error.issues.slice(0, 20).map((i) => ({ path: i.path.join("."), code: i.code, message: i.message })),
+      issues: error.issues.slice(0, 20).map((i) => ({ path: i.path.join("."), code: i.code, message: clip(i.message) })),
     });
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }

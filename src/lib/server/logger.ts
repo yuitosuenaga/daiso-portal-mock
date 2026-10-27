@@ -33,13 +33,19 @@ export function redactSecrets(text: string): string {
     .replace(/\bAuthorization\s{0,16}[:=]\s{0,16}(?:(?:Basic|Digest|Token|Bearer)\s{1,16})?[^\s\"',;]{1,2048}/gi, `Authorization: ${REDACTED}`)
     .replace(/\b((?:set-)?cookie)\s{0,16}:[^\r\n]{1,8192}/gi, `$1: ${REDACTED}`)
     .replace(
-      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(["']?)[^\s"'&,;}]{1,1024}/gi,
-      `$1$2$3${REDACTED}`
+      // 値は「"..."/'...'（空白を含む引用符内全体）」→「引用符なしの語（閉じ引用符のない値も含む）」の順に試す。すべて有界。
+      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(?:"[^"\r\n]{0,1024}"|'[^'\r\n]{0,1024}'|["']?[^\s"'&,;}]{1,1024})/gi,
+      (m: string, key: string, sep: string) => {
+        const v = m.slice(key.length + sep.length);
+        const q = v[0] === '"' || v[0] === "'" ? v[0] : "";
+        const closed = q !== "" && v.length >= 2 && v[v.length - 1] === q;
+        return `${key}${sep}${q}${REDACTED}${closed ? q : ""}`;
+      }
     );
 }
 
 // 正規化（小文字化・区切り除去）したキー名が、秘密情報を表す語で始まる/終わる場合は値を伏字にする。
-const SENSITIVE_KEY = /^(secret|password|passwd|pwd|authorization|cookie)|(password|passwd|pwd|token|secret|apikey|authorization|cookie|credentials?|privatekey|sessionid)$/;
+const SENSITIVE_KEY = /^(secret|password|passwd|pwd|authorization|cookie|apikey|csrf|xsrf|otp)|(password|passwd|pwd|token|secret|apikey|authorization|cookie|credentials?|privatekey|sessionid|csrf|xsrf|otp)$|^(pin|pincode)$/;
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
 }
@@ -47,7 +53,7 @@ function isSensitiveKey(key: string): boolean {
 // 伏字の対象が切り詰め境界をまたぐ場合に断片を残さないための余白。
 const CLIP_MARGIN = 256;
 
-function clip(text: string): string {
+export function clip(text: string): string {
   // 先に切ってから伏字にする（巨大入力に対する正規表現の走査量を上限で抑える）。
   const head = text.length > MAX_STRING_LENGTH + CLIP_MARGIN ? text.slice(0, MAX_STRING_LENGTH + CLIP_MARGIN) : text;
   const redacted = redactSecrets(head);
@@ -214,16 +220,38 @@ function oversizeFallback(severity: LogSeverity, message: string, fields: Record
 function write(severity: LogSeverity, message: string, fields?: Record<string, unknown>): void {
   // ログ出力の失敗（循環参照・BigInt・toJSONの例外・書き込み失敗）を呼び出し元へ伝播させない。
   try {
+    // 呼び出し側の誤用（生の値・機密キー・巨大文字列）でも素通りしないよう、fieldsとmessageをここで伏字・clip・安全化する。
+    // 各値を深さ0から処理するので、errorFieldsの出力（cause連鎖等）の構造は変わらない。
+    const safeFields: Record<string, unknown> = {};
+    if (fields) {
+      for (const key of Object.keys(fields).slice(0, MAX_KEYS * 2)) {
+        if (isSensitiveKey(key)) {
+          safeFields[key] = REDACTED;
+          continue;
+        }
+        try {
+          safeFields[key] = safeValue(fields[key], 0, new WeakSet());
+        } catch {
+          safeFields[key] = "[unreadable]";
+        }
+      }
+    }
+    const safeMessage = clip(String(message));
     // `severity` / `message` は予約。fieldsで上書きされないよう最後に置く。
-    let line = JSON.stringify({ ...fields, severity, message });
+    let line = JSON.stringify({ ...safeFields, severity, message: safeMessage });
     const bytes = Buffer.byteLength(line);
-    if (bytes > MAX_LINE_BYTES) line = oversizeFallback(severity, message, fields, bytes);
+    if (bytes > MAX_LINE_BYTES) line = oversizeFallback(severity, safeMessage, safeFields, bytes);
     emit(severity, line);
   } catch {
     try {
       emit(severity, JSON.stringify({ severity, message, logError: "serialize failed" }));
     } catch {
-      // 握りつぶす
+      // ログ失敗で業務を止めない。無音欠落を避けるため、機密を含まない固定1行だけstderrへ出す（それも失敗したら諦める）。
+      try {
+        process.stderr.write('{"severity":"ERROR","message":"logger write failed"}\n');
+      } catch {
+        // 握りつぶす
+      }
     }
   }
 }
