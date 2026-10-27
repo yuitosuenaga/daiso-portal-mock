@@ -25,6 +25,16 @@ provider "google" {
   region  = var.region
 }
 
+# Budget API 用。ユーザー認証(ADC)では課金/クォータ用プロジェクトの指定が必要なため、
+# modules/budget にだけ渡す別名 provider を用意する（他リソースの挙動は変えない）。
+provider "google" {
+  alias                 = "budget"
+  project               = var.project_id
+  region                = var.region
+  user_project_override = true
+  billing_project       = var.project_id
+}
+
 data "google_project" "this" {
   project_id = var.project_id
 }
@@ -233,4 +243,30 @@ module "monitoring" {
   enable_cloudsql_down_alert = var.enable_cloudsql_down_alert
 
   depends_on = [module.services]
+}
+
+# 予算アラート（enable_budget_alert=false なら何も作らない）。請求先アカウントの権限が必要。
+module "budget" {
+  count     = var.enable_budget_alert ? 1 : 0
+  source    = "../../modules/budget"
+  providers = { google = google.budget }
+
+  project_id         = var.project_id
+  billing_account_id = var.billing_account_id
+  name_prefix        = var.name_prefix
+  monthly_amount     = var.budget_monthly_amount
+  currency_code      = var.budget_currency_code
+  alert_emails       = var.budget_alert_emails
+
+  depends_on = [module.services]
+}
+
+resource "terraform_data" "require_budget_inputs" {
+  count = var.enable_budget_alert ? 1 : 0
+  lifecycle {
+    precondition {
+      condition     = var.billing_account_id != null && var.budget_monthly_amount != null
+      error_message = "enable_budget_alert=true の場合は billing_account_id と budget_monthly_amount が必須。"
+    }
+  }
 }

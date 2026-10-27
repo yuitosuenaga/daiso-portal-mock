@@ -24,3 +24,10 @@ allowed_email_domains = []   # 例: ["our-company.example", "client.example"]
 # dev は db-end で夜間に DB 停止するため、停止アラートは false 推奨
 # enable_cloudsql_down_alert = false
 # enable_uptime_check        = true  # min_instances=0 だと5分間隔でウォーム維持になる。不要なら false
+
+# 予算アラート（docs/infra/ci-and-budget.md）。請求先アカウントの権限が確認できてから true
+# enable_budget_alert   = false
+# billing_account_id    = "012345-6789AB-CDEF01"
+# budget_monthly_amount = 10000
+# budget_currency_code  = "JPY"
+# budget_alert_emails   = ["ops@example.com"]
