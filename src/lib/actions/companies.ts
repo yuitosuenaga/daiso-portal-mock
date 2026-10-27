@@ -93,6 +93,8 @@ export async function checkCompanyCodeAvailabilityAction(
   code: string,
   excludeCompanyId?: string
 ): Promise<boolean> {
+  await requireHelpdeskAdminSession();
+
   const trimmed = code.trim();
   if (!trimmed) {
     return false;

@@ -317,6 +317,15 @@ describe("書き込みActionのadminガード（memberは拒否）", () => {
     expect(updateCompany).not.toHaveBeenCalled();
   });
 
+  it("checkCompanyCodeAvailabilityActionは、空文字でもadminを検証し、サービスを呼ばない", async () => {
+    await expect(checkCompanyCodeAvailabilityAction("th-daiso-thailand")).rejects.toThrow(
+      "Forbidden"
+    );
+    await expect(checkCompanyCodeAvailabilityAction("   ")).rejects.toThrow("Forbidden");
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+  });
+
   it("deactivateCompaniesApplicantUsersActionはサービスを呼ばない", async () => {
     await expect(deactivateCompaniesApplicantUsersAction(["company-1"])).rejects.toThrow(
       "Forbidden"
