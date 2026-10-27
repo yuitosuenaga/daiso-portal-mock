@@ -38,9 +38,12 @@ import type {
 export { resolveAnnouncementContent, targetApplicantUsersWhere };
 
 export class AnnouncementNotFoundError extends Error {
+  readonly announcementId: string;
+
   constructor(announcementId: string) {
-    super(`Announcement not found: ${announcementId}`);
+    super("Announcement not found");
     this.name = "AnnouncementNotFoundError";
+    this.announcementId = announcementId;
   }
 }
 

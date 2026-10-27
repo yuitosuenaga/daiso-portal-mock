@@ -30,17 +30,23 @@ const ORDER_BY_DISPLAY_ORDER = [
 ];
 
 export class DocumentCategoryNotFoundError extends Error {
+  readonly categoryId: string;
+
   constructor(categoryId: string) {
-    super(`Document category not found: ${categoryId}`);
+    super("Document category not found");
     this.name = "DocumentCategoryNotFoundError";
+    this.categoryId = categoryId;
   }
 }
 
 /** 同一階層（大分類同士、または同一の大分類配下の中分類同士）で既定言語（ja）の名称が重複（要件19.6） */
 export class DocumentCategoryNameConflictError extends Error {
+  readonly categoryName: string;
+
   constructor(name: string) {
-    super(`Document category name already exists in this hierarchy: ${name}`);
+    super("Document category name already exists in this hierarchy");
     this.name = "DocumentCategoryNameConflictError";
+    this.categoryName = name;
   }
 }
 
@@ -50,9 +56,7 @@ export class DocumentCategoryInUseError extends Error {
   readonly childCount: number;
 
   constructor(documentCount: number, childCount: number) {
-    super(
-      `Document category is in use (documents: ${documentCount}, children: ${childCount})`
-    );
+    super("Document category is in use");
     this.name = "DocumentCategoryInUseError";
     this.documentCount = documentCount;
     this.childCount = childCount;
@@ -61,21 +65,25 @@ export class DocumentCategoryInUseError extends Error {
 
 /** 中分類の配下に中分類を作ろうとした、または存在しない親を指定した（要件18.2） */
 export class DocumentCategoryDepthError extends Error {
+  readonly parentId: string;
+
   constructor(parentId: string) {
-    super(
-      `Document category cannot be created under a non-parent category: ${parentId}`
-    );
+    super("Document category cannot be created under a non-parent category");
     this.name = "DocumentCategoryDepthError";
+    this.parentId = parentId;
   }
 }
 
 /** 大分類と中分類の親子関係が不整合（要件18.9） */
 export class DocumentCategoryPairError extends Error {
+  readonly categoryId: string;
+  readonly subCategoryId: string | null;
+
   constructor(categoryId: string, subCategoryId: string | null) {
-    super(
-      `Invalid document category pair: categoryId=${categoryId}, subCategoryId=${subCategoryId ?? "null"}`
-    );
+    super("Invalid document category pair");
     this.name = "DocumentCategoryPairError";
+    this.categoryId = categoryId;
+    this.subCategoryId = subCategoryId;
   }
 }
 

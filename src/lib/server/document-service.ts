@@ -18,9 +18,12 @@ import type { CreateDocumentInput, Document } from "@/types/document";
 export { resolveDocumentContent };
 
 export class DocumentNotFoundError extends Error {
+  readonly documentId: string;
+
   constructor(documentId: string) {
-    super(`Document not found: ${documentId}`);
+    super("Document not found");
     this.name = "DocumentNotFoundError";
+    this.documentId = documentId;
   }
 }
 
