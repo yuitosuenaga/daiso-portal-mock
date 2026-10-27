@@ -48,6 +48,7 @@
     "announcements": "Gerenciamento de Comunicados",
     "documents": "Gerenciamento de Documentos",
     "companies": "Gerenciamento de Distribuidoras",
+    "staff": "Gerenciamento de Equipe",
     "salesFloorMeeting": "Reunião de Piso de Vendas (Vídeo)",
     "pop": "POP",
     "manuals": "Manuais"
@@ -795,6 +796,81 @@
       "errorMessage": "Falha na desativação em massa. Aguarde um momento e tente novamente."
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "Gerenciamento de Equipe",
+      "description": "Adicione membros da equipe do helpdesk do Japão, altere suas funções e desative ou reative-os.",
+      "empty": "Nenhum membro da equipe cadastrado",
+      "error": "Falha ao obter os membros da equipe",
+      "addButton": "Adicionar membro",
+      "emailHeader": "Endereço de e-mail",
+      "displayNameHeader": "Nome de exibição",
+      "roleHeader": "Função",
+      "sourceHeader": "Origem do cadastro",
+      "statusHeader": "Status",
+      "createdHeader": "Data de criação",
+      "actionsHeader": "Ações",
+      "youBadge": "Você"
+    },
+    "form": {
+      "createTitle": "Criar membro da equipe",
+      "backToList": "Voltar à lista",
+      "emailLabel": "Endereço de e-mail",
+      "emailPlaceholder": "Informe o endereço de e-mail",
+      "displayNameLabel": "Nome de exibição",
+      "displayNamePlaceholder": "Informe o nome de exibição",
+      "passwordLabel": "Senha (opcional)",
+      "passwordPlaceholder": "Informe somente se o login com senha for permitido (8 caracteres ou mais)",
+      "passwordHint": "Se deixado em branco, a conta é criada sem senha (somente login com Google).",
+      "roleLabel": "Função",
+      "submitButton": "Criar",
+      "submitError": "Falha ao salvar. Tente novamente mais tarde.",
+      "validation": {
+        "required": "Este campo é obrigatório",
+        "emailInvalid": "Informe um endereço de e-mail válido",
+        "emailDuplicate": "Este endereço de e-mail já está em uso",
+        "passwordTooShort": "A senha deve ter pelo menos 8 caracteres"
+      }
+    },
+    "role": {
+      "admin": "Administrador",
+      "member": "Membro"
+    },
+    "source": {
+      "seed": "Cadastro inicial",
+      "manual": "Cadastro manual",
+      "google_auto": "Criado automaticamente pelo Google"
+    },
+    "status": {
+      "active": "Ativo",
+      "inactive": "Inativo"
+    },
+    "toggle": {
+      "promoteButton": "Tornar administrador",
+      "demoteButton": "Tornar membro",
+      "promoteConfirmTitle": "Alterar para administrador",
+      "demoteConfirmTitle": "Alterar para membro",
+      "promoteConfirm": "«{name}» passará a ser administrador e poderá editar o gerenciamento de distribuidoras e de equipe. Deseja continuar?",
+      "demoteConfirm": "«{name}» passará a ser membro e não poderá mais editar o gerenciamento de distribuidoras e de equipe. Deseja continuar?",
+      "promoteConfirmButton": "Tornar administrador",
+      "demoteConfirmButton": "Tornar membro",
+      "deactivateButton": "Desativar",
+      "activateButton": "Reativar",
+      "deactivateConfirmTitle": "Desativar membro da equipe",
+      "activateConfirmTitle": "Reativar membro da equipe",
+      "deactivateConfirm": "«{name}» será desativado. Não será mais possível fazer login e a sessão atual será revogada. As consultas atribuídas a ele não serão liberadas. Deseja continuar?",
+      "activateConfirm": "«{name}» será reativado e poderá fazer login novamente. Deseja continuar?",
+      "deactivateConfirmButton": "Executar desativação",
+      "activateConfirmButton": "Executar reativação",
+      "cancelButton": "Cancelar"
+    },
+    "errors": {
+      "self": "Você não pode alterar sua própria função nem desativar a si mesmo.",
+      "lastAdmin": "Esta ação não é permitida, pois não restaria nenhum administrador ativo.",
+      "notFound": "O membro da equipe não foi encontrado. Atualize a página.",
+      "generic": "Falha ao atualizar. Tente novamente mais tarde."
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "Consulta",
@@ -874,6 +950,9 @@
     },
     "companies": {
       "description": "Você pode gerenciar a lista de distribuidores estrangeiros registrados e contas de solicitantes."
+    },
+    "staff": {
+      "description": "Adicione membros da equipe do lado japonês, altere suas funções e desative-os (somente administradores)."
     },
     "salesFloorMeeting": {
       "description": "Você pode gerenciar materiais de reuniões de discussão de vendas mensais."

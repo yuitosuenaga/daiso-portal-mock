@@ -48,6 +48,7 @@
     "announcements": "公告管理",
     "documents": "文档管理",
     "companies": "销售公司管理",
+    "staff": "员工管理",
     "salesFloorMeeting": "销售楼层研讨会（视频）",
     "pop": "POP",
     "manuals": "手册"
@@ -795,6 +796,81 @@
       "errorMessage": "批量禁用失败。请稍后重试。"
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "员工管理",
+      "description": "可添加日本方服务台员工、变更角色，以及停用或重新启用。",
+      "empty": "尚未登记员工",
+      "error": "获取员工失败",
+      "addButton": "添加员工",
+      "emailHeader": "邮箱地址",
+      "displayNameHeader": "显示名称",
+      "roleHeader": "角色",
+      "sourceHeader": "登记途径",
+      "statusHeader": "状态",
+      "createdHeader": "创建日期",
+      "actionsHeader": "操作",
+      "youBadge": "您"
+    },
+    "form": {
+      "createTitle": "新建员工",
+      "backToList": "返回列表",
+      "emailLabel": "邮箱地址",
+      "emailPlaceholder": "请输入邮箱地址",
+      "displayNameLabel": "显示名称",
+      "displayNamePlaceholder": "请输入显示名称",
+      "passwordLabel": "密码（可选）",
+      "passwordPlaceholder": "仅在允许密码登录时填写（8个字符以上）",
+      "passwordHint": "留空保存时，将创建未设置密码的账户（仅限Google登录）。",
+      "roleLabel": "角色",
+      "submitButton": "创建",
+      "submitError": "保存失败。请稍后重试。",
+      "validation": {
+        "required": "此项为必填",
+        "emailInvalid": "请输入有效的邮箱地址",
+        "emailDuplicate": "该邮箱地址已被使用",
+        "passwordTooShort": "密码需至少8个字符"
+      }
+    },
+    "role": {
+      "admin": "管理员",
+      "member": "成员"
+    },
+    "source": {
+      "seed": "初始登记",
+      "manual": "手动登记",
+      "google_auto": "Google自动创建"
+    },
+    "status": {
+      "active": "有效",
+      "inactive": "已停用"
+    },
+    "toggle": {
+      "promoteButton": "设为管理员",
+      "demoteButton": "设为成员",
+      "promoteConfirmTitle": "变更为管理员",
+      "demoteConfirmTitle": "变更为成员",
+      "promoteConfirm": "将『{name}』设为管理员，其可编辑经销商管理和员工管理。确认吗？",
+      "demoteConfirm": "将『{name}』设为成员，其将无法再编辑经销商管理和员工管理。确认吗？",
+      "promoteConfirmButton": "设为管理员",
+      "demoteConfirmButton": "设为成员",
+      "deactivateButton": "停用",
+      "activateButton": "重新启用",
+      "deactivateConfirmTitle": "停用员工",
+      "activateConfirmTitle": "重新启用员工",
+      "deactivateConfirm": "将停用『{name}』。停用后将无法登录，当前会话也将失效。其负责中的咨询不会被解除。确认吗？",
+      "activateConfirm": "将重新启用『{name}』。重新启用后将可再次登录。确认吗？",
+      "deactivateConfirmButton": "执行停用",
+      "activateConfirmButton": "执行重新启用",
+      "cancelButton": "取消"
+    },
+    "errors": {
+      "self": "无法变更或停用自己的角色。",
+      "lastAdmin": "这样会导致没有有效的管理员，因此无法执行此操作。",
+      "notFound": "未找到该员工。请刷新页面。",
+      "generic": "更新失败。请稍后重试。"
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "咨询",
@@ -874,6 +950,9 @@
     },
     "companies": {
       "description": "可以管理已注册的海外销售公司的列表和申请人帐户。"
+    },
+    "staff": {
+      "description": "添加日本方员工、变更角色并停用（仅限管理员）。"
     },
     "salesFloorMeeting": {
       "description": "可以管理按月进行的卖场讨论会资料。"

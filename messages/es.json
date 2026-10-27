@@ -48,6 +48,7 @@
     "announcements": "Gestión de avisos",
     "documents": "Gestión de documentos",
     "companies": "Gestión de distribuidores",
+    "staff": "Gestión de personal",
     "salesFloorMeeting": "Reunión de revisión de sala de ventas (video)",
     "pop": "POP",
     "manuals": "Manuales"
@@ -795,6 +796,81 @@
       "errorMessage": "Falló la desactivación en bloque. Inténtelo de nuevo más tarde."
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "Gestión de personal",
+      "description": "Añada personal del servicio de asistencia de Japón, cambie sus roles y desactívelo o reactívelo.",
+      "empty": "No hay personal registrado",
+      "error": "No se pudo obtener el personal",
+      "addButton": "Añadir personal",
+      "emailHeader": "Correo electrónico",
+      "displayNameHeader": "Nombre para mostrar",
+      "roleHeader": "Rol",
+      "sourceHeader": "Origen del registro",
+      "statusHeader": "Estado",
+      "createdHeader": "Fecha de creación",
+      "actionsHeader": "Acciones",
+      "youBadge": "Usted"
+    },
+    "form": {
+      "createTitle": "Crear personal",
+      "backToList": "Volver a la lista",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "Introduzca un correo electrónico",
+      "displayNameLabel": "Nombre para mostrar",
+      "displayNamePlaceholder": "Introduzca un nombre para mostrar",
+      "passwordLabel": "Contraseña (opcional)",
+      "passwordPlaceholder": "Introdúzcala solo si se permite iniciar sesión con contraseña (8 caracteres o más)",
+      "passwordHint": "Si se deja en blanco, la cuenta se crea sin contraseña (solo inicio de sesión con Google).",
+      "roleLabel": "Rol",
+      "submitButton": "Crear",
+      "submitError": "No se pudo guardar. Inténtelo de nuevo más tarde.",
+      "validation": {
+        "required": "Este campo es obligatorio",
+        "emailInvalid": "Introduzca un correo electrónico válido",
+        "emailDuplicate": "Este correo electrónico ya está en uso",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres"
+      }
+    },
+    "role": {
+      "admin": "Administrador",
+      "member": "Miembro"
+    },
+    "source": {
+      "seed": "Registro inicial",
+      "manual": "Registro manual",
+      "google_auto": "Creado automáticamente con Google"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "toggle": {
+      "promoteButton": "Hacer administrador",
+      "demoteButton": "Hacer miembro",
+      "promoteConfirmTitle": "Cambiar a administrador",
+      "demoteConfirmTitle": "Cambiar a miembro",
+      "promoteConfirm": "«{name}» pasará a ser administrador y podrá editar la gestión de distribuidoras y de personal. ¿Desea continuar?",
+      "demoteConfirm": "«{name}» pasará a ser miembro y ya no podrá editar la gestión de distribuidoras ni de personal. ¿Desea continuar?",
+      "promoteConfirmButton": "Hacer administrador",
+      "demoteConfirmButton": "Hacer miembro",
+      "deactivateButton": "Desactivar",
+      "activateButton": "Reactivar",
+      "deactivateConfirmTitle": "Desactivar personal",
+      "activateConfirmTitle": "Reactivar personal",
+      "deactivateConfirm": "Se desactivará a «{name}». Ya no podrá iniciar sesión y su sesión actual se revocará. Las consultas que tenga asignadas no se liberarán. ¿Desea continuar?",
+      "activateConfirm": "Se reactivará a «{name}» y podrá volver a iniciar sesión. ¿Desea continuar?",
+      "deactivateConfirmButton": "Ejecutar desactivación",
+      "activateConfirmButton": "Ejecutar reactivación",
+      "cancelButton": "Cancelar"
+    },
+    "errors": {
+      "self": "No puede cambiar su propio rol ni desactivarse a sí mismo.",
+      "lastAdmin": "No se permite esta acción porque no quedaría ningún administrador activo.",
+      "notFound": "No se encontró al miembro del personal. Actualice la página.",
+      "generic": "No se pudo actualizar. Inténtelo de nuevo más tarde."
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "Consultas",
@@ -874,6 +950,9 @@
     },
     "companies": {
       "description": "Administre la lista de distribuidores en el extranjero registrados y sus cuentas de solicitante."
+    },
+    "staff": {
+      "description": "Añada personal del lado japonés, cambie sus roles y desactívelo (solo administradores)."
     },
     "salesFloorMeeting": {
       "description": "Administre los materiales mensuales de la revisión de sala de ventas."

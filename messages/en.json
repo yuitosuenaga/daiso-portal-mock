@@ -48,6 +48,7 @@
     "announcements": "Announcement Management",
     "documents": "Document Management",
     "companies": "Company Management",
+    "staff": "Staff Management",
     "salesFloorMeeting": "Sales Floor Meeting (Video)",
     "pop": "POP",
     "manuals": "Manuals"
@@ -795,6 +796,81 @@
       "errorMessage": "Bulk deactivation failed. Please try again later."
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "Staff Management",
+      "description": "Add Japan-side helpdesk staff, change their roles, and deactivate or reactivate them.",
+      "empty": "No staff members are registered",
+      "error": "Failed to load staff members",
+      "addButton": "Add staff",
+      "emailHeader": "Email address",
+      "displayNameHeader": "Display name",
+      "roleHeader": "Role",
+      "sourceHeader": "Registered via",
+      "statusHeader": "Status",
+      "createdHeader": "Created",
+      "actionsHeader": "Actions",
+      "youBadge": "You"
+    },
+    "form": {
+      "createTitle": "Create staff member",
+      "backToList": "Back to list",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter an email address",
+      "displayNameLabel": "Display name",
+      "displayNamePlaceholder": "Enter a display name",
+      "passwordLabel": "Password (optional)",
+      "passwordPlaceholder": "Enter only if password login should be allowed (8 or more characters)",
+      "passwordHint": "If left blank, the account is created without a password (Google sign-in only).",
+      "roleLabel": "Role",
+      "submitButton": "Create",
+      "submitError": "Failed to save. Please try again later.",
+      "validation": {
+        "required": "This field is required",
+        "emailInvalid": "Enter a valid email address",
+        "emailDuplicate": "This email address is already in use",
+        "passwordTooShort": "Password must be at least 8 characters"
+      }
+    },
+    "role": {
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "source": {
+      "seed": "Initial setup",
+      "manual": "Added manually",
+      "google_auto": "Auto-created via Google"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "toggle": {
+      "promoteButton": "Make admin",
+      "demoteButton": "Make member",
+      "promoteConfirmTitle": "Change to admin",
+      "demoteConfirmTitle": "Change to member",
+      "promoteConfirm": "\"{name}\" will become an admin and will be able to edit distributor and staff management. Continue?",
+      "demoteConfirm": "\"{name}\" will become a member and will no longer be able to edit distributor and staff management. Continue?",
+      "promoteConfirmButton": "Make admin",
+      "demoteConfirmButton": "Make member",
+      "deactivateButton": "Deactivate",
+      "activateButton": "Reactivate",
+      "deactivateConfirmTitle": "Deactivate staff member",
+      "activateConfirmTitle": "Reactivate staff member",
+      "deactivateConfirm": "\"{name}\" will be deactivated. They will no longer be able to sign in, and their current session will be revoked. Inquiries they are assigned to will not be released. Continue?",
+      "activateConfirm": "\"{name}\" will be reactivated and will be able to sign in again. Continue?",
+      "deactivateConfirmButton": "Deactivate",
+      "activateConfirmButton": "Reactivate",
+      "cancelButton": "Cancel"
+    },
+    "errors": {
+      "self": "You cannot change your own role or deactivate yourself.",
+      "lastAdmin": "This action is not allowed because there would be no active admin left.",
+      "notFound": "The staff member was not found. Please refresh the page.",
+      "generic": "Failed to update. Please try again later."
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "Inquiry",
@@ -874,6 +950,9 @@
     },
     "companies": {
       "description": "View registered overseas distributors and manage their applicant accounts."
+    },
+    "staff": {
+      "description": "Add Japan-side staff, change their roles, and deactivate them (admins only)."
     },
     "salesFloorMeeting": {
       "description": "Manage monthly sales floor meeting materials."
