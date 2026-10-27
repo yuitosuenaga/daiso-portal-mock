@@ -232,7 +232,7 @@ gcloud sql backups list --instance portal-mock-backend-db --project rvp-ai-proto
 
 現行環境では、`before-secret-rotation` のバックアップを作成済み(`pre-client-env-work.md`)。作成そのものは実績があるが、作成したバックアップからの復元は実施していない。
 
-### 2.3 復元手順(いずれも未検証)
+### 2.3 復元手順(方法B は 2026-10-27 に別インスタンスへの復元を検証済み。方法A は未検証)
 
 **復元の前に、必ず現状のオンデマンドバックアップを取る。** 復元は復元先のデータを完全に置き換える。
 
@@ -254,11 +254,15 @@ gcloud sql instances clone portal-mock-backend-db portal-mock-restore-test \
   --point-in-time '2026-10-26T01:00:00Z' --project rvp-ai-proto-camp
 
 # 特定のバックアップから別インスタンスへ復元する場合は、新インスタンスを作成してから restore する
+# (検証済み。手順・実測・結果は restore-drill.md)
+gcloud sql instances create <新インスタンス名> --project rvp-ai-proto-camp --region asia-northeast1 \
+  --database-version POSTGRES_16 --edition ENTERPRISE --tier db-f1-micro --storage-size 10 --storage-type SSD --no-backup
 gcloud sql backups restore <BACKUP_ID> --restore-instance <新インスタンス名> \
   --backup-instance portal-mock-backend-db --project rvp-ai-proto-camp
 ```
 
-- **未検証。** クローン後は、新インスタンスで内容を確認し、問題がなければアプリの接続先を切り替える(Cloud Run の Cloud SQL 接続と `DATABASE_URL` の接続名の差し替え。Terraform の state は旧インスタンスを指しているため、切替後に state を整合させる作業が必要になり、手順は未整備)。
+- **別インスタンスへの復元は検証済み**(2026-10-27、`restore-drill.md`)。全テーブルの行数が一致し、元と同じ DB ユーザー・パスワードで接続できた。**復元先の設定(TLS 必須・自動バックアップ・削除保護)は復元されず、作成時の設定になる。** 本番として使う場合は復元後に設定し直す(Terraform で作成する前提にすれば漏れない)。
+- **アプリの接続先を切り替える手順は未検証。** クローン後は、新インスタンスで内容を確認し、問題がなければアプリの接続先を切り替える(Cloud Run の Cloud SQL 接続と `DATABASE_URL` の接続名の差し替え。Terraform の state は旧インスタンスを指しているため、切替後に state を整合させる作業が必要になり、手順は未整備)。
 - クローンしたインスタンスは費用が発生する。確認後に削除する(削除は `deletion_protection` 設定を意識する)。
 - PITR によるクローンは、PITR が有効な環境でのみ可能。現行環境は PITR が無効のため、時点指定の復元はできない。
 
@@ -266,9 +270,9 @@ gcloud sql backups restore <BACKUP_ID> --restore-instance <新インスタンス
 
 | 設定 | RPO(失う可能性のあるデータ量の目安) | RTO(復旧にかかる時間の目安) |
 |---|---|---|
-| 自動バックアップのみ(現行環境、dev 例) | 最大でおよそ24時間(日次バックアップ。直近のバックアップ時刻以降の更新は失われる) | データ量が小さい現状では数分から数十分と見込むが、**実測していない(未検証)** |
-| 自動バックアップ + PITR(prod 例) | 数分程度(ログの保持範囲内で時点を指定できる) | 同上。**未検証** |
-| オンデマンドバックアップ | 取得時点まで | 同上 |
+| 自動バックアップのみ(現行環境、dev 例) | 最大でおよそ24時間(日次バックアップ。直近のバックアップ時刻以降の更新は失われる) | 別インスタンスへの復元は**実測 約32分**(インスタンス作成 約17分 + 復元 約15分。db-f1-micro、DB は小規模。2026-10-27、`restore-drill.md`)。同一インスタンスへの復元(方法A)は未検証 |
+| 自動バックアップ + PITR(prod 例) | 数分程度(ログの保持範囲内で時点を指定できる) | PITR のクローンは**未検証** |
+| オンデマンドバックアップ | 取得時点まで | 同上(別インスタンスへの復元の実測を参照) |
 
 上記はあくまで目安であり、クライアントの要件(許容できるデータ損失・停止時間)を確認して確定する。要件が厳しい場合は、PITR、HA(`db_high_availability`、費用は約2倍)、定期エクスポート(GCS への `gcloud sql export`)を検討する。定期エクスポートは**現状未実装**である。
 
@@ -593,7 +597,7 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 
 ### 四半期 / 半年 / 随時
 
-- [ ] **バックアップからの復元訓練**(§2.3 の方法B。クローンで確認)。結果と所要時間を記録し、RPO / RTO を実測値で更新する(現状は未検証)
+- [ ] **バックアップからの復元訓練**(`restore-drill.md` の手順。初回は 2026-10-27 に現行環境で実施済み。クライアント環境では初回を改めて実施し、結果と所要時間を記録して RPO / RTO を更新する)
 - [ ] 機密値のローテーション(§4。頻度はクライアントのセキュリティ要件で決定。暫定で半年に1回、および担当者の交代・漏えいの疑いがあるとき)
 - [ ] GCP の権限(IAM)の棚卸し。不要になった担当者の権限を外す
 - [ ] state バケットのアクセス権限の確認
