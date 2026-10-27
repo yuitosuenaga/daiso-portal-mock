@@ -255,6 +255,8 @@ module "budget" {
   monthly_amount     = var.budget_monthly_amount
   currency_code      = var.budget_currency_code
   alert_emails       = var.budget_alert_emails
+
+  depends_on = [module.services]
 }
 
 resource "terraform_data" "require_budget_inputs" {

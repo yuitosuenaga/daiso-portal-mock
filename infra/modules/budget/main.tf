@@ -24,6 +24,12 @@ variable "project_id" {
 variable "billing_account_id" {
   type        = string
   description = "請求先アカウントID（例: 012345-6789AB-CDEF01）。gcloud billing projects describe <project> で確認できる"
+  nullable    = true
+
+  validation {
+    condition     = var.billing_account_id != null && can(regex("^[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{6}$", var.billing_account_id))
+    error_message = "billing_account_id が未設定、または形式不正。enable_budget_alert=true では 012345-6789AB-CDEF01 形式（英大文字・数字）の請求先アカウントIDが必須。"
+  }
 }
 
 variable "name_prefix" {
@@ -34,12 +40,23 @@ variable "name_prefix" {
 variable "monthly_amount" {
   type        = number
   description = "月額予算額"
+  nullable    = true
+
+  validation {
+    condition     = var.monthly_amount != null && try(var.monthly_amount >= 1, false)
+    error_message = "budget_monthly_amount が未設定、または 1 未満。enable_budget_alert=true では 1 以上の月額予算額が必須。"
+  }
 }
 
 variable "currency_code" {
   type        = string
   default     = "JPY"
   description = "予算の通貨。請求先アカウントの通貨と一致させる必要がある"
+
+  validation {
+    condition     = can(regex("^[A-Z]{3}$", var.currency_code))
+    error_message = "budget_currency_code は ISO 4217 の3文字大文字（例: JPY）で指定する。"
+  }
 }
 
 variable "threshold_percents" {

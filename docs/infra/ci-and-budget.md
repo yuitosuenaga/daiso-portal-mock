@@ -32,7 +32,8 @@
 
 1. `<env>.tfvars` に `enable_budget_alert = true` と `billing_account_id` / `budget_monthly_amount` / `budget_alert_emails` を設定
 2. `terraform plan` で `module.budget` の追加のみであることを確認 → `apply`
-3. dev と prod を同一プロジェクトに置く場合、予算フィルタは**プロジェクト単位**のため、両 env で有効化すると同じプロジェクトに予算が2つできる。片方の env のみ有効化するか、`name_prefix` ごとの予算として許容するかを決める
+3. dev と prod を同一プロジェクトに置く場合、予算フィルタは**プロジェクト単位**のため、両 env で有効化すると同じプロジェクトに予算が2つできる(競合ではなく二重通知になり、`name_prefix` が同じだと表示名も紛らわしい)。**片方の env のみ有効化する**のを推奨。両方有効化する場合は `name_prefix` を分け、通知が二重になることを許容する
+4. `module.budget` は `module.services`(API 有効化)の後に作成される(`depends_on`)。`billing_account_id` / `budget_monthly_amount` / 通貨はモジュール側 validation で形式チェックされ、不正なら分かりやすいメッセージで止まる
 
 ## 2. CI(`.github/workflows/terraform.yml`)
 
@@ -42,7 +43,7 @@
 |---|---|---|---|
 | `fmt` | `terraform fmt -check -recursive` | 不要 | 常に有効 |
 | `validate` | `bootstrap` / `envs/dev` / `envs/prod` で `init -backend=false` → `validate` | 不要 | 常に有効 |
-| `plan` | `envs/dev` / `envs/prod` で `terraform plan`(要約を Job Summary に出力) | WIF | **既定で無効** |
+| `plan` | `envs/dev` / `envs/prod` で `terraform plan`(Job Summary には変更件数のみ。prod は GitHub Environment 承認必須) | WIF | **既定で無効** |
 
 - Terraform のバージョンは `1.6.1`(ローカルと同じ。`required_version >= 1.6`)。`.terraform.lock.hcl` はコミット済みなので provider は固定される
 - **`apply` は CI では行わない**(ローカルから実施する運用のまま)
@@ -58,7 +59,25 @@
    - Variables: `GCP_WIF_PROVIDER`(`projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`)、`GCP_PLAN_SERVICE_ACCOUNT`、`TF_STATE_BUCKET`
    - Secrets: `TFVARS_DEV` / `TFVARS_PROD`(各 `<env>.tfvars` の中身。tfvars は git 管理外のため)
    - Variables: `TF_PLAN_ENABLED` = `true`(これが plan ジョブのスイッチ)
-4. PR を作り、`plan` ジョブが緑になり Job Summary に plan が出ることを確認する
+4. GitHub の Environment `terraform-plan-prod` を作成し、Required reviewers を設定する(workflow は prod の plan のみこの Environment を指定する。承認が無ければ prod の plan は走らない)
+5. PR を作り、`plan` ジョブが緑になり Job Summary に変更件数(`Plan: x to add...`)が出ることを確認する。詳細な plan 本文は公開リポジトリのため CI には出さない。必要な場合はローカルで `terraform plan` を実行する
+
+### plan ジョブのセキュリティ上の制限(重要)
+
+- **同一リポジトリの PR のコードは plan 用 SA の権限で実行される**。PR が `infra/**` の Terraform(`external` data source、provider の差し替え等)や workflow 自体を書き換えれば、任意コードが OIDC トークン経由で plan 用 SA として動く。fork PR は `id-token` が得られず対象外だが、リポジトリに書き込める人は誰でもこの経路を使える
+- 対策(併用する)
+  - WIF プロバイダの `attribute_condition` を **リポジトリだけでなく ref / environment まで絞る**。例: `assertion.repository == "<owner>/<repo>" && (assertion.environment == "terraform-plan-prod" || assertion.ref == "refs/heads/main" || assertion.event_name == "pull_request")`。prod 用 SA の `workloadIdentityUser` バインドは `assertion.environment == "terraform-plan-prod"` の主体のみに限定し、承認なしの PR から prod 用 SA を取れないようにする(dev 用 SA と prod 用 SA は分ける。attribute のマッピングに `environment` / `ref` を追加する必要あり)
+  - 書き込み権限者の制限、`.github/workflows/**` と `infra/**` への CODEOWNERS とブランチ保護(レビュー必須)
+  - plan 用 SA に付与するロールを最小にする(下記)
+- **公開リポジトリでは plan 本文を出さない**。本 workflow は Job Summary を変更件数のみにし、ログにも件数行以外を出さず、`plan.txt` / `ci.tfvars` はジョブ末尾で削除する(リソース名・IP・メール等の漏えい防止)。tfvars は Secrets 前提(Variables は不可)
+
+### plan 用 SA の state 読み取り = 機密読み取り権限(クライアント承認事項)
+
+state バケットの `roles/storage.objectViewer` は、state に平文で入っている生成済み secret(DB パスワード等。`iac-plan.md` §9)を読めることと**実質同じ**。したがって plan 用 SA は「機密を読める主体」として扱う必要がある。クライアントの承認が必要な事項:
+
+1. CI(GitHub Actions)に state 読み取り権限を与えてよいか(与えない場合 plan ジョブは無効のまま)
+2. 与える場合、上記のとおり WIF の ref/environment 絞り込みと prod の Environment 承認を必須とするか
+3. state 内の secret を減らす/state バケットを分離する方針(env 別バケット・prefix 単位の IAM 条件)
 
 fork からの PR では `id-token` が得られないため、plan は同一リポジトリの PR のみで実行される。
 
@@ -67,3 +86,9 @@ fork からの PR では `id-token` が得られないため、plan は同一リ
 - クライアント環境で GitHub Actions + WIF を使ってよいか(使えない場合 plan は無効のまま、または別の仕組み)
 - 予算額・通知先・しきい値、dev/prod で予算を分けるか(§1)
 - リポジトリがクライアント環境に移管される場合、WIF のリポジトリ条件(`attribute.repository`)を移管後の名前にする
+- plan 用 SA の state 読み取りと WIF 条件(§2)のクライアント承認
+
+## 4. 補足
+
+- workflow の actions(`checkout` / `setup-terraform` / `google-github-actions/auth`)はコミット SHA 固定(コメントに元タグ)。更新時は SHA を取り直す
+- `pull-requests: write` は未使用のため付与していない

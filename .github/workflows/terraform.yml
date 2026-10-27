@@ -32,8 +32,8 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - run: terraform fmt -check -recursive -diff
@@ -46,8 +46,8 @@ jobs:
       matrix:
         dir: [bootstrap, envs/dev, envs/prod]
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - run: terraform init -backend=false -input=false
@@ -63,24 +63,26 @@ jobs:
       (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     needs: [fmt, validate]
     runs-on: ubuntu-latest
+    # prod の plan は GitHub Environment（Required reviewers）の承認必須。dev は承認なし。
+    # Environment 名 terraform-plan-prod はリポジトリ設定で作成し、承認者を設定しておく。
+    environment: ${{ matrix.env == 'prod' && 'terraform-plan-prod' || null }}
     permissions:
       contents: read
       id-token: write
-      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
         env: [dev, prod]
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
       # 必要なリポジトリ変数/secrets（値は docs/infra/ci-and-budget.md）
       #   vars.GCP_WIF_PROVIDER, vars.GCP_PLAN_SERVICE_ACCOUNT, vars.TF_STATE_BUCKET
       #   secrets.TFVARS_DEV / secrets.TFVARS_PROD（<env>.tfvars の中身。機密を含めない運用なら vars でも可）
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_PLAN_SERVICE_ACCOUNT }}
@@ -98,15 +100,18 @@ jobs:
         working-directory: infra/envs/${{ matrix.env }}
       - id: plan
         # 読み取り専用 SA 前提（-lock=false で state ロックを取らない）。apply はしない。
-        run: terraform plan -input=false -lock=false -no-color -var-file=ci.tfvars -detailed-exitcode > plan.txt 2>&1 || code=$?; cat plan.txt; [ "${code:-0}" != "1" ]
+        run: terraform plan -input=false -lock=false -no-color -var-file=ci.tfvars -detailed-exitcode > plan.txt 2>&1 || code=$?; grep -E '^(Plan:|No changes)' plan.txt || true; [ "${code:-0}" != "1" ]
         working-directory: infra/envs/${{ matrix.env }}
       - name: Summarize plan
+        # 公開リポジトリのため plan 本文（リソース名・値）は Job Summary / ログに出さない。件数のみ。
         if: always()
         working-directory: infra/envs/${{ matrix.env }}
         run: |
           {
             echo "### terraform plan (${{ matrix.env }})"
-            echo '```'
-            tail -n 60 plan.txt
-            echo '```'
+            grep -E '^(Plan:|No changes)' plan.txt || echo "(変更件数の行なし。ジョブの成否を確認)"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove plan output
+        if: always()
+        working-directory: infra/envs/${{ matrix.env }}
+        run: rm -f plan.txt ci.tfvars
