@@ -144,7 +144,7 @@ describe.each([
   it.each([
     [new StaffSelfOperationError(), "self"],
     [new LastAdminError(), "lastAdmin"],
-    [new HelpdeskStaffNotFoundError(), "notFound"],
+    [new HelpdeskStaffNotFoundError("t1"), "notFound"],
   ])("%o は reason=%s に変換する", async (error, reason) => {
     vi.mocked(service as never as typeof setHelpdeskStaffRole).mockRejectedValue(error);
     await expect(run()).resolves.toEqual({ ok: false, reason });

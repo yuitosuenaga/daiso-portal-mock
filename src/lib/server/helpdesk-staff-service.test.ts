@@ -9,7 +9,7 @@ const {
   staffCreateMock,
   staffUpdateMock,
   applicantFindFirstMock,
-  queryRawMock,
+  executeRawMock,
   transactionMock,
   bcryptHashMock,
 } = vi.hoisted(() => {
@@ -20,9 +20,9 @@ const {
   const staffCreateMock = vi.fn();
   const staffUpdateMock = vi.fn();
   const applicantFindFirstMock = vi.fn();
-  const queryRawMock = vi.fn();
+  const executeRawMock = vi.fn();
   const tx = {
-    $queryRaw: queryRawMock,
+    $executeRaw: executeRawMock,
     helpdeskStaff: {
       findUnique: staffFindUniqueMock,
       count: staffCountMock,
@@ -38,7 +38,7 @@ const {
     staffCreateMock,
     staffUpdateMock,
     applicantFindFirstMock,
-    queryRawMock,
+    executeRawMock,
     transactionMock,
     bcryptHashMock: vi.fn(async (v: string) => `hashed:${v}`),
   };
@@ -106,7 +106,7 @@ function setupLookups(
 beforeEach(() => {
   vi.clearAllMocks();
   requireAdminMock.mockResolvedValue({ claims: { id: "op", role: "helpdesk", staffId: "op" } });
-  queryRawMock.mockResolvedValue([]);
+  executeRawMock.mockResolvedValue(0);
   staffUpdateMock.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
     record(data)
   );
@@ -213,9 +213,9 @@ describe("setHelpdeskStaffRole / setHelpdeskStaffActive 共通", () => {
     setupLookups(record({ id: "op", role: "admin" }), record());
     await setHelpdeskStaffRole("t1", "admin");
     expect(transactionMock).toHaveBeenCalledTimes(1);
-    expect(queryRawMock).toHaveBeenCalledTimes(1);
-    expect(queryRawMock.mock.calls[0][0].join(" ")).toContain("pg_advisory_xact_lock");
-    expect(queryRawMock.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(executeRawMock).toHaveBeenCalledTimes(1);
+    expect(executeRawMock.mock.calls[0][0].join(" ")).toContain("pg_advisory_xact_lock");
+    expect(executeRawMock.mock.invocationCallOrder[0]).toBeLessThan(
       staffFindUniqueMock.mock.invocationCallOrder[0]
     );
   });

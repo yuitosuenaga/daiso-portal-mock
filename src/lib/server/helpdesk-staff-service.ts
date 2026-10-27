@@ -160,7 +160,7 @@ async function changeStaff(
   const operatorId = session.claims.staffId;
 
   return prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(${STAFF_ADMIN_ADVISORY_LOCK_KEY}::bigint)`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${STAFF_ADMIN_ADVISORY_LOCK_KEY}::bigint)`;
 
     const operator = await tx.helpdeskStaff.findUnique({ where: { id: operatorId } });
     if (!operator || operator.role !== "admin" || !operator.isActive) {
