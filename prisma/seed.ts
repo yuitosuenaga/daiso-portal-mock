@@ -1282,6 +1282,7 @@ async function main() {
       email: "staff@helpdesk.example.com",
       passwordHash,
       displayName: "田中 太郎",
+      registrationSource: "seed",
     },
   });
 

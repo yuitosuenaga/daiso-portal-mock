@@ -78,6 +78,10 @@ locals {
       AUTH_URL        = local.auth_url
     },
     var.enable_google_login ? { ALLOWED_EMAIL_DOMAINS = join(",", var.allowed_email_domains) } : {},
+    var.enable_google_login && var.enable_helpdesk_auto_provision ? {
+      GOOGLE_HELPDESK_AUTO_PROVISION         = "true"
+      GOOGLE_HELPDESK_AUTO_PROVISION_DOMAINS = join(",", var.helpdesk_auto_provision_domains)
+    } : {},
   )
 
   app_secret_env = merge(
@@ -100,6 +104,18 @@ resource "terraform_data" "require_allowed_domains" {
     precondition {
       condition     = !var.enable_google_login || length(var.allowed_email_domains) > 0
       error_message = "enable_google_login=true の場合は allowed_email_domains に1つ以上のドメインを指定すること（空のままでは全ドメイン許可になり得るため拒否する）。"
+    }
+    precondition {
+      condition     = !var.enable_helpdesk_auto_provision || var.enable_google_login
+      error_message = "enable_helpdesk_auto_provision=true には enable_google_login=true が必要。"
+    }
+    precondition {
+      condition     = !var.enable_helpdesk_auto_provision || length(var.helpdesk_auto_provision_domains) > 0
+      error_message = "enable_helpdesk_auto_provision=true の場合は helpdesk_auto_provision_domains に1つ以上のドメインを指定すること。"
+    }
+    precondition {
+      condition     = length(setsubtract(var.helpdesk_auto_provision_domains, var.allowed_email_domains)) == 0
+      error_message = "helpdesk_auto_provision_domains は allowed_email_domains に含まれるドメインのみ指定できる。"
     }
     precondition {
       condition     = (!var.db_private_ip_enabled && !var.cloudrun_direct_vpc_egress) || var.enable_private_network

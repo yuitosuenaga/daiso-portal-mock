@@ -34,6 +34,7 @@ vi.mock("@/lib/server/google-authorize", () => ({
 }));
 vi.mock("@/lib/server/google-login-config", () => ({
   getAllowedEmailDomains: () => ["example.com"],
+  getHelpdeskAutoProvisionDomains: () => ["example.com"],
   isGoogleLoginEnabled: () => false,
 }));
 
@@ -74,13 +75,19 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
     vi.mocked(authorizeGoogleLogin).mockResolvedValue({
       ok: true,
       user: { id: "s1", role: "helpdesk", staffId: "s1" },
+      provisioned: false,
     } as never);
     const user: Record<string, unknown> = { name: "G", image: "x" };
 
     const result = await signInCallback({
       user,
       account: { provider: "google" },
-      profile: { email: "staff@example.com", email_verified: true },
+      profile: {
+        email: "staff@example.com",
+        email_verified: true,
+        hd: "example.com",
+        name: "田中 太郎",
+      },
     });
 
     expect(result).toBe(true);
@@ -90,6 +97,9 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
       emailVerified: true,
       portal: "helpdesk",
       allowedDomains: ["example.com"],
+      hostedDomain: "example.com",
+      name: "田中 太郎",
+      autoProvisionDomains: ["example.com"],
     });
     expect(recordAuthEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -101,6 +111,36 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
     );
     // Googleのプロフィール項目は消え、認可済みユーザーに置き換わる
     expect(user).toEqual({ id: "s1", role: "helpdesk", staffId: "s1" });
+    // 自動作成でなければaccount_provisionedは記録しない
+    expect(recordAuthEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "account_provisioned" })
+    );
+  });
+
+  it("自動作成されたときaccount_provisionedをlogin_successより先に記録する", async () => {
+    cookieGet.mockReturnValue({ value: "helpdesk:ja" });
+    vi.mocked(authorizeGoogleLogin).mockResolvedValue({
+      ok: true,
+      user: { id: "s2", role: "helpdesk", staffId: "s2" },
+      provisioned: true,
+    } as never);
+
+    const result = await signInCallback({
+      user: {},
+      account: { provider: "google" },
+      profile: { email: "new@example.com", email_verified: true, hd: "example.com" },
+    });
+
+    expect(result).toBe(true);
+    const calls = vi.mocked(recordAuthEvent).mock.calls.map((c) => c[0]);
+    expect(calls.map((c) => c.type)).toEqual(["account_provisioned", "login_success"]);
+    expect(calls[0]).toMatchObject({
+      method: "google",
+      portal: "helpdesk",
+      userId: "s2",
+      identifierHash: "hash:new@example.com",
+      reason: "google_auto",
+    });
   });
 
   it("許可外ドメイン等で拒否された場合、cookieのlocale/portalに応じたエラーパスを返す", async () => {

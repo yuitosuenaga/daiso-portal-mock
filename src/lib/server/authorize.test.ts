@@ -129,6 +129,22 @@ describe("authorizeApplicantCredentials", () => {
 });
 
 describe("authorizeHelpdeskCredentials", () => {
+  it("passwordHashがnullの担当者はnullを返し、ダミーハッシュでbcrypt照合を1回実行する", async () => {
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({
+      id: "staff-2",
+      email: "google@example.com",
+      passwordHash: null,
+      displayName: "Google 太郎",
+      createdAt: new Date(),
+    } as never);
+    const spy = vi.spyOn(bcrypt, "compare");
+    const result = await authorizeHelpdeskCredentials("google@example.com", "x");
+    expect(result).toBeNull();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][1]).not.toBeNull();
+    spy.mockRestore();
+  });
+
   it("正しいメールアドレス・パスワードのとき、ヘルプデスクセッションクレームを返す", async () => {
     const passwordHash = await bcrypt.hash("password1234", 10);
     vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({

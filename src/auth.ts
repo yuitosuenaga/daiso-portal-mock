@@ -19,6 +19,7 @@ import { runProtectedCredentialsLogin } from "@/lib/server/login-throttle";
 import { authorizeGoogleLogin } from "@/lib/server/google-authorize";
 import {
   getAllowedEmailDomains,
+  getHelpdeskAutoProvisionDomains,
   isGoogleLoginEnabled,
 } from "@/lib/server/google-login-config";
 
@@ -50,6 +51,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         emailVerified: profile?.email_verified,
         portal: context.portal,
         allowedDomains: getAllowedEmailDomains(),
+        hostedDomain: profile?.hd,
+        name: profile?.name,
+        autoProvisionDomains: getHelpdeskAutoProvisionDomains(),
       });
       const googleEmail = profile?.email ?? user.email;
       const identifierHash = googleEmail ? hashIdentifier(googleEmail) : null;
@@ -66,6 +70,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           context.locale,
           result.error
         );
+      }
+      if (result.provisioned) {
+        await recordAuthEvent({
+          type: "account_provisioned",
+          method: "google",
+          portal: context.portal,
+          userId: result.user.id,
+          identifierHash,
+          reason: "google_auto",
+        });
       }
       await recordAuthEvent({
         type: "login_success",
