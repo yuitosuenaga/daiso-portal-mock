@@ -1,0 +1,112 @@
+name: terraform
+
+# infra/ 配下の変更に対する Terraform の検証。
+# - fmt / validate: 認証不要（init -backend=false）。常に有効。
+# - plan: 既定では無効。クライアント環境の Workload Identity Federation (WIF) 設定後に
+#   リポジトリ変数 TF_PLAN_ENABLED=true を設定すると有効になる（docs/infra/ci-and-budget.md）。
+# apply は CI では行わない（ローカルから実施する運用）。
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: "1.6.1"
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform fmt -check -recursive -diff
+        working-directory: infra
+
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [bootstrap, envs/dev, envs/prod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform init -backend=false -input=false
+        working-directory: infra/${{ matrix.dir }}
+      - run: terraform validate
+        working-directory: infra/${{ matrix.dir }}
+
+  plan:
+    # 権限（WIF）が無い間は無効。リポジトリ変数 TF_PLAN_ENABLED=true で有効化。
+    # fork からの PR では id-token が得られないため同一リポジトリの PR のみ。
+    if: >-
+      vars.TF_PLAN_ENABLED == 'true' &&
+      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+    needs: [fmt, validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      # 必要なリポジトリ変数/secrets（値は docs/infra/ci-and-budget.md）
+      #   vars.GCP_WIF_PROVIDER, vars.GCP_PLAN_SERVICE_ACCOUNT, vars.TF_STATE_BUCKET
+      #   secrets.TFVARS_DEV / secrets.TFVARS_PROD（<env>.tfvars の中身。機密を含めない運用なら vars でも可）
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAN_SERVICE_ACCOUNT }}
+      - name: Write tfvars
+        working-directory: infra/envs/${{ matrix.env }}
+        env:
+          TFVARS_DEV: ${{ secrets.TFVARS_DEV }}
+          TFVARS_PROD: ${{ secrets.TFVARS_PROD }}
+        run: |
+          if [ "${{ matrix.env }}" = "dev" ]; then printf '%s' "$TFVARS_DEV" > ci.tfvars; else printf '%s' "$TFVARS_PROD" > ci.tfvars; fi
+      - run: >-
+          terraform init -input=false
+          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          -backend-config="prefix=${{ matrix.env }}"
+        working-directory: infra/envs/${{ matrix.env }}
+      - id: plan
+        # 読み取り専用 SA 前提（-lock=false で state ロックを取らない）。apply はしない。
+        run: terraform plan -input=false -lock=false -no-color -var-file=ci.tfvars -detailed-exitcode > plan.txt 2>&1 || code=$?; cat plan.txt; [ "${code:-0}" != "1" ]
+        working-directory: infra/envs/${{ matrix.env }}
+      - name: Summarize plan
+        if: always()
+        working-directory: infra/envs/${{ matrix.env }}
+        run: |
+          {
+            echo "### terraform plan (${{ matrix.env }})"
+            echo '```'
+            tail -n 60 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
