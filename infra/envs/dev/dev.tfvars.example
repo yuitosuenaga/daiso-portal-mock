@@ -24,3 +24,8 @@ allowed_email_domains = []   # 例: ["our-company.example", "client.example"]
 # dev は db-end で夜間に DB 停止するため、停止アラートは false 推奨
 # enable_cloudsql_down_alert = false
 # enable_uptime_check        = true  # min_instances=0 だと5分間隔でウォーム維持になる。不要なら false
+
+# 本番化トグル（docs/infra/prod-hardening.md）。dev は既定（無効）のまま。検証したい時だけ有効化
+# db_point_in_time_recovery = false
+# enable_private_network    = false
+# db_export_enabled         = false

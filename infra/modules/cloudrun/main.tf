@@ -88,6 +88,22 @@ variable "deletion_protection" {
   default = true
 }
 
+# Direct VPC egress（private IP の Cloud SQL へ接続する場合に必要）。null なら無効（現行と同一）。
+variable "vpc_network" {
+  type    = string
+  default = null
+}
+
+variable "vpc_subnetwork" {
+  type    = string
+  default = null
+}
+
+variable "vpc_egress" {
+  type    = string
+  default = "PRIVATE_RANGES_ONLY"
+}
+
 resource "google_cloud_run_v2_service" "this" {
   project             = var.project_id
   name                = var.name
@@ -103,6 +119,17 @@ resource "google_cloud_run_v2_service" "this" {
     scaling {
       min_instance_count = var.min_instances
       max_instance_count = var.max_instances
+    }
+
+    dynamic "vpc_access" {
+      for_each = var.vpc_network == null ? [] : [1]
+      content {
+        egress = var.vpc_egress
+        network_interfaces {
+          network    = var.vpc_network
+          subnetwork = var.vpc_subnetwork
+        }
+      }
     }
 
     volumes {

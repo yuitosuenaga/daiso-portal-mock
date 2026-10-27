@@ -6,7 +6,10 @@ name_prefix = "portal-mock-prod"
 deletion_protection       = true
 db_backup_enabled         = true
 db_point_in_time_recovery = true
-db_high_availability      = false # 要件次第で true（費用約2倍）
+db_high_availability      = false # 要件次第で true（費用約2倍）。RTO 要件をクライアントに確認
+db_backup_retained_count          = 14      # 自動バックアップ保持世代（既定 7）
+db_transaction_log_retention_days = 7       # PITR で遡れる日数（最大 7）
+db_backup_start_time              = "18:00" # UTC = JST 03:00
 db_tier                   = "db-g1-small"
 min_instances             = 1
 max_instances             = 5
@@ -25,3 +28,16 @@ allowed_email_domains = []   # 例: ["client.example"]
 # alert_emails      = ["ops@example.com"]
 # enable_cloudsql_down_alert = true
 # enable_uptime_check        = true
+
+# --- 本番化（docs/infra/prod-hardening.md）---
+# 定期 SQL エクスポート（論理バックアップを GCS に保管。誤削除・インスタンス消失への備え）
+db_export_enabled        = true
+db_export_schedule       = "0 3 * * *"
+db_export_retention_days = 30
+
+# private IP + Direct VPC egress。要 API・権限は docs 参照。切替は Cloud SQL の再起動を伴うため
+# メンテナンス時間帯に実施する。private IP と Direct VPC egress はセットで true にする
+# enable_private_network     = true
+# db_private_ip_enabled      = true
+# cloudrun_direct_vpc_egress = true
+# db_public_ip_enabled       = false  # 疎通確認後に最後に false

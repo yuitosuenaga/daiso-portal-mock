@@ -233,3 +233,72 @@ variable "alert_emails" {
   default     = []
   description = "アラート通知先メール。空なら通知チャネルを作らない"
 }
+
+# --- 本番化トグル（docs/infra/prod-hardening.md）。既定は現行と同一 ---
+variable "db_backup_retained_count" {
+  type        = number
+  default     = null
+  description = "自動バックアップ保持世代数。null=API既定(7)のまま"
+}
+
+variable "db_transaction_log_retention_days" {
+  type        = number
+  default     = null
+  description = "PITR 用ログ保持日数(1-7)。null=API既定のまま"
+}
+
+variable "db_backup_start_time" {
+  type        = string
+  default     = null
+  description = "自動バックアップ開始時刻(UTC HH:MM)。null=API既定"
+}
+
+variable "enable_private_network" {
+  type        = bool
+  default     = false
+  description = "VPC / Private Service Access を作成する（compute, servicenetworking API も有効化）"
+}
+
+variable "db_private_ip_enabled" {
+  type        = bool
+  default     = false
+  description = "Cloud SQL を private IP 化。enable_private_network=true が前提"
+}
+
+variable "db_public_ip_enabled" {
+  type        = bool
+  default     = true
+  description = "Cloud SQL の public IPv4。完全 private 化するなら false（db_private_ip_enabled=true が前提）"
+}
+
+variable "cloudrun_direct_vpc_egress" {
+  type        = bool
+  default     = false
+  description = "Cloud Run / migrate job に Direct VPC egress を付ける。enable_private_network=true が前提"
+}
+
+variable "vpc_subnet_cidr" {
+  type    = string
+  default = "10.10.0.0/24"
+}
+
+variable "db_export_enabled" {
+  type        = bool
+  default     = false
+  description = "Cloud SQL の定期 SQL エクスポート（Scheduler -> GCS）を有効化"
+}
+
+variable "db_export_bucket_name" {
+  type    = string
+  default = null
+}
+
+variable "db_export_schedule" {
+  type    = string
+  default = "0 3 * * *"
+}
+
+variable "db_export_retention_days" {
+  type    = number
+  default = 30
+}
