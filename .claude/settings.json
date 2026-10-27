@@ -13,6 +13,7 @@
       "Bash(npx prisma migrate status*)",
       "Bash(npx prisma migrate diff*)",
       "Bash(git push*)",
+      "Bash(gh pr merge *)",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_take_screenshot",
