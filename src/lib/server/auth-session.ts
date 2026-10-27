@@ -1,8 +1,7 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
 import { getSession } from "@/lib/server/get-session";
-import { requestCache } from "@/lib/server/request-cache";
+import { getStaffAccess } from "@/lib/server/staff-access";
 import type { ApplicantSessionClaims, HelpdeskSessionClaims } from "@/types/session";
 
 export class UnauthorizedSessionError extends Error {
@@ -52,15 +51,12 @@ export async function requireHelpdeskStaffSession(): Promise<{
   return { claims: session.claims };
 }
 
-/** staffIdのロールがadminかをDBで確認する（同一リクエスト内の重複照会はまとめる）。 */
-const isStaffAdmin = requestCache(async (staffId: string): Promise<boolean> => {
-  const staff = await prisma.helpdeskStaff.findUnique({
-    where: { id: staffId },
-    select: { role: true },
-  });
+/** staffIdが有効なadminかをDBで確認する（同一リクエスト内の重複照会は`getStaffAccess`でまとまる）。 */
+async function isStaffAdmin(staffId: string): Promise<boolean> {
+  const staff = await getStaffAccess(staffId);
 
-  return staff?.role === "admin";
-});
+  return staff?.role === "admin" && staff.isActive;
+}
 
 /**
  * ヘルプデスクのadminロールを必須とするセッションを取得する。ロールはJWTに載せず

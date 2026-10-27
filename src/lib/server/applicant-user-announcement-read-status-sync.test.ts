@@ -152,7 +152,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: store.announcementFindUnique,
     },
     helpdeskStaff: {
-      findUnique: vi.fn().mockResolvedValue({ role: "admin" }),
+      findUnique: vi.fn().mockResolvedValue({ role: "admin", isActive: true }),
     },
   },
 }));

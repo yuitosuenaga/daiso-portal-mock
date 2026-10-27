@@ -93,6 +93,7 @@ model HelpdeskStaff {
   createdAt          DateTime                @default(now())
   registrationSource StaffRegistrationSource @default(manual)
   role               HelpdeskStaffRole       @default(member)
+  isActive           Boolean                 @default(true)
   claimedInquiries   Inquiry[]
   announcements      Announcement[]
 }
