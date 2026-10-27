@@ -32,7 +32,7 @@ describe("GET /api/inquiries/[id]", () => {
     vi.mocked(getSession).mockResolvedValue(null);
 
     const response = await GET(new Request("http://localhost"), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(401);
@@ -43,7 +43,7 @@ describe("GET /api/inquiries/[id]", () => {
     vi.mocked(findInquiryById).mockResolvedValue(null);
 
     const response = await GET(new Request("http://localhost"), {
-      params: { id: "missing" },
+      params: Promise.resolve({ id: "missing" }),
     });
 
     expect(response.status).toBe(404);
@@ -57,7 +57,7 @@ describe("GET /api/inquiries/[id]", () => {
     } as never);
 
     const response = await GET(new Request("http://localhost"), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(200);
@@ -68,7 +68,7 @@ describe("GET /api/inquiries/[id]", () => {
     vi.mocked(findInquiryForCompany).mockResolvedValue(null);
 
     const response = await GET(new Request("http://localhost"), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(findInquiryForCompany).toHaveBeenCalledWith("inquiry-1", "company-1");
@@ -80,7 +80,7 @@ describe("GET /api/inquiries/[id]", () => {
     vi.mocked(findInquiryForCompany).mockResolvedValue({ id: "inquiry-1" } as never);
 
     const response = await GET(new Request("http://localhost"), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(200);

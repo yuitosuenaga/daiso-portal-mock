@@ -17,6 +17,7 @@ vi.mock("@/lib/server/auto-translation", () => ({
 vi.mock("@/lib/server/link-category-service", () => ({
   addLinkCategoryTranslations: vi.fn(),
   LinkCategoryNotFoundError: class LinkCategoryNotFoundError extends Error {},
+  LinkCategoryNameConflictError: class LinkCategoryNameConflictError extends Error {},
 }));
 
 import {
@@ -26,7 +27,10 @@ import {
 } from "@/lib/api/link-categories";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import { autoTranslateFields } from "@/lib/server/auto-translation";
-import { addLinkCategoryTranslations } from "@/lib/server/link-category-service";
+import {
+  addLinkCategoryTranslations,
+  LinkCategoryNameConflictError,
+} from "@/lib/server/link-category-service";
 import {
   createLinkCategoryAction,
   retranslateLinkCategoryAction,
@@ -59,7 +63,7 @@ describe("createLinkCategoryAction", () => {
       name: "社内",
       translations: [{ locale: "en", name: "Internal" }],
     });
-    expect(result.failedLocales).toEqual([]);
+    expect(result).toMatchObject({ ok: true, failedLocales: [] });
   });
 
   it("翻訳が失敗しても保存し、failedLocalesを返す", async () => {
@@ -74,7 +78,24 @@ describe("createLinkCategoryAction", () => {
     expect(createLinkCategory).toHaveBeenCalledWith(
       expect.objectContaining({ translations: [] })
     );
-    expect(result.failedLocales).toEqual(["en"]);
+    expect(result).toMatchObject({ ok: true, failedLocales: ["en"] });
+  });
+
+  it("同一階層での名称重複は例外ではなくreason:nameConflictを返す", async () => {
+    vi.mocked(createLinkCategory).mockRejectedValue(new LinkCategoryNameConflictError("n"));
+
+    await expect(createLinkCategoryAction({ parentId: null, name: "社内" })).resolves.toEqual({
+      ok: false,
+      reason: "nameConflict",
+    });
+  });
+
+  it("名称重複以外の例外はそのまま送出する", async () => {
+    vi.mocked(createLinkCategory).mockRejectedValue(new Error("boom"));
+
+    await expect(
+      createLinkCategoryAction({ parentId: null, name: "社内" })
+    ).rejects.toThrow("boom");
   });
 
   it("名称が空なら保存しない", async () => {
@@ -112,7 +133,17 @@ describe("updateLinkCategoryAction", () => {
       name: "社内",
       translations: undefined,
     });
-    expect(result.failedLocales).toEqual([]);
+    expect(result).toMatchObject({ ok: true, failedLocales: [] });
+  });
+
+  it("同一階層での名称重複は例外ではなくreason:nameConflictを返す", async () => {
+    vi.mocked(getLinkCategoryById).mockResolvedValue(category({ name: "旧" }));
+    vi.mocked(updateLinkCategory).mockRejectedValue(new LinkCategoryNameConflictError("n"));
+
+    await expect(updateLinkCategoryAction("c1", { name: "社内" })).resolves.toEqual({
+      ok: false,
+      reason: "nameConflict",
+    });
   });
 });
 

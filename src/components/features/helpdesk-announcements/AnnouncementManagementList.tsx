@@ -1,9 +1,6 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllAnnouncements } from "@/lib/api/announcements";
-import {
-  getAnnouncementRecipientStatuses,
-  getAnnouncementUserReadStatuses,
-} from "@/lib/api/announcement-tracking";
+import { getAnnouncementTrackingStatusesBulk } from "@/lib/api/announcement-tracking";
 import { triggerAutoEscalationBestEffort } from "@/lib/server/announcement-escalation";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
@@ -14,11 +11,7 @@ import {
   ManagementListMessageCard,
   ManagementListSkeleton,
 } from "@/components/features/helpdesk-shared/ManagementList";
-import type { Announcement, AnnouncementCategory } from "@/types/announcement";
-import type {
-  AnnouncementRecipientStatusView,
-  AnnouncementUserReadStatusView,
-} from "@/types/announcement-recipient";
+import type { AnnouncementCategory, AnnouncementSummary } from "@/types/announcement";
 
 export async function AnnouncementManagementList() {
   // 対応期限超過の自動エスカレーション（要件38）をアクセス時トリガーとしてベストエフォートで
@@ -41,7 +34,7 @@ export async function AnnouncementManagementList() {
     />
   );
 
-  let announcements: Announcement[];
+  let announcements: AnnouncementSummary[];
   try {
     announcements = await getAllAnnouncements();
   } catch {
@@ -83,34 +76,11 @@ export async function AnnouncementManagementList() {
     label: tCategories(code),
   }));
 
-  const [recipientStatusesEntries, userReadStatusesEntries] = await Promise.all([
-    Promise.all(
-      announcements.map(
-        async (announcement) =>
-          [
-            announcement.id,
-            await getAnnouncementRecipientStatuses(announcement.id),
-          ] as const
-      )
-    ),
-    Promise.all(
-      announcements.map(
-        async (announcement) =>
-          [
-            announcement.id,
-            await getAnnouncementUserReadStatuses(announcement.id),
-          ] as const
-      )
-    ),
-  ]);
-  const recipientStatusesByAnnouncementId: Record<
-    string,
-    AnnouncementRecipientStatusView[]
-  > = Object.fromEntries(recipientStatusesEntries);
-  const userReadStatusesByAnnouncementId: Record<
-    string,
-    AnnouncementUserReadStatusView[]
-  > = Object.fromEntries(userReadStatusesEntries);
+  // お知らせ件数に依存しない固定本数のクエリで、全お知らせ分の実施済み・確認済み状況をまとめて取得する。
+  const {
+    recipientStatuses: recipientStatusesByAnnouncementId,
+    userReadStatuses: userReadStatusesByAnnouncementId,
+  } = await getAnnouncementTrackingStatusesBulk(announcements);
 
   return (
     <div>

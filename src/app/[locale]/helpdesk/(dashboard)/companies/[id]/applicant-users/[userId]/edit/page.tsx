@@ -8,15 +8,14 @@ import { getApplicantUserById } from "@/lib/server/applicant-user-service";
 import { APPLICANT_USER_PREFERRED_LOCALE_CODES } from "@/lib/constants/applicant-user";
 
 type HelpdeskApplicantUserEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
     userId: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskApplicantUserEditPage({
-  params,
-}: HelpdeskApplicantUserEditPageProps) {
+export default async function HelpdeskApplicantUserEditPage(props: HelpdeskApplicantUserEditPageProps) {
+  const params = await props.params;
   const [t, tCompanyForm, tToggle] = await Promise.all([
     getTranslations("helpdeskCompanies.applicantUserForm"),
     getTranslations("helpdeskCompanies.form"),

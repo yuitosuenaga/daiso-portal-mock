@@ -313,3 +313,36 @@ variable "db_export_retention_days" {
   type    = number
   default = 30
 }
+
+# --- 予算アラート（modules/budget。既定 false で既存挙動不変） ---
+# 請求先アカウントの Billing Account Administrator / Costs Manager 相当が必要。
+# プロジェクトの Editor だけでは作成できない可能性が高いので、権限確認後に true にする。
+variable "enable_budget_alert" {
+  type        = bool
+  default     = false
+  description = "月額予算と通知（google_billing_budget）を作成する。請求先アカウントの権限が必要"
+}
+
+variable "billing_account_id" {
+  type        = string
+  default     = null
+  description = "請求先アカウントID（例: 012345-6789AB-CDEF01）。enable_budget_alert=true で必須"
+}
+
+variable "budget_monthly_amount" {
+  type        = number
+  default     = null
+  description = "月額予算額。enable_budget_alert=true で必須"
+}
+
+variable "budget_currency_code" {
+  type        = string
+  default     = "JPY"
+  description = "予算の通貨。請求先アカウントの通貨と一致させる"
+}
+
+variable "budget_alert_emails" {
+  type        = list(string)
+  default     = []
+  description = "予算アラートの通知先メール。空なら請求先アカウント管理者への既定通知のみ"
+}

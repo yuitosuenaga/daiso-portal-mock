@@ -29,3 +29,10 @@ allowed_email_domains = []   # 例: ["our-company.example", "client.example"]
 # db_point_in_time_recovery = false
 # enable_private_network    = false
 # db_export_enabled         = false
+
+# 予算アラート（docs/infra/ci-and-budget.md）。請求先アカウントの権限が確認できてから true
+# enable_budget_alert   = false
+# billing_account_id    = "012345-6789AB-CDEF01"
+# budget_monthly_amount = 10000
+# budget_currency_code  = "JPY"
+# budget_alert_emails   = ["ops@example.com"]

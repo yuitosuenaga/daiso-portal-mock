@@ -54,7 +54,7 @@ describe("POST /api/inquiries/[id]/history", () => {
     vi.mocked(getSession).mockResolvedValue(null);
 
     const response = await POST(request({ type: "requester_message", detail: "x" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(401);
@@ -67,7 +67,7 @@ describe("POST /api/inquiries/[id]/history", () => {
 
     const response = await POST(
       request({ type: "requester_message", detail: "教えてください" }),
-      { params: { id: "inquiry-1" } }
+      { params: Promise.resolve({ id: "inquiry-1" }) }
     );
 
     expect(appendHistoryEntry).toHaveBeenCalledWith(
@@ -87,7 +87,7 @@ describe("POST /api/inquiries/[id]/history", () => {
 
     const response = await POST(
       request({ type: "requester_message", detail: "x", attachments: [pngAttachment(100)] }),
-      { params: { id: "inquiry-1" } }
+      { params: Promise.resolve({ id: "inquiry-1" }) }
     );
 
     expect(response.status).toBe(201);
@@ -99,7 +99,7 @@ describe("POST /api/inquiries/[id]/history", () => {
 
     const response = await POST(
       request({ type: "reply_sent", detail: "x", attachments: [pngAttachment(1000, 1)] }),
-      { params: { id: "inquiry-1" } }
+      { params: Promise.resolve({ id: "inquiry-1" }) }
     );
 
     expect(response.status).toBe(400);
@@ -116,7 +116,7 @@ describe("POST /api/inquiries/[id]/history", () => {
 
     const response = await POST(
       request({ type: "reply_sent", detail: "x", attachments: five }),
-      { params: { id: "inquiry-1" } }
+      { params: Promise.resolve({ id: "inquiry-1" }) }
     );
 
     expect(response.status).toBe(400);
@@ -128,7 +128,7 @@ describe("POST /api/inquiries/[id]/history", () => {
     vi.mocked(findInquiryForCompany).mockResolvedValue(null);
 
     const response = await POST(request({ type: "requester_message", detail: "x" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(404);
@@ -138,7 +138,7 @@ describe("POST /api/inquiries/[id]/history", () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
     const response = await POST(request({ type: "reply_sent", detail: "x" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(400);
@@ -149,7 +149,7 @@ describe("POST /api/inquiries/[id]/history", () => {
     vi.mocked(appendHistoryEntry).mockResolvedValue({ id: "history-1" } as never);
 
     const response = await POST(request({ type: "reply_sent", detail: "対応します" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(appendHistoryEntry).toHaveBeenCalledWith(
@@ -162,7 +162,7 @@ describe("POST /api/inquiries/[id]/history", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
     const response = await POST(request({ type: "requester_message", detail: "x" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(400);

@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 
 import type {
   Announcement,
+  AnnouncementSummary,
   AnnouncementTargeting,
 } from "@/types/announcement";
 import type {
@@ -23,6 +24,37 @@ export const ANNOUNCEMENT_INCLUDE = {
 
 export type PrismaAnnouncement = Prisma.AnnouncementGetPayload<{
   include: typeof ANNOUNCEMENT_INCLUDE;
+}>;
+
+/**
+ * 一覧用のinclude句。添付は本体（`dataUrl`、Base64で最大数MB）を読み込まず、メタデータ
+ * だけを`select`する。一覧画面は添付本体を使わないため、行数に比例するDB転送量を避ける。
+ */
+export const ANNOUNCEMENT_LIST_INCLUDE = {
+  attachments: { select: { id: true, fileName: true, fileType: true, fileSize: true } },
+  linkedDocuments: true,
+  translations: true,
+} as const satisfies Prisma.AnnouncementInclude;
+
+export type PrismaAnnouncementSummary = Prisma.AnnouncementGetPayload<{
+  include: typeof ANNOUNCEMENT_LIST_INCLUDE;
+}>;
+
+/**
+ * 配信対象・対応要否の判定だけが必要な処理（トラッキング集計など）用のselect句。
+ * 添付・翻訳・本文を読み込まない。
+ */
+export const ANNOUNCEMENT_TARGETING_SELECT = {
+  id: true,
+  actionRequired: true,
+  targetingScope: true,
+  targetingCountries: true,
+  targetingUserIds: true,
+  targetingCompanyIds: true,
+} as const satisfies Prisma.AnnouncementSelect;
+
+export type PrismaAnnouncementTargeting = Prisma.AnnouncementGetPayload<{
+  select: typeof ANNOUNCEMENT_TARGETING_SELECT;
 }>;
 
 type PrismaRecipientWithCompany = Prisma.AnnouncementRecipientGetPayload<{
@@ -47,7 +79,12 @@ type PrismaReadReceipt = {
   confirmers?: { name: string; confirmedAt: Date }[];
 };
 
-export function mapTargeting(record: PrismaAnnouncement): AnnouncementTargeting {
+export function mapTargeting(
+  record: Pick<
+    PrismaAnnouncement,
+    "targetingScope" | "targetingCountries" | "targetingUserIds" | "targetingCompanyIds"
+  >
+): AnnouncementTargeting {
   if (record.targetingScope === "countries") {
     return { scope: "countries", countries: record.targetingCountries };
   }
@@ -95,7 +132,9 @@ function mapDateOnly(value: Date | null): string | null {
   return value ? value.toISOString().slice(0, 10) : null;
 }
 
-export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
+function mapAnnouncementBase(
+  record: Omit<PrismaAnnouncementSummary, "attachments">
+): Omit<Announcement, "attachments"> {
   return {
     id: record.id,
     title: record.title,
@@ -113,13 +152,6 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
     dueDate: mapDateOnly(record.dueDate),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
-    attachments: record.attachments.map((attachment) => ({
-      id: attachment.id,
-      fileName: attachment.fileName,
-      fileType: attachment.fileType,
-      fileSize: attachment.fileSize,
-      dataUrl: attachment.dataUrl,
-    })),
     linkedDocumentIds: record.linkedDocuments.map((link) => link.documentId),
     translations: record.translations.map((translation) => ({
       locale: translation.locale,
@@ -127,6 +159,32 @@ export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
       body: translation.body,
       source: translation.source,
       sourceHash: translation.sourceHash ?? undefined,
+    })),
+  };
+}
+
+export function mapAnnouncement(record: PrismaAnnouncement): Announcement {
+  return {
+    ...mapAnnouncementBase(record),
+    attachments: record.attachments.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      fileType: attachment.fileType,
+      fileSize: attachment.fileSize,
+      dataUrl: attachment.dataUrl,
+    })),
+  };
+}
+
+/** 一覧用。添付はメタデータのみ（`dataUrl`を読み込まず、出力にも含めない）。 */
+export function mapAnnouncementSummary(record: PrismaAnnouncementSummary): AnnouncementSummary {
+  return {
+    ...mapAnnouncementBase(record),
+    attachments: record.attachments.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      fileType: attachment.fileType,
+      fileSize: attachment.fileSize,
     })),
   };
 }
@@ -169,6 +227,92 @@ export function mapUserReadStatusView(
       confirmedAt: confirmer.confirmedAt.toISOString(),
     })),
   };
+}
+
+type BulkTrackingRecipient = PrismaRecipientWithCompany & {
+  statuses: (PrismaRecipientStatus & { announcementId: string })[];
+};
+
+type BulkTrackingUser = PrismaApplicantUserWithCompany & {
+  isActive: boolean;
+  companyId: string;
+  announcementReadReceipts: (PrismaReadReceipt & { announcementId: string })[];
+};
+
+/**
+ * ヘルプデスクのお知らせ管理一覧向けに、複数のお知らせ分の「会社単位の実施済み状況」と
+ * 「個人単位の確認済み状況」を、あらかじめ一括取得した行から振り分けて組み立てる（N+1の解消用）。
+ *
+ * 各お知らせの母集団の定義は、1件ずつ取得する`getAnnouncementRecipientStatuses`
+ * （`targetRecipientsWhere`）・`getAnnouncementUserReadStatuses`（`targetApplicantUsersWhere`）
+ * と同一:
+ * - 会社単位: `countries`は会社の国が一致、`users`は指定会社、または指定個人が（無効化済みを含めて）
+ *   所属する会社の担当者、`all`は全担当者。
+ * - 個人単位: 有効（`isActive`）な申請者のうち、`countries`は所属会社の国が一致、`users`は指定個人または
+ *   指定会社の所属者、`all`は全員。
+ */
+export function buildAnnouncementTrackingViews(
+  announcements: { id: string; targeting: AnnouncementTargeting }[],
+  recipients: BulkTrackingRecipient[],
+  users: BulkTrackingUser[]
+): {
+  recipientStatuses: Record<string, AnnouncementRecipientStatusView[]>;
+  userReadStatuses: Record<string, AnnouncementUserReadStatusView[]>;
+} {
+  const userIdsByCompanyId = new Map<string, Set<string>>();
+  for (const user of users) {
+    const ids = userIdsByCompanyId.get(user.companyId) ?? new Set<string>();
+    ids.add(user.id);
+    userIdsByCompanyId.set(user.companyId, ids);
+  }
+
+  const recipientStatuses: Record<string, AnnouncementRecipientStatusView[]> = {};
+  const userReadStatuses: Record<string, AnnouncementUserReadStatusView[]> = {};
+
+  for (const { id, targeting } of announcements) {
+    recipientStatuses[id] = recipients
+      .filter((recipient) => {
+        if (targeting.scope === "countries") {
+          return targeting.countries.includes(recipient.company.country);
+        }
+        if (targeting.scope === "users") {
+          if (targeting.companyIds.includes(recipient.companyId)) {
+            return true;
+          }
+          const companyUserIds = userIdsByCompanyId.get(recipient.companyId);
+          return targeting.userIds.some((userId) => companyUserIds?.has(userId));
+        }
+        return true;
+      })
+      .map((recipient) =>
+        mapRecipientStatusView(
+          recipient,
+          recipient.statuses.find((status) => status.announcementId === id)
+        )
+      );
+
+    userReadStatuses[id] = users
+      .filter((user) => {
+        if (!user.isActive) {
+          return false;
+        }
+        if (targeting.scope === "countries") {
+          return targeting.countries.includes(user.company.country);
+        }
+        if (targeting.scope === "users") {
+          return targeting.userIds.includes(user.id) || targeting.companyIds.includes(user.companyId);
+        }
+        return true;
+      })
+      .map((user) =>
+        mapUserReadStatusView(
+          user,
+          user.announcementReadReceipts.find((receipt) => receipt.announcementId === id)
+        )
+      );
+  }
+
+  return { recipientStatuses, userReadStatuses };
 }
 
 /**

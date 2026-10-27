@@ -6,14 +6,13 @@ import { getReplyTemplateById } from "@/lib/api/reply-templates";
 import { INQUIRY_CATEGORY_CODES } from "@/lib/constants/inquiry-options";
 
 type HelpdeskTemplateEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskTemplateEditPage({
-  params,
-}: HelpdeskTemplateEditPageProps) {
+export default async function HelpdeskTemplateEditPage(props: HelpdeskTemplateEditPageProps) {
+  const params = await props.params;
   const [t, tCategories] = await Promise.all([
     getTranslations("helpdeskTemplates.form"),
     getTranslations("inquiryForm.options.category"),

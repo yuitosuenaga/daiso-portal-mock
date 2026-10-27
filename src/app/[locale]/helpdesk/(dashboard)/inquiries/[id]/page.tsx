@@ -5,14 +5,13 @@ import {
 } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryDetail";
 
 type HelpdeskInquiryDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function HelpdeskInquiryDetailPage({
-  params,
-}: HelpdeskInquiryDetailPageProps) {
+export default async function HelpdeskInquiryDetailPage(props: HelpdeskInquiryDetailPageProps) {
+  const params = await props.params;
   return (
     <div className="max-w-5xl">
       <Suspense fallback={<HelpdeskInquiryDetailSkeleton />}>

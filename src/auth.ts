@@ -41,7 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return true;
       }
       const context = decodeLoginContext(
-        cookies().get(GOOGLE_LOGIN_CONTEXT_COOKIE)?.value,
+        (await cookies()).get(GOOGLE_LOGIN_CONTEXT_COOKIE)?.value,
         SUPPORTED_LOCALES,
         DEFAULT_LOCALE
       );

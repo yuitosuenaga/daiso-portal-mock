@@ -4,7 +4,7 @@
 /**
  * Content-Security-Policyを組み立てる。
  *
- * TODO(CSP厳格化): Next.js 14のApp Routerはインラインスクリプト（flight data等）を出力するため、
+ * TODO(CSP厳格化): Next.jsのApp Routerはインラインスクリプト（flight data等）を出力するため、
  * nonceを導入するまでは script-src に 'unsafe-inline' が必要。同様に style-src も
  * Tailwind/next-fontのインラインstyleのため 'unsafe-inline'。nonce対応（middlewareでの
  * nonce発行 + 動的レンダリング化）が済んだらここを厳格化する。

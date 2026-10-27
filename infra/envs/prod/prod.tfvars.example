@@ -41,3 +41,10 @@ db_export_retention_days = 30
 # db_private_ip_enabled      = true
 # cloudrun_direct_vpc_egress = true
 # db_public_ip_enabled       = false  # 疎通確認後に最後に false
+
+# 予算アラート（docs/infra/ci-and-budget.md）。請求先アカウントの権限が確認できてから true
+# enable_budget_alert   = false
+# billing_account_id    = "012345-6789AB-CDEF01"
+# budget_monthly_amount = 10000
+# budget_currency_code  = "JPY"
+# budget_alert_emails   = ["ops@example.com"]

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { getRecentAnnouncements } from "@/lib/api/announcements";
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 
 const PREVIEW_LIMIT = 3;
 const SKELETON_ITEM_COUNT = 3;
@@ -33,7 +33,7 @@ export async function AnnouncementsPreviewPanel({
     getLocale(),
   ]);
 
-  let announcements: Announcement[] | null = null;
+  let announcements: AnnouncementSummary[] | null = null;
   try {
     announcements = await getRecentAnnouncements({ limit: PREVIEW_LIMIT, locale });
   } catch {

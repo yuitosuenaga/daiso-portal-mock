@@ -6,6 +6,7 @@ vi.mock("@/lib/server/announcement-service", () => ({
   findAnnouncementVisibleToCountry: vi.fn(),
   getAnnouncementRecipientStatuses: vi.fn(),
   getAnnouncementSelfStatusForCompany: vi.fn(),
+  getAnnouncementTrackingStatusesBulk: vi.fn(),
   getAnnouncementTrackingSummary: vi.fn(),
   getAnnouncementUserReadStatuses: vi.fn(),
   getUserSelfConfirmation: vi.fn(),
@@ -21,6 +22,7 @@ import {
   findAnnouncementVisibleToCountry as findAnnouncementVisibleToCountryService,
   getAnnouncementRecipientStatuses as getAnnouncementRecipientStatusesService,
   getAnnouncementSelfStatusForCompany as getAnnouncementSelfStatusForCompanyService,
+  getAnnouncementTrackingStatusesBulk as getAnnouncementTrackingStatusesBulkService,
   getAnnouncementTrackingSummary as getAnnouncementTrackingSummaryService,
   getAnnouncementUserReadStatuses as getAnnouncementUserReadStatusesService,
   getUserSelfConfirmation as getUserSelfConfirmationService,
@@ -35,6 +37,7 @@ import {
   confirmAnnouncementForCurrentCompany,
   getAnnouncementRecipientStatuses,
   getAnnouncementSelfStatus,
+  getAnnouncementTrackingStatusesBulk,
   getAnnouncementTrackingSummary,
   getAnnouncementUserReadStatuses,
   isReminderPendingForCompany,
@@ -337,5 +340,27 @@ describe("getAnnouncementSelfStatus", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
     await expect(getAnnouncementSelfStatus("announcement-1")).rejects.toThrow();
+  });
+});
+
+describe("getAnnouncementTrackingStatusesBulk", () => {
+  const announcements = [{ id: "announcement-1", targeting: { scope: "all" as const } }];
+
+  it("ヘルプデスクセッションでサービス層に委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    const bulk = { recipientStatuses: { "announcement-1": [] }, userReadStatuses: {} };
+    vi.mocked(getAnnouncementTrackingStatusesBulkService).mockResolvedValue(bulk);
+
+    const result = await getAnnouncementTrackingStatusesBulk(announcements);
+
+    expect(getAnnouncementTrackingStatusesBulkService).toHaveBeenCalledWith(announcements);
+    expect(result).toBe(bulk);
+  });
+
+  it("申請者セッションでは例外を送出し、サービス層を呼ばない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(getAnnouncementTrackingStatusesBulk(announcements)).rejects.toThrow();
+    expect(getAnnouncementTrackingStatusesBulkService).not.toHaveBeenCalled();
   });
 });

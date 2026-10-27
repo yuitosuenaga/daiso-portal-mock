@@ -7,11 +7,11 @@ import {
   ConfirmedStatusBadge,
 } from "@/components/features/announcements/SelfReportStatusBadges";
 import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 
 export interface AnnouncementListItemProps {
   /** 表示対象のお知らせ1件分のデータ */
-  announcement: Announcement;
+  announcement: AnnouncementSummary;
   /** 種別（category）の翻訳済み表示ラベル */
   categoryLabel: string;
   /**

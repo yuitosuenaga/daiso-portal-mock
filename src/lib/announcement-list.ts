@@ -1,4 +1,4 @@
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 
 /**
  * 申請者側お知らせ一覧の検索・絞り込み条件。
@@ -21,10 +21,10 @@ export const EMPTY_ANNOUNCEMENT_FILTERS: AnnouncementFilters = {
  * タイトル（部分一致・大文字小文字を区別しない）・種別・対応要否のAND条件で
  * お知らせを絞り込む。引数の配列の順序は変更しない。
  */
-export function filterAnnouncements(
-  announcements: Announcement[],
+export function filterAnnouncements<T extends AnnouncementSummary>(
+  announcements: T[],
   filters: AnnouncementFilters
-): Announcement[] {
+): T[] {
   const keyword = filters.keyword.trim().toLowerCase();
 
   return announcements.filter((announcement) => {

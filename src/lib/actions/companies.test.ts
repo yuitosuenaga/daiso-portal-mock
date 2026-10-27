@@ -3,18 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
-const { MockCompanyCodeTakenError } = vi.hoisted(() => {
-  class MockCompanyCodeTakenError extends Error {
-    constructor(companyCode: string) {
-      super(`Company code already taken: ${companyCode}`);
-      this.name = "CompanyCodeTakenError";
-    }
-  }
-  return { MockCompanyCodeTakenError };
-});
-
 vi.mock("@/lib/server/company-service", () => ({
-  CompanyCodeTakenError: MockCompanyCodeTakenError,
   createCompany: vi.fn(),
   updateCompany: vi.fn(),
   isCompanyCodeTaken: vi.fn(),
@@ -31,7 +20,6 @@ vi.mock("@/lib/server/auth-session", () => ({
 
 import { revalidatePath } from "next/cache";
 import {
-  CompanyCodeTakenError,
   createCompaniesBulk,
   createCompany,
   deactivateApplicantUsersByCompanies,
@@ -84,7 +72,7 @@ describe("createCompanyAction", () => {
 
     expect(isCompanyCodeTaken).toHaveBeenCalledWith("th-daiso-thailand");
     expect(createCompany).toHaveBeenCalled();
-    expect(result.id).toBe("company-1");
+    expect(result).toMatchObject({ ok: true, company: { id: "company-1" } });
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -94,12 +82,13 @@ describe("createCompanyAction", () => {
     expect(createCompany).not.toHaveBeenCalled();
   });
 
-  it("販社コードが重複するとき例外になり、保存されない", async () => {
+  it("販社コードが重複するとき例外ではなくreason:companyCodeTakenを返し、保存されない", async () => {
     vi.mocked(isCompanyCodeTaken).mockResolvedValue(true);
 
-    await expect(createCompanyAction(buildInput())).rejects.toThrow(
-      CompanyCodeTakenError
-    );
+    await expect(createCompanyAction(buildInput())).resolves.toEqual({
+      ok: false,
+      reason: "companyCodeTaken",
+    });
     expect(createCompany).not.toHaveBeenCalled();
   });
 });
@@ -119,7 +108,7 @@ describe("updateCompanyAction", () => {
       "company-1",
       expect.objectContaining({ name: "更新後" })
     );
-    expect(result.name).toBe("更新後");
+    expect(result).toMatchObject({ ok: true, company: { name: "更新後" } });
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -131,12 +120,12 @@ describe("updateCompanyAction", () => {
     expect(updateCompany).not.toHaveBeenCalled();
   });
 
-  it("自分自身以外との販社コードの重複は例外になり、保存されない", async () => {
+  it("自分自身以外との販社コードの重複は例外ではなくreason:companyCodeTakenを返し、保存されない", async () => {
     vi.mocked(isCompanyCodeTaken).mockResolvedValue(true);
 
     await expect(
       updateCompanyAction("company-1", buildInput())
-    ).rejects.toThrow(CompanyCodeTakenError);
+    ).resolves.toEqual({ ok: false, reason: "companyCodeTaken" });
     expect(updateCompany).not.toHaveBeenCalled();
   });
 });
