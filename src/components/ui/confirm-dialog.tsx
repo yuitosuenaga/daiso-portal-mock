@@ -59,7 +59,8 @@ export function ConfirmDialog({
   async function handleConfirm() {
     try {
       await onConfirm();
-      // 成功時は自動的に閉じる。失敗時はエラー表示（利用側の責務）のため開いたままにする。
+      // onConfirmがresolveすれば閉じる（利用側が失敗を握りつぶしてresolveする場合も閉じる）。
+      // 開いたままにしたい場合は、利用側がonConfirmをrejectする（reject時は下のcatchで開いたまま）。
       setOpen(false);
     } catch {
       // onConfirm呼び出し側がエラーハンドリング・表示を担う。ここでは再スローしない。

@@ -78,13 +78,15 @@ export async function StaffManagementList() {
           google_auto: tSource("google_auto"),
         }}
         statusLabels={{ active: tStatus("active"), inactive: tStatus("inactive") }}
+        // `{name}`入りの確認文は、Client側のformatTemplateで後置換するため
+        // t()ではなくt.raw()で未解決のテンプレートのまま渡す（t()だとFORMATTING_ERRORでキー文字列が出る）。
         toggleRoleLabels={{
           promoteButton: tToggle("promoteButton"),
           demoteButton: tToggle("demoteButton"),
           promoteConfirmTitle: tToggle("promoteConfirmTitle"),
           demoteConfirmTitle: tToggle("demoteConfirmTitle"),
-          promoteConfirm: tToggle("promoteConfirm"),
-          demoteConfirm: tToggle("demoteConfirm"),
+          promoteConfirm: tToggle.raw("promoteConfirm"),
+          demoteConfirm: tToggle.raw("demoteConfirm"),
           promoteConfirmButton: tToggle("promoteConfirmButton"),
           demoteConfirmButton: tToggle("demoteConfirmButton"),
           cancelButton: tToggle("cancelButton"),
@@ -94,8 +96,8 @@ export async function StaffManagementList() {
           activateButton: tToggle("activateButton"),
           deactivateConfirmTitle: tToggle("deactivateConfirmTitle"),
           activateConfirmTitle: tToggle("activateConfirmTitle"),
-          deactivateConfirm: tToggle("deactivateConfirm"),
-          activateConfirm: tToggle("activateConfirm"),
+          deactivateConfirm: tToggle.raw("deactivateConfirm"),
+          activateConfirm: tToggle.raw("activateConfirm"),
           deactivateConfirmButton: tToggle("deactivateConfirmButton"),
           activateConfirmButton: tToggle("activateConfirmButton"),
           cancelButton: tToggle("cancelButton"),
