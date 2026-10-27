@@ -44,4 +44,28 @@ describe("logger", () => {
   it("Error以外の値は型名のみ", () => {
     expect(errorFields("secret string")).toEqual({ errorName: "string" });
   });
+
+  describe("シリアライズ・書き込み失敗", () => {
+    const cases: Array<[string, () => Record<string, unknown>]> = [
+      ["循環参照", () => { const o: Record<string, unknown> = {}; o.self = o; return { o }; }],
+      ["BigInt", () => ({ n: BigInt(1) })],
+      ["toJSONがthrow", () => ({ x: { toJSON() { throw new Error("nope"); } } })],
+    ];
+    it.each(cases)("%s でも例外を出さず最小ログを出す", (_name, make) => {
+      const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      expect(() => logger.info("m1", make())).not.toThrow();
+      expect(() => logger.warn("m2", make())).not.toThrow();
+      expect(JSON.parse(String(out.mock.calls[0][0]))).toEqual({ severity: "INFO", message: "m1", logError: "serialize failed" });
+      expect(JSON.parse(String(err.mock.calls[0][0]))).toEqual({ severity: "WARNING", message: "m2", logError: "serialize failed" });
+      // 振り分け維持: WARNINGはstdoutに出ず、INFOはstderrに出ない
+      expect(out).toHaveBeenCalledTimes(1);
+      expect(err).toHaveBeenCalledTimes(1);
+    });
+
+    it("書き込み自体が失敗しても例外を出さない", () => {
+      vi.spyOn(process.stdout, "write").mockImplementation(() => { throw new Error("EPIPE"); });
+      expect(() => logger.info("x")).not.toThrow();
+    });
+  });
 });

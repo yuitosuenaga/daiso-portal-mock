@@ -33,13 +33,25 @@ export function errorFields(error: unknown): Record<string, unknown> {
   return { errorName: typeof error };
 }
 
-function write(severity: LogSeverity, message: string, fields?: Record<string, unknown>): void {
-  // `severity` / `message` は予約。fieldsで上書きされないよう最後に置く。
-  const line = JSON.stringify({ ...fields, severity, message });
+function emit(severity: LogSeverity, line: string): void {
   if (severity === "ERROR" || severity === "WARNING") {
     process.stderr.write(`${line}\n`);
   } else {
     process.stdout.write(`${line}\n`);
+  }
+}
+
+function write(severity: LogSeverity, message: string, fields?: Record<string, unknown>): void {
+  // ログ出力の失敗（循環参照・BigInt・toJSONの例外・書き込み失敗）を呼び出し元へ伝播させない。
+  try {
+    // `severity` / `message` は予約。fieldsで上書きされないよう最後に置く。
+    emit(severity, JSON.stringify({ ...fields, severity, message }));
+  } catch {
+    try {
+      emit(severity, JSON.stringify({ severity, message, logError: "serialize failed" }));
+    } catch {
+      // 握りつぶす
+    }
   }
 }
 

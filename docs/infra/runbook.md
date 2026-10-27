@@ -366,10 +366,18 @@ resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
 severity>=ERROR
 
-# DB 接続エラー
+# DB 接続エラー(アプリログは JSON 1行で jsonPayload に入る。Prisma エラーは errorName / errorCode のみで、メッセージ本文は出ない)
+# P1000: 認証失敗 / P1001: 接続不可 / P1017: サーバーが接続を閉じた
 resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
-textPayload=~"password authentication failed|Can't reach database"
+severity>=ERROR
+jsonPayload.errorCode=("P1000" OR "P1001" OR "P1017")
+
+# 認証監査ログ(message は固定で "auth"、種別は jsonPayload.type)
+resource.type="cloud_run_revision"
+resource.labels.service_name="portal-mock"
+jsonPayload.message="auth"
+jsonPayload.type="<種別>"
 
 # 特定 revision の起動失敗
 resource.type="cloud_run_revision"
@@ -383,7 +391,7 @@ resource.labels.job_name="portal-mock-migrate"
 
 ```bash
 gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-mock" AND severity>=ERROR' \
-  --project rvp-ai-proto-camp --limit 30 --freshness=1h --format="value(timestamp,severity,textPayload)"
+  --project rvp-ai-proto-camp --limit 30 --freshness=1h --format="value(timestamp,severity,jsonPayload.message,jsonPayload.errorName,jsonPayload.errorCode)"
 ```
 
 機密値が出ないようにするための注意:
