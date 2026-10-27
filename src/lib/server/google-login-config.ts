@@ -7,6 +7,9 @@ import {
 
 import { logger } from "./logger";
 
+/** 有効ドメインが空の警告をプロセスで1回だけ出すためのフラグ。 */
+let warnedEmptyDomains = false;
+
 /** AUTH_GOOGLE_ID・AUTH_GOOGLE_SECRETが両方設定されているときのみGoogleログインを有効にする。 */
 export function isGoogleLoginEnabled(): boolean {
   return Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
@@ -36,5 +39,3 @@ export function getHelpdeskAutoProvisionDomains(): string[] {
   }
   return domains;
 }
-
-let warnedEmptyDomains = false;

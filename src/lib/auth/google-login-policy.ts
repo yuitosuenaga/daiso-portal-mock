@@ -69,7 +69,8 @@ export function canAutoProvisionHelpdesk(input: {
   autoProvisionDomains: readonly string[];
 }): boolean {
   if (!isEmailDomainAllowed(input.email, input.autoProvisionDomains)) return false;
-  if (!input.hostedDomain) return false;
+  // 実行時にhdが文字列以外で来ても例外にしない（型は信用しない）
+  if (typeof input.hostedDomain !== "string" || !input.hostedDomain) return false;
   const domain = normalizeEmail(input.email).split("@")[1];
   return input.hostedDomain.trim().toLowerCase() === domain;
 }

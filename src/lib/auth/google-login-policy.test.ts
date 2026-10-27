@@ -230,6 +230,17 @@ describe("canAutoProvisionHelpdesk", () => {
       })
     ).toBe(true);
   });
+  it("hdが文字列でない値（数値・オブジェクト）でも例外にならずfalse", () => {
+    for (const hd of [123, { a: 1 }, ["example.com"], true]) {
+      expect(
+        canAutoProvisionHelpdesk({
+          email: "a@example.com",
+          hostedDomain: hd as unknown as string,
+          autoProvisionDomains: domains,
+        })
+      ).toBe(false);
+    }
+  });
   it("サブドメインはfalse", () => {
     expect(
       canAutoProvisionHelpdesk({

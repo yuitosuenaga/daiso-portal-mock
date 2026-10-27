@@ -16,6 +16,7 @@ import {
 } from "@/lib/server/authorize";
 import { recordAuthEvent, hashIdentifier } from "@/lib/server/auth-audit";
 import { runProtectedCredentialsLogin } from "@/lib/server/login-throttle";
+import { logger } from "@/lib/server/logger";
 import { authorizeGoogleLogin } from "@/lib/server/google-authorize";
 import {
   getAllowedEmailDomains,
@@ -46,17 +47,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         SUPPORTED_LOCALES,
         DEFAULT_LOCALE
       );
-      const result = await authorizeGoogleLogin({
-        email: profile?.email ?? user.email,
-        emailVerified: profile?.email_verified,
-        portal: context.portal,
-        allowedDomains: getAllowedEmailDomains(),
-        hostedDomain: profile?.hd,
-        name: profile?.name,
-        autoProvisionDomains: getHelpdeskAutoProvisionDomains(),
-      });
       const googleEmail = profile?.email ?? user.email;
       const identifierHash = googleEmail ? hashIdentifier(googleEmail) : null;
+      let result: Awaited<ReturnType<typeof authorizeGoogleLogin>>;
+      try {
+        result = await authorizeGoogleLogin({
+          email: googleEmail,
+          emailVerified: profile?.email_verified,
+          portal: context.portal,
+          allowedDomains: getAllowedEmailDomains(),
+          // Profileのhdは型定義が無くunknown。実行時に文字列のときだけ渡す
+          hostedDomain: typeof profile?.hd === "string" ? profile.hd : null,
+          name: typeof profile?.name === "string" ? profile.name : null,
+          autoProvisionDomains: getHelpdeskAutoProvisionDomains(),
+        });
+      } catch (error) {
+        // DB障害等。fail closedで拒否し、監査を残す（例外の詳細にメールが含まれうるため種別のみ記録）
+        logger.error("[auth] authorizeGoogleLogin failed", {
+          errorName: error instanceof Error ? error.name : typeof error,
+          code: (error as { code?: unknown } | null)?.code,
+        });
+        await recordAuthEvent({
+          type: "login_failure",
+          method: "google",
+          portal: context.portal,
+          identifierHash,
+          reason: "authorize_error",
+        });
+        // 画面のエラー分類は増やさず、汎用の「ログインできない」系コードで拒否する
+        return buildGoogleLoginErrorPath(
+          context.portal,
+          context.locale,
+          "not_registered"
+        );
+      }
       if (!result.ok) {
         await recordAuthEvent({
           type: "login_failure",
