@@ -98,7 +98,7 @@ export async function googleLoginAction(input: {
   const locale = (SUPPORTED_LOCALES as readonly string[]).includes(input.locale)
     ? input.locale
     : DEFAULT_LOCALE;
-  cookies().set(
+  (await cookies()).set(
     GOOGLE_LOGIN_CONTEXT_COOKIE,
     encodeLoginContext(input.portal, locale),
     {

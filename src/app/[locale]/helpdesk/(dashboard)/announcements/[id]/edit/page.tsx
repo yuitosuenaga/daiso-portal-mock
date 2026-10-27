@@ -13,18 +13,17 @@ import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import type { AnnouncementFormValues } from "@/lib/validation/announcement";
 
 type HelpdeskAnnouncementEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     translationFailed?: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskAnnouncementEditPage({
-  params,
-  searchParams,
-}: HelpdeskAnnouncementEditPageProps) {
+export default async function HelpdeskAnnouncementEditPage(props: HelpdeskAnnouncementEditPageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const [t, tListLabels, tCategories, tCountries, tInquiryForm, tDocuments] =
     await Promise.all([
       getTranslations("helpdeskAnnouncements.form"),

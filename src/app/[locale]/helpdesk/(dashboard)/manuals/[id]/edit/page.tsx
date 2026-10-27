@@ -11,14 +11,13 @@ import { buildMonthOptions } from "@/lib/category-year-month-filter";
 import type { ManualFormValues } from "@/lib/validation/manual";
 
 type HelpdeskManualEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskManualEditPage({
-  params,
-}: HelpdeskManualEditPageProps) {
+export default async function HelpdeskManualEditPage(props: HelpdeskManualEditPageProps) {
+  const params = await props.params;
   const [t, tCategories, tCountries, tInquiryForm, locale] = await Promise.all([
     getTranslations("helpdeskManuals.form"),
     getTranslations("manuals.categories"),

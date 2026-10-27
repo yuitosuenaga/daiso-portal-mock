@@ -6,14 +6,13 @@ import { getCompanyById } from "@/lib/server/company-service";
 import { APPLICANT_USER_PREFERRED_LOCALE_CODES } from "@/lib/constants/applicant-user";
 
 type HelpdeskApplicantUserNewPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskApplicantUserNewPage({
-  params,
-}: HelpdeskApplicantUserNewPageProps) {
+export default async function HelpdeskApplicantUserNewPage(props: HelpdeskApplicantUserNewPageProps) {
+  const params = await props.params;
   const [t, tCompanyForm] = await Promise.all([
     getTranslations("helpdeskCompanies.applicantUserForm"),
     getTranslations("helpdeskCompanies.form"),

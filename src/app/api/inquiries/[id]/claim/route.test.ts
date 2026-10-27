@@ -39,7 +39,7 @@ describe("POST /api/inquiries/[id]/claim", () => {
   it("申請者セッションでは401を返す", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
-    const response = await POST(request({ claim: true }), { params: { id: "inquiry-1" } });
+    const response = await POST(request({ claim: true }), { params: Promise.resolve({ id: "inquiry-1" }) });
 
     expect(response.status).toBe(401);
   });
@@ -48,7 +48,7 @@ describe("POST /api/inquiries/[id]/claim", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(setClaim).mockResolvedValue({ id: "inquiry-1" } as never);
 
-    const response = await POST(request({ claim: true }), { params: { id: "inquiry-1" } });
+    const response = await POST(request({ claim: true }), { params: Promise.resolve({ id: "inquiry-1" }) });
 
     expect(setClaim).toHaveBeenCalledWith(
       "inquiry-1",
@@ -62,7 +62,7 @@ describe("POST /api/inquiries/[id]/claim", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(setClaim).mockResolvedValue({ id: "inquiry-1" } as never);
 
-    await POST(request({ claim: false }), { params: { id: "inquiry-1" } });
+    await POST(request({ claim: false }), { params: Promise.resolve({ id: "inquiry-1" }) });
 
     expect(setClaim).toHaveBeenCalledWith("inquiry-1", null, "staff-1");
   });
@@ -72,7 +72,7 @@ describe("POST /api/inquiries/[id]/claim", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(setClaim).mockRejectedValue(new DoubleClaimError("inquiry-1"));
 
-    const response = await POST(request({ claim: true }), { params: { id: "inquiry-1" } });
+    const response = await POST(request({ claim: true }), { params: Promise.resolve({ id: "inquiry-1" }) });
 
     expect(response.status).toBe(409);
   });
@@ -82,7 +82,7 @@ describe("POST /api/inquiries/[id]/claim", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(setClaim).mockRejectedValue(new ClaimOwnershipError("inquiry-1"));
 
-    const response = await POST(request({ claim: false }), { params: { id: "inquiry-1" } });
+    const response = await POST(request({ claim: false }), { params: Promise.resolve({ id: "inquiry-1" }) });
 
     expect(response.status).toBe(403);
   });

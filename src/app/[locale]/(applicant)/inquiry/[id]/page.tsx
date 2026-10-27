@@ -5,14 +5,13 @@ import {
 } from "@/components/features/inquiry-list/InquiryDetail";
 
 type InquiryDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function InquiryDetailPage({
-  params,
-}: InquiryDetailPageProps) {
+export default async function InquiryDetailPage(props: InquiryDetailPageProps) {
+  const params = await props.params;
   return (
     <div className="max-w-5xl">
       <Suspense fallback={<InquiryDetailSkeleton />}>

@@ -5,14 +5,13 @@ import {
 } from "@/components/features/announcements/AnnouncementDetail";
 
 type AnnouncementDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function AnnouncementDetailPage({
-  params,
-}: AnnouncementDetailPageProps) {
+export default async function AnnouncementDetailPage(props: AnnouncementDetailPageProps) {
+  const params = await props.params;
   return (
     <div className="max-w-5xl">
       <Suspense fallback={<AnnouncementDetailSkeleton />}>
