@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
@@ -9,7 +10,7 @@ import messages from "../../../../messages/ja.json";
 function renderLoginForm(loginAction: ReturnType<typeof vi.fn>) {
   return render(
     <NextIntlClientProvider locale="ja" messages={messages}>
-      <LoginForm role="applicant" locale="ja" loginAction={loginAction} />
+      <LoginForm role="applicant" locale="ja" loginAction={loginAction as unknown as ComponentProps<typeof LoginForm>["loginAction"]} />
     </NextIntlClientProvider>
   );
 }
