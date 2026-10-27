@@ -22,17 +22,23 @@ const ORDER_BY_DISPLAY_ORDER = [
 ];
 
 export class LinkCategoryNotFoundError extends Error {
+  readonly categoryId: string;
+
   constructor(categoryId: string) {
-    super(`Link category not found: ${categoryId}`);
+    super("Link category not found");
     this.name = "LinkCategoryNotFoundError";
+    this.categoryId = categoryId;
   }
 }
 
 /** 同一階層（大分類同士、または同一の大分類配下の中分類同士）で既定言語（ja）の名称が重複（要件13.6） */
 export class LinkCategoryNameConflictError extends Error {
+  readonly categoryName: string;
+
   constructor(name: string) {
-    super(`Link category name already exists in this hierarchy: ${name}`);
+    super("Link category name already exists in this hierarchy");
     this.name = "LinkCategoryNameConflictError";
+    this.categoryName = name;
   }
 }
 
@@ -42,7 +48,7 @@ export class LinkCategoryInUseError extends Error {
   readonly childCount: number;
 
   constructor(linkCount: number, childCount: number) {
-    super(`Link category is in use (links: ${linkCount}, children: ${childCount})`);
+    super("Link category is in use");
     this.name = "LinkCategoryInUseError";
     this.linkCount = linkCount;
     this.childCount = childCount;
@@ -51,19 +57,25 @@ export class LinkCategoryInUseError extends Error {
 
 /** 中分類の配下に中分類を作ろうとした、または存在しない親を指定した（要件12.2） */
 export class LinkCategoryDepthError extends Error {
+  readonly parentId: string;
+
   constructor(parentId: string) {
-    super(`Link category cannot be created under a non-parent category: ${parentId}`);
+    super("Link category cannot be created under a non-parent category");
     this.name = "LinkCategoryDepthError";
+    this.parentId = parentId;
   }
 }
 
 /** 大分類と中分類の親子関係が不整合（要件12.9） */
 export class LinkCategoryPairError extends Error {
+  readonly categoryId: string;
+  readonly subCategoryId: string | null;
+
   constructor(categoryId: string, subCategoryId: string | null) {
-    super(
-      `Invalid link category pair: categoryId=${categoryId}, subCategoryId=${subCategoryId ?? "null"}`
-    );
+    super("Invalid link category pair");
     this.name = "LinkCategoryPairError";
+    this.categoryId = categoryId;
+    this.subCategoryId = subCategoryId;
   }
 }
 

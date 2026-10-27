@@ -3,18 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
-const { MockApplicantUserEmailTakenError } = vi.hoisted(() => {
-  class MockApplicantUserEmailTakenError extends Error {
-    constructor(email: string) {
-      super(`Email already taken: ${email}`);
-      this.name = "ApplicantUserEmailTakenError";
-    }
-  }
-  return { MockApplicantUserEmailTakenError };
-});
-
 vi.mock("@/lib/server/applicant-user-service", () => ({
-  ApplicantUserEmailTakenError: MockApplicantUserEmailTakenError,
   createApplicantUser: vi.fn(),
   updateApplicantUser: vi.fn(),
   setApplicantUserActive: vi.fn(),
@@ -27,7 +16,6 @@ vi.mock("@/lib/server/company-targeting-service", () => ({
 
 import { revalidatePath } from "next/cache";
 import {
-  ApplicantUserEmailTakenError,
   createApplicantUser,
   isApplicantUserEmailTaken,
   searchApplicantUsersForTargeting,
@@ -84,7 +72,7 @@ describe("createApplicantUserAction", () => {
       "company-1",
       expect.objectContaining({ email: "tanaka@example.com", password: "password123" })
     );
-    expect(result.id).toBe("applicant-1");
+    expect(result).toMatchObject({ ok: true, user: { id: "applicant-1" } });
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -140,12 +128,12 @@ describe("createApplicantUserAction", () => {
     expect(createApplicantUser).not.toHaveBeenCalled();
   });
 
-  it("メールアドレスが重複するとき例外になり、保存されない", async () => {
+  it("メールアドレスが重複するとき例外ではなくreason:emailTakenを返し、保存されない", async () => {
     vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(true);
 
     await expect(
       createApplicantUserAction("company-1", buildInput())
-    ).rejects.toThrow(ApplicantUserEmailTakenError);
+    ).resolves.toEqual({ ok: false, reason: "emailTaken" });
     expect(createApplicantUser).not.toHaveBeenCalled();
   });
 });
@@ -225,7 +213,7 @@ describe("updateApplicantUserAction", () => {
     expect(updateApplicantUser).not.toHaveBeenCalled();
   });
 
-  it("自分自身以外とのメールアドレスの重複は例外になり、保存されない", async () => {
+  it("自分自身以外とのメールアドレスの重複は例外ではなくreason:emailTakenを返し、保存されない", async () => {
     vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(true);
 
     await expect(
@@ -234,7 +222,7 @@ describe("updateApplicantUserAction", () => {
         displayName: "田中太郎",
         preferredLocale: "en",
       })
-    ).rejects.toThrow(ApplicantUserEmailTakenError);
+    ).resolves.toEqual({ ok: false, reason: "emailTaken" });
     expect(updateApplicantUser).not.toHaveBeenCalled();
   });
 });

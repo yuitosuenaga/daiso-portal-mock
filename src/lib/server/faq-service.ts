@@ -16,9 +16,12 @@ import type { CreateFaqInput, Faq } from "@/types/faq";
 export { resolveFaqContent };
 
 export class FaqNotFoundError extends Error {
+  readonly faqId: string;
+
   constructor(faqId: string) {
-    super(`Faq not found: ${faqId}`);
+    super("Faq not found");
     this.name = "FaqNotFoundError";
+    this.faqId = faqId;
   }
 }
 
