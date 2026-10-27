@@ -50,6 +50,22 @@ variable "deletion_protection" {
   default = true
 }
 
+# Direct VPC egress（private IP の Cloud SQL 用）。null なら無効。
+variable "vpc_network" {
+  type    = string
+  default = null
+}
+
+variable "vpc_subnetwork" {
+  type    = string
+  default = null
+}
+
+variable "vpc_egress" {
+  type    = string
+  default = "PRIVATE_RANGES_ONLY"
+}
+
 resource "google_cloud_run_v2_job" "this" {
   project             = var.project_id
   name                = var.name
@@ -64,6 +80,17 @@ resource "google_cloud_run_v2_job" "this" {
       service_account = var.service_account_email
       max_retries     = 0
       timeout         = "${var.timeout_seconds}s"
+
+      dynamic "vpc_access" {
+        for_each = var.vpc_network == null ? [] : [1]
+        content {
+          egress = var.vpc_egress
+          network_interfaces {
+            network    = var.vpc_network
+            subnetwork = var.vpc_subnetwork
+          }
+        }
+      }
 
       volumes {
         name = "cloudsql"

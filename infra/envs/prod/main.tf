@@ -102,6 +102,14 @@ resource "terraform_data" "require_allowed_domains" {
       error_message = "enable_google_login=true の場合は allowed_email_domains に1つ以上のドメインを指定すること（空のままでは全ドメイン許可になり得るため拒否する）。"
     }
     precondition {
+      condition     = (!var.db_private_ip_enabled && !var.cloudrun_direct_vpc_egress) || var.enable_private_network
+      error_message = "db_private_ip_enabled / cloudrun_direct_vpc_egress には enable_private_network=true が必要。"
+    }
+    precondition {
+      condition     = !var.db_private_ip_enabled || var.cloudrun_direct_vpc_egress
+      error_message = "Cloud SQL を private IP 化する場合、Cloud Run が到達できるよう cloudrun_direct_vpc_egress=true も必要。"
+    }
+    precondition {
       condition     = !var.enable_scheduler || (var.enable_cron_secret && !var.use_existing_secrets)
       error_message = "enable_scheduler=true には Terraform が生成する CRON_SECRET が必要（enable_cron_secret=true かつ use_existing_secrets=false）。"
     }
@@ -123,6 +131,22 @@ resource "random_password" "cron_secret" {
 module "services" {
   source     = "../../modules/services"
   project_id = var.project_id
+  extra_services = var.enable_private_network ? [
+    "compute.googleapis.com",
+    "servicenetworking.googleapis.com",
+  ] : []
+}
+
+# private IP / Direct VPC egress 用（enable_private_network=false なら何も作らない）
+module "network" {
+  count       = var.enable_private_network ? 1 : 0
+  source      = "../../modules/network"
+  project_id  = var.project_id
+  region      = var.region
+  name        = var.name_prefix
+  subnet_cidr = var.vpc_subnet_cidr
+
+  depends_on = [module.services]
 }
 
 module "cloudsql" {
@@ -141,8 +165,18 @@ module "cloudsql" {
   point_in_time_recovery               = var.db_point_in_time_recovery
   deletion_protection                  = var.deletion_protection
   instance_deletion_protection_enabled = var.db_deletion_protection_enabled
+  backup_retained_count                = var.db_backup_retained_count
+  transaction_log_retention_days       = var.db_transaction_log_retention_days
+  backup_start_time                    = var.db_backup_start_time
+  private_ip_enabled                   = var.db_private_ip_enabled
+  public_ip_enabled                    = var.db_public_ip_enabled
+  private_network_id                   = var.enable_private_network ? module.network[0].network_id : null
+  export_enabled                       = var.db_export_enabled
+  export_bucket_name                   = var.db_export_bucket_name
+  export_schedule                      = var.db_export_schedule
+  export_retention_days                = var.db_export_retention_days
 
-  depends_on = [module.services]
+  depends_on = [module.services, module.network]
 }
 
 module "secrets" {
@@ -193,6 +227,9 @@ module "cloudrun" {
   ingress                  = var.cloudrun_ingress
   cpu                      = var.cloudrun_cpu
   memory                   = var.cloudrun_memory
+  vpc_network              = var.cloudrun_direct_vpc_egress ? module.network[0].network_name : null
+  vpc_subnetwork           = var.cloudrun_direct_vpc_egress ? module.network[0].subnetwork_name : null
+  vpc_egress               = var.cloudrun_vpc_egress
 
   # secret 本体・バージョン・SA のロール付与が揃ってから作成する
   depends_on = [module.secrets, module.iam]
@@ -208,6 +245,9 @@ module "migrate_job" {
   cloudsql_connection_name = module.cloudsql.connection_name
   database_url_secret_id   = local.secret_names.database_url
   timeout_seconds          = var.migrate_job_timeout_seconds
+  vpc_network              = var.cloudrun_direct_vpc_egress ? module.network[0].network_name : null
+  vpc_subnetwork           = var.cloudrun_direct_vpc_egress ? module.network[0].subnetwork_name : null
+  vpc_egress               = var.cloudrun_vpc_egress
   deletion_protection      = var.deletion_protection
 
   depends_on = [module.secrets, module.iam]
