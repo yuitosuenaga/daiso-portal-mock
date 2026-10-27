@@ -8,8 +8,8 @@ db_instance_name               = "portal-mock-backend-db"
 db_name                        = "portal_mock"
 db_user                        = "postgres"
 db_ssl_mode                    = "ENCRYPTED_ONLY" # 段階4b
-db_backup_enabled              = true # 段階4a適用済み
-db_deletion_protection_enabled = true # 段階4a適用済み
+db_backup_enabled              = true             # 段階4a適用済み
+db_deletion_protection_enabled = true             # 段階4a適用済み
 manage_db_password             = false
 
 min_instances = 0
