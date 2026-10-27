@@ -78,6 +78,12 @@ enum StaffRegistrationSource {
   google_auto
 }
 
+/// 日本側ヘルプデスクスタッフのロール。admin=販社管理の編集可、member=閲覧のみ。
+enum HelpdeskStaffRole {
+  admin
+  member
+}
+
 model HelpdeskStaff {
   id                 String                  @id @default(cuid())
   email              String                  @unique
@@ -86,6 +92,7 @@ model HelpdeskStaff {
   displayName        String
   createdAt          DateTime                @default(now())
   registrationSource StaffRegistrationSource @default(manual)
+  role               HelpdeskStaffRole       @default(member)
   claimedInquiries   Inquiry[]
   announcements      Announcement[]
 }

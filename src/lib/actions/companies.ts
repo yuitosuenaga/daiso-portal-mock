@@ -16,7 +16,7 @@ import {
   toCreateCompanyInputs,
   type CompanyCsvRowResult,
 } from "@/lib/company-csv";
-import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import { requireHelpdeskAdminSession } from "@/lib/server/auth-session";
 import { companyFormSchema } from "@/lib/validation/company";
 import type { Company, CreateCompanyInput } from "@/types/company";
 
@@ -47,6 +47,7 @@ export type CompanySaveResult =
 export async function createCompanyAction(
   input: CreateCompanyInput
 ): Promise<CompanySaveResult> {
+  await requireHelpdeskAdminSession();
   const parsed = companyFormSchema.parse(input);
 
   if (await isCompanyCodeTaken(parsed.companyCode)) {
@@ -68,6 +69,7 @@ export async function updateCompanyAction(
   id: string,
   input: CreateCompanyInput
 ): Promise<CompanySaveResult> {
+  await requireHelpdeskAdminSession();
   const parsed = companyFormSchema.parse(input);
 
   if (await isCompanyCodeTaken(parsed.companyCode, id)) {
@@ -91,6 +93,8 @@ export async function checkCompanyCodeAvailabilityAction(
   code: string,
   excludeCompanyId?: string
 ): Promise<boolean> {
+  await requireHelpdeskAdminSession();
+
   const trimmed = code.trim();
   if (!trimmed) {
     return false;
@@ -118,9 +122,9 @@ export async function importCompaniesAction(
   csvText: string
 ): Promise<CompanyCsvImportResult> {
   // CSVがファイル全体エラー（空・ヘッダー不一致等）の場合、以降のどのサービス関数
-  // （`findExistingCompanyCodes`等）も呼び出されないため、ここで明示的にヘルプデスク
+  // （`findExistingCompanyCodes`等）も呼び出されないため、ここで明示的にadmin
   // セッションを検証する（多層防御。要件19.13）。
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const parsed = parseAndValidateCompanyCsv(csvText, []);
 
@@ -176,6 +180,7 @@ export async function importCompaniesAction(
 export async function deactivateCompaniesApplicantUsersAction(
   companyIds: string[]
 ): Promise<{ deactivatedCount: number }> {
+  await requireHelpdeskAdminSession();
   const result = await deactivateApplicantUsersByCompanies(companyIds);
 
   revalidateCompanyRoutes();

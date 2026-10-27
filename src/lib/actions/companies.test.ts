@@ -12,10 +12,10 @@ vi.mock("@/lib/server/company-service", () => ({
   deactivateApplicantUsersByCompanies: vi.fn(),
 }));
 
-const requireHelpdeskStaffSessionMock = vi.fn();
+const requireHelpdeskAdminSessionMock = vi.fn();
 vi.mock("@/lib/server/auth-session", () => ({
-  requireHelpdeskStaffSession: (...args: unknown[]) =>
-    requireHelpdeskStaffSessionMock(...args),
+  requireHelpdeskAdminSession: (...args: unknown[]) =>
+    requireHelpdeskAdminSessionMock(...args),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -58,7 +58,7 @@ function company(overrides: Partial<Company> = {}): Company {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  requireHelpdeskStaffSessionMock.mockResolvedValue({
+  requireHelpdeskAdminSessionMock.mockResolvedValue({
     claims: { id: "staff-1", role: "helpdesk", staffId: "staff-1" },
   });
 });
@@ -180,19 +180,19 @@ describe("checkCompanyCodeAvailabilityAction", () => {
 });
 
 describe("importCompaniesAction", () => {
-  it("ファイル全体エラー（空ファイル等）で以降のサービス関数が呼ばれない場合でも、ヘルプデスクセッションを検証する（多層防御・要件19.13）", async () => {
+  it("ファイル全体エラー（空ファイル等）で以降のサービス関数が呼ばれない場合でも、adminセッションを検証する（多層防御・要件19.13）", async () => {
     await importCompaniesAction("");
 
-    expect(requireHelpdeskStaffSessionMock).toHaveBeenCalledTimes(1);
+    expect(requireHelpdeskAdminSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  it("ヘルプデスクセッションが無い場合は例外を送出し、CSVを処理しない（多層防御・要件19.13）", async () => {
-    requireHelpdeskStaffSessionMock.mockRejectedValue(
-      new Error("Helpdesk session required")
+  it("adminセッションが無い（memberを含む）場合は例外を送出し、CSVを処理しない（多層防御・要件19.13）", async () => {
+    requireHelpdeskAdminSessionMock.mockRejectedValue(
+      new Error("Helpdesk admin role required")
     );
 
     await expect(importCompaniesAction("")).rejects.toThrow(
-      "Helpdesk session required"
+      "Helpdesk admin role required"
     );
     expect(findExistingCompanyCodes).not.toHaveBeenCalled();
   });
@@ -293,5 +293,45 @@ describe("deactivateCompaniesApplicantUsersAction", () => {
     const result = await deactivateCompaniesApplicantUsersAction([]);
 
     expect(result).toEqual({ deactivatedCount: 0 });
+  });
+});
+
+describe("書き込みActionのadminガード（memberは拒否）", () => {
+  beforeEach(() => {
+    requireHelpdeskAdminSessionMock.mockRejectedValue(new Error("Forbidden"));
+  });
+
+  it("createCompanyActionは、不正入力でもzod検証より先にadminを検証し、サービスを呼ばない", async () => {
+    await expect(createCompanyAction(buildInput({ name: "" }))).rejects.toThrow("Forbidden");
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+    expect(createCompany).not.toHaveBeenCalled();
+  });
+
+  it("updateCompanyActionは、不正入力でもzod検証より先にadminを検証し、サービスを呼ばない", async () => {
+    await expect(updateCompanyAction("company-1", buildInput({ name: "" }))).rejects.toThrow(
+      "Forbidden"
+    );
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it("checkCompanyCodeAvailabilityActionは、空文字でもadminを検証し、サービスを呼ばない", async () => {
+    await expect(checkCompanyCodeAvailabilityAction("th-daiso-thailand")).rejects.toThrow(
+      "Forbidden"
+    );
+    await expect(checkCompanyCodeAvailabilityAction("   ")).rejects.toThrow("Forbidden");
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+  });
+
+  it("deactivateCompaniesApplicantUsersActionはサービスを呼ばない", async () => {
+    await expect(deactivateCompaniesApplicantUsersAction(["company-1"])).rejects.toThrow(
+      "Forbidden"
+    );
+
+    expect(deactivateApplicantUsersByCompanies).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

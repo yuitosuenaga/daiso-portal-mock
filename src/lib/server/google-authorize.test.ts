@@ -160,6 +160,9 @@ describe("authorizeGoogleLogin", () => {
         },
       });
       expect(result).toEqual({ ok: true, user: staffUser, provisioned: true });
+      // roleは指定しない（DB既定のmemberで作成される。adminは手動付与のみ）。
+      const createArg = vi.mocked(prisma.helpdeskStaff.create).mock.calls[0][0];
+      expect(createArg.data).not.toHaveProperty("role");
     });
 
     it("ON・既存ならcreateせずprovisioned:false", async () => {

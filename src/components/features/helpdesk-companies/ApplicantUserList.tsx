@@ -15,6 +15,8 @@ export interface ApplicantUserRowSummary extends ApplicantUserSummary {
 
 export interface ApplicantUserListProps {
   companyId: string;
+  /** adminのみtrue。falseのとき編集リンク・有効/無効トグルを出さない（閲覧のみ）。 */
+  canManage: boolean;
   applicantUsers: ApplicantUserRowSummary[];
   emptyMessage: string;
   emailHeader: string;
@@ -45,6 +47,7 @@ export interface ApplicantUserListProps {
  */
 export function ApplicantUserList({
   companyId,
+  canManage,
   applicantUsers,
   emptyMessage,
   emailHeader,
@@ -81,9 +84,11 @@ export function ApplicantUserList({
               <th className="py-2 pr-4 font-medium">{emailHeader}</th>
               <th className="py-2 pr-4 font-medium">{displayNameHeader}</th>
               <th className="py-2 pr-4 font-medium">{statusHeader}</th>
-              <th className="py-2 pr-4 font-medium">
-                <span className="sr-only">{editLinkLabel}</span>
-              </th>
+              {canManage && (
+                <th className="py-2 pr-4 font-medium">
+                  <span className="sr-only">{editLinkLabel}</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -100,31 +105,33 @@ export function ApplicantUserList({
                     {applicantUser.isActive ? activeStatusLabel : inactiveStatusLabel}
                   </Badge>
                 </td>
-                <td className="py-3 pr-4 text-right">
-                  <div className="flex items-center justify-end gap-3">
-                    <Link
-                      href={`/helpdesk/companies/${companyId}/applicant-users/${applicantUser.id}/edit`}
-                      className="text-primary underline-offset-4 hover:underline"
-                    >
-                      {editLinkLabel}
-                    </Link>
-                    <ToggleApplicantUserActiveButton
-                      applicantUserId={applicantUser.id}
-                      applicantUserName={applicantUser.displayName}
-                      isActive={applicantUser.isActive}
-                      deactivateButtonLabel={deactivateButtonLabel}
-                      activateButtonLabel={activateButtonLabel}
-                      deactivateConfirmTitle={deactivateConfirmTitle}
-                      activateConfirmTitle={activateConfirmTitle}
-                      deactivateConfirmMessage={applicantUser.deactivateConfirmMessage}
-                      activateConfirmMessage={applicantUser.activateConfirmMessage}
-                      deactivateConfirmButtonLabel={deactivateConfirmButtonLabel}
-                      activateConfirmButtonLabel={activateConfirmButtonLabel}
-                      cancelButtonLabel={cancelButtonLabel}
-                      errorMessage={toggleErrorMessage}
-                    />
-                  </div>
-                </td>
+                {canManage && (
+                  <td className="py-3 pr-4 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/helpdesk/companies/${companyId}/applicant-users/${applicantUser.id}/edit`}
+                        className="text-primary underline-offset-4 hover:underline"
+                      >
+                        {editLinkLabel}
+                      </Link>
+                      <ToggleApplicantUserActiveButton
+                        applicantUserId={applicantUser.id}
+                        applicantUserName={applicantUser.displayName}
+                        isActive={applicantUser.isActive}
+                        deactivateButtonLabel={deactivateButtonLabel}
+                        activateButtonLabel={activateButtonLabel}
+                        deactivateConfirmTitle={deactivateConfirmTitle}
+                        activateConfirmTitle={activateConfirmTitle}
+                        deactivateConfirmMessage={applicantUser.deactivateConfirmMessage}
+                        activateConfirmMessage={applicantUser.activateConfirmMessage}
+                        deactivateConfirmButtonLabel={deactivateConfirmButtonLabel}
+                        activateConfirmButtonLabel={activateConfirmButtonLabel}
+                        cancelButtonLabel={cancelButtonLabel}
+                        errorMessage={toggleErrorMessage}
+                      />
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

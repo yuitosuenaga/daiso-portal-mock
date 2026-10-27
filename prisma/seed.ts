@@ -1283,6 +1283,7 @@ async function main() {
       passwordHash,
       displayName: "田中 太郎",
       registrationSource: "seed",
+      role: "admin",
     },
   });
 

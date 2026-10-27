@@ -22,6 +22,7 @@ import {
 } from "@/components/features/helpdesk-companies/ApplicantUserList";
 
 const labels = {
+  canManage: true,
   emptyMessage: "申請者アカウントが登録されていません",
   emailHeader: "メールアドレス",
   displayNameHeader: "表示名",
@@ -87,5 +88,21 @@ describe("ApplicantUserList", () => {
     expect(editLinks[0].getAttribute("href")).toBe(
       "/helpdesk/companies/company-1/applicant-users/1/edit"
     );
+  });
+
+  it("canManage=falseのとき、編集リンク・有効/無効トグルを出さず、情報は表示する", () => {
+    render(
+      <ApplicantUserList
+        companyId="company-1"
+        applicantUsers={[applicantUser()]}
+        {...labels}
+        canManage={false}
+      />
+    );
+
+    expect(screen.getByText("tanaka@example.com")).toBeTruthy();
+    expect(screen.getByText("有効")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "編集" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "無効化する" })).toBeNull();
   });
 });

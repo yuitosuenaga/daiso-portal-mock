@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
 import { cn } from "@/lib/utils";
 import { getCompanyById } from "@/lib/server/company-service";
+import { isHelpdeskAdmin } from "@/lib/server/auth-session";
 import { listApplicantUsersByCompany } from "@/lib/server/applicant-user-service";
 import { ApplicantUserList } from "@/components/features/helpdesk-companies/ApplicantUserList";
 
@@ -18,11 +19,12 @@ export interface CompanyDetailProps {
  * （`ApplicantUserList`）を組み立てるServer Component。
  */
 export async function CompanyDetail({ companyId }: CompanyDetailProps) {
-  const [t, tForm, tToggle, tCountries] = await Promise.all([
+  const [t, tForm, tToggle, tCountries, canManage] = await Promise.all([
     getTranslations("helpdeskCompanies.detail"),
     getTranslations("helpdeskCompanies.form"),
     getTranslations("helpdeskCompanies.toggleActive"),
     getTranslations("inquiryForm.options.country"),
+    isHelpdeskAdmin(),
   ]);
 
   const company = await getCompanyById(companyId);
@@ -66,12 +68,14 @@ export async function CompanyDetail({ companyId }: CompanyDetailProps) {
             {t("companyCodeLabel")}: {company.companyCode}
           </p>
         </div>
-        <Link
-          href={`/helpdesk/companies/${companyId}/edit`}
-          className={cn(buttonVariants({ variant: "outline" }))}
-        >
-          {t("editButton")}
-        </Link>
+        {canManage && (
+          <Link
+            href={`/helpdesk/companies/${companyId}/edit`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            {t("editButton")}
+          </Link>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -79,15 +83,18 @@ export async function CompanyDetail({ companyId }: CompanyDetailProps) {
           <h2 className="text-lg font-semibold text-foreground">
             {t("applicantUsersTitle")}
           </h2>
-          <Link
-            href={`/helpdesk/companies/${companyId}/applicant-users/new`}
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            {t("addApplicantUserButton")}
-          </Link>
+          {canManage && (
+            <Link
+              href={`/helpdesk/companies/${companyId}/applicant-users/new`}
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              {t("addApplicantUserButton")}
+            </Link>
+          )}
         </div>
         <ApplicantUserList
           companyId={companyId}
+          canManage={canManage}
           applicantUsers={applicantUserRows}
           emptyMessage={t("applicantUsersEmpty")}
           emailHeader={t("emailHeader")}

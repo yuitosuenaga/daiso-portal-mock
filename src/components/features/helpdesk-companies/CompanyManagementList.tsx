@@ -1,6 +1,7 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { listCompaniesForManagement } from "@/lib/server/company-service";
+import { isHelpdeskAdmin } from "@/lib/server/auth-session";
 import {
   ManagementListHeading,
   ManagementListMessageCard,
@@ -12,12 +13,13 @@ import type { CompanyWithStats } from "@/types/company";
 
 /** 販社管理一覧（要件1.1〜1.7）。取得失敗・0件時のメッセージ表示を含む。 */
 export async function CompanyManagementList() {
-  const [t, tImport, tBulkDeactivate, tCountries, locale] = await Promise.all([
+  const [t, tImport, tBulkDeactivate, tCountries, locale, canManage] = await Promise.all([
     getTranslations("helpdeskCompanies.list"),
     getTranslations("helpdeskCompanies.import"),
     getTranslations("helpdeskCompanies.bulkDeactivate"),
     getTranslations("inquiryForm.options.country"),
     getLocale(),
+    isHelpdeskAdmin(),
   ]);
 
   const heading = (
@@ -25,17 +27,19 @@ export async function CompanyManagementList() {
       <ManagementListHeading
         title={t("title")}
         description={t("description")}
-        addHref="/helpdesk/companies/new"
-        addLabel={t("addButton")}
+        addHref={canManage ? "/helpdesk/companies/new" : undefined}
+        addLabel={canManage ? t("addButton") : undefined}
       />
-      <div className="flex justify-end">
-        <Link
-          href="/helpdesk/companies/import"
-          className="text-sm text-primary underline-offset-4 hover:underline"
-        >
-          {tImport("title")}
-        </Link>
-      </div>
+      {canManage && (
+        <div className="flex justify-end">
+          <Link
+            href="/helpdesk/companies/import"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
+            {tImport("title")}
+          </Link>
+        </div>
+      )}
     </div>
   );
 
@@ -73,6 +77,7 @@ export async function CompanyManagementList() {
       {heading}
       <CompanyManagementListClient
         companies={companies}
+        canManage={canManage}
         countryLabels={countryLabels}
         locale={locale}
         searchLabel={t("searchLabel")}

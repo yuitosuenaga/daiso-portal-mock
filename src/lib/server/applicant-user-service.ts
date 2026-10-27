@@ -4,7 +4,10 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
-import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import {
+  requireHelpdeskAdminSession,
+  requireHelpdeskStaffSession,
+} from "@/lib/server/auth-session";
 import { ANNOUNCEMENT_TARGET_USER_MAX_COUNT } from "@/lib/validation/announcement";
 import type {
   ApplicantUserSummary,
@@ -82,7 +85,7 @@ export async function listApplicantUsersByCompany(
 export async function getApplicantUserById(
   id: string
 ): Promise<ApplicantUserSummary | null> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const record = await prisma.applicantUser.findUnique({ where: { id } });
 
@@ -97,7 +100,7 @@ export async function createApplicantUser(
   companyId: string,
   input: CreateApplicantUserInput
 ): Promise<ApplicantUserSummary> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const passwordHash = await bcrypt.hash(input.password, PASSWORD_HASH_COST);
 
@@ -124,7 +127,7 @@ export async function updateApplicantUser(
   id: string,
   input: UpdateApplicantUserInput
 ): Promise<ApplicantUserSummary> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const passwordHash = input.password
     ? await bcrypt.hash(input.password, PASSWORD_HASH_COST)
@@ -162,7 +165,7 @@ export async function setApplicantUserActive(
   id: string,
   isActive: boolean
 ): Promise<ApplicantUserSummary> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   try {
     const record = await prisma.applicantUser.update({
@@ -191,7 +194,7 @@ export async function isApplicantUserEmailTaken(
   email: string,
   excludeId?: string
 ): Promise<boolean> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const [applicantUser, helpdeskStaff] = await Promise.all([
     prisma.applicantUser.findFirst({

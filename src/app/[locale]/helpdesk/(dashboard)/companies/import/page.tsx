@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 
 import { BackLink } from "@/components/ui/back-link";
 import { CompanyCsvImportForm } from "@/components/features/helpdesk-companies/CompanyCsvImportForm";
@@ -28,6 +29,7 @@ function buildCsvTemplateDataUrl(): string {
  * アップロードフォーム（`CompanyCsvImportForm`）を組み立てるServer Component。
  */
 export default async function HelpdeskCompanyImportPage() {
+  await requireHelpdeskAdminPage();
   const [tImport, tForm] = await Promise.all([
     getTranslations("helpdeskCompanies.import"),
     getTranslations("helpdeskCompanies.form"),
