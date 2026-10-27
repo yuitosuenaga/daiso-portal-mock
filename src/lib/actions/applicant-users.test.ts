@@ -14,6 +14,12 @@ vi.mock("@/lib/server/company-targeting-service", () => ({
   searchCompaniesForTargeting: vi.fn(),
 }));
 
+const requireHelpdeskAdminSessionMock = vi.fn();
+vi.mock("@/lib/server/auth-session", () => ({
+  requireHelpdeskAdminSession: (...args: unknown[]) =>
+    requireHelpdeskAdminSessionMock(...args),
+}));
+
 import { revalidatePath } from "next/cache";
 import {
   createApplicantUser,
@@ -48,6 +54,9 @@ function applicantUser(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  requireHelpdeskAdminSessionMock.mockResolvedValue({
+    claims: { id: "staff-1", role: "helpdesk", staffId: "staff-1" },
+  });
 });
 
 describe("createApplicantUserAction", () => {
@@ -265,5 +274,36 @@ describe("searchTargetingCandidatesAction", () => {
     expect(searchCompaniesForTargeting).toHaveBeenCalledWith("daiso");
     expect(searchApplicantUsersForTargeting).toHaveBeenCalledWith("daiso");
     expect(result).toEqual({ companies: [company], users: [user] });
+  });
+});
+
+describe("書き込みActionのadminガード（memberは拒否）", () => {
+  beforeEach(() => {
+    requireHelpdeskAdminSessionMock.mockRejectedValue(new Error("Forbidden"));
+  });
+
+  it("createApplicantUserActionは、不正入力でもzod検証より先にadminを検証し、サービスを呼ばない", async () => {
+    await expect(
+      createApplicantUserAction("company-1", { email: "", displayName: "", password: "" } as never)
+    ).rejects.toThrow("Forbidden");
+
+    expect(isApplicantUserEmailTaken).not.toHaveBeenCalled();
+    expect(createApplicantUser).not.toHaveBeenCalled();
+  });
+
+  it("updateApplicantUserActionは、不正入力でもzod検証より先にadminを検証し、サービスを呼ばない", async () => {
+    await expect(
+      updateApplicantUserAction("applicant-1", { email: "", displayName: "" } as never)
+    ).rejects.toThrow("Forbidden");
+
+    expect(isApplicantUserEmailTaken).not.toHaveBeenCalled();
+    expect(updateApplicantUser).not.toHaveBeenCalled();
+  });
+
+  it("setApplicantUserActiveActionはサービスを呼ばない", async () => {
+    await expect(setApplicantUserActiveAction("applicant-1", false)).rejects.toThrow("Forbidden");
+
+    expect(setApplicantUserActive).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

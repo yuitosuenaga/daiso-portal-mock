@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-import { UnauthorizedSessionError } from "@/lib/server/auth-session";
+import { ForbiddenSessionError, UnauthorizedSessionError } from "@/lib/server/auth-session";
 import {
   ClaimOwnershipError,
   DoubleClaimError,
@@ -22,6 +22,11 @@ import { clip, errorFields, logger } from "@/lib/server/logger";
 const EXPECTED = { stack: false } as const;
 
 export function toErrorResponse(error: unknown): NextResponse {
+  // ForbiddenSessionErrorはUnauthorizedSessionErrorのサブクラスなので、先に判定して403にする。
+  if (error instanceof ForbiddenSessionError) {
+    logger.warn("[api-errors] Forbidden", errorFields(error, EXPECTED));
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   if (error instanceof UnauthorizedSessionError) {
     logger.warn("[api-errors] Unauthorized", errorFields(error, EXPECTED));
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

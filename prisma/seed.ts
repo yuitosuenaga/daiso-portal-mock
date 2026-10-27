@@ -1287,7 +1287,7 @@ async function main() {
     },
   });
 
-  const inquiry =await prisma.inquiry.upsert({
+  const inquiry = await prisma.inquiry.upsert({
     where: { id: "seed-inquiry-001" },
     update: {},
     create: {

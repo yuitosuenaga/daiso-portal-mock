@@ -9,6 +9,7 @@ import {
   setApplicantUserActive,
   updateApplicantUser,
 } from "@/lib/server/applicant-user-service";
+import { requireHelpdeskAdminSession } from "@/lib/server/auth-session";
 import { searchCompaniesForTargeting } from "@/lib/server/company-targeting-service";
 import {
   applicantUserCreateFormSchema,
@@ -48,6 +49,7 @@ export async function createApplicantUserAction(
   companyId: string,
   input: CreateApplicantUserInput
 ): Promise<ApplicantUserSaveResult> {
+  await requireHelpdeskAdminSession();
   const parsed = applicantUserCreateFormSchema.parse(input);
 
   if (await isApplicantUserEmailTaken(parsed.email)) {
@@ -70,6 +72,7 @@ export async function updateApplicantUserAction(
   id: string,
   input: UpdateApplicantUserInput
 ): Promise<ApplicantUserSaveResult> {
+  await requireHelpdeskAdminSession();
   const parsed = applicantUserUpdateFormSchema.parse(input);
 
   if (await isApplicantUserEmailTaken(parsed.email, id)) {
@@ -95,6 +98,7 @@ export async function setApplicantUserActiveAction(
   id: string,
   isActive: boolean
 ): Promise<ApplicantUserSummary> {
+  await requireHelpdeskAdminSession();
   const updated = await setApplicantUserActive(id, isActive);
   revalidateApplicantUserRoutes();
 

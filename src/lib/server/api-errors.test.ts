@@ -8,7 +8,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {},
 }));
 
-import { UnauthorizedSessionError } from "@/lib/server/auth-session";
+import { ForbiddenSessionError, UnauthorizedSessionError } from "@/lib/server/auth-session";
 import {
   ClaimOwnershipError,
   DoubleClaimError,
@@ -21,6 +21,11 @@ describe("toErrorResponse", () => {
   it("UnauthorizedSessionErrorを401に変換する", () => {
     const response = toErrorResponse(new UnauthorizedSessionError("no session"));
     expect(response.status).toBe(401);
+  });
+
+  it("ForbiddenSessionErrorを403に変換する", () => {
+    const response = toErrorResponse(new ForbiddenSessionError("admin required"));
+    expect(response.status).toBe(403);
   });
 
   it("エラーメッセージ・ID・Zodのissuesをレスポンス本文に含めず固定文言を返す", async () => {

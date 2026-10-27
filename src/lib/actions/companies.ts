@@ -47,6 +47,7 @@ export type CompanySaveResult =
 export async function createCompanyAction(
   input: CreateCompanyInput
 ): Promise<CompanySaveResult> {
+  await requireHelpdeskAdminSession();
   const parsed = companyFormSchema.parse(input);
 
   if (await isCompanyCodeTaken(parsed.companyCode)) {
@@ -68,6 +69,7 @@ export async function updateCompanyAction(
   id: string,
   input: CreateCompanyInput
 ): Promise<CompanySaveResult> {
+  await requireHelpdeskAdminSession();
   const parsed = companyFormSchema.parse(input);
 
   if (await isCompanyCodeTaken(parsed.companyCode, id)) {
@@ -176,6 +178,7 @@ export async function importCompaniesAction(
 export async function deactivateCompaniesApplicantUsersAction(
   companyIds: string[]
 ): Promise<{ deactivatedCount: number }> {
+  await requireHelpdeskAdminSession();
   const result = await deactivateApplicantUsersByCompanies(companyIds);
 
   revalidateCompanyRoutes();

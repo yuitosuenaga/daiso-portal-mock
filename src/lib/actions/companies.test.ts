@@ -295,3 +295,34 @@ describe("deactivateCompaniesApplicantUsersAction", () => {
     expect(result).toEqual({ deactivatedCount: 0 });
   });
 });
+
+describe("書き込みActionのadminガード（memberは拒否）", () => {
+  beforeEach(() => {
+    requireHelpdeskAdminSessionMock.mockRejectedValue(new Error("Forbidden"));
+  });
+
+  it("createCompanyActionは、不正入力でもzod検証より先にadminを検証し、サービスを呼ばない", async () => {
+    await expect(createCompanyAction(buildInput({ name: "" }))).rejects.toThrow("Forbidden");
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+    expect(createCompany).not.toHaveBeenCalled();
+  });
+
+  it("updateCompanyActionは、不正入力でもzod検証より先にadminを検証し、サービスを呼ばない", async () => {
+    await expect(updateCompanyAction("company-1", buildInput({ name: "" }))).rejects.toThrow(
+      "Forbidden"
+    );
+
+    expect(isCompanyCodeTaken).not.toHaveBeenCalled();
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it("deactivateCompaniesApplicantUsersActionはサービスを呼ばない", async () => {
+    await expect(deactivateCompaniesApplicantUsersAction(["company-1"])).rejects.toThrow(
+      "Forbidden"
+    );
+
+    expect(deactivateApplicantUsersByCompanies).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});

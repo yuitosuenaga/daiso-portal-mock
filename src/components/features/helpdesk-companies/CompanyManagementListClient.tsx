@@ -78,7 +78,7 @@ export function CompanyManagementListClient({
 
   const filteredCompanies = useMemo(
     () => filterCompaniesForManagement(companies, keyword),
-    [companies, keyword],
+    [companies, keyword]
   );
 
   // 確認モーダルに表示する対象は、検索絞り込みで一時的に非表示になった選択も含む
@@ -88,12 +88,16 @@ export function CompanyManagementListClient({
   // しまう（要件20.3・20.4の誤操作防止に反する）ため、必ず全件`companies`から算出する。
   const selectedCompanies = useMemo(
     () => companies.filter((company) => selectedIds.has(company.id)),
-    [companies, selectedIds],
+    [companies, selectedIds]
   );
 
   const activeUserCountTotal = useMemo(
-    () => selectedCompanies.reduce((total, company) => total + company.activeApplicantUserCount, 0),
-    [selectedCompanies],
+    () =>
+      selectedCompanies.reduce(
+        (total, company) => total + company.activeApplicantUserCount,
+        0
+      ),
+    [selectedCompanies]
   );
 
   const allFilteredSelected =
@@ -136,7 +140,9 @@ export function CompanyManagementListClient({
     return new Promise<void>((resolve, reject) => {
       startTransition(async () => {
         try {
-          const result = await deactivateCompaniesApplicantUsersAction(Array.from(selectedIds));
+          const result = await deactivateCompaniesApplicantUsersAction(
+            Array.from(selectedIds)
+          );
           setHasError(false);
           setSuccessCount(result.deactivatedCount);
           setSelectedIds(new Set());
@@ -223,7 +229,9 @@ export function CompanyManagementListClient({
                   <th className="py-2 pr-4 font-medium">{nameHeader}</th>
                   <th className="py-2 pr-4 font-medium">{countryHeader}</th>
                   <th className="py-2 pr-4 font-medium">{companyCodeHeader}</th>
-                  <th className="py-2 pr-4 font-medium">{applicantUserCountHeader}</th>
+                  <th className="py-2 pr-4 font-medium">
+                    {applicantUserCountHeader}
+                  </th>
                   <th className="py-2 pr-4 font-medium">
                     <span className="sr-only">{detailLink}</span>
                   </th>
@@ -245,11 +253,15 @@ export function CompanyManagementListClient({
                         />
                       </td>
                     )}
-                    <td className="py-3 pr-4 font-medium text-foreground">{company.name}</td>
+                    <td className="py-3 pr-4 font-medium text-foreground">
+                      {company.name}
+                    </td>
                     <td className="py-3 pr-4 text-muted-foreground">
                       {countryLabels[company.country] ?? company.country}
                     </td>
-                    <td className="py-3 pr-4 text-muted-foreground">{company.companyCode}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">
+                      {company.companyCode}
+                    </td>
                     <td className="py-3 pr-4 text-muted-foreground">
                       {company.applicantUserCount}
                     </td>

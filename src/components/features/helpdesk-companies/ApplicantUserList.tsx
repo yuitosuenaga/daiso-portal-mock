@@ -94,8 +94,12 @@ export function ApplicantUserList({
           <tbody className="divide-y divide-border">
             {applicantUsers.map((applicantUser) => (
               <tr key={applicantUser.id}>
-                <td className="py-3 pr-4 font-medium text-foreground">{applicantUser.email}</td>
-                <td className="py-3 pr-4 text-muted-foreground">{applicantUser.displayName}</td>
+                <td className="py-3 pr-4 font-medium text-foreground">
+                  {applicantUser.email}
+                </td>
+                <td className="py-3 pr-4 text-muted-foreground">
+                  {applicantUser.displayName}
+                </td>
                 <td className="py-3 pr-4">
                   <Badge variant={applicantUser.isActive ? "default" : "muted"}>
                     {applicantUser.isActive ? activeStatusLabel : inactiveStatusLabel}
