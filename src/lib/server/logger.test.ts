@@ -297,6 +297,39 @@ describe("logger", () => {
         expect(out).toContain("[redacted]");
       }
     });
+    it("キー側のバックスラッシュが8個以上でも値を伏字にする", () => {
+      for (const n of [8, 9, 20, 200, 1000]) {
+        const out = redactSecrets(`token${BS.repeat(n)}: abc tail`);
+        expect(out).not.toContain("abc");
+        expect(out).toContain("[redacted]");
+        const out2 = redactSecrets(`${BS.repeat(n)}"password${BS.repeat(n)}":${BS.repeat(n)}"abc def${BS.repeat(n)}" tail`);
+        expect(out2).not.toContain("abc");
+        expect(out2).not.toContain("def");
+      }
+    });
+    it("シングルクォートのキー・値(\\'password\\')も伏字にする", () => {
+      const out = redactSecrets(`{'password': 'abc def', 'user': 'y'}`);
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+      expect(out).toContain("'user': 'y'");
+      const esc = redactSecrets(`${BS}'password${BS}': ${BS}'abc def${BS}', next`);
+      expect(esc).not.toContain("abc");
+      expect(esc).not.toContain("def");
+    });
+    it("既知の限界: 引用符内に同形の\\\"が途中に現れると、そこで値が終わったとみなし残りは伏字にならない（現状固定）", () => {
+      const out = redactSecrets(`password=${BS}"abc${BS}"LEAKTAIL${BS}" next`);
+      expect(out).not.toContain("abc");
+      expect(out).toContain("LEAKTAIL");
+    });
+    it("既知の過剰伏字: キー直前がバックスラッシュ（Windowsパス等）でも伏字にする（意図的な安全側・現状固定）", () => {
+      // `\npassword=...`のようなJSON埋め込み文字列中の改行エスケープ直後のキーを漏らさないため、直前のバックスラッシュでは除外しない。
+      expect(redactSecrets("C:\\pwd\\:x secret")).toBe("C:\\pwd\\:[redacted] secret");
+      expect(redactSecrets("line1\\npassword=abc")).not.toContain("abc");
+    });
+    it("キー直後が\\\"のみで:/=を伴わない形は対象外（無加工）", () => {
+      const s = `a token${BS}"abc`;
+      expect(redactSecrets(s)).toBe(s);
+    });
     it("閉じ引用符なしのエスケープ形は残りを伏字にする", () => {
       const out = redactSecrets(`secret=${BS}"abc`);
       expect(out).not.toContain("abc");
@@ -339,6 +372,9 @@ describe("logger", () => {
         ["password=+バックスラッシュ", `password=${BS.repeat(10)}`],
         ["キー側エスケープの繰り返し", `${BS}"password${BS}":${BS}"`],
         ["password=\\\\\\\\\"の繰り返し", `password=${BS.repeat(9)}"`],
+        ["token+キー側バックスラッシュ連続", `token${BS.repeat(50)}`],
+        ["token+キー側バックスラッシュ1024超", `token${BS.repeat(2000)}`],
+        ["キー側バックスラッシュ+引用符+sepの繰り返し", `password${BS.repeat(500)}":`],
       ];
       for (const [label, unit] of units) {
         it(`${label}を長大入力でも十分短時間で処理する`, () => {
