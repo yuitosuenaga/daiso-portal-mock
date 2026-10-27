@@ -122,6 +122,10 @@ export function DocumentCategoryForm({
       } else {
         result = await createDocumentCategoryAction(values as DocumentCategoryFormInput);
       }
+      if (!result.ok) {
+        setNameConflictError(true);
+        return;
+      }
       if (result.failedLocales.length > 0) {
         // 保存は完了しているため、ダイアログを閉じず再翻訳を案内する。
         setSavedCategoryId(result.category.id);
@@ -129,14 +133,7 @@ export function DocumentCategoryForm({
         return;
       }
       onSaved();
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("already exists in this hierarchy")
-      ) {
-        setNameConflictError(true);
-        return;
-      }
+    } catch {
       setHasSubmitError(true);
     }
   }

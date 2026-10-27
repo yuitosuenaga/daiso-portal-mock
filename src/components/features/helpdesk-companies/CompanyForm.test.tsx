@@ -62,7 +62,7 @@ describe("CompanyForm", () => {
   });
 
   it("入力済みで送信するとcreateCompanyActionが呼ばれ詳細画面へ遷移する", async () => {
-    createCompanyActionMock.mockResolvedValue({ id: "company-1" });
+    createCompanyActionMock.mockResolvedValue({ ok: true, company: { id: "company-1" } });
     render(<CompanyForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("会社名"), {
@@ -87,9 +87,10 @@ describe("CompanyForm", () => {
   });
 
   it("販社コード重複エラーはcompanyCodeフィールドに表示される", async () => {
-    createCompanyActionMock.mockRejectedValue(
-      new Error("Company code already taken: th-daiso-thailand")
-    );
+    createCompanyActionMock.mockResolvedValue({
+      ok: false,
+      reason: "companyCodeTaken",
+    });
     render(<CompanyForm mode="create" {...labels} />);
 
     fireEvent.change(screen.getByLabelText("会社名"), {
@@ -137,7 +138,7 @@ describe("CompanyForm", () => {
   });
 
   it("編集モードでは既存の値が初期表示され、更新時にupdateCompanyActionが呼ばれる", async () => {
-    updateCompanyActionMock.mockResolvedValue({ id: "company-1" });
+    updateCompanyActionMock.mockResolvedValue({ ok: true, company: { id: "company-1" } });
     render(
       <CompanyForm
         mode="edit"

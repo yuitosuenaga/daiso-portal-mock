@@ -130,22 +130,21 @@ export function CompanyForm({
   async function onSubmit(values: CompanyFormValues) {
     setHasSubmitError(false);
     try {
-      const saved =
+      const result =
         mode === "edit" && companyId
           ? await updateCompanyAction(companyId, values)
           : await createCompanyAction(values);
-      router.push(`/helpdesk/companies/${saved.id}`);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("Company code already taken")
-      ) {
-        setError("companyCode", {
-          type: "duplicate",
-          message: companyCodeDuplicateMessage,
-        });
+      if (!result.ok) {
+        if (result.reason === "companyCodeTaken") {
+          setError("companyCode", {
+            type: "duplicate",
+            message: companyCodeDuplicateMessage,
+          });
+        }
         return;
       }
+      router.push(`/helpdesk/companies/${result.company.id}`);
+    } catch {
       setHasSubmitError(true);
     }
   }

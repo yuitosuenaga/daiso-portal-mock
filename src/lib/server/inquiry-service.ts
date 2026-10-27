@@ -27,23 +27,32 @@ const HELPDESK_ORIGIN_HISTORY_TYPES = [
 ] as const;
 
 export class DoubleClaimError extends Error {
+  readonly inquiryId: string;
+
   constructor(inquiryId: string) {
-    super(`Inquiry is already claimed: ${inquiryId}`);
+    super("Inquiry is already claimed");
     this.name = "DoubleClaimError";
+    this.inquiryId = inquiryId;
   }
 }
 
 export class ClaimOwnershipError extends Error {
+  readonly inquiryId: string;
+
   constructor(inquiryId: string) {
-    super(`Claim not owned by acting staff: ${inquiryId}`);
+    super("Claim not owned by acting staff");
     this.name = "ClaimOwnershipError";
+    this.inquiryId = inquiryId;
   }
 }
 
 export class InquiryNotFoundError extends Error {
+  readonly inquiryId: string;
+
   constructor(inquiryId: string) {
-    super(`Inquiry not found: ${inquiryId}`);
+    super("Inquiry not found");
     this.name = "InquiryNotFoundError";
+    this.inquiryId = inquiryId;
   }
 }
 
