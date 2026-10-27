@@ -67,6 +67,9 @@ describe("sendMail", () => {
       host: "smtp.example.com",
       port: 587,
       auth: { user: "user", pass: "pass" },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
     });
     expect(sendMailMock).toHaveBeenCalledWith({
       from: "noreply@example.com",

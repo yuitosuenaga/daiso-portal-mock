@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { safeErrorLabel } from "@/lib/server/error-label";
 import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalation";
 
 // Prisma・`server-only`依存のため、Edge Runtimeでは動作しない。
@@ -9,16 +10,25 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * リクエストヘッダーから、Cronエンドポイント認証用のシークレットを取り出す。
- * `Authorization: Bearer <secret>`または`x-cron-secret: <secret>`のいずれかを受け付ける
- * （要件38.10）。
+ * リクエストヘッダーから、Cronエンドポイント認証用のシークレット候補を優先順に取り出す。
+ * Cloud SchedulerのOIDC利用時は`Authorization: Bearer <IDトークン>`が付与されるため、
+ * アプリ層のシークレットである`x-cron-secret`を先に照合し、`Authorization: Bearer <secret>`
+ * 単独（従来方式）も候補として受け付ける（要件38.10）。
  */
-function extractProvidedSecret(request: NextRequest): string | null {
+function extractSecretCandidates(request: NextRequest): string[] {
+  const candidates: string[] = [];
+  const headerSecret = request.headers.get("x-cron-secret");
+  if (headerSecret) {
+    candidates.push(headerSecret);
+  }
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.slice("Bearer ".length);
+    const bearer = authHeader.slice("Bearer ".length);
+    if (bearer) {
+      candidates.push(bearer);
+    }
   }
-  return request.headers.get("x-cron-secret");
+  return candidates;
 }
 
 /**
@@ -42,13 +52,35 @@ async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const provided = extractProvidedSecret(request);
-  if (!provided || !timingSafeEqualStrings(provided, cronSecret)) {
+  // 全候補を定数時間比較で評価し、早期リターンによるタイミング差を作らない。
+  const authorized = extractSecretCandidates(request)
+    .map((candidate) => timingSafeEqualStrings(candidate, cronSecret))
+    .some(Boolean);
+  if (!authorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await runAnnouncementAutoEscalation();
-  return NextResponse.json(result, { status: 200 });
+  const dryRunParam = request.nextUrl.searchParams.get("dryRun");
+  const dryRun = dryRunParam === "1" || dryRunParam === "true";
+
+  const startedAt = Date.now();
+  try {
+    const result = await runAnnouncementAutoEscalation(new Date(), { dryRun });
+    // 件数のみを構造化ログに出す（メール・氏名・本文などのPIIは含めない）。
+    console.info(
+      `[cron] announcement-escalation result ${JSON.stringify({
+        ...result,
+        durationMs: Date.now() - startedAt,
+      })}`
+    );
+    return NextResponse.json(result, { status: 200 });
+  } catch (error) {
+    // DB接続不可などの致命的失敗。500を返し、Scheduler・監視が失敗を検知できるようにする。
+    console.error(
+      `[cron] announcement-escalation failed: ${safeErrorLabel(error)}`
+    );
+    return NextResponse.json({ error: "Escalation run failed" }, { status: 500 });
+  }
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
