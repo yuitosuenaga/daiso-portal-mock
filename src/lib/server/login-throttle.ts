@@ -14,6 +14,7 @@ import {
   recordAuthEvent,
   type AuthPortal,
 } from "@/lib/server/auth-audit";
+import { logger } from "./logger";
 
 /** ログ用にエラー種別のみ返す（メッセージにPIIが混じり得るため本文は出さない）。 */
 function errorKind(error: unknown): string {
@@ -35,7 +36,7 @@ async function withDbErrorLog<T>(op: string, fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    console.error(`login throttle ${op} failed`, errorKind(error));
+    logger.error(`login throttle ${op} failed`, { op, errorKind: errorKind(error) });
     throw error;
   }
 }
@@ -143,7 +144,7 @@ export async function runProtectedCredentialsLogin<T extends { id: string }>(
         await prisma.loginThrottle.deleteMany({ where: { key } });
       } catch (error) {
         // 認証は成功している。カウンタ掃除の失敗でログインを失敗にしない
-        console.error("login throttle reset failed", errorKind(error));
+        logger.error("login throttle reset failed", { errorKind: errorKind(error) });
       }
     }
     await recordAuthEvent({

@@ -26,8 +26,9 @@ export type TranslationErrorKind =
 export class TranslationError extends Error {
   readonly kind: TranslationErrorKind;
 
-  constructor(kind: TranslationErrorKind, message: string) {
-    super(message);
+  constructor(kind: TranslationErrorKind, message: string, options?: { cause?: unknown }) {
+    // SDKのAPIError（status/request_id/スタック）をログで追えるよう、cause連鎖で保持する。
+    super(message, options);
     this.name = "TranslationError";
     this.kind = kind;
   }
@@ -126,6 +127,7 @@ export function createClaudeTranslator(options?: {
         throw new TranslationError(
           "api_error",
           error instanceof Error ? error.message : String(error),
+          { cause: error },
         );
       }
 
@@ -178,6 +180,7 @@ export function createClaudeTranslator(options?: {
         throw new TranslationError(
           "api_error",
           error instanceof Error ? error.message : String(error),
+          { cause: error },
         );
       }
 

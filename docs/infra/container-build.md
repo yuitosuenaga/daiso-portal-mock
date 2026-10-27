@@ -112,7 +112,7 @@ gcloud run jobs executions list --project $PROJECT --region $REGION --job $JOB -
 # 実行ログ(prisma のエラー本文)
 gcloud logging read \
   "resource.type=cloud_run_job AND resource.labels.job_name=$JOB" \
-  --project $PROJECT --limit 50 --format='value(textPayload)'
+  --project $PROJECT --limit 50 --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 ```
 
 よくある原因:

@@ -14,6 +14,7 @@ import type {
   MonthlyMaterial,
   MonthlyMaterialCategory,
 } from "@/types/monthly-material";
+import { errorFields, logger } from "./logger";
 
 export class MonthlyMaterialNotFoundError extends Error {
   readonly materialId: string;
@@ -100,7 +101,7 @@ function mapMonthlyMaterialsSkippingCorrupted(
       return [mapMonthlyMaterial(record)];
     } catch (error) {
       if (error instanceof MonthlyMaterialDataIntegrityError) {
-        console.error(`[monthly-material-service] Skipping corrupted record: ${error.message}`);
+        logger.error("[monthly-material-service] Skipping corrupted record", errorFields(error));
         return [];
       }
       throw error;

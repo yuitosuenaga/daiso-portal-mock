@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import { getTranslator } from "@/lib/server/translation-service";
 import type { Translator } from "@/lib/translation/claude-translator";
+import { errorFields, logger } from "./logger";
 
 /** 問い合わせ本文の翻訳先。送信者の言語（原文）に加え、ヘルプデスク用のjaと共通語のenのみ保持する */
 const INQUIRY_CONTENT_LOCALES = ["ja", "en"] as const;
@@ -73,10 +74,10 @@ export async function translateInquiryAndStore(
     const hasFailure = results.some((result) => result.status === "rejected");
     for (const result of results) {
       if (result.status === "rejected") {
-        console.error(
-          `[inquiry-translation] failed to translate inquiry ${inquiryId}:`,
-          result.reason
-        );
+        logger.error("[inquiry-translation] failed to translate inquiry", {
+          inquiryId,
+          ...errorFields(result.reason),
+        });
       }
     }
 
@@ -85,6 +86,6 @@ export async function translateInquiryAndStore(
       data: { translationStatus: hasFailure ? "failed" : "completed" },
     });
   } catch (error) {
-    console.error(`[inquiry-translation] unexpected error for inquiry ${inquiryId}:`, error);
+    logger.error("[inquiry-translation] unexpected error", { inquiryId, ...errorFields(error) });
   }
 }

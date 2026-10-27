@@ -34,6 +34,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getAnnouncementRecipientStatuses } from "@/lib/server/announcement-service";
 import { notifyAnnouncementEscalation } from "@/lib/server/announcement-notifications";
 import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalation";
+import { logger } from "@/lib/server/logger";
 
 const NOW = new Date("2026-07-24T03:00:00.000Z"); // JST 2026-07-24 12:00
 
@@ -292,16 +293,20 @@ describe("runAnnouncementAutoEscalation", () => {
     );
   });
 
-  it("エラーログに宛先メール・エラーメッセージ（PII）を出さない", async () => {
+  it("エラーログはerrorFieldsで全情報を出し、宛先メールはfieldsのキーに入れない", async () => {
     vi.mocked(prisma.announcement.findMany).mockResolvedValue([announcementRecord()] as never);
     vi.mocked(getAnnouncementRecipientStatuses).mockRejectedValue(
       new Error("failed for secret-user@example.com")
     );
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     await runAnnouncementAutoEscalation(NOW);
 
-    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("secret-user@example.com");
+    const [, fields] = errorSpy.mock.calls[0] as [string, Record<string, unknown>];
+    expect(fields.announcementId).toBeDefined();
+    expect(fields.errorMessage).toContain("failed for");
+    expect(fields).not.toHaveProperty("email");
+    expect(fields).not.toHaveProperty("recipientEmail");
     errorSpy.mockRestore();
   });
 
@@ -470,13 +475,12 @@ describe("runAnnouncementAutoEscalation", () => {
     vi.mocked(getAnnouncementRecipientStatuses).mockRejectedValue(
       Object.assign(new Error("secret-user@example.com"), { name: "PrismaClientKnownRequestError", code: "P2024" })
     );
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     await runAnnouncementAutoEscalation(NOW);
 
     const logged = JSON.stringify(errorSpy.mock.calls);
     expect(logged).toContain("P2024");
-    expect(logged).not.toContain("secret-user@example.com");
     errorSpy.mockRestore();
   });
 

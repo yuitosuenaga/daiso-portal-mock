@@ -8,6 +8,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
   },
 }));
 
+import { errorFields } from "@/lib/server/logger";
 import { createClaudeTranslator, TranslationError } from "@/lib/translation/claude-translator";
 
 beforeEach(() => {
@@ -89,6 +90,31 @@ describe("createClaudeTranslator", () => {
     await expect(
       translator.translate({ title: "a", body: "b", sourceLocale: "ja", targetLocale: "en" })
     ).rejects.toMatchObject({ kind: "api_error" });
+  });
+
+  it("api_errorはSDKエラーをcauseに保持し、errorFieldsでstatus・request_id・SDK側スタックが出る", async () => {
+    const sdkError = Object.assign(new Error("429 rate limited"), {
+      name: "RateLimitError",
+      status: 429,
+      request_id: "req_abc123",
+    });
+    parseMock.mockRejectedValue(sdkError);
+    const translator = createClaudeTranslator({ apiKey: "test-key" });
+
+    const thrown = await translator
+      .translate({ title: "a", body: "b", sourceLocale: "ja", targetLocale: "en" })
+      .catch((e: unknown) => e);
+
+    expect(thrown).toBeInstanceOf(TranslationError);
+    expect((thrown as Error).cause).toBe(sdkError);
+    type Fields = { errorName: string; errorProps: Record<string, unknown>; status?: number; stack_trace: string; cause: Fields };
+    const fields = errorFields(thrown) as unknown as Fields;
+    expect(fields.errorName).toBe("TranslationError");
+    expect(fields.errorProps.kind).toBe("api_error");
+    expect(fields.cause.errorName).toBe("RateLimitError");
+    expect(fields.cause.status).toBe(429);
+    expect(fields.cause.errorProps.request_id).toBe("req_abc123");
+    expect(fields.cause.stack_trace).toContain("429 rate limited");
   });
 
   it("titleが空文字の場合、空のtitleをそのまま返す", async () => {

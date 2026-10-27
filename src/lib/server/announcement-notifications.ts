@@ -10,9 +10,9 @@ import {
   resolveAnnouncementContent,
   targetApplicantUsersWhere,
 } from "@/lib/server/announcement-mapper";
-import { safeErrorLabel } from "@/lib/server/error-label";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
 import type { Announcement } from "@/types/announcement";
+import { errorFields, logger } from "./logger";
 
 /**
  * 配信対象による絞り込みを行わず、指定したIDのお知らせを1件取得する。
@@ -101,12 +101,14 @@ async function sendAndLog(
   } catch (error) {
     const isNotConfigured = error instanceof MailerNotConfiguredError;
     if (!isNotConfigured) {
-      // 宛先メールアドレス・エラーメッセージ（SMTPが宛先を含みうる）はログに出さない（PII対策）。
-      // `safeErrorLabel`は`api-errors.ts`（#169）のエラー固定文言化とは別に、ログ用にエラー名と
-      // Prismaコードだけを出す小さなヘルパー（役割は近いが仕組みは統合していない）。
-      console.error(
-        `[announcement-notifications] Failed to send ${kind} mail for announcement ${announcement.id}: ${safeErrorLabel(error)}`
-      );
+      // 宛先メールアドレスはfieldsに入れない（#162の意図）。エラー情報はerrorFieldsで全量出力する。
+      // 注意: SMTPエラー文に宛先が含まれる場合、errorMessage/stack_trace/errorPropsを通じて宛先メールがログに出うる
+      // （「Cloud Loggingには全情報」方針どおり。閲覧権限・保持期間で管理する。runbook §3.5参照）。
+      logger.error("[announcement-notifications] Failed to send mail", {
+        kind,
+        announcementId: announcement.id,
+        ...errorFields(error),
+      });
     }
     // 失敗ログの書込み自体が失敗しても例外は伝播させず、送信結果だけを返す。
     try {
@@ -121,9 +123,11 @@ async function sendAndLog(
         },
       });
     } catch (logError) {
-      console.error(
-        `[announcement-notifications] Failed to write ${kind} log for announcement ${announcement.id}: ${safeErrorLabel(logError)}`
-      );
+      logger.error("[announcement-notifications] Failed to write notification log", {
+        kind,
+        announcementId: announcement.id,
+        ...errorFields(logError),
+      });
     }
     return isNotConfigured ? "skipped" : "failed";
   }
@@ -141,9 +145,11 @@ async function sendAndLog(
       },
     });
   } catch (logError) {
-    console.warn(
-      `[announcement-notifications] Mail sent but failed to write ${kind} log for announcement ${announcement.id}: ${safeErrorLabel(logError)}`
-    );
+    logger.warn("[announcement-notifications] Mail sent but failed to write notification log", {
+      kind,
+      announcementId: announcement.id,
+      ...errorFields(logError),
+    });
   }
   return "sent";
 }
@@ -329,9 +335,10 @@ export async function notifyAnnouncementEscalation(
       } catch (error) {
         // sendAndLogは通常throwしないが、想定外でもworkerを落とさず（完了済みの結果を捨てず、
         // 他workerの継続による同時送信数超過も防ぐ）failedとして集計する。
-        console.error(
-          `[announcement-notifications] Unexpected escalation send error for announcement ${announcement.id}: ${safeErrorLabel(error)}`
-        );
+        logger.error("[announcement-notifications] Unexpected escalation send error", {
+          announcementId: announcement.id,
+          ...errorFields(error),
+        });
         outcome = "failed";
       }
       outcomes.push({ email: recipient.email, outcome });

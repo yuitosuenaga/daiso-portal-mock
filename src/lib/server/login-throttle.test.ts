@@ -32,7 +32,7 @@ function createdEvents() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(console, "info").mockImplementation(() => {});
+  vi.spyOn(process.stdout, "write").mockReturnValue(true);
   vi.mocked(prisma.loginThrottle.findUnique).mockResolvedValue(null);
   vi.mocked(prisma.$queryRaw).mockResolvedValue([{ lockedUntil: null }] as never);
 });
@@ -102,7 +102,7 @@ describe("runProtectedCredentialsLogin", () => {
     const serialized = JSON.stringify([
       createdEvents(),
       vi.mocked(prisma.$queryRaw).mock.calls,
-      vi.mocked(console.info).mock.calls,
+      vi.mocked(process.stdout.write).mock.calls,
     ]).toLowerCase();
     expect(serialized).not.toContain("secret.user");
     expect(serialized).not.toContain("example.com");
@@ -110,7 +110,7 @@ describe("runProtectedCredentialsLogin", () => {
   });
 
   it("監査ログの書き込み失敗でもログイン結果に影響しない", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     vi.mocked(prisma.authEvent.create).mockRejectedValue(new Error("db"));
     const result = await runProtectedCredentialsLogin("applicant", EMAIL, async () => ({
       id: "u1",
@@ -121,7 +121,7 @@ describe("runProtectedCredentialsLogin", () => {
 
 describe("DB例外とエラーハンドリング", () => {
   it("成功後のカウンタ削除に失敗してもログイン成功を維持する", async () => {
-    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     vi.mocked(prisma.loginThrottle.findUnique).mockResolvedValue({
       failedCount: 2,
       lastFailedAt: new Date(),
@@ -136,7 +136,7 @@ describe("DB例外とエラーハンドリング", () => {
   });
 
   it("台帳テーブル不在などで例外のときは原因ログを出して再送出する（fail openしない）", async () => {
-    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     const err = Object.assign(new Error("relation LoginThrottle does not exist"), {
       code: "P2021",
       name: "PrismaClientKnownRequestError",
@@ -145,10 +145,12 @@ describe("DB例外とエラーハンドリング", () => {
     const authorize = vi.fn().mockResolvedValue({ id: "u1" });
     await expect(runProtectedCredentialsLogin("applicant", EMAIL, authorize)).rejects.toThrow();
     expect(authorize).not.toHaveBeenCalled();
-    expect(errSpy).toHaveBeenCalledWith(
-      "login throttle load failed",
-      "PrismaClientKnownRequestError:P2021"
-    );
+    const logged = JSON.parse(String(errSpy.mock.calls[0][0]));
+    expect(logged).toMatchObject({
+      severity: "ERROR",
+      message: "login throttle load failed",
+      errorKind: "PrismaClientKnownRequestError:P2021",
+    });
   });
 });
 
