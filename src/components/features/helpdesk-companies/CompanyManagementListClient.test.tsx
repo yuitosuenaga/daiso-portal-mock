@@ -31,6 +31,7 @@ function company(overrides: Partial<CompanyWithStats> = {}): CompanyWithStats {
 }
 
 const baseProps = {
+  canManage: true,
   countryLabels: { TH: "タイ", VN: "ベトナム" },
   locale: "ja",
   searchLabel: "会社名・販社コードで検索",
@@ -279,5 +280,21 @@ describe("CompanyManagementListClient", () => {
 
     expect(screen.queryByText("Daiso Thailand")).toBeNull();
     expect(screen.getByText("Daiso Vietnam")).toBeTruthy();
+  });
+
+  it("canManage=falseのとき、一括選択チェックボックス・一括無効化・選択件数を出さず、詳細リンクは出す", () => {
+    render(
+      <CompanyManagementListClient
+        companies={[company({ id: "c1", name: "Daiso Thailand" })]}
+        {...baseProps}
+        canManage={false}
+      />
+    );
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "選択した販社を一括無効化" })).toBeNull();
+    expect(screen.queryByText("0社を選択中")).toBeNull();
+    expect(screen.getByText("Daiso Thailand")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "詳細" })).toBeTruthy();
   });
 });

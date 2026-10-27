@@ -14,6 +14,8 @@ import type { CompanyWithStats } from "@/types/company";
 
 export interface CompanyManagementListClientProps {
   companies: CompanyWithStats[];
+  /** adminのみtrue。falseのとき一括選択・一括無効化を出さない（閲覧のみ）。 */
+  canManage: boolean;
   countryLabels: Record<string, string>;
   locale: string;
   searchLabel: string;
@@ -47,6 +49,7 @@ export interface CompanyManagementListClientProps {
  */
 export function CompanyManagementListClient({
   companies,
+  canManage,
   countryLabels,
   searchLabel,
   searchPlaceholder,
@@ -75,7 +78,7 @@ export function CompanyManagementListClient({
 
   const filteredCompanies = useMemo(
     () => filterCompaniesForManagement(companies, keyword),
-    [companies, keyword]
+    [companies, keyword],
   );
 
   // 確認モーダルに表示する対象は、検索絞り込みで一時的に非表示になった選択も含む
@@ -85,16 +88,12 @@ export function CompanyManagementListClient({
   // しまう（要件20.3・20.4の誤操作防止に反する）ため、必ず全件`companies`から算出する。
   const selectedCompanies = useMemo(
     () => companies.filter((company) => selectedIds.has(company.id)),
-    [companies, selectedIds]
+    [companies, selectedIds],
   );
 
   const activeUserCountTotal = useMemo(
-    () =>
-      selectedCompanies.reduce(
-        (total, company) => total + company.activeApplicantUserCount,
-        0
-      ),
-    [selectedCompanies]
+    () => selectedCompanies.reduce((total, company) => total + company.activeApplicantUserCount, 0),
+    [selectedCompanies],
   );
 
   const allFilteredSelected =
@@ -137,9 +136,7 @@ export function CompanyManagementListClient({
     return new Promise<void>((resolve, reject) => {
       startTransition(async () => {
         try {
-          const result = await deactivateCompaniesApplicantUsersAction(
-            Array.from(selectedIds)
-          );
+          const result = await deactivateCompaniesApplicantUsersAction(Array.from(selectedIds));
           setHasError(false);
           setSuccessCount(result.deactivatedCount);
           setSelectedIds(new Set());
@@ -164,35 +161,37 @@ export function CompanyManagementListClient({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {formatTemplate(selectedCountTemplate, { count: selectedIds.size })}
-        </p>
-        <div className="flex items-center gap-3">
-          <ConfirmDialog
-            triggerLabel={bulkDeactivateButtonLabel}
-            triggerVariant="destructive"
-            triggerDisabled={selectedIds.size === 0 || isPending}
-            title={confirmTitle}
-            description={formatTemplate(confirmMessageTemplate, {
-              companyCount: selectedCompanies.length,
-              userCount: activeUserCountTotal,
-            })}
-            confirmLabel={confirmButtonLabel}
-            cancelLabel={cancelButtonLabel}
-            confirmVariant="destructive"
-            isPending={isPending}
-            onConfirm={handleConfirmDeactivate}
-          />
-          {hasError && !isPending && (
-            <span role="status" className="text-sm text-destructive">
-              {errorMessage}
-            </span>
-          )}
+      {canManage && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {formatTemplate(selectedCountTemplate, { count: selectedIds.size })}
+          </p>
+          <div className="flex items-center gap-3">
+            <ConfirmDialog
+              triggerLabel={bulkDeactivateButtonLabel}
+              triggerVariant="destructive"
+              triggerDisabled={selectedIds.size === 0 || isPending}
+              title={confirmTitle}
+              description={formatTemplate(confirmMessageTemplate, {
+                companyCount: selectedCompanies.length,
+                userCount: activeUserCountTotal,
+              })}
+              confirmLabel={confirmButtonLabel}
+              cancelLabel={cancelButtonLabel}
+              confirmVariant="destructive"
+              isPending={isPending}
+              onConfirm={handleConfirmDeactivate}
+            />
+            {hasError && !isPending && (
+              <span role="status" className="text-sm text-destructive">
+                {errorMessage}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {successCount !== null && !hasError && (
+      {canManage && successCount !== null && !hasError && (
         <p role="status" className="text-sm text-foreground">
           {formatTemplate(successMessageTemplate, { count: successCount })}
         </p>
@@ -210,21 +209,21 @@ export function CompanyManagementListClient({
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="py-2 pr-4 font-medium">
-                    <input
-                      type="checkbox"
-                      aria-label={selectAllLabel}
-                      checked={allFilteredSelected}
-                      onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  </th>
+                  {canManage && (
+                    <th className="py-2 pr-4 font-medium">
+                      <input
+                        type="checkbox"
+                        aria-label={selectAllLabel}
+                        checked={allFilteredSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </th>
+                  )}
                   <th className="py-2 pr-4 font-medium">{nameHeader}</th>
                   <th className="py-2 pr-4 font-medium">{countryHeader}</th>
                   <th className="py-2 pr-4 font-medium">{companyCodeHeader}</th>
-                  <th className="py-2 pr-4 font-medium">
-                    {applicantUserCountHeader}
-                  </th>
+                  <th className="py-2 pr-4 font-medium">{applicantUserCountHeader}</th>
                   <th className="py-2 pr-4 font-medium">
                     <span className="sr-only">{detailLink}</span>
                   </th>
@@ -233,26 +232,24 @@ export function CompanyManagementListClient({
               <tbody className="divide-y divide-border">
                 {filteredCompanies.map((company) => (
                   <tr key={company.id}>
-                    <td className="py-3 pr-4">
-                      <input
-                        type="checkbox"
-                        aria-label={formatTemplate(selectRowLabelTemplate, {
-                          name: company.name,
-                        })}
-                        checked={selectedIds.has(company.id)}
-                        onChange={() => toggleRow(company.id)}
-                        className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      />
-                    </td>
-                    <td className="py-3 pr-4 font-medium text-foreground">
-                      {company.name}
-                    </td>
+                    {canManage && (
+                      <td className="py-3 pr-4">
+                        <input
+                          type="checkbox"
+                          aria-label={formatTemplate(selectRowLabelTemplate, {
+                            name: company.name,
+                          })}
+                          checked={selectedIds.has(company.id)}
+                          onChange={() => toggleRow(company.id)}
+                          className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        />
+                      </td>
+                    )}
+                    <td className="py-3 pr-4 font-medium text-foreground">{company.name}</td>
                     <td className="py-3 pr-4 text-muted-foreground">
                       {countryLabels[company.country] ?? company.country}
                     </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {company.companyCode}
-                    </td>
+                    <td className="py-3 pr-4 text-muted-foreground">{company.companyCode}</td>
                     <td className="py-3 pr-4 text-muted-foreground">
                       {company.applicantUserCount}
                     </td>

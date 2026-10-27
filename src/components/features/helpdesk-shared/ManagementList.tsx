@@ -11,8 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface ManagementListHeadingProps {
   title: string;
   description: string;
-  addHref: string;
-  addLabel: string;
+  /** 省略時は追加ボタンを表示しない（閲覧のみのロール向け）。 */
+  addHref?: string;
+  addLabel?: string;
 }
 
 export function ManagementListHeading({
@@ -27,12 +28,14 @@ export function ManagementListHeading({
         <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
-      <Link
-        href={addHref}
-        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-      >
-        {addLabel}
-      </Link>
+      {addHref && addLabel && (
+        <Link
+          href={addHref}
+          className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          {addLabel}
+        </Link>
+      )}
     </div>
   );
 }

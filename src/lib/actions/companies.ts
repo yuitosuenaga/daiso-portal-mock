@@ -16,7 +16,7 @@ import {
   toCreateCompanyInputs,
   type CompanyCsvRowResult,
 } from "@/lib/company-csv";
-import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import { requireHelpdeskAdminSession } from "@/lib/server/auth-session";
 import { companyFormSchema } from "@/lib/validation/company";
 import type { Company, CreateCompanyInput } from "@/types/company";
 
@@ -118,9 +118,9 @@ export async function importCompaniesAction(
   csvText: string
 ): Promise<CompanyCsvImportResult> {
   // CSVがファイル全体エラー（空・ヘッダー不一致等）の場合、以降のどのサービス関数
-  // （`findExistingCompanyCodes`等）も呼び出されないため、ここで明示的にヘルプデスク
+  // （`findExistingCompanyCodes`等）も呼び出されないため、ここで明示的にadmin
   // セッションを検証する（多層防御。要件19.13）。
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const parsed = parseAndValidateCompanyCsv(csvText, []);
 

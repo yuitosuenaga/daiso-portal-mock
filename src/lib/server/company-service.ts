@@ -3,7 +3,10 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
-import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
+import {
+  requireHelpdeskAdminSession,
+  requireHelpdeskStaffSession,
+} from "@/lib/server/auth-session";
 import type { Company, CompanyWithStats, CreateCompanyInput } from "@/types/company";
 
 /** ヘルプデスク代理登録画面の対象会社選択欄に表示する会社情報。 */
@@ -125,7 +128,7 @@ export async function getCompanyById(id: string): Promise<Company | null> {
  * トラッキングロジック自体はこのspec対象外のため変更せず、レコード作成のみを追加する）。
  */
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const record = await prisma.$transaction(async (tx) => {
     const company = await tx.company.create({
@@ -154,7 +157,7 @@ export async function updateCompany(
   id: string,
   input: CreateCompanyInput
 ): Promise<Company> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   try {
     const record = await prisma.company.update({
@@ -186,7 +189,7 @@ export async function isCompanyCodeTaken(
   companyCode: string,
   excludeId?: string
 ): Promise<boolean> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   const record = await prisma.company.findFirst({
     where: {
@@ -204,7 +207,7 @@ export async function isCompanyCodeTaken(
  * `codes`が空配列の場合はPrismaを呼び出さず空配列を返す。
  */
 export async function findExistingCompanyCodes(codes: string[]): Promise<string[]> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   if (codes.length === 0) {
     return [];
@@ -228,7 +231,7 @@ export async function findExistingCompanyCodes(codes: string[]): Promise<string[
 export async function createCompaniesBulk(
   inputs: CreateCompanyInput[]
 ): Promise<Company[]> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   if (inputs.length === 0) {
     return [];
@@ -273,7 +276,7 @@ export async function createCompaniesBulk(
 export async function deactivateApplicantUsersByCompanies(
   companyIds: string[]
 ): Promise<{ deactivatedCount: number }> {
-  await requireHelpdeskStaffSession();
+  await requireHelpdeskAdminSession();
 
   if (companyIds.length === 0) {
     return { deactivatedCount: 0 };

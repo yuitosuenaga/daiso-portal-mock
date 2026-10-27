@@ -66,10 +66,14 @@ vi.mock("@/lib/db/prisma", () => ({
     applicantUser: {
       updateMany: applicantUserUpdateManyMock,
     },
+    helpdeskStaff: {
+      findUnique: vi.fn(),
+    },
     $transaction: transactionMock,
   },
 }));
 
+import { ForbiddenSessionError } from "@/lib/server/auth-session";
 import { getSession } from "@/lib/server/get-session";
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -127,6 +131,8 @@ const applicantSession = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // 既定はadminスタッフ（書き込み系の既存テストはadminで実行する）。
+  vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin" } as never);
 });
 
 describe("listCompaniesForHelpdesk", () => {
@@ -550,5 +556,41 @@ describe("deactivateApplicantUsersByCompanies", () => {
       deactivateApplicantUsersByCompanies(["company-1"])
     ).rejects.toThrow();
     expect(prisma.applicantUser.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("書き込み系はadmin限定（memberは拒否されPrismaを呼び出さない）", () => {
+  beforeEach(() => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "member" } as never);
+  });
+
+  const input = { name: "A", country: "JP", companyCode: "jp-a" };
+  const cases: [string, () => Promise<unknown>][] = [
+    ["createCompany", () => createCompany(input)],
+    ["updateCompany", () => updateCompany("company-1", input)],
+    ["createCompaniesBulk", () => createCompaniesBulk([input])],
+    ["deactivateApplicantUsersByCompanies", () => deactivateApplicantUsersByCompanies(["company-1"])],
+    ["isCompanyCodeTaken", () => isCompanyCodeTaken("jp-a")],
+    ["findExistingCompanyCodes", () => findExistingCompanyCodes(["jp-a"])],
+  ];
+
+  it.each(cases)("%s はmemberでForbiddenSessionErrorを送出する", async (_name, call) => {
+    await expect(call()).rejects.toBeInstanceOf(ForbiddenSessionError);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.company.create).not.toHaveBeenCalled();
+    expect(prisma.company.update).not.toHaveBeenCalled();
+    expect(prisma.company.findFirst).not.toHaveBeenCalled();
+    expect(prisma.company.findMany).not.toHaveBeenCalled();
+    expect(prisma.applicantUser.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("読み取り系（一覧・詳細・代理登録用一覧）はmemberでも通る", async () => {
+    vi.mocked(prisma.company.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.company.findUnique).mockResolvedValue(null);
+
+    await expect(listCompaniesForManagement()).resolves.toEqual([]);
+    await expect(listCompaniesForHelpdesk()).resolves.toEqual([]);
+    await expect(getCompanyById("company-1")).resolves.toBeNull();
   });
 });

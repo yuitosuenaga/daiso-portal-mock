@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 import { Card, CardContent } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
 import { ApplicantUserForm } from "@/components/features/helpdesk-companies/ApplicantUserForm";
@@ -12,6 +13,7 @@ type HelpdeskApplicantUserNewPageProps = {
 };
 
 export default async function HelpdeskApplicantUserNewPage(props: HelpdeskApplicantUserNewPageProps) {
+  await requireHelpdeskAdminPage();
   const params = await props.params;
   const [t, tCompanyForm] = await Promise.all([
     getTranslations("helpdeskCompanies.applicantUserForm"),

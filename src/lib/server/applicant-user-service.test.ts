@@ -25,11 +25,13 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     helpdeskStaff: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
 
 import bcrypt from "bcryptjs";
+import { ForbiddenSessionError } from "@/lib/server/auth-session";
 import { getSession } from "@/lib/server/get-session";
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -93,6 +95,8 @@ function baseApplicantUserRecord(
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+  // 既定はadminスタッフ（書き込み系の既存テストはadminで実行する）。
+  vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin" } as never);
 });
 
 describe("listApplicantUsersByCompany", () => {
@@ -383,5 +387,42 @@ describe("searchApplicantUsersForTargeting / listApplicantUsersForTargetingByIds
       where: { id: { in: string[] } };
     };
     expect(call.where.id.in).toHaveLength(200);
+  });
+});
+
+describe("書き込み系・編集画面専用の取得はadmin限定（memberは拒否されPrismaを呼び出さない）", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "member" } as never);
+  });
+
+  const createInput = {
+    email: "a@example.com",
+    displayName: "A",
+    password: "password123",
+    preferredLocale: "en",
+  };
+  const cases: [string, () => Promise<unknown>][] = [
+    ["createApplicantUser", () => createApplicantUser("company-1", createInput as never)],
+    ["updateApplicantUser", () => updateApplicantUser("applicant-1", { email: "a@example.com", displayName: "A", preferredLocale: "en" } as never)],
+    ["setApplicantUserActive", () => setApplicantUserActive("applicant-1", false)],
+    ["isApplicantUserEmailTaken", () => isApplicantUserEmailTaken("a@example.com")],
+    ["getApplicantUserById", () => getApplicantUserById("applicant-1")],
+  ];
+
+  it.each(cases)("%s はmemberでForbiddenSessionErrorを送出する", async (_name, call) => {
+    await expect(call()).rejects.toBeInstanceOf(ForbiddenSessionError);
+    expect(prisma.applicantUser.create).not.toHaveBeenCalled();
+    expect(prisma.applicantUser.update).not.toHaveBeenCalled();
+    expect(prisma.applicantUser.findUnique).not.toHaveBeenCalled();
+    expect(prisma.applicantUser.findFirst).not.toHaveBeenCalled();
+    expect(prisma.helpdeskStaff.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("一覧系・ターゲティング系はmemberでも通る（回帰）", async () => {
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([] as never);
+
+    await expect(listApplicantUsersByCompany("company-1")).resolves.toEqual([]);
+    await expect(searchApplicantUsersForTargeting("abc")).resolves.toEqual([]);
+    await expect(listApplicantUsersForTargetingByIds(["x"])).resolves.toEqual([]);
   });
 });
