@@ -257,7 +257,10 @@ describe("sendInquiryReplyAction", () => {
       fileName: "photo.png",
       fileType: "image/png",
       fileSize: 100,
-      dataUrl: "data:image/png;base64,AAAA",
+      dataUrl: `data:image/png;base64,${Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.alloc(92),
+      ]).toString("base64")}`,
     };
 
     await sendInquiryReplyAction("inquiry-009", "写真を添付します。", [
@@ -337,6 +340,26 @@ describe("sendInquiryReplyAction", () => {
         },
       ])
     ).rejects.toThrow();
+  });
+
+  it("fileSizeを偽装した添付ファイルを渡すと例外になり、履歴に記録されない", async () => {
+    const bytes = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(1000),
+    ]);
+    await expect(
+      sendInquiryReplyAction("inquiry-002", "返信本文", [
+        {
+          id: "att-forged",
+          fileName: "forged.png",
+          fileType: "image/png",
+          fileSize: 1,
+          dataUrl: `data:image/png;base64,${bytes.toString("base64")}`,
+        },
+      ])
+    ).rejects.toThrow();
+
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("件数上限を超える添付ファイルを渡すと例外になる", async () => {

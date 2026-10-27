@@ -6,8 +6,13 @@ import { prisma } from "@/lib/db/prisma";
 import {
   addedTargetApplicantUsersWhere,
   ANNOUNCEMENT_INCLUDE,
+  ANNOUNCEMENT_LIST_INCLUDE,
+  ANNOUNCEMENT_TARGETING_SELECT,
+  buildAnnouncementTrackingViews,
   DEFAULT_ANNOUNCEMENT_LOCALE,
   mapAnnouncement,
+  mapAnnouncementSummary,
+  mapTargeting,
   mapRecipientStatusView,
   mapUserReadStatusView,
   resolveAnnouncementContent,
@@ -22,6 +27,7 @@ import {
 } from "@/lib/server/announcement-notifications";
 import type {
   Announcement,
+  AnnouncementSummary,
   AnnouncementTargeting,
   CreateAnnouncementInput,
 } from "@/types/announcement";
@@ -38,9 +44,12 @@ import type {
 export { resolveAnnouncementContent, targetApplicantUsersWhere };
 
 export class AnnouncementNotFoundError extends Error {
+  readonly announcementId: string;
+
   constructor(announcementId: string) {
-    super(`Announcement not found: ${announcementId}`);
+    super("Announcement not found");
     this.name = "AnnouncementNotFoundError";
+    this.announcementId = announcementId;
   }
 }
 
@@ -88,7 +97,13 @@ function parsePublishEnd(isoDate: string, time: string | null | undefined): Date
 }
 
 /** 公開開始日・終了日を基準に、現在時刻が公開期間内かどうかを判定する。 */
-function isWithinPublishPeriod(announcement: Announcement, referenceDate: Date): boolean {
+function isWithinPublishPeriod(
+  announcement: Pick<
+    Announcement,
+    "publishStartDate" | "publishStartTime" | "publishEndDate" | "publishEndTime"
+  >,
+  referenceDate: Date
+): boolean {
   if (announcement.publishStartDate) {
     if (referenceDate < parsePublishStart(announcement.publishStartDate, announcement.publishStartTime)) {
       return false;
@@ -149,16 +164,17 @@ export async function listAnnouncementsVisibleToCountry(
   locale: string = DEFAULT_ANNOUNCEMENT_LOCALE,
   applicantUserId?: string,
   companyId?: string
-): Promise<Announcement[]> {
+): Promise<AnnouncementSummary[]> {
+  // 一覧は添付本体（dataUrl）を使わないため、メタデータだけを読み込む。
   const records = await prisma.announcement.findMany({
     where: visibleToCountryWhere(country, applicantUserId, companyId),
     orderBy: ORDER_BY_PUBLISHED_AT_DESC,
-    include: ANNOUNCEMENT_INCLUDE,
+    include: ANNOUNCEMENT_LIST_INCLUDE,
   });
 
   const now = new Date();
   return records
-    .map(mapAnnouncement)
+    .map(mapAnnouncementSummary)
     .filter((item) => isWithinPublishPeriod(item, now))
     .map((item) => ({ ...item, ...resolveAnnouncementContent(item, locale, country) }));
 }
@@ -195,14 +211,15 @@ export async function findAnnouncementVisibleToCountry(
  * 配信対象による絞り込みを行わず、お知らせ全件を作成日時の降順で取得する。
  * 下書きは`publishedAt`が未設定のため、公開日ではなく作成日時を並び順の基準とする。
  */
-export async function listAllAnnouncements(): Promise<Announcement[]> {
+export async function listAllAnnouncements(): Promise<AnnouncementSummary[]> {
+  // 管理一覧は添付本体（dataUrl）を使わないため、メタデータだけを読み込む。
   const records = await prisma.announcement.findMany({
     orderBy: ORDER_BY_CREATED_AT_DESC,
-    include: { ...ANNOUNCEMENT_INCLUDE, createdBy: { select: { displayName: true } } },
+    include: { ...ANNOUNCEMENT_LIST_INCLUDE, createdBy: { select: { displayName: true } } },
   });
 
   return records.map((record) => ({
-    ...mapAnnouncement(record),
+    ...mapAnnouncementSummary(record),
     createdByName: record.createdBy?.displayName ?? null,
   }));
 }
@@ -215,6 +232,23 @@ export async function findAnnouncementById(id: string): Promise<Announcement | n
   });
 
   return record ? mapAnnouncement(record) : null;
+}
+
+/**
+ * 配信対象・対応要否の判定だけが必要な処理用に、添付・翻訳・本文を読み込まずに
+ * お知らせを1件取得する。存在しない場合はnullを返す。
+ */
+async function findAnnouncementTargetingById(
+  id: string
+): Promise<Pick<Announcement, "id" | "targeting" | "actionRequired"> | null> {
+  const record = await prisma.announcement.findUnique({
+    where: { id },
+    select: ANNOUNCEMENT_TARGETING_SELECT,
+  });
+
+  return record
+    ? { id: record.id, actionRequired: record.actionRequired, targeting: mapTargeting(record) }
+    : null;
 }
 
 /**
@@ -470,7 +504,7 @@ export async function deleteAnnouncementRecord(id: string): Promise<void> {
 export async function getAnnouncementRecipientStatuses(
   announcementId: string
 ): Promise<AnnouncementRecipientStatusView[]> {
-  const announcement = await findAnnouncementById(announcementId);
+  const announcement = await findAnnouncementTargetingById(announcementId);
   if (!announcement) {
     return [];
   }
@@ -489,6 +523,45 @@ export async function getAnnouncementRecipientStatuses(
 }
 
 /**
+ * 複数のお知らせ分の「会社単位の実施済み状況」と「個人単位の確認済み状況」を、
+ * 一定数のクエリ（お知らせ件数に依存しない2本）でまとめて取得する。ヘルプデスクのお知らせ管理一覧用
+ * （従来は1件ごとに`getAnnouncementRecipientStatuses`・`getAnnouncementUserReadStatuses`を呼び、
+ * 1件あたり4クエリ＋添付込みのお知らせ取得を2回行っていた）。
+ * 母集団の定義は1件ずつの関数と同一（`buildAnnouncementTrackingViews`を参照）。
+ */
+export async function getAnnouncementTrackingStatusesBulk(
+  announcements: { id: string; targeting: AnnouncementTargeting }[]
+): Promise<{
+  recipientStatuses: Record<string, AnnouncementRecipientStatusView[]>;
+  userReadStatuses: Record<string, AnnouncementUserReadStatusView[]>;
+}> {
+  if (announcements.length === 0) {
+    return { recipientStatuses: {}, userReadStatuses: {} };
+  }
+  const announcementIds = announcements.map((announcement) => announcement.id);
+
+  const [recipients, users] = await Promise.all([
+    prisma.announcementRecipient.findMany({
+      include: {
+        company: true,
+        statuses: { where: { announcementId: { in: announcementIds } } },
+      },
+    }),
+    prisma.applicantUser.findMany({
+      include: {
+        company: true,
+        announcementReadReceipts: {
+          where: { announcementId: { in: announcementIds } },
+          include: { confirmers: { orderBy: { confirmedAt: "asc" } } },
+        },
+      },
+    }),
+  ]);
+
+  return buildAnnouncementTrackingViews(announcements, recipients, users);
+}
+
+/**
  * あるお知らせの確認済みトラッキング対象母集団（配信対象の国に属し`isActive: true`の
  * `ApplicantUser`。`targetApplicantUsersWhere`と同一の対象定義、要件39.2）を、
  * 個人受信レシート（`AnnouncementReadReceipt`）と左外部結合した一覧を返す（要件39.4）。
@@ -497,7 +570,7 @@ export async function getAnnouncementRecipientStatuses(
 export async function getAnnouncementUserReadStatuses(
   announcementId: string
 ): Promise<AnnouncementUserReadStatusView[]> {
-  const announcement = await findAnnouncementById(announcementId);
+  const announcement = await findAnnouncementTargetingById(announcementId);
   if (!announcement) {
     return [];
   }
@@ -674,7 +747,7 @@ export async function sendUserReadReminders(
 export async function getAnnouncementTrackingSummary(
   announcementId: string
 ): Promise<AnnouncementTrackingSummary> {
-  const announcement = await findAnnouncementById(announcementId);
+  const announcement = await findAnnouncementTargetingById(announcementId);
   if (!announcement) {
     return { totalRecipientUsers: 0, confirmedCount: 0, totalCompanies: 0, completedCount: null };
   }
@@ -705,7 +778,7 @@ export async function isReminderPendingForCompany(
   announcementId: string,
   companyCode: string
 ): Promise<boolean> {
-  const announcement = await findAnnouncementById(announcementId);
+  const announcement = await findAnnouncementTargetingById(announcementId);
   if (!announcement?.actionRequired) {
     return false;
   }
@@ -785,7 +858,7 @@ export async function recordCompanyCompletion(
   announcementId: string,
   companyCode: string
 ): Promise<void> {
-  const announcement = await findAnnouncementById(announcementId);
+  const announcement = await findAnnouncementTargetingById(announcementId);
   if (!announcement?.actionRequired) {
     return;
   }
@@ -836,7 +909,7 @@ export async function getAnnouncementSelfStatusForCompany(
   announcementId: string,
   companyCode: string
 ): Promise<{ completedAt: string | null }> {
-  const announcement = await findAnnouncementById(announcementId);
+  const announcement = await findAnnouncementTargetingById(announcementId);
   if (!announcement) {
     return { completedAt: null };
   }

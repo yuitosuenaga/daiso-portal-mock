@@ -14,8 +14,10 @@ vi.mock("@/lib/server/auth-session", () => ({
 vi.mock("@/lib/server/auto-translation", () => ({ autoTranslateFields: vi.fn() }));
 vi.mock("@/lib/server/document-category-service", () => {
   class DocumentCategoryNotFoundError extends Error {}
+  class DocumentCategoryNameConflictError extends Error {}
   return {
     DocumentCategoryNotFoundError,
+    DocumentCategoryNameConflictError,
     findDocumentCategoryForHelpdesk: vi.fn(),
     upsertDocumentCategoryTranslations: vi.fn(),
   };
@@ -33,6 +35,7 @@ import {
 } from "@/lib/actions/document-categories";
 import { autoTranslateFields } from "@/lib/server/auto-translation";
 import {
+  DocumentCategoryNameConflictError,
   findDocumentCategoryForHelpdesk,
   upsertDocumentCategoryTranslations,
 } from "@/lib/server/document-category-service";
@@ -83,7 +86,7 @@ describe("createDocumentCategoryAction", () => {
     const passed = vi.mocked(createDocumentCategory).mock.calls[0][0];
     expect(passed.translations).toHaveLength(7);
     expect(passed.translations).toContainEqual({ locale: "vi", name: "N-vi" });
-    expect(result.failedLocales).toEqual([]);
+    expect(result).toMatchObject({ ok: true, failedLocales: [] });
   });
 
   it("翻訳に失敗しても保存は続行し、failedLocalesを返す", async () => {
@@ -102,7 +105,20 @@ describe("createDocumentCategoryAction", () => {
     expect(createDocumentCategory).toHaveBeenCalledWith(
       expect.objectContaining({ translations: [] })
     );
-    expect(result.failedLocales).toEqual(ALL_LOCALES);
+    expect(result).toMatchObject({ ok: true, failedLocales: ALL_LOCALES });
+  });
+
+  it("同一階層での名称重複は例外ではなくreason:nameConflictを返す", async () => {
+    vi.mocked(autoTranslateFields).mockResolvedValue(translatedAll());
+    vi.mocked(createDocumentCategory).mockRejectedValue(new DocumentCategoryNameConflictError("n"));
+
+    await expect(
+      createDocumentCategoryAction({
+        parentId: null,
+        name: "大分類",
+        targeting: { scope: "all" },
+      })
+    ).resolves.toEqual({ ok: false, reason: "nameConflict" });
   });
 
   it("名称が空の入力は例外になり保存されない", async () => {

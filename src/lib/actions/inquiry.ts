@@ -8,8 +8,9 @@ import { requireApplicantSession } from "@/lib/server/auth-session";
 import {
   appendHistoryEntry,
   findInquiryForCompany,
+  InquiryNotFoundError,
 } from "@/lib/server/inquiry-service";
-import { inquiryAttachmentsArraySchema } from "@/lib/validation/inquiry";
+import { inquiryAttachmentsStrictSchema } from "@/lib/validation/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 
@@ -48,13 +49,13 @@ export async function sendApplicantMessageAction(
 ): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
   const messageBody = messageBodySchema.parse(body);
-  const validatedAttachments = inquiryAttachmentsArraySchema.parse(attachments);
+  const validatedAttachments = inquiryAttachmentsStrictSchema.parse(attachments);
 
   const { claims } = await requireApplicantSession();
 
   const inquiry = await findInquiryForCompany(id, claims.companyId);
   if (!inquiry) {
-    throw new Error(`Inquiry not found: ${id}`);
+    throw new InquiryNotFoundError(id);
   }
 
   await appendHistoryEntry({

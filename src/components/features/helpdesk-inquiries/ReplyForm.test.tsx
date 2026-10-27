@@ -32,6 +32,7 @@ const labels = {
     "許可されていないファイル形式です（画像またはPDFのみ）",
   attachmentsCountExceededMessage:
     "添付できるファイル数の上限（5件）を超えています",
+  attachmentsTotalSizeExceededMessage: "合計サイズが上限（20MB）を超えています",
   attachmentsReadFailedMessage:
     "ファイルの読み込みに失敗しました。もう一度お試しください。",
 };

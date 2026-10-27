@@ -20,9 +20,10 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      // 添付ファイル付きの返信（Base64データURL化で最大約34MB相当）を送信できるよう、
-      // Next.jsのデフォルト上限（1MB）を引き上げる。inquiry-formspecの添付ファイル上限と整合させる
-      bodySizeLimit: "40mb",
+      // 添付ファイル付きの送信（合計上限20MiBがBase64化で約26.7MiB）を送信できるよう、
+      // Next.jsのデフォルト上限（1MB）を引き上げる。ATTACHMENT_MAX_TOTAL_SIZE_BYTES と整合させ、
+      // Cloud Runの32MiB上限より前にアプリ側でも弾けるよう約28MBに抑える
+      bodySizeLimit: "28mb",
     },
   },
 };

@@ -9,7 +9,7 @@ import {
 } from "@/lib/announcement-list";
 import { AnnouncementFilterBar } from "@/components/features/announcements/AnnouncementFilterBar";
 import { AnnouncementListItem } from "@/components/features/announcements/AnnouncementListItem";
-import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementCategory, AnnouncementSummary } from "@/types/announcement";
 import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
 
 const EMPTY_SELF_STATUS: AnnouncementSelfStatus = {
@@ -19,7 +19,7 @@ const EMPTY_SELF_STATUS: AnnouncementSelfStatus = {
 
 export interface AnnouncementListClientProps {
   /** 公開日降順・自社配信対象で整列済みのお知らせ */
-  announcements: Announcement[];
+  announcements: AnnouncementSummary[];
   categoryLabels: Record<AnnouncementCategory, string>;
   categoryOptions: SelectOption[];
   actionRequiredBadgeLabel: string;

@@ -423,12 +423,13 @@
       "error": "Falha no envio. Tente novamente mais tarde.",
       "attachments": {
         "label": "Anexos",
-        "hint": "Imagens ou PDF, até 5 MB por arquivo, máximo de 5 arquivos.",
+        "hint": "Imagens ou PDF, até 5 MB por arquivo, máximo de 5 arquivos, 20 MB no total.",
         "removeButton": "Remover",
         "sizeExceeded": "O tamanho do arquivo excede o limite (5 MB)",
         "typeNotAllowed": "Tipo de arquivo não permitido (apenas imagens ou PDF)",
         "countExceeded": "Número máximo de arquivos excedido (5 arquivos)",
-        "readFailed": "Falha ao ler o arquivo. Tente novamente."
+        "readFailed": "Falha ao ler o arquivo. Tente novamente.",
+        "totalSizeExceeded": "O tamanho total dos anexos excede o limite (20 MB)"
       }
     },
     "history": {
@@ -1123,7 +1124,7 @@
       },
       "attachments": {
         "label": "Arquivos anexados",
-        "hint": "Você pode anexar imagens ou PDFs, até 5 MB por item, máximo de 5 itens.",
+        "hint": "Você pode anexar imagens ou PDFs, até 5 MB por item, máximo de 5 itens, 20 MB no total.",
         "removeButton": "Remover"
       }
     },
@@ -1191,7 +1192,8 @@
         "sizeExceeded": "O tamanho do arquivo excedeu o limite (5MB)",
         "typeNotAllowed": "Tipo de arquivo não permitido (somente imagens ou PDF)",
         "countExceeded": "O número de arquivos que podem ser anexados foi excedido (máximo 5)",
-        "readFailed": "Falha ao ler o arquivo. Tente novamente."
+        "readFailed": "Falha ao ler o arquivo. Tente novamente.",
+        "totalSizeExceeded": "O tamanho total dos anexos excede o limite (20 MB)"
       }
     },
     "submit": {
@@ -1257,12 +1259,13 @@
       "error": "Falha ao enviar. Aguarde um momento e tente novamente.",
       "attachments": {
         "label": "Arquivos anexados",
-        "hint": "Você pode anexar até 5 arquivos (imagem ou PDF), com até 5 MB cada.",
+        "hint": "Você pode anexar até 5 arquivos (imagem ou PDF), com até 5 MB cada, 20 MB no total.",
         "removeButton": "Deletar",
         "sizeExceeded": "O tamanho do arquivo excede o limite (5 MB)",
         "typeNotAllowed": "Tipo de arquivo não permitido (somente imagem ou PDF)",
         "countExceeded": "Excedeu o número máximo de arquivos que podem ser anexados (5)",
-        "readFailed": "Falha ao ler o arquivo. Tente novamente."
+        "readFailed": "Falha ao ler o arquivo. Tente novamente.",
+        "totalSizeExceeded": "O tamanho total dos anexos excede o limite (20 MB)"
       }
     },
     "filter": {

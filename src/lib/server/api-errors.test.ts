@@ -22,6 +22,25 @@ describe("toErrorResponse", () => {
     expect(response.status).toBe(401);
   });
 
+  it("エラーメッセージ・ID・Zodのissuesをレスポンス本文に含めず固定文言を返す", async () => {
+    const zodError = z.object({ secretField: z.string() }).safeParse({}).error!;
+    const cases: Array<[unknown, number, string]> = [
+      [new UnauthorizedSessionError("no session for user-123"), 401, "Unauthorized"],
+      [zodError, 400, "Invalid request"],
+      [new InquiryNotFoundError("inquiry-secret-id"), 404, "Not Found"],
+      [new DoubleClaimError("inquiry-secret-id"), 409, "Conflict"],
+      [new ClaimOwnershipError("inquiry-secret-id"), 403, "Forbidden"],
+      [new Error("db password leaked"), 500, "Internal Server Error"],
+    ];
+    for (const [error, status, message] of cases) {
+      const response = toErrorResponse(error);
+      expect(response.status).toBe(status);
+      const text = JSON.stringify(await response.json());
+      expect(text).toBe(JSON.stringify({ error: message }));
+      expect(text).not.toMatch(/secret|user-123|leaked/);
+    }
+  });
+
   it("ZodErrorを400に変換する", () => {
     const result = z.string().safeParse(123);
     const response = toErrorResponse(result.success ? undefined : result.error);

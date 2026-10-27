@@ -45,6 +45,19 @@ const helpdeskSession = {
   },
 };
 
+
+const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+function pngAttachment(size: number, fileSize = size) {
+  const bytes = Buffer.concat([PNG_HEAD, Buffer.alloc(size - PNG_HEAD.length)]);
+  return {
+    id: "att-1",
+    fileName: "photo.png",
+    fileType: "image/png",
+    fileSize,
+    dataUrl: `data:image/png;base64,${bytes.toString("base64")}`,
+  };
+}
+
 function jsonRequest(body: unknown) {
   return new NextRequest("http://localhost/api/inquiries", {
     method: "POST",
@@ -85,6 +98,58 @@ describe("POST /api/inquiries", () => {
     expect(createInquiryRecord).toHaveBeenCalledWith(
       expect.objectContaining({ companyId: "company-1" })
     );
+  });
+
+  describe("添付ファイル", () => {
+    const base = {
+      title: "t",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "x",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-07-08T00:00:00.000Z",
+      submittedBy: { companyName: "Test Co.", country: "JP" },
+    };
+
+    it("正当な添付は201で通る", async () => {
+      vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+      vi.mocked(createInquiryRecord).mockResolvedValue({ id: "inquiry-1" } as never);
+      vi.mocked(findInquiryById).mockResolvedValue({ id: "inquiry-1" } as never);
+
+      const response = await POST(
+        jsonRequest({ ...base, attachments: [pngAttachment(100)] })
+      );
+
+      expect(response.status).toBe(201);
+    });
+
+    it("fileSizeを偽装した添付は400になり作成されない", async () => {
+      vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+      vi.mocked(createInquiryRecord).mockClear();
+
+      const response = await POST(
+        jsonRequest({ ...base, attachments: [pngAttachment(1000, 1)] })
+      );
+
+      expect(response.status).toBe(400);
+      expect(createInquiryRecord).not.toHaveBeenCalled();
+    });
+
+    it("合計上限を超える添付は400になる", async () => {
+      vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+      vi.mocked(createInquiryRecord).mockClear();
+      const five = Array.from({ length: 5 }, (_, i) => ({
+        ...pngAttachment(5 * 1024 * 1024),
+        id: `att-${i}`,
+      }));
+
+      const response = await POST(jsonRequest({ ...base, attachments: five }));
+
+      expect(response.status).toBe(400);
+      expect(createInquiryRecord).not.toHaveBeenCalled();
+    });
   });
 
   it("不正な入力のとき400を返す", async () => {

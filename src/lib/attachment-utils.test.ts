@@ -7,6 +7,7 @@ import {
 import {
   ATTACHMENT_MAX_COUNT,
   ATTACHMENT_MAX_FILE_SIZE_BYTES,
+  ATTACHMENT_MAX_TOTAL_SIZE_BYTES,
 } from "@/lib/constants/attachment";
 
 function buildFile(overrides: {
@@ -62,6 +63,32 @@ describe("validateAttachmentFile", () => {
     const file = buildFile({ type: "application/pdf", name: "doc.pdf" });
 
     expect(validateAttachmentFile(file, 0)).toEqual({ valid: true });
+  });
+});
+
+describe("validateAttachmentFile（合計サイズ）", () => {
+  const limit = (existingTotalBytes: number) => ({
+    existingTotalBytes,
+    maxTotalBytes: ATTACHMENT_MAX_TOTAL_SIZE_BYTES,
+  });
+
+  it("既選択分との合計が上限ちょうどなら合格", () => {
+    const file = buildFile({ size: 100 });
+    expect(
+      validateAttachmentFile(file, 1, limit(ATTACHMENT_MAX_TOTAL_SIZE_BYTES - 100))
+    ).toEqual({ valid: true });
+  });
+
+  it("既選択分との合計が上限を超えるとき不合格（total）を返す", () => {
+    const file = buildFile({ size: 101 });
+    expect(
+      validateAttachmentFile(file, 1, limit(ATTACHMENT_MAX_TOTAL_SIZE_BYTES - 100))
+    ).toEqual({ valid: false, reason: "total" });
+  });
+
+  it("合計上限を渡さなければ合計チェックは行わない（お知らせ等の共用側）", () => {
+    const file = buildFile({ size: 100 });
+    expect(validateAttachmentFile(file, 1)).toEqual({ valid: true });
   });
 });
 

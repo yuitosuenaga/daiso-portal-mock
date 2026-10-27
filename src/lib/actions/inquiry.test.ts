@@ -189,7 +189,7 @@ describe("sendApplicantMessageAction", () => {
       fileName: "memo.pdf",
       fileType: "application/pdf",
       fileSize: 200,
-      dataUrl: "data:application/pdf;base64,AAAA",
+      dataUrl: `data:application/pdf;base64,${Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(191)]).toString("base64")}`,
     };
 
     await sendApplicantMessageAction("inquiry-1", "資料を添付します。", [

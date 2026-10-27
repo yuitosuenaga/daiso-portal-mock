@@ -29,6 +29,10 @@ export interface AttachmentFieldProps {
   countExceededMessage: string;
   /** ファイルの読み取り（データURL変換）自体が失敗したときのメッセージ */
   readFailedMessage: string;
+  /** 合計サイズの上限（バイト）。未指定なら合計チェックを行わない（お知らせ等の共用側） */
+  maxTotalBytes?: number;
+  /** 合計サイズ超過時のメッセージ（`maxTotalBytes` 指定時に使う） */
+  totalSizeExceededMessage?: string;
   id?: string;
 }
 
@@ -46,13 +50,15 @@ export function AttachmentField({
   typeNotAllowedMessage,
   countExceededMessage,
   readFailedMessage,
+  maxTotalBytes,
+  totalSizeExceededMessage,
   id,
 }: AttachmentFieldProps) {
   const generatedId = React.useId();
   const inputId = id ?? generatedId;
   const [errors, setErrors] = React.useState<string[]>([]);
 
-  function messageFor(reason: "size" | "type" | "count"): string {
+  function messageFor(reason: "size" | "type" | "count" | "total"): string {
     switch (reason) {
       case "size":
         return sizeExceededMessage;
@@ -60,6 +66,8 @@ export function AttachmentField({
         return typeNotAllowedMessage;
       case "count":
         return countExceededMessage;
+      case "total":
+        return totalSizeExceededMessage ?? sizeExceededMessage;
     }
   }
 
@@ -73,11 +81,18 @@ export function AttachmentField({
     event.target.value = "";
 
     let runningCount = value.length;
+    let runningTotalBytes = value.reduce((sum, a) => sum + a.fileSize, 0);
     const newErrorMessages: string[] = [];
     const validFiles: File[] = [];
 
     for (const file of selectedFiles) {
-      const result = validateAttachmentFile(file, runningCount);
+      const result = validateAttachmentFile(
+        file,
+        runningCount,
+        maxTotalBytes === undefined
+          ? undefined
+          : { existingTotalBytes: runningTotalBytes, maxTotalBytes }
+      );
       if (!result.valid) {
         const message = messageFor(result.reason);
         if (!newErrorMessages.includes(message)) {
@@ -86,6 +101,7 @@ export function AttachmentField({
         continue;
       }
       runningCount += 1;
+      runningTotalBytes += file.size;
       validFiles.push(file);
     }
 

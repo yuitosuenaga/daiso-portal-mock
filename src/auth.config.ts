@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 
+import { pickSessionClaims } from "@/lib/auth/pick-session-claims";
 import type { SessionClaims } from "@/types/session";
 
 declare module "next-auth" {
@@ -25,7 +26,8 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     session({ session, token }) {
-      session.claims = token as unknown as SessionClaims & { id: string };
+      // JWT全体ではなく、アプリが参照するクレームだけをブラウザへ返す
+      session.claims = pickSessionClaims(token as Record<string, unknown>);
       return session;
     },
   },

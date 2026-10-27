@@ -12,6 +12,7 @@ import {
   ATTACHMENT_MAX_COUNT,
   ATTACHMENT_MAX_FILE_SIZE_BYTES,
 } from "@/lib/constants/attachment";
+import { findAttachmentsIntegrityIssue } from "@/lib/validation/attachment-integrity";
 
 /** 自由記述欄（originalText）の最大文字数。 */
 export const ORIGINAL_TEXT_MAX_LENGTH = 2000;
@@ -40,6 +41,25 @@ export const inquiryAttachmentSchema = z.object({
 export const inquiryAttachmentsArraySchema = z
   .array(inquiryAttachmentSchema)
   .max(ATTACHMENT_MAX_COUNT);
+
+/**
+ * `inquiryAttachmentsArraySchema` に、dataUrl の実体との整合性検証（デコード後サイズ・宣言サイズ・
+ * MIME・拡張子・マジックバイト・合計サイズ）を加えたサーバー側の厳格スキーマ。
+ * 問い合わせ作成・申請者メッセージ・ヘルプデスク返信の全経路（Server Action と JSON API）が使う。
+ * お知らせの添付は従来の `inquiryAttachmentsArraySchema` のまま（対象外）。
+ */
+export const inquiryAttachmentsStrictSchema = inquiryAttachmentsArraySchema.superRefine(
+  (attachments, ctx) => {
+    const found = findAttachmentsIntegrityIssue(attachments);
+    if (found) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [found.index],
+        message: `Invalid attachment: ${found.issue}`,
+      });
+    }
+  }
+);
 
 /**
  * 問い合わせ・申請フォームの入力値を検証する zod スキーマ。
@@ -107,5 +127,5 @@ export const createInquirySchema = z.object({
     companyName: z.string().trim().min(1),
     country: z.string().min(1),
   }),
-  attachments: inquiryAttachmentsArraySchema.optional(),
+  attachments: inquiryAttachmentsStrictSchema.optional(),
 });

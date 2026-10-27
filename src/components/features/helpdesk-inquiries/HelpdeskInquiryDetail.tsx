@@ -226,6 +226,9 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
               "attachments.countExceeded"
             )}
             attachmentsReadFailedMessage={tReply("attachments.readFailed")}
+            attachmentsTotalSizeExceededMessage={tReply(
+              "attachments.totalSizeExceeded"
+            )}
           />
         </CardContent>
       </Card>

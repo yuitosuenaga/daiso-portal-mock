@@ -423,12 +423,13 @@
       "error": "发送失败。请稍后重试。",
       "attachments": {
         "label": "附件",
-        "hint": "可附加图像或PDF，每个文件最多5MB，最多5个文件。",
+        "hint": "可附加图像或PDF，每个文件最多5MB，最多5个文件，总计最多20MB。",
         "removeButton": "删除",
         "sizeExceeded": "文件大小超过限制（5MB）",
         "typeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
         "countExceeded": "超过了可附加的文件数量限制（5个）",
-        "readFailed": "文件读取失败。请重试。"
+        "readFailed": "文件读取失败。请重试。",
+        "totalSizeExceeded": "附件总大小超过上限（20MB）"
       }
     },
     "history": {
@@ -1123,7 +1124,7 @@
       },
       "attachments": {
         "label": "附件",
-        "hint": "可附加图像或PDF，每个最大5MB，最多5个。",
+        "hint": "可附加图像或PDF，每个最大5MB，最多5个，总计最多20MB。",
         "removeButton": "删除"
       }
     },
@@ -1191,7 +1192,8 @@
         "sizeExceeded": "文件大小超过上限（5MB）",
         "typeNotAllowed": "不允许的文件格式（仅支持图像或PDF）",
         "countExceeded": "附件数量超过上限（5个）",
-        "readFailed": "文件读取失败。请重试。"
+        "readFailed": "文件读取失败。请重试。",
+        "totalSizeExceeded": "附件总大小超过上限（20MB）"
       }
     },
     "submit": {
@@ -1257,12 +1259,13 @@
       "error": "发送失败。请稍后重试。",
       "attachments": {
         "label": "附件",
-        "hint": "可附加图像或PDF，每个最大5MB，最多5个文件。",
+        "hint": "可附加图像或PDF，每个最大5MB，最多5个文件，总计最多20MB。",
         "removeButton": "删除",
         "sizeExceeded": "文件大小超过上限（5MB）",
         "typeNotAllowed": "不允许的文件格式（仅限图像或PDF）",
         "countExceeded": "附件数量超过上限（5个）",
-        "readFailed": "文件读取失败。请重试。"
+        "readFailed": "文件读取失败。请重试。",
+        "totalSizeExceeded": "附件总大小超过上限（20MB）"
       }
     },
     "filter": {

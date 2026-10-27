@@ -17,9 +17,12 @@ import type {
 const PASSWORD_HASH_COST = 10;
 
 export class ApplicantUserNotFoundError extends Error {
+  readonly applicantUserId: string;
+
   constructor(applicantUserId: string) {
-    super(`ApplicantUser not found: ${applicantUserId}`);
+    super("ApplicantUser not found");
     this.name = "ApplicantUserNotFoundError";
+    this.applicantUserId = applicantUserId;
   }
 }
 
@@ -29,9 +32,12 @@ export class ApplicantUserNotFoundError extends Error {
  * async関数以外をエクスポートできないため、このエラークラスはサービス層側に定義する。
  */
 export class ApplicantUserEmailTakenError extends Error {
+  readonly email: string;
+
   constructor(email: string) {
-    super(`Email already taken: ${email}`);
+    super("Email already taken");
     this.name = "ApplicantUserEmailTakenError";
+    this.email = email;
   }
 }
 

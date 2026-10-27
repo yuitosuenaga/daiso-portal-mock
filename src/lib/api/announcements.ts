@@ -1,4 +1,8 @@
-import { Announcement, CreateAnnouncementInput } from "@/types/announcement";
+import {
+  Announcement,
+  AnnouncementSummary,
+  CreateAnnouncementInput,
+} from "@/types/announcement";
 import {
   requireApplicantSession,
   requireHelpdeskStaffSession,
@@ -29,7 +33,7 @@ export interface GetRecentAnnouncementsOptions {
  */
 export async function getRecentAnnouncements(
   options?: GetRecentAnnouncementsOptions
-): Promise<Announcement[]> {
+): Promise<AnnouncementSummary[]> {
   const limit = options?.limit ?? 3;
   const { claims } = await requireApplicantSession();
   const visible = await listAnnouncementsVisibleToCountry(
@@ -49,7 +53,7 @@ export async function getRecentAnnouncements(
  */
 export async function getAnnouncements(
   options?: { locale?: string }
-): Promise<Announcement[]> {
+): Promise<AnnouncementSummary[]> {
   const { claims } = await requireApplicantSession();
 
   return listAnnouncementsVisibleToCountry(
@@ -84,7 +88,7 @@ export async function getAnnouncementById(
  * 絞り込みを行わず、全社向けのお知らせ全件を公開日の降順で返す。
  * ヘルプデスク側のお知らせ管理画面が利用する。
  */
-export async function getAllAnnouncements(): Promise<Announcement[]> {
+export async function getAllAnnouncements(): Promise<AnnouncementSummary[]> {
   await requireHelpdeskStaffSession();
 
   return listAllAnnouncementsService();

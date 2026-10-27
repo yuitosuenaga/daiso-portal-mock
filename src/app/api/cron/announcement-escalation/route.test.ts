@@ -48,12 +48,13 @@ afterEach(() => {
 });
 
 describe("GET /api/cron/announcement-escalation", () => {
-  it("CRON_SECRET未設定の場合は503を返し、中核関数を呼ばない", async () => {
+  it("CRON_SECRET未設定の場合は設定状態を開示せず401・固定文言を返し、中核関数を呼ばない", async () => {
     delete process.env.CRON_SECRET;
 
     const response = await GET(request({ authorization: "Bearer anything" }));
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthorized" });
     expect(runAnnouncementAutoEscalation).not.toHaveBeenCalled();
   });
 

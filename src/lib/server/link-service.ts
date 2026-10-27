@@ -11,9 +11,12 @@ import type {
 } from "@/types/link";
 
 export class LinkNotFoundError extends Error {
+  readonly linkId: string;
+
   constructor(linkId: string) {
-    super(`Link not found: ${linkId}`);
+    super("Link not found");
     this.name = "LinkNotFoundError";
+    this.linkId = linkId;
   }
 }
 

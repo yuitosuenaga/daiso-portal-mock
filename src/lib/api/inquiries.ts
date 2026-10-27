@@ -6,6 +6,7 @@ import {
   UnauthorizedSessionError,
 } from "@/lib/server/auth-session";
 import { getSession } from "@/lib/server/get-session";
+import { requestCache } from "@/lib/server/request-cache";
 import { createInquirySchema } from "@/lib/validation/inquiry";
 import {
   createInquiryRecord,
@@ -79,12 +80,19 @@ export async function getInquiries(): Promise<Inquiry[]> {
 
 /**
  * 全社分の問い合わせ全件を取得する。ヘルプデスク担当者のセッションを要求する。
+ *
+ * ヘルプデスクのダッシュボードではKPIパネルと優先対応プレビューが同じ全件取得を行うため、
+ * `requestCache()`（React `cache()`）で1リクエスト内の重複呼び出しを1回にまとめる（キャッシュはリクエスト単位で、
+ * リクエストをまたいで共有されない。認可チェックは初回呼び出しの1回で足りる）。
+ *
+ * 返却配列は同一リクエスト内の複数パネルで同じ参照が共有されるため、読み取り専用として扱うこと。
+ * `sort`等の破壊的操作はせず、並べ替えが必要なら`[...inquiries]`等で複製してから行う。
  */
-export async function getAllInquiries(): Promise<Inquiry[]> {
+export const getAllInquiries = requestCache(async (): Promise<Inquiry[]> => {
   await requireHelpdeskStaffSession();
 
   return listAllInquiriesService();
-}
+});
 
 /**
  * 指定されたIDの問い合わせを1件取得する。申請者セッションでは自社スコープに

@@ -47,11 +47,9 @@ async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     // 未設定の環境（ローカル・検証環境等）ではエンドポイント自体を無効化し、
-    // 誤って無認証で叩けないようにする（要件38.10）。
-    return NextResponse.json(
-      { error: "Cron endpoint is disabled: CRON_SECRET is not configured" },
-      { status: 503 }
-    );
+    // 誤って無認証で叩けないようにする（要件38.10）。設定状態を外部へ開示しないよう、
+    // シークレット不一致と同じ401・固定文言で応答する。
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // 全候補を定数時間比較で評価し、早期リターンによるタイミング差を作らない。

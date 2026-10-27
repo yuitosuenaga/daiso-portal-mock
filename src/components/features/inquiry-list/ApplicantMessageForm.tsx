@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ATTACHMENT_MAX_TOTAL_SIZE_BYTES } from "@/lib/constants/attachment";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { sendApplicantMessageAction } from "@/lib/actions/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
@@ -23,6 +24,7 @@ export interface ApplicantMessageFormProps {
   attachmentsTypeNotAllowedMessage: string;
   attachmentsCountExceededMessage: string;
   attachmentsReadFailedMessage: string;
+  attachmentsTotalSizeExceededMessage: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export function ApplicantMessageForm({
   attachmentsTypeNotAllowedMessage,
   attachmentsCountExceededMessage,
   attachmentsReadFailedMessage,
+  attachmentsTotalSizeExceededMessage,
 }: ApplicantMessageFormProps) {
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<InquiryAttachment[]>([]);
@@ -85,6 +88,8 @@ export function ApplicantMessageForm({
         typeNotAllowedMessage={attachmentsTypeNotAllowedMessage}
         countExceededMessage={attachmentsCountExceededMessage}
         readFailedMessage={attachmentsReadFailedMessage}
+        maxTotalBytes={ATTACHMENT_MAX_TOTAL_SIZE_BYTES}
+        totalSizeExceededMessage={attachmentsTotalSizeExceededMessage}
       />
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={isPending || body.trim().length === 0}>

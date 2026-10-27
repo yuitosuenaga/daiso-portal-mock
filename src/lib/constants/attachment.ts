@@ -6,6 +6,14 @@
 /** 添付ファイル1件あたりの最大サイズ（バイト）。5MB。 */
 export const ATTACHMENT_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
+/**
+ * 1回の送信あたりの添付ファイル合計サイズの上限（バイト）。20MiB。
+ * 添付はBase64（約4/3倍）でリクエストに載るため、Cloud Runのリクエスト上限32MiBに
+ * 他フィールド・シリアライズ分を含めても収まる値にしている（20MiB -> 約26.7MiB）。
+ * 問い合わせ・返信系の経路（`inquiryAttachmentsStrictSchema`）のみに適用する。
+ */
+export const ATTACHMENT_MAX_TOTAL_SIZE_BYTES = 20 * 1024 * 1024;
+
 /** 1回の送信あたりの最大添付ファイル件数。 */
 export const ATTACHMENT_MAX_COUNT = 5;
 
