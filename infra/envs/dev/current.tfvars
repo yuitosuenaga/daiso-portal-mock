@@ -30,3 +30,10 @@ enable_translation  = true
 enable_google_login = false
 
 enable_migrate_job = true
+
+# 監視（4 alert policy + メール通知チャネル）。dev は min_instances=0 かつ db-end で夜間停止のため、
+# 誤報になる uptime check と Cloud SQL 停止アラートは無効にする
+enable_monitoring          = true
+alert_emails               = ["suenaga.yuito@revamp.co.jp"]
+enable_uptime_check        = false
+enable_cloudsql_down_alert = false
