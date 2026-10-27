@@ -61,7 +61,8 @@ secret_name_overrides = {
 }
 
 enable_translation  = true
-enable_google_login = false
+enable_google_login = true
+allowed_email_domains = ["revamp.co.jp"]
 ```
 
 ## 全体フロー（確定）

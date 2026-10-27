@@ -27,7 +27,9 @@ secret_name_overrides = {
 }
 
 enable_translation  = true
-enable_google_login = false
+enable_google_login = true
+# 自社ドメインのみ許可（サーバー側で検証。DB 登録済みユーザーのみログイン可）
+allowed_email_domains = ["revamp.co.jp"]
 
 enable_migrate_job = true
 

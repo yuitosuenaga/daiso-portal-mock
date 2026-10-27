@@ -30,6 +30,7 @@
   - Cloud Run を secret 参照へ切替(ブラウザでの正常動作確認済み)
 - Dockerfile 化(コミット f503ec0、ブランチ `chore/dockerfile-migrate-job`)
 - Google ログイン(ドメイン限定、サーバー側検証。コミット 86970e3、ブランチ `feature/google-login`。実OAuthの往復は未検証)
+- 現行環境の Google ログイン有効化の準備(2026-10-27): OAuth 同意画面(内部)とクライアント作成、`portal-mock-auth-google-id` / `-secret` に値を登録済み。`current.tfvars` で `enable_google_login = true`・許可ドメイン `revamp.co.jp`(plan は Cloud Run の env 3件追加のみ)。apply と実機検証は未了
 - 許可メールドメインの複数指定対応(コミット 94534d1、ブランチ `chore/iac-terraform-plan`)
 - Terraform 一式(`infra/`: bootstrap / modules / envs dev・prod)と取り込み手順書
 - 現行環境へのデプロイ(2026-10-26)
