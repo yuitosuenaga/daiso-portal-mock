@@ -144,6 +144,12 @@ describe("listHelpdeskStaff", () => {
       { isActive: "desc" },
       { createdAt: "asc" },
     ]);
+    const select = staffFindManyMock.mock.calls[0][0].select;
+    expect(select).toBeDefined();
+    expect(select.passwordHash).toBeUndefined();
+    expect(Object.keys(select).sort()).toEqual(
+      ["createdAt", "displayName", "email", "id", "isActive", "registrationSource", "role"]
+    );
   });
 });
 

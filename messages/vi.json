@@ -868,6 +868,7 @@
       "self": "Bạn không thể thay đổi vai trò hoặc vô hiệu hóa chính mình.",
       "lastAdmin": "Không thể thực hiện thao tác này vì sẽ không còn quản trị viên nào đang hoạt động.",
       "notFound": "Không tìm thấy nhân viên. Vui lòng tải lại trang.",
+      "invalid": "Dữ liệu nhập không hợp lệ.",
       "generic": "Cập nhật không thành công. Vui lòng thử lại sau."
     }
   },

@@ -113,8 +113,12 @@ describe("createHelpdeskStaffAction", () => {
     });
   });
 
-  it("不正な入力は例外にする", async () => {
-    await expect(createHelpdeskStaffAction({ ...validInput, email: "bad" })).rejects.toThrow();
+  it("不正な入力は例外にせず reason=invalid で返す", async () => {
+    await expect(createHelpdeskStaffAction({ ...validInput, email: "bad" })).resolves.toEqual({
+      ok: false,
+      reason: "invalid",
+    });
+    expect(createHelpdeskStaff).not.toHaveBeenCalled();
     expect(createHelpdeskStaff).not.toHaveBeenCalled();
   });
 

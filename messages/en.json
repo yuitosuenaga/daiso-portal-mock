@@ -850,8 +850,8 @@
       "demoteButton": "Make member",
       "promoteConfirmTitle": "Change to admin",
       "demoteConfirmTitle": "Change to member",
-      "promoteConfirm": "\"{name}\" will become an admin and will be able to edit distributor and staff management. Continue?",
-      "demoteConfirm": "\"{name}\" will become a member and will no longer be able to edit distributor and staff management. Continue?",
+      "promoteConfirm": "\"{name}\" will become an admin and will be able to edit Company Management and staff management. Continue?",
+      "demoteConfirm": "\"{name}\" will become a member and will no longer be able to edit Company Management and staff management. Continue?",
       "promoteConfirmButton": "Make admin",
       "demoteConfirmButton": "Make member",
       "deactivateButton": "Deactivate",
@@ -868,6 +868,7 @@
       "self": "You cannot change your own role or deactivate yourself.",
       "lastAdmin": "This action is not allowed because there would be no active admin left.",
       "notFound": "The staff member was not found. Please refresh the page.",
+      "invalid": "The input is invalid.",
       "generic": "Failed to update. Please try again later."
     }
   },

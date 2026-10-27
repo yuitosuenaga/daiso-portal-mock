@@ -30,7 +30,7 @@ const HELPDESK_STAFF_PATH = "/[locale]/helpdesk/staff";
  */
 export type HelpdeskStaffActionResult =
   | { ok: true; staff: HelpdeskStaffSummary }
-  | { ok: false; reason: "self" | "lastAdmin" | "notFound" | "emailTaken" };
+  | { ok: false; reason: "self" | "lastAdmin" | "notFound" | "emailTaken" | "invalid" };
 
 function toFailure(error: unknown): HelpdeskStaffActionResult | null {
   if (error instanceof StaffSelfOperationError) return { ok: false, reason: "self" };
@@ -42,13 +42,17 @@ function toFailure(error: unknown): HelpdeskStaffActionResult | null {
 
 /**
  * スタッフを新規作成し、一覧ルートを再検証する。権限確認は入力検証より先に行う。
- * メールアドレスの重複は`{ ok: false, reason: "emailTaken" }`で返す。
+ * 入力不正は`reason: "invalid"`、メールアドレスの重複は`reason: "emailTaken"`で返す。
  */
 export async function createHelpdeskStaffAction(
   input: CreateHelpdeskStaffInput
 ): Promise<HelpdeskStaffActionResult> {
   const session = await requireHelpdeskAdminSession();
-  const parsed = helpdeskStaffCreateFormSchema.parse(input);
+  const parseResult = helpdeskStaffCreateFormSchema.safeParse(input);
+  if (!parseResult.success) {
+    return { ok: false, reason: "invalid" };
+  }
+  const parsed = parseResult.data;
 
   if (await isStaffEmailTaken(parsed.email)) {
     return { ok: false, reason: "emailTaken" };

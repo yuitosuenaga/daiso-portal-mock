@@ -5,6 +5,8 @@ export interface StaffErrorMessages {
   self: string;
   lastAdmin: string;
   notFound: string;
+  /** サーバー側の入力検証に失敗したとき。 */
+  invalid: string;
   /** 想定外の失敗（ネットワーク断・サーバーエラー等）。 */
   generic: string;
 }
@@ -21,6 +23,8 @@ export function staffFailureMessage(
       return errors.lastAdmin;
     case "notFound":
       return errors.notFound;
+    case "invalid":
+      return errors.invalid;
     default:
       return errors.generic;
   }

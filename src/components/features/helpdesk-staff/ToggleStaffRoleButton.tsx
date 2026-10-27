@@ -52,7 +52,7 @@ export function ToggleStaffRoleButton({
   const isAdmin = role === "admin";
 
   function handleConfirm() {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       startTransition(async () => {
         try {
           const result = await setHelpdeskStaffRoleAction(
@@ -61,14 +61,15 @@ export function ToggleStaffRoleButton({
           );
           if (!result.ok) {
             setErrorMessage(staffFailureMessage(result.reason, errors));
-            reject(new Error("staff role change rejected"));
+            // 失敗時もresolveしてダイアログを閉じ、エラーはダイアログの外側に表示する。
+            resolve();
             return;
           }
           setErrorMessage(null);
           resolve();
         } catch {
           setErrorMessage(errors.generic);
-          reject(new Error("failed to change staff role"));
+          resolve();
         }
       });
     });
@@ -96,7 +97,7 @@ export function ToggleStaffRoleButton({
         onConfirm={handleConfirm}
       />
       {errorMessage && !isPending && (
-        <span role="status" className="text-sm text-destructive">
+        <span role="alert" className="text-sm text-destructive">
           {errorMessage}
         </span>
       )}

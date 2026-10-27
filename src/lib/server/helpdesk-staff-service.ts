@@ -86,6 +86,16 @@ export async function listHelpdeskStaff(): Promise<HelpdeskStaffSummary[]> {
 
   const records = await prisma.helpdeskStaff.findMany({
     orderBy: [{ isActive: "desc" }, { createdAt: "asc" }],
+    // passwordHashを取得しない（一覧では不要なため、メモリ上にも載せない）。
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+      role: true,
+      registrationSource: true,
+      isActive: true,
+      createdAt: true,
+    },
   });
 
   return records.map(mapStaff);

@@ -50,7 +50,7 @@ const props = {
   statusLabels: { active: "有効", inactive: "無効" },
   toggleRoleLabels: toggleRole,
   toggleActiveLabels: toggleActive,
-  errors: { self: "s", lastAdmin: "l", notFound: "n", generic: "g" },
+  errors: { self: "s", lastAdmin: "l", notFound: "n", invalid: "i", generic: "g" },
 };
 
 function staff(overrides: Partial<HelpdeskStaffSummary>): HelpdeskStaffSummary {
@@ -110,5 +110,23 @@ describe("StaffManagementListClient", () => {
     for (const name of ["管理者にする", "無効化する"]) {
       expect((within(other).getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(false);
     }
+  });
+
+  it("作成日は既存一覧と同じ書式（year/month/day）で、Asia/Tokyo基準で表示する", () => {
+    render(
+      <StaffManagementListClient
+        {...props}
+        staff={[staff({ id: "d", email: "d@example.com", createdAt: "2026-07-31T16:00:00.000Z" })]}
+      />
+    );
+    const expected = new Date("2026-07-31T16:00:00.000Z").toLocaleDateString("ja", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: "Asia/Tokyo",
+    });
+    const row = screen.getByText("d@example.com").closest("tr")!;
+    expect(within(row).getByText(expected)).toBeTruthy();
+    expect(expected).toContain("8");
   });
 });

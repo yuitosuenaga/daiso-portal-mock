@@ -850,8 +850,8 @@
       "demoteButton": "设为成员",
       "promoteConfirmTitle": "变更为管理员",
       "demoteConfirmTitle": "变更为成员",
-      "promoteConfirm": "将『{name}』设为管理员，其可编辑经销商管理和员工管理。确认吗？",
-      "demoteConfirm": "将『{name}』设为成员，其将无法再编辑经销商管理和员工管理。确认吗？",
+      "promoteConfirm": "将『{name}』设为管理员，其可编辑销售公司管理和员工管理。确认吗？",
+      "demoteConfirm": "将『{name}』设为成员，其将无法再编辑销售公司管理和员工管理。确认吗？",
       "promoteConfirmButton": "设为管理员",
       "demoteConfirmButton": "设为成员",
       "deactivateButton": "停用",
@@ -865,9 +865,10 @@
       "cancelButton": "取消"
     },
     "errors": {
-      "self": "无法变更或停用自己的角色。",
+      "self": "无法变更自己的角色或停用自己。",
       "lastAdmin": "这样会导致没有有效的管理员，因此无法执行此操作。",
       "notFound": "未找到该员工。请刷新页面。",
+      "invalid": "输入内容无效。",
       "generic": "更新失败。请稍后重试。"
     }
   },

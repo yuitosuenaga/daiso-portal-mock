@@ -54,7 +54,9 @@ export function StaffManagementListClient({
   errors,
 }: StaffManagementListClientProps) {
   const dateFormatter = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
     timeZone: "Asia/Tokyo",
   });
 

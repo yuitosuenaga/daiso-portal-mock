@@ -850,8 +850,8 @@
       "demoteButton": "Hacer miembro",
       "promoteConfirmTitle": "Cambiar a administrador",
       "demoteConfirmTitle": "Cambiar a miembro",
-      "promoteConfirm": "«{name}» pasará a ser administrador y podrá editar la gestión de distribuidoras y de personal. ¿Desea continuar?",
-      "demoteConfirm": "«{name}» pasará a ser miembro y ya no podrá editar la gestión de distribuidoras ni de personal. ¿Desea continuar?",
+      "promoteConfirm": "«{name}» pasará a ser administrador y podrá editar la gestión de distribuidores y de personal. ¿Desea continuar?",
+      "demoteConfirm": "«{name}» pasará a ser miembro y ya no podrá editar la gestión de distribuidores ni de personal. ¿Desea continuar?",
       "promoteConfirmButton": "Hacer administrador",
       "demoteConfirmButton": "Hacer miembro",
       "deactivateButton": "Desactivar",
@@ -868,6 +868,7 @@
       "self": "No puede cambiar su propio rol ni desactivarse a sí mismo.",
       "lastAdmin": "No se permite esta acción porque no quedaría ningún administrador activo.",
       "notFound": "No se encontró al miembro del personal. Actualice la página.",
+      "invalid": "Los datos introducidos no son válidos.",
       "generic": "No se pudo actualizar. Inténtelo de nuevo más tarde."
     }
   },

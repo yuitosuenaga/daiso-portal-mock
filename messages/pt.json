@@ -868,6 +868,7 @@
       "self": "Você não pode alterar sua própria função nem desativar a si mesmo.",
       "lastAdmin": "Esta ação não é permitida, pois não restaria nenhum administrador ativo.",
       "notFound": "O membro da equipe não foi encontrado. Atualize a página.",
+      "invalid": "Os dados informados são inválidos.",
       "generic": "Falha ao atualizar. Tente novamente mais tarde."
     }
   },

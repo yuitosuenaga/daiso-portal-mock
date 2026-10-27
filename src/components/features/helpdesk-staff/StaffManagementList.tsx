@@ -104,6 +104,7 @@ export async function StaffManagementList() {
           self: tErrors("self"),
           lastAdmin: tErrors("lastAdmin"),
           notFound: tErrors("notFound"),
+          invalid: tErrors("invalid"),
           generic: tErrors("generic"),
         }}
       />

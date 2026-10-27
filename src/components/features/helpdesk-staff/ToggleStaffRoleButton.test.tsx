@@ -23,6 +23,7 @@ const errors = {
   self: "自分自身は不可",
   lastAdmin: "最後の管理者は不可",
   notFound: "見つかりません",
+  invalid: "入力が不正です",
   generic: "更新に失敗しました",
 };
 
@@ -71,12 +72,14 @@ describe("ToggleStaffRoleButton", () => {
     ["self", "自分自身は不可"],
     ["lastAdmin", "最後の管理者は不可"],
     ["notFound", "見つかりません"],
+    ["invalid", "入力が不正です"],
   ])("reason=%s のときは対応する文言を表示する", async (reason, message) => {
     actionMock.mockResolvedValue({ ok: false, reason });
     renderButton("admin");
     fireEvent.click(screen.getByRole("button", { name: "メンバーにする" }));
     fireEvent.click(screen.getByRole("button", { name: "メンバーにする実行" }));
-    expect((await screen.findAllByText(message)).length).toBeGreaterThan(0);
+    expect((await screen.findByRole("alert")).textContent).toBe(message);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("例外時は汎用エラー文言を表示する", async () => {
@@ -84,7 +87,8 @@ describe("ToggleStaffRoleButton", () => {
     renderButton("admin");
     fireEvent.click(screen.getByRole("button", { name: "メンバーにする" }));
     fireEvent.click(screen.getByRole("button", { name: "メンバーにする実行" }));
-    expect((await screen.findAllByText("更新に失敗しました")).length).toBeGreaterThan(0);
+    expect((await screen.findByRole("alert")).textContent).toBe("更新に失敗しました");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("disabled のときはトリガーが押せない", () => {
