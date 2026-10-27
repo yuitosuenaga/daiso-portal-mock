@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import {
-  CompanyCodeTakenError,
   createCompaniesBulk,
   createCompany,
   deactivateApplicantUsersByCompanies,
@@ -32,42 +31,53 @@ function revalidateCompanyRoutes() {
 }
 
 /**
+ * 会社の保存系Server Actionの戻り値。販社コード重複は例外ではなく種別コードで返す
+ * （本番ではServer Actionの例外メッセージがクライアントへ届く前にマスクされ、
+ * メッセージ文字列による判定が成立しないため）。
+ */
+export type CompanySaveResult =
+  | { ok: true; company: Company }
+  | { ok: false; reason: "companyCodeTaken" };
+
+/**
  * 会社を新規作成し、販社管理一覧・詳細ルートを再検証する。
- * 不正な入力・販社コードの重複は保存せず例外を送出する。
+ * 不正な入力は保存せず例外を送出する。販社コードの重複は保存せず
+ * `{ ok: false, reason: "companyCodeTaken" }`を返す。
  */
 export async function createCompanyAction(
   input: CreateCompanyInput
-): Promise<Company> {
+): Promise<CompanySaveResult> {
   const parsed = companyFormSchema.parse(input);
 
   if (await isCompanyCodeTaken(parsed.companyCode)) {
-    throw new CompanyCodeTakenError(parsed.companyCode);
+    return { ok: false, reason: "companyCodeTaken" };
   }
 
   const created = await createCompany(parsed);
   revalidateCompanyRoutes();
 
-  return created;
+  return { ok: true, company: created };
 }
 
 /**
  * 既存の会社情報を更新し、販社管理一覧・詳細・編集ルートを再検証する。
- * 不正な入力・自分自身以外との販社コードの重複は保存せず例外を送出する。
+ * 不正な入力は保存せず例外を送出する。自分自身以外との販社コードの重複は保存せず
+ * `{ ok: false, reason: "companyCodeTaken" }`を返す。
  */
 export async function updateCompanyAction(
   id: string,
   input: CreateCompanyInput
-): Promise<Company> {
+): Promise<CompanySaveResult> {
   const parsed = companyFormSchema.parse(input);
 
   if (await isCompanyCodeTaken(parsed.companyCode, id)) {
-    throw new CompanyCodeTakenError(parsed.companyCode);
+    return { ok: false, reason: "companyCodeTaken" };
   }
 
   const updated = await updateCompany(id, parsed);
   revalidateCompanyRoutes();
 
-  return updated;
+  return { ok: true, company: updated };
 }
 
 /**

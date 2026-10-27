@@ -14,9 +14,12 @@ export interface CompanyOption {
 }
 
 export class CompanyNotFoundError extends Error {
+  readonly companyId: string;
+
   constructor(companyId: string) {
-    super(`Company not found: ${companyId}`);
+    super("Company not found");
     this.name = "CompanyNotFoundError";
+    this.companyId = companyId;
   }
 }
 
@@ -26,9 +29,12 @@ export class CompanyNotFoundError extends Error {
  * できないため、このエラークラスはサービス層側に定義する。
  */
 export class CompanyCodeTakenError extends Error {
+  readonly companyCode: string;
+
   constructor(companyCode: string) {
-    super(`Company code already taken: ${companyCode}`);
+    super("Company code already taken");
     this.name = "CompanyCodeTakenError";
+    this.companyCode = companyCode;
   }
 }
 

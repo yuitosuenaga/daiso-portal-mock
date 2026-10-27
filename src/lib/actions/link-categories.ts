@@ -14,10 +14,12 @@ import { autoTranslateFields } from "@/lib/server/auto-translation";
 import { requireHelpdeskStaffSession } from "@/lib/server/auth-session";
 import {
   addLinkCategoryTranslations,
+  LinkCategoryNameConflictError,
   LinkCategoryNotFoundError,
 } from "@/lib/server/link-category-service";
 import { linkCategoryFormSchema } from "@/lib/validation/link-category";
 import type {
+  LinkCategorySaveOutcome,
   LinkCategorySaveResult,
   LinkCategoryMoveDirection,
   LinkCategoryTranslationView,
@@ -52,31 +54,40 @@ function toTranslationViews(
 
 /**
  * カテゴリを新規作成し、関連ルートを再検証する。`linkCategoryFormSchema`による
- * サーバー側再検証を行う（要件13.12・14.11）。名称重複・階層違反等、スキーマで
- * 表現できない検証はサービス層の例外をそのまま送出する。
+ * サーバー側再検証を行う（要件13.12・14.11）。同一階層での名称重複は
+ * `{ ok: false, reason: "nameConflict" }`で返す。階層違反等、スキーマで表現できない
+ * その他の検証はサービス層の例外をそのまま送出する。
  * `ja`の名称を全対応言語へ自動翻訳して保存する。翻訳失敗でも保存は継続し、`failedLocales`で返す。
  */
 export async function createLinkCategoryAction(input: {
   parentId: string | null;
   name: string;
-}): Promise<LinkCategorySaveResult> {
+}): Promise<LinkCategorySaveOutcome> {
   await requireHelpdeskStaffSession();
   const parsed = linkCategoryFormSchema.parse(input);
   const { translations, failedLocales } = await autoTranslateFields({ name: parsed.name });
-  const created = await createLinkCategory({
-    ...parsed,
-    translations: toTranslationViews(translations),
-  });
+  let created;
+  try {
+    created = await createLinkCategory({
+      ...parsed,
+      translations: toTranslationViews(translations),
+    });
+  } catch (error) {
+    if (error instanceof LinkCategoryNameConflictError) {
+      return { ok: false, reason: "nameConflict" };
+    }
+    throw error;
+  }
   revalidateLinkCategoryRoutes();
 
-  return { category: created, failedLocales };
+  return { ok: true, category: created, failedLocales };
 }
 
 /** カテゴリを更新し、関連ルートを再検証する。`ja`の名称が変わった場合のみ再翻訳する。 */
 export async function updateLinkCategoryAction(
   id: string,
   input: { name: string }
-): Promise<LinkCategorySaveResult> {
+): Promise<LinkCategorySaveOutcome> {
   await requireHelpdeskStaffSession();
   const parsed = linkCategoryFormSchema.parse({ parentId: null, ...input });
   const existing = await getLinkCategoryById(id);
@@ -95,10 +106,18 @@ export async function updateLinkCategoryAction(
     failedLocales = TRANSLATED_LOCALES.filter((locale) => !saved.has(locale));
   }
 
-  const updated = await updateLinkCategory(id, { name: parsed.name, translations });
+  let updated;
+  try {
+    updated = await updateLinkCategory(id, { name: parsed.name, translations });
+  } catch (error) {
+    if (error instanceof LinkCategoryNameConflictError) {
+      return { ok: false, reason: "nameConflict" };
+    }
+    throw error;
+  }
   revalidateLinkCategoryRoutes();
 
-  return { category: updated, failedLocales };
+  return { ok: true, category: updated, failedLocales };
 }
 
 /**
