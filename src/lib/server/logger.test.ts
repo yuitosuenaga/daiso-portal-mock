@@ -210,6 +210,37 @@ describe("logger", () => {
     });
   });
 
+  describe("引用符付き値の取りこぼし（エスケープ・長値・改行）", () => {
+    const red = (s: string) => errorFields(new Error(s)).errorMessage as string;
+    it("エスケープされた引用符を含む値を全体伏字にする", () => {
+      const out = red(`{"token":"a\\"b c"} tail`);
+      expect(out).not.toContain("b c");
+      expect(out).toContain(`"token":"[redacted]"`);
+      expect(out).toContain("} tail");
+    });
+    it("1024文字を超える引用符内の値も全体伏字にする", () => {
+      const out = red(`token="${"a".repeat(1500)} LEAKTAIL more" ok`);
+      expect(out).not.toContain("LEAKTAIL");
+      expect(out).not.toContain("more");
+      expect(out).toContain(`token="[redacted]" ok`);
+    });
+    it("改行を含む引用符内の値も全体伏字にする", () => {
+      const out = red(`token="abc\ndef" ok`);
+      expect(out).not.toContain("def");
+      expect(out).toContain(`token="[redacted]" ok`);
+    });
+  });
+
+  it("深いcauseのmetaがwrite時の再適用で[max-depth]に潰れない", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const e3 = Object.assign(new Error("c3"), { meta: { target: ["a"] } });
+    const e0 = new Error("c0", { cause: new Error("c1", { cause: new Error("c2", { cause: e3 }) }) });
+    logger.error("m", errorFields(e0));
+    const line = String(err.mock.calls[0][0]);
+    expect(line).not.toContain("max-depth");
+    expect(line).toContain(`"target":["a"]`);
+  });
+
   describe("L4: 機密キー名の追加", () => {
     it("apiKey/csrf/otp/pin系のキーを伏字にし、正常キーは壊さない", () => {
       const meta = { apiKey: "v1", api_key: "v2", csrfToken: "v3", csrf: "v4", otp: "v5", otpCode: "v6", pin: "v7", xsrfToken: "v8", clientSecret: "v9",
@@ -234,6 +265,24 @@ describe("logger", () => {
       // 振り分け維持: WARNINGはstdoutに出ず、INFOはstderrに出ない
       expect(out).toHaveBeenCalledTimes(1);
       expect(err).toHaveBeenCalledTimes(1);
+    });
+
+    it("フォールバックでも生messageを出さず伏字・clipする", () => {
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      const bad = new Proxy({}, { ownKeys() { throw new Error("nope"); } }) as Record<string, unknown>;
+      logger.warn("Bearer leakme123", bad);
+      logger.warn(`x${"y".repeat(20000)}`, bad);
+      const a = String(err.mock.calls[0][0]);
+      expect(a).not.toContain("leakme123");
+      expect(JSON.parse(a)).toEqual({ severity: "WARNING", message: "Bearer [redacted]", logError: "serialize failed" });
+      expect(JSON.parse(String(err.mock.calls[1][0])).message.length).toBeLessThan(8300);
+    });
+
+    it("String(message)がthrowしても固定文言で最小ログを出す", () => {
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      const evil = { toString() { throw new Error("no"); } } as unknown as string;
+      expect(() => logger.warn(evil)).not.toThrow();
+      expect(JSON.parse(String(err.mock.calls[0][0]))).toEqual({ severity: "WARNING", message: "[unprintable message]", logError: "serialize failed" });
     });
 
     it("循環参照・BigInt・toJSONのthrowはsafeValueで安全化され通常ログとして出る", () => {

@@ -33,13 +33,13 @@ export function redactSecrets(text: string): string {
     .replace(/\bAuthorization\s{0,16}[:=]\s{0,16}(?:(?:Basic|Digest|Token|Bearer)\s{1,16})?[^\s\"',;]{1,2048}/gi, `Authorization: ${REDACTED}`)
     .replace(/\b((?:set-)?cookie)\s{0,16}:[^\r\n]{1,8192}/gi, `$1: ${REDACTED}`)
     .replace(
-      // 値は「"..."/'...'（空白を含む引用符内全体）」→「引用符なしの語（閉じ引用符のない値も含む）」の順に試す。すべて有界。
-      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(?:"[^"\r\n]{0,1024}"|'[^'\r\n]{0,1024}'|["']?[^\s"'&,;}]{1,1024})/gi,
-      (m: string, key: string, sep: string) => {
+      // 値は「"..."/'...'（空白・改行・\"を含む引用符内全体。閉じ引用符がなければ上限まで）」→「引用符なしの語」の順に試す。すべて有界。
+      // 引用符内は[^"\\]と\\[\s\S]の排他的な繰り返しなのでバックトラックは線形。上限9216はclipの切り詰め幅(8192+256)以上で、長い値の後半を漏らさない。
+      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(?:"((?:[^"\\]|\\[\s\S]){0,9216})("?)|'((?:[^'\\]|\\[\s\S]){0,9216})('?)|["']?[^\s"'&,;}]{1,1024})/gi,
+      (m: string, key: string, sep: string, _d?: string, dClose?: string, _s?: string, sClose?: string) => {
         const v = m.slice(key.length + sep.length);
         const q = v[0] === '"' || v[0] === "'" ? v[0] : "";
-        const closed = q !== "" && v.length >= 2 && v[v.length - 1] === q;
-        return `${key}${sep}${q}${REDACTED}${closed ? q : ""}`;
+        return `${key}${sep}${q}${REDACTED}${dClose ?? sClose ?? ""}`;
       }
     );
 }
@@ -62,6 +62,9 @@ export function clip(text: string): string {
     : redacted;
 }
 
+// describeErrorが生成済み（伏字・clip・深さ制限適用済み）のcause出力。write()での再適用でmetaが[max-depth]に潰れないよう素通しする。
+const SANITIZED = new WeakSet<object>();
+
 /** 任意の値を、循環・巨大化を防いでJSON化可能な形にする（文字列は伏字+上限）。 */
 function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknown {
   if (value === null || value === undefined) return value;
@@ -78,6 +81,7 @@ function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknow
       return `[${typeof value}]`;
   }
   const obj = value as object;
+  if (SANITIZED.has(obj)) return obj;
   if (seen.has(obj)) return "[circular]";
   if (depth >= MAX_VALUE_DEPTH) return "[max-depth]";
   seen.add(obj);
@@ -164,7 +168,13 @@ function describeError(error: Error, depth: number, seen: Set<unknown>, opts: Er
     if (depth >= MAX_CAUSE_DEPTH) {
       fields.cause = "[max-cause-depth]";
     } else if (cause instanceof Error) {
-      fields.cause = seen.has(cause) ? "[circular]" : describeError(cause, depth + 1, seen, opts);
+      if (seen.has(cause)) {
+        fields.cause = "[circular]";
+      } else {
+        const described = describeError(cause, depth + 1, seen, opts);
+        SANITIZED.add(described);
+        fields.cause = described;
+      }
     } else {
       fields.cause = safeValue(cause, 0, new WeakSet());
     }
@@ -244,7 +254,14 @@ function write(severity: LogSeverity, message: string, fields?: Record<string, u
     emit(severity, line);
   } catch {
     try {
-      emit(severity, JSON.stringify({ severity, message, logError: "serialize failed" }));
+      // 生のmessageは出さない（伏字・clipを通す。String()がthrowする場合は固定文言）。
+      let fallbackMessage = "[unprintable message]";
+      try {
+        fallbackMessage = clip(String(message));
+      } catch {
+        // 固定文言のまま
+      }
+      emit(severity, JSON.stringify({ severity, message: fallbackMessage, logError: "serialize failed" }));
     } catch {
       // ログ失敗で業務を止めない。無音欠落を避けるため、機密を含まない固定1行だけstderrへ出す（それも失敗したら諦める）。
       try {
