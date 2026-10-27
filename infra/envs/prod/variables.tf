@@ -277,6 +277,17 @@ variable "cloudrun_direct_vpc_egress" {
   description = "Cloud Run / migrate job に Direct VPC egress を付ける。enable_private_network=true が前提"
 }
 
+variable "cloudrun_vpc_egress" {
+  type        = string
+  default     = "PRIVATE_RANGES_ONLY"
+  description = "Direct VPC egress の egress 設定（Cloud Run サービスと migrate job 共通）。PRIVATE_RANGES_ONLY（既定・現行値）または ALL_TRAFFIC（要 Cloud NAT）"
+
+  validation {
+    condition     = contains(["PRIVATE_RANGES_ONLY", "ALL_TRAFFIC"], var.cloudrun_vpc_egress)
+    error_message = "cloudrun_vpc_egress は PRIVATE_RANGES_ONLY か ALL_TRAFFIC。"
+  }
+}
+
 variable "vpc_subnet_cidr" {
   type    = string
   default = "10.10.0.0/24"

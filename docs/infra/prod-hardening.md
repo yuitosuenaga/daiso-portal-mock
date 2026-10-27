@@ -14,7 +14,8 @@
 | `db_transaction_log_retention_days` | null | PITR で遡れる日数 1-7。null は API 既定 |
 | `db_backup_retained_count` | null | 自動バックアップの保持世代数。null は API 既定（7） |
 | `db_backup_start_time` | null | バックアップ開始時刻（UTC `HH:MM`） |
-| `db_high_availability` | false | `REGIONAL`（HA）。インスタンス費用がほぼ2倍 |
+| `db_high_availability` | false | `REGIONAL`（HA）。インスタンス費用がほぼ2倍。**要件: `db_backup_enabled=true` かつ `db_point_in_time_recovery=true` かつ `db_tier` が `db-custom-<vCPU>-<MB>`（専有コア）**（下記「HA のティア制約」） |
+| `cloudrun_vpc_egress` | `PRIVATE_RANGES_ONLY` | Direct VPC egress の egress 設定（Cloud Run サービスと migrate job 共通）。`ALL_TRAFFIC` は Cloud NAT が別途必要 |
 | `deletion_protection` / `db_deletion_protection_enabled` | true / null | 削除保護（既存） |
 | `db_export_enabled` | false | 定期 SQL エクスポート（Cloud Scheduler → Cloud SQL Admin API → GCS） |
 | `db_export_schedule` / `db_export_retention_days` / `db_export_bucket_name` | `0 3 * * *` / 30 / null | 実行時刻・保持日数・バケット名（null は `<project>-<db名>-export`） |
@@ -24,6 +25,16 @@
 | `db_public_ip_enabled` | true | public IPv4。最終的に false にして完全 private 化 |
 
 整合性チェック（precondition）: private IP / Direct VPC egress は `enable_private_network=true` が前提。Cloud SQL を private IP 化するなら Direct VPC egress も必須（Cloud Run が到達できなくなるため）。public IP を無効化するなら private IP が必須。
+
+### HA のティア制約と precondition
+
+`modules/cloudsql` は `high_availability=true` のとき、次を満たさないと plan で失敗させる。
+- `backup_enabled=true` かつ `point_in_time_recovery=true`
+- `tier` が `db-custom-` で始まる（専有コア。例 `db-custom-2-7680`）。`db-f1-micro` / `db-g1-small`（shared-core）は不可
+
+**根拠の確度（要確認）**: 公式ドキュメント(Cloud SQL for PostgreSQL の高可用性ページ)で確認できたのは「専有 CPU が1つ以上ある構成が SLA の対象」「HA にはバックアップを強く推奨」まで。**shared-core での HA 可否、および HA に PITR/バックアップが API 上必須かは当該ページでは確認できていない（要確認）**。上記 precondition は本リポジトリの安全側の運用ガードであり、公式の必須要件と断定するものではない。実際の API 挙動は Cloud SQL の edition（Enterprise / Enterprise Plus）やクライアント環境の組織ポリシーでも変わりうるため、有効化前に `gcloud sql instances create --help` / 公式ドキュメントで最新を確認すること。
+
+`prod.tfvars.example` の `db_tier = "db-g1-small"` は HA 無効の例。HA を有効にする場合は `db_tier = "db-custom-2-7680"` 等へ変更する（費用が上がる）。
 
 ## 各機能の動作と注意
 
@@ -47,6 +58,18 @@
 - 既存 VPC を使う構成は未対応（`modules/network` は新規 VPC を作る）。クライアントが共有 VPC を指定する場合は別途対応。
 - public IP を無効化するとローカルからの Cloud SQL Auth Proxy 直結ができなくなる（踏み台 VM か、Proxy を VPC 内から使う運用が必要）。`db-start` 等のスキル・runbook の接続手順の見直しが要る。
 - 既存インスタンスへの private IP 追加は in-place だが再起動を伴う。
+- `modules/network` の `google_service_networking_connection` は `deletion_policy = "ABANDON"`(provider 6.50.0 で validate 成功を確認)。Cloud SQL 削除後に peering が「使用中」扱いで destroy が失敗する問題を避けるための設定で、**destroy しても peering 自体は削除されず残る**。VPC ごと消す場合は peering が残っていないか確認する。
+- `private_ip_check`（`terraform_data`、precondition 用）は plan に `+1 to add`（create）として常に1件出る。インフラ変更ではなく検証用のダミーリソースなので無視してよい。
+- migrate job の `vpc_egress` は `cloudrun_vpc_egress` で Cloud Run サービスと同じ値を渡す（既定 `PRIVATE_RANGES_ONLY` で現行と同じ）。
+
+#### private IP 移行中（public/private 併存）の経路確認
+
+`db_private_ip_enabled=true` かつ `db_public_ip_enabled=true` の期間は、接続が public / private のどちらを通っているか分からない。`db_public_ip_enabled=false` にする前に次で確認する。
+1. インスタンスの IP 一覧: `gcloud sql instances describe <name> --format='value(ipAddresses)'`（`PRIMARY` と `PRIVATE` の両方が出ているか。`PRIVATE` の存在確認）
+2. 接続元 IP の確認: Cloud SQL の PostgreSQL ログ（Cloud Logging の `cloudsql.googleapis.com/postgres.log`）で `connection received: host=...` を見る。`host` が Direct VPC egress の subnet レンジ（既定 `10.10.0.0/24`）内なら private 経路、それ以外（public IP や Cloud SQL コネクタ経由の Google 管理レンジ）なら public 経路。ログに出ない場合は `log_connections` フラグの有効化が必要（要確認。変更は再起動を伴う場合あり）
+3. Cloud Run 側: 新リビジョンの `vpcAccess`（`gcloud run services describe <svc> --format='yaml(spec.template.metadata.annotations)'` 等）で network / subnetwork が付いていること
+4. 切替後の判定: Cloud Run の新リビジョンから DB を使う画面/ヘルスチェックを実行し、上記ログの接続元が subnet レンジであることを確認 → 問題なければ `db_public_ip_enabled=false`。戻す場合は true に戻すだけ（in-place）。
+5. 上記の判定方法は設計上の想定であり、実環境での検証は未実施（要確認）。
 
 ## 費用の目安（asia-northeast1、概算。実際は料金表で確認）
 
@@ -112,6 +135,7 @@ Editor で足りるもの・足りないものの見立て（組織ポリシー�
 
 - エクスポート失敗のアラート（monitoring モジュールへの追加）
 - エクスポート IAM の「付与しない」トグル
+- エクスポート SA の `roles/cloudsql.editor` は広い権限（インスタンスの更新・削除に近い操作を含む）。`cloudsql.instances.export` のみを持つカスタムロールへの置き換えを**将来検討**（現状は未実装。権限最小化の観点でクライアントのセキュリティ方針次第）
 - 既存 VPC / 共有 VPC の利用
 - 復元手順書（runbook 追記）と復元訓練
 - Cloud Armor / LB / カスタムドメイン（Phase 5 の別項目）

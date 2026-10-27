@@ -55,6 +55,8 @@ resource "google_service_networking_connection" "psa" {
   network                 = google_compute_network.this.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.psa.name]
+  # Cloud SQL 削除後に peering が使用中扱いで destroy が失敗するのを避ける（peering は残る＝ダングリングに注意）
+  deletion_policy = "ABANDON"
 }
 
 output "network_id" {

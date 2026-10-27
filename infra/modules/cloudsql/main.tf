@@ -163,6 +163,25 @@ resource "terraform_data" "private_ip_check" {
       condition     = !var.point_in_time_recovery || var.backup_enabled
       error_message = "point_in_time_recovery=true には backup_enabled=true が必要。"
     }
+    # HA の運用ガード（本リポジトリの方針）。公式ドキュメント上、HA に PITR/バックアップは必須とは明記されず
+    # 「バックアップ強く推奨」。共有コア(f1-micro/g1-small)での HA 可否も公式ページで確認できていない（要確認）。
+    # 安全側に倒し、HA は バックアップ有効 + PITR 有効 + 専有コア(db-custom-*) を要求する。
+    precondition {
+      condition     = !var.high_availability || (var.backup_enabled && var.point_in_time_recovery)
+      error_message = "high_availability=true には backup_enabled=true と point_in_time_recovery=true が必要（本リポジトリの運用ガード）。"
+    }
+    precondition {
+      condition     = !var.high_availability || startswith(var.tier, "db-custom-")
+      error_message = "high_availability=true の tier は db-custom-<vCPU>-<MB> 形式（専有コア）にする。shared-core(db-f1-micro/db-g1-small)は不可（要確認事項のため安全側で拒否）。"
+    }
+    precondition {
+      condition     = var.point_in_time_recovery || var.transaction_log_retention_days == null
+      error_message = "transaction_log_retention_days は point_in_time_recovery=true のときだけ指定できる。"
+    }
+    precondition {
+      condition     = !var.export_enabled || length(local.export_bucket) <= 63
+      error_message = "エクスポート先バケット名が63文字を超えている（既定名は <project_id>-<name>-export）。export_bucket_name を短く指定する。"
+    }
   }
 }
 

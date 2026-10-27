@@ -61,6 +61,11 @@ variable "vpc_subnetwork" {
   default = null
 }
 
+variable "vpc_egress" {
+  type    = string
+  default = "PRIVATE_RANGES_ONLY"
+}
+
 resource "google_cloud_run_v2_job" "this" {
   project             = var.project_id
   name                = var.name
@@ -79,7 +84,7 @@ resource "google_cloud_run_v2_job" "this" {
       dynamic "vpc_access" {
         for_each = var.vpc_network == null ? [] : [1]
         content {
-          egress = "PRIVATE_RANGES_ONLY"
+          egress = var.vpc_egress
           network_interfaces {
             network    = var.vpc_network
             subnetwork = var.vpc_subnetwork

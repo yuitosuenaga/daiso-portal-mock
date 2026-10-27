@@ -219,6 +219,7 @@ module "cloudrun" {
   memory                   = var.cloudrun_memory
   vpc_network              = var.cloudrun_direct_vpc_egress ? module.network[0].network_name : null
   vpc_subnetwork           = var.cloudrun_direct_vpc_egress ? module.network[0].subnetwork_name : null
+  vpc_egress               = var.cloudrun_vpc_egress
 
   # secret 本体・バージョン・SA のロール付与が揃ってから作成する
   depends_on = [module.secrets, module.iam]
@@ -236,6 +237,7 @@ module "migrate_job" {
   timeout_seconds          = var.migrate_job_timeout_seconds
   vpc_network              = var.cloudrun_direct_vpc_egress ? module.network[0].network_name : null
   vpc_subnetwork           = var.cloudrun_direct_vpc_egress ? module.network[0].subnetwork_name : null
+  vpc_egress               = var.cloudrun_vpc_egress
   deletion_protection      = var.deletion_protection
 
   depends_on = [module.secrets, module.iam]

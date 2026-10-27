@@ -6,11 +6,11 @@ name_prefix = "portal-mock-prod"
 deletion_protection       = true
 db_backup_enabled         = true
 db_point_in_time_recovery = true
-db_high_availability      = false # 要件次第で true（費用約2倍）。RTO 要件をクライアントに確認
+db_high_availability      = false # 要件次第で true（費用約2倍）。true にする場合は backup/PITR 有効 かつ db_tier を db-custom-* にする（shared-core 不可。docs/infra/prod-hardening.md）
 db_backup_retained_count          = 14      # 自動バックアップ保持世代（既定 7）
 db_transaction_log_retention_days = 7       # PITR で遡れる日数（最大 7）
 db_backup_start_time              = "18:00" # UTC = JST 03:00
-db_tier                   = "db-g1-small"
+db_tier                   = "db-g1-small" # HA 無効の例。HA 有効なら "db-custom-2-7680" 等（専有コア）
 min_instances             = 1
 max_instances             = 5
 
