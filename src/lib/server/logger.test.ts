@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { z } from "zod";
 
-import { errorFields, logger, MAX_LINE_BYTES, redactSecrets } from "./logger";
+import { clip, errorFields, logger, MAX_LINE_BYTES, redactSecrets } from "./logger";
 
 describe("logger", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -273,6 +273,85 @@ describe("logger", () => {
     const line = String(err.mock.calls[0][0]);
     expect(line).not.toContain("max-depth");
     expect(line).toContain(`"target":["a"]`);
+  });
+
+  describe("キー側エスケープ・多数バックスラッシュ・病的入力・正常文の保持", () => {
+    const BS = "\\";
+    it("キー側が\\\"で囲まれたJSON二重文字列化形も値を伏字にする", () => {
+      const s = JSON.stringify(JSON.stringify({ password: "abc def" }));
+      const out = redactSecrets(s.slice(1, -1));
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+      expect(out).toContain("[redacted]");
+      expect(redactSecrets(JSON.stringify(JSON.stringify({ password: "abc def", user: "y" })))).toContain("user");
+    });
+    it("三重エスケープのキーでも漏らさない", () => {
+      const out = redactSecrets(JSON.stringify(JSON.stringify(JSON.stringify({ token: "abc def" }))));
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+    });
+    it("バックスラッシュ8個以上+引用符の値は残りを伏字にする", () => {
+      for (const n of [8, 9, 20, 200]) {
+        const out = redactSecrets(`password=${BS.repeat(n)}"abc" tail`);
+        expect(out).not.toContain("abc");
+        expect(out).toContain("[redacted]");
+      }
+    });
+    it("閉じ引用符なしのエスケープ形は残りを伏字にする", () => {
+      const out = redactSecrets(`secret=${BS}"abc`);
+      expect(out).not.toContain("abc");
+    });
+    it("引用符内に\\\"を含む通常形を全体伏字にする", () => {
+      const out = redactSecrets(`password="ab${BS}"cd" tail`);
+      expect(out).not.toContain("ab");
+      expect(out).not.toContain("cd");
+      expect(out).toContain("tail");
+    });
+    describe("正常文字列を壊さない", () => {
+      it("Windowsパス", () => {
+        const s = "C:\\Users\\tokens\\file.txt password is wrong";
+        expect(redactSecrets(s)).toBe(s);
+      });
+      it("文中の語", () => {
+        const s = "the password field is required";
+        expect(redactSecrets(s)).toBe(s);
+      });
+      it("URLクエリの後続パラメータ", () => {
+        const out = redactSecrets("?token=abc&x=1");
+        expect(out).not.toContain("abc");
+        expect(out).toContain("&x=1");
+      });
+      it("JSONの他キー", () => {
+        const out = redactSecrets(`{"password":"x","user":"y"}`);
+        expect(out).toBe(`{"password":"[redacted]","user":"y"}`);
+      });
+      it("カンマ区切りの後続", () => {
+        expect(redactSecrets("password=abc,next")).toBe("password=[redacted],next");
+      });
+    });
+    describe("病的入力の性能（ReDoS回帰）", () => {
+      const units: Array<[string, string]> = [
+        ["バックスラッシュ連続", BS],
+        ["\\\"の繰り返し", `${BS}"`],
+        ["開き引用符の繰り返し", `"`],
+        ["password=\"の繰り返し", `password="`],
+        ["password=\\\"の繰り返し", `password=${BS}"`],
+        ["password=+バックスラッシュ", `password=${BS.repeat(10)}`],
+        ["キー側エスケープの繰り返し", `${BS}"password${BS}":${BS}"`],
+        ["password=\\\\\\\\\"の繰り返し", `password=${BS.repeat(9)}"`],
+      ];
+      for (const [label, unit] of units) {
+        it(`${label}を長大入力でも十分短時間で処理する`, () => {
+          for (const size of [10_000, 200_000]) {
+            const input = unit.repeat(Math.ceil(size / unit.length));
+            const start = performance.now();
+            redactSecrets(input);
+            clip(input);
+            expect(performance.now() - start).toBeLessThan(1500);
+          }
+        });
+      }
+    });
   });
 
   describe("L4: 機密キー名の追加", () => {
