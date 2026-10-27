@@ -1,68 +1,51 @@
-# Agentic SDLC and Spec-Driven Development
-
-Kiro-style Spec-Driven Development on an agentic SDLC
-
-> **運用ステータス: kiro spec駆動フロー 一時停止中（2026-09-08〜）**
->
-> 以下のkiro関連ルールは当面適用しない。新規の実装依頼は spec化せず、通常の実装依頼として直接進めてよい。
-> - `## Minimal Workflow`（spec-init〜spec-impl等のフェーズ運用）
-> - `## Development Rules` の3-phase承認フロー
-> - `## 開発後レビュー（別エージェントによるレビュー）`（実装後の別エージェントレビュー義務、およびそれに紐づくPRマージ待ちルール）
-> - `## Spec管理ルール（1画面 = 1spec）` および `### Spec の粒度・重複防止`
->
-> 既存の `.kiro/steering/`・`.kiro/specs/` は削除せずそのまま残す。`## ブランチ運用`（ワークツリー必須・ブランチ命名・releaseブランチ運用）は kiro固有のルールではないため、停止中も引き続き有効。
-> 再開する場合はこのステータスブロックを削除する。
+# portal_mock 開発ルール
 
 ## Project Context
 
-### Paths
-- Steering: `.kiro/steering/`
-- Specs: `.kiro/specs/`
-
-### Steering vs Specification
-
-**Steering** (`.kiro/steering/`) - Guide AI with project-wide rules and context
-**Specs** (`.kiro/specs/`) - Formalize development process for individual features
-
-### Active Specifications
-- Check `.kiro/specs/` for active specifications
-- Use `/kiro:spec-status [feature-name]` to check progress
-
-### Spec の粒度・重複防止（重要）
-
-**1つの画面（1ルート/1トップページ）につき、spec は1つに保つ。同じ画面への追加要望・改修は、新規specを作らず既存specへの要件追記として扱う。**
-
-- 新しいspecを作る前に、`.kiro/specs/` に対象と同じ画面（同じルート・同じ画面）を扱う既存specがないか確認する
-- 既存specが見つかった場合は、そのspecの `requirements.md` に要件を追記し、`spec.json` の `design`/`tasks` の `approved` を追記内容に応じて `false` に戻してから設計・タスクを更新する（新規specは作らない）
-- 既存specが `implementation-complete` であっても、同じ画面への追加要望であれば新規specを作らず、そのspecを再利用・拡張する
-- 例外: 明確に別ルート・別ユーザー種別（申請者側 vs ヘルプデスク側など）を対象とする画面は、同じデータドメインを扱っていても別specとして問題ない（例: `announcements`＝申請者側の閲覧画面と `announcements-management`＝ヘルプデスク側の管理画面は、別画面のため別spec）
+- プロジェクト全体の背景・技術構成・ディレクトリ構成は `.kiro/steering/`（`product.md` / `tech.md` / `structure.md`）を参照する
+- kiro の spec 駆動フロー（`/kiro:*`）は使用しない。`.kiro/specs/` は過去の記録として残すのみで、更新・新規作成はしない
 
 ## Development Guidelines
-- Think in English, generate responses in Japanese. All Markdown content written to project files (e.g., requirements.md, design.md, tasks.md, research.md, validation reports) MUST be written in the target language configured for this specification (see spec.json.language).
 
-## Minimal Workflow
-- Phase 0 (optional): `/kiro:steering`, `/kiro:steering-custom`
-- Phase 1 (Specification):
-  - `/kiro:spec-init "description"`
-  - `/kiro:spec-requirements {feature}`
-  - `/kiro:validate-gap {feature}` (optional: for existing codebase)
-  - `/kiro:spec-design {feature} [-y]`
-  - `/kiro:validate-design {feature}` (optional: design review)
-  - `/kiro:spec-tasks {feature} [-y]`
-- Phase 2 (Implementation): `/kiro:spec-impl {feature} [tasks]`
-  - `/kiro:validate-impl {feature}` (optional: after implementation)
-- Progress check: `/kiro:spec-status {feature}` (use anytime)
+- Think in English, generate responses in Japanese.
+- ユーザーの指示に正確に従い、その範囲内では自律的に動く。必要な文脈を集め、依頼された作業を最後まで完遂する。質問するのは必須情報が欠けている場合・指示が重大に曖昧な場合のみ。
 
-## Development Rules
-- 3-phase approval workflow: Requirements → Design → Tasks → Implementation
-- Human review required each phase; use `-y` only for intentional fast-track
-- Keep steering current and verify alignment with `/kiro:spec-status`
-- Follow the user's instructions precisely, and within that scope act autonomously: gather the necessary context and complete the requested work end-to-end in this run, asking questions only when essential information is missing or the instructions are critically ambiguous.
+## 実装ワークフロー（計画 → 実装 → レビュー → マージ）
 
-## Steering Configuration
-- Load entire `.kiro/steering/` as project memory
-- Default files: `product.md`, `tech.md`, `structure.md`
-- Custom files are supported (managed via `/kiro:steering-custom`)
+コード変更を伴う実装依頼は、以下の流れで別エージェントに役割分担して進める。メインセッションは計画の受け渡し・判断・報告に徹し、実装そのものは自分で行わない。
+
+1. **ワークツリー作成（メイン）**: 「ブランチ運用」に従い `EnterWorktree` で新規ワークツリーを作り、`main` から作業ブランチを切る
+2. **計画（Opus）**: `Agent`（`subagent_type: Plan`, `model: opus`）に計画を立てさせる
+   - 読み取り専用。成果物は変更対象ファイル・実装手順・テスト方針・リスク（マイグレーション有無を含む）
+   - 計画は単一の画面・単一の目的に絞る。広がる場合はタスクを分割する
+3. **実装（Sonnet）**: 別の `Agent`（`subagent_type: general-purpose`, `model: sonnet`）に、計画をそのまま渡して実装させる
+   - テスト先行（TDD）で実装し、テスト・lint・型チェックを通してからコミットする
+   - 計画外の変更・無関係なリファクタはしない。計画で不足が見つかった場合は実装を止めて報告させる
+   - 指示には、対象ブランチ/worktree、禁止事項（本番への書き込み、`prisma migrate deploy`、機密値の出力）、最終報告の形式を書く
+4. **レビュー（Sonnet）**: 実装エージェントとは別の `Agent`（`model: sonnet`）を新規に立てる。実装時の文脈を引き継がせない
+   - 観点: 正確性・セキュリティ・パフォーマンス・アクセシビリティ・i18n準拠。指摘は file:line 付きで Critical / High / Medium / Low に分類する
+   - UI を変更した場合のみ、playwright-mcp で対象画面を実機確認する（日本語・英語、レスポンシブ、コンソールエラー）
+   - 実機確認で worktree に `.env` が必要な場合は元リポジトリからコピーし、コミットしない。スクリーンショット等の一時ファイルは確認後に削除する
+5. **修正ループ**: Critical / High があれば Sonnet の実装エージェントで修正し、再レビューする。ループは最大2回。超えた場合は自動マージせずユーザーに報告する
+6. **PR 作成 → 自動マージ**: 次の条件をすべて満たす場合、ユーザーの確認なしでマージまで進める
+   - Critical / High の指摘がゼロ（対応済みを含む）
+   - テストと CI が green
+   - **マイグレーションを含まない**（下記の例外に該当しない）
+   - Medium / Low は PR 本文に「申し送り」として記載する。マージは `gh pr merge --merge`（マージコミット）で行い、マージ後にローカル・リモートのブランチを削除する
+7. **後片付けと報告**: worktree を削除し、変更内容・レビュー結果・申し送りをユーザーに報告する
+
+### 自動マージしない例外
+
+次の場合は PR 作成とレビューまでで止め、ユーザーに確認を取ってからマージする。
+
+- **DB マイグレーションを含む変更**（`prisma/migrations/` の追加・変更、スキーマ変更）。マージ後の本番 Cloud SQL への `prisma migrate deploy` は手動・都度必要で、手順は `.claude/commands/deploy-main.md` を参照する
+- 修正ループの上限（2回）を超えても Critical / High が残る場合
+- CI が失敗している場合
+- `release` ブランチへのマージ・本番デプロイ（「release ブランチ」節のとおり、ユーザーの明示指示がある場合のみ）
+
+### 小さな変更の扱い
+
+ドキュメント・設定のみ（`src/` 配下のアプリケーションコードを含まない）の変更は、計画・実装・レビューの別エージェント分担を省略してよい。ただしブランチ運用（ワークツリー＋ブランチ）は省略しない。この場合はレビュー待ちなしで PR 作成からマージまで進めてよい。
 
 ## ブランチ運用
 
@@ -71,44 +54,18 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 - どんなに小さな作業（ドキュメント修正・設定変更等）であっても、作業開始時に必ずワークツリー＋ブランチを切ることを省略しない
 - タスクごとに毎回新しいワークツリーを作成する。既存のワークツリーを使い回して無関係な複数タスクを混在させない
 - ブランチ名は、実行するタスク内容を簡潔に表した kebab-case の英語表現にする（例: `add-inquiry-form`, `fix-header-layout`, `update-gitignore`）
-- 種別プレフィックスを付ける: `feature/`（新規機能）, `fix/`（修正）, `chore/`（設定・運用系）, `spec/`（`.kiro/specs` 関連作業）
-  - 例: `feature/inquiry-form`, `spec/dashboard-tasks`, `chore/setup-gitignore`
+- 種別プレフィックスを付ける: `feature/`（新規機能）, `fix/`（修正）, `chore/`（設定・運用系）
+  - 例: `feature/inquiry-form`, `fix/header-layout`, `chore/setup-gitignore`
+  - `EnterWorktree` は `worktree-` 始まりのブランチ名を付けるため、作成後に `git branch -m` で上記の命名へ変更する
+- ワークツリー作成後は、Read / Edit / Write も元リポジトリの絶対パスではなく worktree 配下のパスを使う
 - 1タスク = 1ブランチを基本とする。関連の薄い複数タスクを1ブランチに混在させない
-- 作業完了後は `main` へマージ（またはPR作成）してからブランチを削除する
-- **例外（レビュー待ちのマージ）**: 機能実装（`/kiro:spec-impl`等によるコード変更）の場合、PR作成後は「開発後レビュー」節に定めるレビュー（Critical/High指摘への対応を含む）が完了するまでマージしない。詳細は「開発後レビュー」節を参照
+- 作業完了後は `main` へマージ（PR 経由）してからブランチを削除する。コード変更を含む PR のマージ条件は「実装ワークフロー」に従う
 
 ### release ブランチ（デプロイ専用）
 
 **`release` ブランチはデプロイ用であり、`main` を各機能ブランチの統合先として使う運用に変わりはない。`release` は「`main` の内容をデプロイのタイミングで取り込む」時にしか触らない。**
 
-- 通常の開発作業（機能追加・修正・spec作業）は今までと同様、`main` から新しいブランチを切り、`main` へマージする。`release` から直接ブランチを切らない
+- 通常の開発作業（機能追加・修正）は `main` から新しいブランチを切り、`main` へマージする。`release` から直接ブランチを切らない
 - `release` に直接コミットしない。更新は「デプロイする」タイミングで `main` を `release` にマージする操作のみ
 - `main` → `release` へのマージ（デプロイ操作）は、ユーザーから明示的に指示された場合にのみ実行する
 - 誤って `release` 上で作業を始めてしまった場合は、変更を正しいブランチ（`main` から切った新規ブランチ）に移してから `release` を `main` と同じ状態に戻す
-
-## 開発後レビュー（別エージェントによるレビュー）
-
-**`/kiro:spec-impl` による実装が完了したら、Claude Code は必ず別エージェント（Agent toolによるsubagent、通常は `/kiro:review-impl` 経由）を立てて実装後レビューを実施する。実装した本人と同じ文脈でレビューを済ませたことにしない。**
-
-- 実装完了後、Claude Codeは `/kiro:review-impl {feature名または対象ファイル}` を実行し、以下を行う:
-  - 静的レビュー用の別subagentを立てて、正確性・セキュリティ・パフォーマンス・アクセシビリティ・i18n準拠の5観点をfile:line付きで指摘させる
-  - playwright-mcpによるブラウザでの実機検証（対象画面のライブ確認、日本語・英語両方、レスポンシブ確認）を行う
-  - Critical/High の指摘は即時修正し、修正箇所を再検証する。Medium/Low は次PRサイクルへの申し送りとして記録する
-- レビュー結果（指摘一覧・対応結果）を `spec.json` の該当タスク/フェーズの状態更新とあわせてユーザーに報告する
-- 詳細な実行手順は `.claude/commands/kiro/review-impl.md` を参照する
-
-**マージのタイミング（重要）**: 機能実装のPRは、上記レビュー（Critical/High指摘への対応を含む）が完了するまでマージしない。ユーザーから「マージまで進めて」等の指示があっても、レビューが未完了の場合はPR作成までで一旦止め、レビューを実施してから進める。
-- 例外: CLAUDE.md更新やspecドキュメントのみの変更など、レビュー観点（正確性・セキュリティ・パフォーマンス・アクセシビリティ・i18n準拠の実装コードレビュー）が本来対象としない、コード実装を伴わない変更はこの制約の対象外とする
-
-## Spec管理ルール（1画面 = 1spec）
-
-**画面（screen）ごとにspecは1つだけ存在させる。同じ画面に対する変更を、新しいspec名を作って追加してはいけない。**
-
-- 新しい機能・改善に着手する前に、対象となる画面が既存のspecで管理されていないか、必ず `.kiro/specs/` 配下の各spec（特に `requirements.md` の「スコープ境界」「対象」記述）を確認する。`.kiro/steering/product.md` の機能一覧も手がかりにする。
-- 対象画面を所有する既存specが見つかった場合:
-  - `/kiro:spec-init` で新規specディレクトリを作らない
-  - 既存specの `requirements.md` に要件を追記し（変更内容が分かるよう追加日を明記する）、`design.md`・`tasks.md` も同様に更新する
-  - `spec.json` の該当フェーズ以降の `approved` を `false` に戻し、再度承認フローに乗せる（例: 要件追加時は `phase: "requirements-generated"`、`approvals.design`/`approvals.tasks` を `generated: false, approved: false` に戻す）
-  - 既存の実装済み部分は保持したまま、追加要件分だけ設計・タスクを積み増す
-- 新規specを作成してよいのは、既存specが存在しない「まったく新しい画面」を追加する場合のみ
-- 誤って新しいspecディレクトリを作成してしまったことに気づいた場合は、その場で削除し、正しい既存specへ内容を統合する
