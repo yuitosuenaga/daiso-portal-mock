@@ -3,8 +3,11 @@ import path from "path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  esbuild: {
-    jsx: "automatic",
+  // vite 8 は esbuild ではなく oxc で変換するため、JSX の自動ランタイムは oxc で指定する
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+    },
   },
   test: {
     environment: "jsdom",
