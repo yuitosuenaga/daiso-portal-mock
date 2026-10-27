@@ -806,7 +806,7 @@
       "emailHeader": "電子郵件地址",
       "displayNameHeader": "顯示名稱",
       "roleHeader": "角色",
-      "sourceHeader": "登錄途徑",
+      "sourceHeader": "註冊途徑",
       "statusHeader": "狀態",
       "createdHeader": "建立日期",
       "actionsHeader": "操作",
@@ -837,13 +837,13 @@
       "member": "成員"
     },
     "source": {
-      "seed": "初始登錄",
-      "manual": "手動登錄",
+      "seed": "初始註冊",
+      "manual": "手動註冊",
       "google_auto": "Google自動建立"
     },
     "status": {
       "active": "有效",
-      "inactive": "已停用"
+      "inactive": "無效"
     },
     "toggle": {
       "promoteButton": "設為管理員",
@@ -858,7 +858,7 @@
       "activateButton": "重新啟用",
       "deactivateConfirmTitle": "停用員工",
       "activateConfirmTitle": "重新啟用員工",
-      "deactivateConfirm": "將停用『{name}』。停用後將無法登入，目前的工作階段也將失效。其負責中的諮詢不會被解除。確認嗎？",
+      "deactivateConfirm": "將停用『{name}』。停用後將無法登入，目前的工作階段也將失效。其負責的詢問不會被取消指派。確認嗎？",
       "activateConfirm": "將重新啟用『{name}』。重新啟用後將可再次登入。確認嗎？",
       "deactivateConfirmButton": "執行停用",
       "activateConfirmButton": "執行重新啟用",

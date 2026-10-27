@@ -813,7 +813,7 @@
       "youBadge": "You"
     },
     "form": {
-      "createTitle": "Create staff member",
+      "createTitle": "Create Staff Member",
       "backToList": "Back to list",
       "emailLabel": "Email address",
       "emailPlaceholder": "Enter an email address",
@@ -848,20 +848,20 @@
     "toggle": {
       "promoteButton": "Make admin",
       "demoteButton": "Make member",
-      "promoteConfirmTitle": "Change to admin",
-      "demoteConfirmTitle": "Change to member",
-      "promoteConfirm": "\"{name}\" will become an admin and will be able to edit Company Management and staff management. Continue?",
-      "demoteConfirm": "\"{name}\" will become a member and will no longer be able to edit Company Management and staff management. Continue?",
+      "promoteConfirmTitle": "Change to Admin",
+      "demoteConfirmTitle": "Change to Member",
+      "promoteConfirm": "\"{name}\" will become an admin and will be able to edit Company Management and Staff Management. Continue?",
+      "demoteConfirm": "\"{name}\" will become a member and will no longer be able to edit Company Management and Staff Management. Continue?",
       "promoteConfirmButton": "Make admin",
       "demoteConfirmButton": "Make member",
       "deactivateButton": "Deactivate",
       "activateButton": "Reactivate",
-      "deactivateConfirmTitle": "Deactivate staff member",
-      "activateConfirmTitle": "Reactivate staff member",
-      "deactivateConfirm": "\"{name}\" will be deactivated. They will no longer be able to sign in, and their current session will be revoked. Inquiries they are assigned to will not be released. Continue?",
+      "deactivateConfirmTitle": "Deactivate Staff Member",
+      "activateConfirmTitle": "Reactivate Staff Member",
+      "deactivateConfirm": "\"{name}\" will be deactivated. They will no longer be able to sign in, and their current session will be revoked. Inquiries assigned to them will remain assigned. Continue?",
       "activateConfirm": "\"{name}\" will be reactivated and will be able to sign in again. Continue?",
-      "deactivateConfirmButton": "Deactivate",
-      "activateConfirmButton": "Reactivate",
+      "deactivateConfirmButton": "Confirm Deactivation",
+      "activateConfirmButton": "Confirm Reactivation",
       "cancelButton": "Cancel"
     },
     "errors": {

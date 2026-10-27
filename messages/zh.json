@@ -800,13 +800,13 @@
     "list": {
       "title": "员工管理",
       "description": "可添加日本方服务台员工、变更角色，以及停用或重新启用。",
-      "empty": "尚未登记员工",
+      "empty": "尚未注册员工",
       "error": "获取员工失败",
       "addButton": "添加员工",
-      "emailHeader": "邮箱地址",
+      "emailHeader": "电子邮件地址",
       "displayNameHeader": "显示名称",
       "roleHeader": "角色",
-      "sourceHeader": "登记途径",
+      "sourceHeader": "注册途径",
       "statusHeader": "状态",
       "createdHeader": "创建日期",
       "actionsHeader": "操作",
@@ -815,8 +815,8 @@
     "form": {
       "createTitle": "新建员工",
       "backToList": "返回列表",
-      "emailLabel": "邮箱地址",
-      "emailPlaceholder": "请输入邮箱地址",
+      "emailLabel": "电子邮件地址",
+      "emailPlaceholder": "请输入电子邮件地址",
       "displayNameLabel": "显示名称",
       "displayNamePlaceholder": "请输入显示名称",
       "passwordLabel": "密码（可选）",
@@ -827,8 +827,8 @@
       "submitError": "保存失败。请稍后重试。",
       "validation": {
         "required": "此项为必填",
-        "emailInvalid": "请输入有效的邮箱地址",
-        "emailDuplicate": "该邮箱地址已被使用",
+        "emailInvalid": "请输入有效的电子邮件地址",
+        "emailDuplicate": "此电子邮件地址已被使用",
         "passwordTooShort": "密码需至少8个字符"
       }
     },
@@ -837,29 +837,29 @@
       "member": "成员"
     },
     "source": {
-      "seed": "初始登记",
-      "manual": "手动登记",
+      "seed": "初始注册",
+      "manual": "手动注册",
       "google_auto": "Google自动创建"
     },
     "status": {
       "active": "有效",
-      "inactive": "已停用"
+      "inactive": "无效"
     },
     "toggle": {
       "promoteButton": "设为管理员",
       "demoteButton": "设为成员",
       "promoteConfirmTitle": "变更为管理员",
       "demoteConfirmTitle": "变更为成员",
-      "promoteConfirm": "将『{name}』设为管理员，其可编辑销售公司管理和员工管理。确认吗？",
-      "demoteConfirm": "将『{name}』设为成员，其将无法再编辑销售公司管理和员工管理。确认吗？",
+      "promoteConfirm": "将“{name}”设为管理员，其可编辑销售公司管理和员工管理。确定吗？",
+      "demoteConfirm": "将“{name}”设为成员，其将无法再编辑销售公司管理和员工管理。确定吗？",
       "promoteConfirmButton": "设为管理员",
       "demoteConfirmButton": "设为成员",
       "deactivateButton": "停用",
       "activateButton": "重新启用",
       "deactivateConfirmTitle": "停用员工",
       "activateConfirmTitle": "重新启用员工",
-      "deactivateConfirm": "将停用『{name}』。停用后将无法登录，当前会话也将失效。其负责中的咨询不会被解除。确认吗？",
-      "activateConfirm": "将重新启用『{name}』。重新启用后将可再次登录。确认吗？",
+      "deactivateConfirm": "将停用“{name}”。停用后将无法登录，当前会话也将失效。其负责的咨询不会被取消分配。确定吗？",
+      "activateConfirm": "将重新启用“{name}”。重新启用后将可再次登录。确定吗？",
       "deactivateConfirmButton": "执行停用",
       "activateConfirmButton": "执行重新启用",
       "cancelButton": "取消"

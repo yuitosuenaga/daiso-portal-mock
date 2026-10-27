@@ -839,7 +839,7 @@
     "source": {
       "seed": "Cadastro inicial",
       "manual": "Cadastro manual",
-      "google_auto": "Criado automaticamente pelo Google"
+      "google_auto": "Criado automaticamente no login com Google"
     },
     "status": {
       "active": "Ativo",
@@ -850,16 +850,16 @@
       "demoteButton": "Tornar membro",
       "promoteConfirmTitle": "Alterar para administrador",
       "demoteConfirmTitle": "Alterar para membro",
-      "promoteConfirm": "«{name}» passará a ser administrador e poderá editar o gerenciamento de distribuidoras e de equipe. Deseja continuar?",
-      "demoteConfirm": "«{name}» passará a ser membro e não poderá mais editar o gerenciamento de distribuidoras e de equipe. Deseja continuar?",
+      "promoteConfirm": "“{name}” passará a ser administrador e poderá editar o gerenciamento de distribuidoras e de equipe. Deseja continuar?",
+      "demoteConfirm": "“{name}” passará a ser membro e não poderá mais editar o gerenciamento de distribuidoras e de equipe. Deseja continuar?",
       "promoteConfirmButton": "Tornar administrador",
       "demoteConfirmButton": "Tornar membro",
       "deactivateButton": "Desativar",
       "activateButton": "Reativar",
       "deactivateConfirmTitle": "Desativar membro da equipe",
       "activateConfirmTitle": "Reativar membro da equipe",
-      "deactivateConfirm": "«{name}» será desativado. Não será mais possível fazer login e a sessão atual será revogada. As consultas atribuídas a ele não serão liberadas. Deseja continuar?",
-      "activateConfirm": "«{name}» será reativado e poderá fazer login novamente. Deseja continuar?",
+      "deactivateConfirm": "“{name}” será desativado. Não será mais possível fazer login e a sessão atual será revogada. As consultas continuarão atribuídas a esse membro. Deseja continuar?",
+      "activateConfirm": "“{name}” será reativado e poderá fazer login novamente. Deseja continuar?",
       "deactivateConfirmButton": "Executar desativação",
       "activateConfirmButton": "Executar reativação",
       "cancelButton": "Cancelar"
