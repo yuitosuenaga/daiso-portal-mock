@@ -33,13 +33,19 @@ export function redactSecrets(text: string): string {
     .replace(/\bAuthorization\s{0,16}[:=]\s{0,16}(?:(?:Basic|Digest|Token|Bearer)\s{1,16})?[^\s\"',;]{1,2048}/gi, `Authorization: ${REDACTED}`)
     .replace(/\b((?:set-)?cookie)\s{0,16}:[^\r\n]{1,8192}/gi, `$1: ${REDACTED}`)
     .replace(
-      // 値は「"..."/'...'（空白・改行・\"を含む引用符内全体。閉じ引用符がなければ上限まで）」→「引用符なしの語」の順に試す。すべて有界。
-      // 引用符内は[^"\\]と\\[\s\S]の排他的な繰り返しなのでバックトラックは線形。上限9216はclipの切り詰め幅(8192+256)以上で、長い値の後半を漏らさない。
-      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(?:"((?:[^"\\]|\\[\s\S]){0,9216})("?)|'((?:[^'\\]|\\[\s\S]){0,9216})('?)|["']?[^\s"'&,;}]{1,1024})/gi,
-      (m: string, key: string, sep: string, _d?: string, dClose?: string, _s?: string, sClose?: string) => {
+      // 値は「"..."/'...'」→「\"..\"/\'..\'（JSON埋め込み等のエスケープ済み引用符。バックスラッシュ1〜7個）」→「引用符なしの語」の順に試す。すべて有界。
+      // 引用符内は空白・改行・エスケープを含む全体を伏字にする。閉じ引用符がない場合、および上限9216に達した場合は、残り全体を伏字にする
+      // （clipを通さず直接呼ばれても後半を漏らさない。引用符で始まる値は末尾まで伏字になりうるが安全側）。
+      // 引用符内は[^"\\]と\\[\s\S]の排他的な繰り返し、エスケープ版は先読み付き1択の繰り返しなのでバックトラックは線形。
+      // 限界: 閉じは開きと同数のバックスラッシュ+引用符のみ認識する（値の途中に同じ並びが現れると、そこで値が終わったとみなす）。
+      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(?:"((?:[^"\\]|\\[\s\S]){0,9216})("|[\s\S]*)|'((?:[^'\\]|\\[\s\S]){0,9216})('|[\s\S]*)|(\\{1,7})(["'])((?:(?!\7\8)[\s\S]){0,9216})(\7\8|[\s\S]*)|["']?[^\s"'&,;}]{1,1024})/gi,
+      (m: string, key: string, sep: string, _d?: string, dTail?: string, _s?: string, sTail?: string, _bs?: string, _q?: string, _e?: string, eTail?: string) => {
         const v = m.slice(key.length + sep.length);
-        const q = v[0] === '"' || v[0] === "'" ? v[0] : "";
-        return `${key}${sep}${q}${REDACTED}${dClose ?? sClose ?? ""}`;
+        const open = /^(?:\\{1,7}["']|["'])/.exec(v)?.[0] ?? "";
+        const tail = dTail ?? sTail ?? eTail ?? "";
+        // tailが閉じ引用符そのもの（開きと同形）のときだけ閉じを残す。それ以外（上限超過の残り・閉じなし）は伏字に含める。
+        const close = open !== "" && tail === open ? tail : "";
+        return `${key}${sep}${open}${REDACTED}${close}`;
       }
     );
 }

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { z } from "zod";
 
-import { errorFields, logger, MAX_LINE_BYTES } from "./logger";
+import { errorFields, logger, MAX_LINE_BYTES, redactSecrets } from "./logger";
 
 describe("logger", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -228,6 +228,40 @@ describe("logger", () => {
       const out = red(`token="abc\ndef" ok`);
       expect(out).not.toContain("def");
       expect(out).toContain(`token="[redacted]" ok`);
+    });
+  });
+
+  describe("エスケープ引用符で囲まれた値・redactSecrets直接呼び出し", () => {
+    const red = (s: string) => errorFields(new Error(s)).errorMessage as string;
+    it("\\\"abc def\\\"で囲まれた値を全体伏字にする", () => {
+      const out = red(`password=\\"abc def\\" tail`);
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+      expect(out).toBe(`password=\\"[redacted]\\" tail`);
+    });
+    it("JSON.stringifyで文字列に埋め込んだ形も伏字にする", () => {
+      const out = red(JSON.stringify({ m: `password="abc def" x` }));
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+      expect(out).toContain(" x");
+    });
+    it("二重エスケープ（入れ子）でも漏らさない", () => {
+      const out = red(JSON.stringify(JSON.stringify({ m: `password="abc def" x` })));
+      expect(out).not.toContain("abc");
+      expect(out).not.toContain("def");
+    });
+    it("エスケープされた単引用符でも全体伏字にする", () => {
+      const out = red(`token=\\'p q r\\' ok`);
+      expect(out).not.toContain("p q");
+      expect(out).toContain("ok");
+    });
+    it("9216文字超の引用符値をclipを通さず直接渡しても後半が残らない", () => {
+      const out = redactSecrets(`token="${"a".repeat(9300)}LEAKTAIL"`);
+      expect(out).not.toContain("LEAKTAIL");
+      expect(out).not.toContain("aaaa");
+      const out2 = redactSecrets(`token=\\"${"a".repeat(9300)}LEAKTAIL\\"`);
+      expect(out2).not.toContain("LEAKTAIL");
+      expect(out2).not.toContain("aaaa");
     });
   });
 
