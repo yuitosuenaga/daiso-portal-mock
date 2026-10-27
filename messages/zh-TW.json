@@ -800,7 +800,7 @@
     "list": {
       "title": "員工管理",
       "description": "可新增日本方服務台員工、變更角色，以及停用或重新啟用。",
-      "empty": "尚未登錄員工",
+      "empty": "尚未註冊員工",
       "error": "取得員工失敗",
       "addButton": "新增員工",
       "emailHeader": "電子郵件地址",
