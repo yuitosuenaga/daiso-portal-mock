@@ -89,4 +89,28 @@ describe("toErrorResponse", () => {
     expect(JSON.stringify(ufields)).not.toContain("hunter2");
     vi.restoreAllMocks();
   });
+
+  it("想定内エラー(4xx)はstack_traceを出さず、500は出す", () => {
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(logger, "error").mockImplementation(() => {});
+    const zodError = z.object({ a: z.string() }).safeParse({}).error!;
+    for (const e of [
+      new UnauthorizedSessionError("x"),
+      zodError,
+      new InquiryNotFoundError("i"),
+      new DoubleClaimError("i"),
+      new ClaimOwnershipError("i"),
+    ]) {
+      toErrorResponse(e);
+    }
+    for (const call of warn.mock.calls) {
+      expect((call[1] as Record<string, unknown>).stack_trace).toBeUndefined();
+      expect((call[1] as Record<string, unknown>).errorName).toBeDefined();
+    }
+    expect(warn).toHaveBeenCalledTimes(5);
+    toErrorResponse(new Error("boom"));
+    expect((error.mock.calls[0][1] as Record<string, unknown>).stack_trace).toContain("boom");
+    warn.mockRestore();
+    error.mockRestore();
+  });
 });

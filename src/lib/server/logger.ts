@@ -25,14 +25,15 @@ const REDACTED = "[redacted]";
  * 逆に`Invalid token: expired`のように「token」の直後に`:`/`=`が続く普通の文は値部分が伏字になりうる。
  */
 export function redactSecrets(text: string): string {
+  // 可変長部分はすべて有界量指定にする（`a-a-a-...`のような入力で`\b`の開始点ごとに全長を走査するO(n^2)を避ける）。
   return text
-    .replace(/\b([a-z][a-z0-9+.-]*:\/\/[^:/\s@]*):[^@\s/]*@/gi, `$1:${REDACTED}@`)
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, `Bearer ${REDACTED}`)
-    .replace(/\bsk-ant-[A-Za-z0-9_-]+/g, REDACTED)
-    .replace(/\bAuthorization\s*[:=]\s*(?:(?:Basic|Digest|Token|Bearer)\s+)?[^\s\"',;]+/gi, `Authorization: ${REDACTED}`)
-    .replace(/\b((?:set-)?cookie)\s*:[^\r\n]+/gi, `$1: ${REDACTED}`)
+    .replace(/\b([a-z][a-z0-9+.-]{0,31}:\/\/[^:/\s@]{0,256}):[^@\s/]{0,1024}@/gi, `$1:${REDACTED}@`)
+    .replace(/\bBearer\s{1,16}[A-Za-z0-9._~+/=-]{1,2048}/gi, `Bearer ${REDACTED}`)
+    .replace(/\bsk-ant-[A-Za-z0-9_-]{1,512}/g, REDACTED)
+    .replace(/\bAuthorization\s{0,16}[:=]\s{0,16}(?:(?:Basic|Digest|Token|Bearer)\s{1,16})?[^\s\"',;]{1,2048}/gi, `Authorization: ${REDACTED}`)
+    .replace(/\b((?:set-)?cookie)\s{0,16}:[^\r\n]{1,8192}/gi, `$1: ${REDACTED}`)
     .replace(
-      /\b([A-Za-z0-9_-]*(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s*[:=]\s*)(["']?)[^\s"'&,;}]+/gi,
+      /\b([A-Za-z0-9_-]{0,64}(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s{0,16}[:=]\s{0,16})(["']?)[^\s"'&,;}]{1,1024}/gi,
       `$1$2$3${REDACTED}`
     );
 }
@@ -43,9 +44,14 @@ function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
 }
 
+// 伏字の対象が切り詰め境界をまたぐ場合に断片を残さないための余白。
+const CLIP_MARGIN = 256;
+
 function clip(text: string): string {
-  const redacted = redactSecrets(text);
-  return redacted.length > MAX_STRING_LENGTH
+  // 先に切ってから伏字にする（巨大入力に対する正規表現の走査量を上限で抑える）。
+  const head = text.length > MAX_STRING_LENGTH + CLIP_MARGIN ? text.slice(0, MAX_STRING_LENGTH + CLIP_MARGIN) : text;
+  const redacted = redactSecrets(head);
+  return redacted.length > MAX_STRING_LENGTH || head.length < text.length
     ? `${redacted.slice(0, MAX_STRING_LENGTH)}...[truncated]`
     : redacted;
 }
@@ -71,6 +77,21 @@ function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknow
   seen.add(obj);
   try {
     if (obj instanceof Error) return clip(`${obj.name}: ${obj.message}`);
+    if (obj instanceof Date) return Number.isNaN(obj.getTime()) ? "Invalid Date" : obj.toISOString();
+    if (obj instanceof Set) {
+      const items: unknown[] = [];
+      obj.forEach((v) => {
+        if (items.length < MAX_ARRAY_ITEMS) items.push(v);
+      });
+      return items.map((v) => safeValue(v, depth + 1, seen));
+    }
+    if (obj instanceof Map) {
+      const items: unknown[] = [];
+      obj.forEach((v, k) => {
+        if (items.length < MAX_ARRAY_ITEMS) items.push([k, v]);
+      });
+      return items.map((v) => safeValue(v, depth + 1, seen));
+    }
     if (Array.isArray(obj)) {
       return obj.slice(0, MAX_ARRAY_ITEMS).map((v) => safeValue(v, depth + 1, seen));
     }
@@ -93,16 +114,28 @@ function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknow
 }
 
 // 標準のError/プロトタイプ由来で個別に出すもの、または出さないもの
-const HANDLED_KEYS = new Set(["name", "message", "stack", "cause", "code", "meta", "status", "statusCode"]);
+const HANDLED_KEYS = new Set(["issues", "name", "message", "stack", "cause", "code", "meta", "status", "statusCode"]);
 
-function describeError(error: Error, depth: number, seen: Set<unknown>): Record<string, unknown> {
+export type ErrorFieldsOptions = {
+  /** falseならstack_traceを出さない（400/401/403/404/409等の想定内エラー向け）。 */
+  stack?: boolean;
+};
+
+function describeError(error: Error, depth: number, seen: Set<unknown>, opts: ErrorFieldsOptions): Record<string, unknown> {
   seen.add(error);
   const fields: Record<string, unknown> = { errorName: error.name };
   const rec = error as unknown as Record<string, unknown>;
   const code = rec.code;
   if (typeof code === "string" || typeof code === "number") fields.errorCode = code;
-  fields.errorMessage = clip(error.message);
-  if (typeof error.stack === "string") fields.stack_trace = clip(error.stack);
+  const isZod = error.name === "ZodError";
+  if (isZod) {
+    // ZodErrorのmessageはissues全件のJSON。要約のみ出し、issuesは呼び出し側(api-errors)がpath/code/messageだけ出す。
+    const issues = (error as { issues?: unknown }).issues;
+    fields.errorMessage = `${Array.isArray(issues) ? issues.length : 0} validation issue(s)`;
+  } else {
+    fields.errorMessage = clip(error.message);
+    if (opts.stack !== false && typeof error.stack === "string") fields.stack_trace = clip(error.stack);
+  }
   if (rec.meta !== undefined) fields.meta = safeValue(rec.meta, 0, new WeakSet());
   if (typeof rec.status === "number") fields.status = rec.status;
   if (typeof rec.statusCode === "number") fields.statusCode = rec.statusCode;
@@ -125,7 +158,7 @@ function describeError(error: Error, depth: number, seen: Set<unknown>): Record<
     if (depth >= MAX_CAUSE_DEPTH) {
       fields.cause = "[max-cause-depth]";
     } else if (cause instanceof Error) {
-      fields.cause = seen.has(cause) ? "[circular]" : describeError(cause, depth + 1, seen);
+      fields.cause = seen.has(cause) ? "[circular]" : describeError(cause, depth + 1, seen, opts);
     } else {
       fields.cause = safeValue(cause, 0, new WeakSet());
     }
@@ -138,9 +171,14 @@ function describeError(error: Error, depth: number, seen: Set<unknown>): Record<
  * name/code/message/stack(`stack_trace`: Error Reportingが解釈)/cause連鎖/Prisma meta/status/追加プロパティを出す。
  * 個人情報・DB値を含みうる。資格情報のみ`redactSecrets`で伏字にする。
  */
-export function errorFields(error: unknown): Record<string, unknown> {
-  if (error instanceof Error) return describeError(error, 0, new Set());
-  return { errorName: typeof error, errorValue: safeValue(error, 0, new WeakSet()) };
+export function errorFields(error: unknown, opts: ErrorFieldsOptions = {}): Record<string, unknown> {
+  // getter/Proxyが例外を投げても、呼び出し元（エラーハンドラ）を壊さない。
+  try {
+    if (error instanceof Error) return describeError(error, 0, new Set(), opts);
+    return { errorName: typeof error, errorValue: safeValue(error, 0, new WeakSet()) };
+  } catch {
+    return { errorName: "unknown", logError: "errorFields failed" };
+  }
 }
 
 function emit(severity: LogSeverity, line: string): void {

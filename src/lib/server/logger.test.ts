@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { z } from "zod";
+
 import { errorFields, logger, MAX_LINE_BYTES } from "./logger";
 
 describe("logger", () => {
@@ -187,6 +189,100 @@ describe("logger", () => {
     it("書き込み自体が失敗しても例外を出さない", () => {
       vi.spyOn(process.stdout, "write").mockImplementation(() => { throw new Error("EPIPE"); });
       expect(() => logger.info("x")).not.toThrow();
+    });
+  });
+
+  describe("ReDoS耐性と堅牢性", () => {
+    const sizes = [100_000, 200_000];
+    const patterns: Array<[string, string]> = [
+      ["a-", "a-"],
+      ["a.", "a."],
+      ["password-", "password-"],
+      ["Bearer ", "Bearer "],
+      ["a:/", "a:/"],
+      ["://", "://"],
+      ["token=", "token="],
+      ["key-name-like", "my-api-key-name_"],
+      ["Authorization ", "Authorization "],
+      ["cookie:", "cookie:"],
+    ];
+    for (const [label, unit] of patterns) {
+      it(`${label} の繰り返し(100KB/200KB)を1秒以内に処理する`, () => {
+        for (const size of sizes) {
+          const input = unit.repeat(Math.ceil(size / unit.length));
+          const start = performance.now();
+          const f = errorFields(Object.assign(new Error(input), { cause: new Error(input), extra: input, meta: { v: input } }));
+          expect(performance.now() - start).toBeLessThan(1000);
+          expect(String(f.errorMessage).length).toBeLessThanOrEqual(8192 + "...[truncated]".length);
+        }
+      });
+    }
+
+    it("stack_trace・cause・meta・errorProps・errorValueの全文字列経路が上限で切られる", () => {
+      const big = "a-".repeat(100_000);
+      const e = Object.assign(new Error("x"), { extra: big, meta: { v: big }, cause: new Error(big) });
+      e.stack = big;
+      const f = errorFields(e);
+      const max = 8192 + "...[truncated]".length;
+      expect(String(f.stack_trace).length).toBeLessThanOrEqual(max);
+      expect(String((f.errorProps as Record<string, unknown>).extra).length).toBeLessThanOrEqual(max);
+      expect(String((f.meta as Record<string, unknown>).v).length).toBeLessThanOrEqual(max);
+      expect(String(cause(f).errorMessage).length).toBeLessThanOrEqual(max);
+      expect(String(errorFields(big).errorValue).length).toBeLessThanOrEqual(max);
+    });
+
+    it("切り詰め境界をまたぐ秘密値の断片を残さない", () => {
+      const f = errorFields(new Error(`${"a ".repeat(4090)}password=${"S".repeat(300)}`));
+      expect(String(f.errorMessage)).not.toContain("SSSS");
+    });
+
+    it("errorFieldsはgetter/Proxyが例外を投げても例外を伝播しない", () => {
+      const e = new Error("x");
+      Object.defineProperty(e, "message", { get() { throw new Error("boom"); } });
+      expect(errorFields(e)).toEqual({ errorName: "unknown", logError: "errorFields failed" });
+      const proxy = new Proxy({}, { ownKeys() { throw new Error("boom"); } });
+      expect(errorFields(proxy)).toEqual({ errorName: "unknown", logError: "errorFields failed" });
+    });
+
+    it("Date/Map/Setを意味のある値にする（上限付き）", () => {
+      const f = errorFields({
+        d: new Date("2026-01-02T03:04:05.000Z"),
+        bad: new Date("x"),
+        s: new Set([1, 2]),
+        m: new Map([["k", "v"]]),
+        bigSet: new Set(Array.from({ length: 100 }, (_, i) => i)),
+      });
+      const v = f.errorValue as Record<string, unknown>;
+      expect(v.d).toBe("2026-01-02T03:04:05.000Z");
+      expect(v.bad).toBe("Invalid Date");
+      expect(v.s).toEqual([1, 2]);
+      expect(v.m).toEqual([["k", "v"]]);
+      expect((v.bigSet as unknown[]).length).toBe(20);
+    });
+
+    it("stack:falseならstack_traceを出さない（causeも）", () => {
+      const f = errorFields(Object.assign(new Error("a"), { cause: new Error("b") }), { stack: false });
+      expect(f.stack_trace).toBeUndefined();
+      expect(f.errorMessage).toBe("a");
+      expect(cause(f).stack_trace).toBeUndefined();
+    });
+
+    it("ZodErrorはerrorMessageを要約し、stack_traceとissuesの重複を出さない", () => {
+      const err = z.object({ a: z.string(), b: z.number() }).safeParse({}).error!;
+      const f = errorFields(err);
+      expect(f.errorMessage).toBe("2 validation issue(s)");
+      expect(f.stack_trace).toBeUndefined();
+      expect(JSON.stringify(f)).not.toContain("invalid_type");
+    });
+
+    it("マルチバイトの巨大message/causeでも1行が上限バイトを超えない", () => {
+      const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const jp = "日本語😀".repeat(50_000);
+      logger.error("jp", errorFields(Object.assign(new Error(jp), { cause: new Error(jp, { cause: new Error(jp) }) })));
+      const line = String(spy.mock.calls[0][0]);
+      expect(Buffer.byteLength(line)).toBeLessThanOrEqual(MAX_LINE_BYTES + 1);
+      expect(() => JSON.parse(line)).not.toThrow();
+      spy.mockRestore();
     });
   });
 });

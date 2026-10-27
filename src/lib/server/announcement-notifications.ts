@@ -102,6 +102,8 @@ async function sendAndLog(
     const isNotConfigured = error instanceof MailerNotConfiguredError;
     if (!isNotConfigured) {
       // 宛先メールアドレスはfieldsに入れない（#162の意図）。エラー情報はerrorFieldsで全量出力する。
+      // 注意: SMTPエラー文に宛先が含まれる場合、errorMessage/stack_trace/errorPropsを通じて宛先メールがログに出うる
+      // （「Cloud Loggingには全情報」方針どおり。閲覧権限・保持期間で管理する。runbook §3.5参照）。
       logger.error("[announcement-notifications] Failed to send mail", {
         kind,
         announcementId: announcement.id,
