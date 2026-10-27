@@ -27,7 +27,9 @@
 
 モジュール側の追加: `cloudrun` に `cpu_idle=true` を明示、`ignore_changes` に `build_config`（`--source` デプロイのビルド情報）と service 単位 `scaling` を追加。`cloudsql` に `settings[0].enable_dataplex_integration` の `ignore_changes` を追加。いずれも新規構築の挙動は変わらない。
 
-## 自社現行用 tfvars（`infra/envs/dev/current.tfvars`。git 管理外、非機密のみ）
+## 自社現行用 tfvars（`infra/envs/dev/current.tfvars`。git 管理対象、非機密のみ。機密値・パスワードは書かない）
+
+以下は取り込み当初の値。段階4a/4b 適用後の現在値は実ファイルを参照する（`db_ssl_mode=ENCRYPTED_ONLY`、`db_backup_enabled=true`、`db_deletion_protection_enabled=true`、`enable_migrate_job=true`）。
 
 ```hcl
 project_id  = "rvp-ai-proto-camp"
@@ -212,4 +214,4 @@ enable_google_login = false
 - 旧 secret version の無効化: `anthropic-api-key-suenaga-daiso-portal` 等、今回触らなかった secret に旧 version がある場合のみ。ローテーション対象の2 secret は、`rotate-secrets.sh` を再実行した場合に古い version が残るので、`gcloud secrets versions disable <version> --secret <name> --project rvp-ai-proto-camp` で最新以外を無効化する。
   - 実行者: **ユーザー**。戻し方: `gcloud secrets versions enable`。
 - state の旧世代: GCS state バケットの旧世代（import 直後の旧値入り）は、バージョニングのライフサイクル（新しい世代30件超で削除）に任せるか、`gcloud storage rm --all-versions` で該当 object の旧世代を手動削除する（現行 state は消さないこと）。
-- 作業用ファイル（`$SCRATCH/*.tfplan`、`plan.txt`、`current.tfvars`）は削除する。tfstate / tfvars は `infra/.gitignore` で除外済み。
+- 作業用ファイル（`$SCRATCH/*.tfplan`、`plan.txt`）は削除する。tfstate は `infra/.gitignore` で除外済み。`current.tfvars` は非機密のためコミット対象（他の `*.tfvars` は除外）。

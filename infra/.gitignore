@@ -4,3 +4,5 @@
 *.tfvars
 !*.tfvars.example
 crash.log
+# 自社現行環境用の非機密 tfvars はコミットする（機密値は含めない）
+!envs/dev/current.tfvars
