@@ -31,4 +31,23 @@ describe("formatTemplate", () => {
       "Select Daiso Thailand"
     );
   });
+
+  it("値に含まれる置換特殊パターン($& $$ $1 $' $`)をそのまま出力する", () => {
+    for (const name of ["A$&B", "A$$B", "A$1B", "A$'B", "A$`B"]) {
+      expect(formatTemplate("Hi {name}!", { name })).toBe(`Hi ${name}!`);
+    }
+  });
+
+  it("値に波括弧やHTMLを含んでも解釈せずそのまま出力する", () => {
+    expect(
+      formatTemplate("{name} / {count}", {
+        name: "{x}<b>y</b>}{",
+        count: 2,
+      })
+    ).toBe("{x}<b>y</b>}{ / 2");
+  });
+
+  it("特殊パターンを含む値でも同じキーの複数出現を全て置き換える", () => {
+    expect(formatTemplate("{n}-{n}", { n: "$&" })).toBe("$&-$&");
+  });
 });

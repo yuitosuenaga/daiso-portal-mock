@@ -9,7 +9,7 @@ export function formatTemplate(
   values: Record<string, string | number>
 ): string {
   return Object.entries(values).reduce(
-    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    (result, [key, value]) => result.replaceAll(`{${key}}`, () => String(value)),
     template
   );
 }
