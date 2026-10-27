@@ -136,6 +136,7 @@ describe("authorizeHelpdeskCredentials", () => {
       passwordHash: null,
       displayName: "Google 太郎",
       createdAt: new Date(),
+      isActive: true,
     } as never);
     const spy = vi.spyOn(bcrypt, "compare");
     const result = await authorizeHelpdeskCredentials("google@example.com", "x");
@@ -153,6 +154,7 @@ describe("authorizeHelpdeskCredentials", () => {
       passwordHash,
       displayName: "田中 太郎",
       createdAt: new Date(),
+      isActive: true,
     } as never);
 
     const result = await authorizeHelpdeskCredentials(
@@ -176,12 +178,29 @@ describe("authorizeHelpdeskCredentials", () => {
       passwordHash,
       displayName: "田中 太郎",
       createdAt: new Date(),
+      isActive: true,
     } as never);
 
     const result = await authorizeHelpdeskCredentials(
       "staff@example.com",
       "wrong-password"
     );
+
+    expect(result).toBeNull();
+  });
+
+  it("無効化された担当者は、パスワードが正しくてもnullを返す", async () => {
+    const passwordHash = await bcrypt.hash("password1234", 10);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({
+      id: "staff-1",
+      email: "staff@example.com",
+      passwordHash,
+      displayName: "田中 太郎",
+      createdAt: new Date(),
+      isActive: false,
+    } as never);
+
+    const result = await authorizeHelpdeskCredentials("staff@example.com", "password1234");
 
     expect(result).toBeNull();
   });

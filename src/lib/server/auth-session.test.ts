@@ -95,22 +95,33 @@ describe("requireHelpdeskAdminSession / isHelpdeskAdmin", () => {
 
   it("adminスタッフのとき、クレームを返す", async () => {
     vi.mocked(getSession).mockResolvedValue(staffSession as never);
-    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin" } as never);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin", isActive: true } as never);
 
     const result = await requireHelpdeskAdminSession();
 
     expect(result.claims.staffId).toBe("staff-1");
     expect(prisma.helpdeskStaff.findUnique).toHaveBeenCalledWith({
       where: { id: "staff-1" },
-      select: { role: true },
+      select: { isActive: true, role: true },
     });
   });
 
   it("memberスタッフのとき、ForbiddenSessionErrorを送出する", async () => {
     vi.mocked(getSession).mockResolvedValue(staffSession as never);
-    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "member" } as never);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "member", isActive: true } as never);
 
     await expect(requireHelpdeskAdminSession()).rejects.toBeInstanceOf(ForbiddenSessionError);
+  });
+
+  it("無効化されたadminのとき、拒否する", async () => {
+    vi.mocked(getSession).mockResolvedValue(staffSession as never);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({
+      role: "admin",
+      isActive: false,
+    } as never);
+
+    await expect(requireHelpdeskAdminSession()).rejects.toBeInstanceOf(ForbiddenSessionError);
+    expect(await isHelpdeskAdmin()).toBe(false);
   });
 
   it("ForbiddenSessionErrorはUnauthorizedSessionErrorを継承する", () => {
@@ -141,14 +152,14 @@ describe("requireHelpdeskAdminSession / isHelpdeskAdmin", () => {
 
   it("isHelpdeskAdmin: adminならtrue", async () => {
     vi.mocked(getSession).mockResolvedValue(staffSession as never);
-    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin" } as never);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin", isActive: true } as never);
 
     expect(await isHelpdeskAdmin()).toBe(true);
   });
 
   it("isHelpdeskAdmin: memberならfalse", async () => {
     vi.mocked(getSession).mockResolvedValue(staffSession as never);
-    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "member" } as never);
+    vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "member", isActive: true } as never);
 
     expect(await isHelpdeskAdmin()).toBe(false);
   });

@@ -96,7 +96,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
   // 既定はadminスタッフ（書き込み系の既存テストはadminで実行する）。
-  vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin" } as never);
+  vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({ role: "admin", isActive: true } as never);
 });
 
 describe("listApplicantUsersByCompany", () => {

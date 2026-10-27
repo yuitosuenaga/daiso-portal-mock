@@ -94,6 +94,8 @@ export async function authorizeGoogleLogin(input: {
         if (!staff) throw e;
       }
     }
+    // 無効化済みスタッフは再作成・再有効化せず拒否する
+    if (!staff.isActive) return { ok: false, error: "account_inactive" };
     return {
       ok: true,
       user: {

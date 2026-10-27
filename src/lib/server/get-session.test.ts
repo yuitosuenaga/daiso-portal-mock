@@ -7,6 +7,7 @@ vi.mock("@/auth", () => ({
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     applicantUser: { findUnique: vi.fn() },
+    helpdeskStaff: { findUnique: vi.fn() },
   },
 }));
 
@@ -24,16 +25,44 @@ describe("getSession", () => {
     expect(prisma.applicantUser.findUnique).not.toHaveBeenCalled();
   });
 
-  it("ヘルプデスクセッションのとき、isActiveの再照会を行わずそのまま返す", async () => {
+  describe("ヘルプデスクセッション", () => {
     const session = {
       claims: { id: "staff-1", role: "helpdesk", staffId: "staff-1", displayName: "田中" },
     };
-    vi.mocked(auth).mockResolvedValue(session as never);
 
-    const result = await getSession();
+    it("スタッフが有効なとき、セッションをそのまま返す", async () => {
+      vi.mocked(auth).mockResolvedValue(session as never);
+      vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({
+        isActive: true,
+        role: "member",
+      } as never);
 
-    expect(result).toEqual(session);
-    expect(prisma.applicantUser.findUnique).not.toHaveBeenCalled();
+      const result = await getSession();
+
+      expect(result).toEqual(session);
+      expect(prisma.helpdeskStaff.findUnique).toHaveBeenCalledWith({
+        where: { id: "staff-1" },
+        select: { isActive: true, role: true },
+      });
+      expect(prisma.applicantUser.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("スタッフが無効化されているとき、claimsをnullにする", async () => {
+      vi.mocked(auth).mockResolvedValue(session as never);
+      vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue({
+        isActive: false,
+        role: "member",
+      } as never);
+
+      expect(await getSession()).toEqual({ ...session, claims: null });
+    });
+
+    it("スタッフ行が存在しないとき、claimsをnullにする", async () => {
+      vi.mocked(auth).mockResolvedValue(session as never);
+      vi.mocked(prisma.helpdeskStaff.findUnique).mockResolvedValue(null);
+
+      expect(await getSession()).toEqual({ ...session, claims: null });
+    });
   });
 
   it("申請者セッションでApplicantUserが有効なとき、セッションをそのまま返す", async () => {

@@ -28,7 +28,12 @@ const hd = {
   name: "  田中 太郎 ",
   autoProvisionDomains: ["example.com"],
 };
-const staffRow = { id: "s1", email: "taro@example.com", displayName: "担当者" };
+const staffRow = {
+  id: "s1",
+  email: "taro@example.com",
+  displayName: "担当者",
+  isActive: true,
+};
 const staffUser = {
   id: "s1",
   role: "helpdesk",
@@ -118,6 +123,7 @@ describe("authorizeGoogleLogin", () => {
       id: "s1",
       email: "taro@example.com",
       displayName: "担当者",
+      isActive: true,
     } as never);
     const result = await authorizeGoogleLogin({ ...base, portal: "helpdesk" });
     expect(result).toEqual({
@@ -239,6 +245,30 @@ describe("authorizeGoogleLogin", () => {
       const err = p2002();
       vi.mocked(prisma.helpdeskStaff.create).mockRejectedValue(err);
       await expect(authorizeGoogleLogin(hd)).rejects.toBe(err);
+    });
+
+    it("無効化済みの既存スタッフはaccount_inactiveで拒否し、再作成しない", async () => {
+      vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue({
+        ...staffRow,
+        isActive: false,
+      } as never);
+      expect(await authorizeGoogleLogin(hd)).toEqual({
+        ok: false,
+        error: "account_inactive",
+      });
+      expect(prisma.helpdeskStaff.create).not.toHaveBeenCalled();
+    });
+
+    it("P2002後に取り直したスタッフが無効ならaccount_inactiveで拒否する", async () => {
+      vi.mocked(prisma.helpdeskStaff.findFirst)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...staffRow, isActive: false } as never);
+      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.helpdeskStaff.create).mockRejectedValue(p2002());
+      expect(await authorizeGoogleLogin(hd)).toEqual({
+        ok: false,
+        error: "account_inactive",
+      });
     });
 
     it("P2002以外のエラーは再送出する", async () => {

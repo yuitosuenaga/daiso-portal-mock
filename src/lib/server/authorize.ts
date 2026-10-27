@@ -83,6 +83,12 @@ export async function authorizeHelpdeskCredentials(
     return null;
   }
 
+  // 無効化されたスタッフのログインを拒否する。申請者側と同様、パスワード誤りと
+  // 区別できないようnullを返す。
+  if (!staff.isActive) {
+    return null;
+  }
+
   return {
     id: staff.id,
     role: "helpdesk",

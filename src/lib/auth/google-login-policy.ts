@@ -114,8 +114,8 @@ export function checkGoogleProfile(
 
 /**
  * プロフィール検査＋DBアカウントの存在・有効性を合わせた最終判定。
- * `account`はDBから取得した対応アカウント（無ければnull）。HelpdeskStaffは
- * 無効化の概念が無いため`isActive`を持たない（未指定は有効扱い）。
+ * `account`はDBから取得した対応アカウント（無ければnull）。`isActive`未指定は有効扱い。
+ * なおHelpdeskStaffの無効化判定は`authorizeGoogleLogin`側で行う（この関数は申請者用）。
  */
 export function decideGoogleLogin(
   input: GoogleLoginInput & { account: { isActive?: boolean } | null }

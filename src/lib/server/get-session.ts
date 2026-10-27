@@ -2,6 +2,7 @@ import "server-only";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
+import { getStaffAccess } from "@/lib/server/staff-access";
 import type { Session } from "next-auth";
 
 /**
@@ -13,8 +14,8 @@ import type { Session } from "next-auth";
  * 続けてしまう。そのため申請者セッションについては、セッション参照の都度
  * `isActive`をDBへ再照会し、無効化されていれば`claims`を`null`として扱うことで
  * 以後のアクセスを遮断する（セキュリティ上のセッション即時失効対応）。
- * `HelpdeskStaff`には現時点で`isActive`相当のフィールドが存在しないため、
- * ヘルプデスクセッションはこの再照会の対象外とする。
+ * ヘルプデスクセッションも同様に`HelpdeskStaff.isActive`を再照会し、無効化済み・
+ * 削除済み（行なし）のスタッフは`claims`を`null`として扱う。
  */
 export async function getSession(): Promise<Session | null> {
   const session = await auth();
@@ -26,6 +27,14 @@ export async function getSession(): Promise<Session | null> {
     });
 
     if (!applicantUser?.isActive) {
+      return { ...session, claims: null };
+    }
+  }
+
+  if (session?.claims?.role === "helpdesk") {
+    const staff = await getStaffAccess(session.claims.staffId);
+
+    if (!staff?.isActive) {
       return { ...session, claims: null };
     }
   }

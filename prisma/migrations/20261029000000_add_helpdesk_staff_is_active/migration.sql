@@ -1,0 +1,1 @@
+ALTER TABLE "HelpdeskStaff" ADD COLUMN "isActive" BOOLEAN NOT NULL DEFAULT true;
