@@ -21,7 +21,7 @@
 | Cloud SQL | `portal-mock-backend-db`(PostgreSQL 16、`db-f1-micro`、ZONAL)。自動バックアップ(PITR は無効)と削除保護は適用済み(段階4a)。TLS 必須化(`sslMode=ENCRYPTED_ONLY`)も適用済み(段階4b)で、適用後に Cloud Run の正常稼働を確認済み。確認コマンドと期待値は §5.6 |
 | Secret Manager | `portal-mock-database-url` / `portal-mock-auth-secret`(ローテーション対象)、`anthropic-api-key-suenaga-daiso-portal`(手動登録) |
 | Terraform state | GCS バケット `rvp-ai-proto-camp-portal-iac-tfstate`(prefix `dev`) |
-| Cloud Scheduler | 現行環境にはジョブなし。エスカレーションの定期実行は未稼働(アクセス時トリガーのみ) |
+| Cloud Scheduler | 現行環境にはジョブなし。エスカレーションの定期実行は未稼働(アクセス時トリガーのみ)。導入時の注意は「Scheduler の attempt_deadline」参照 |
 | Cloud SQL の起動 | 現行は手動で起動・停止している(`db-start` / `db-end`)。停止中は `portal-mock` も DB 接続エラーになる。クライアント環境で常時稼働にする場合、`db-end` は不要 |
 
 ---
@@ -330,6 +330,14 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 | TLS 必須化(`ENCRYPTED_ONLY`)に非対応の接続 | TLS 無しで接続するクライアントだけが接続エラーになる | 現行環境は適用済みで、Cloud Run(Cloud SQL コネクタ経由)は適用後も正常稼働を確認済み。ローカルからの接続は Cloud SQL Auth Proxy を使う。 |
 | 接続数の上限 | `too many connections` | `db-f1-micro` は接続数に余裕がない。インスタンスサイズの見直し、`max_instances` の見直し。 |
 | ディスク満杯 | Cloud SQL のメトリクス | 自動拡張は有効。上限や費用を確認する。 |
+| 接続プール枯渇(督促 cron で `P2024`) | cron が 500 を返し、ログに `PrismaClientKnownRequestError P2024` | `DATABASE_URL` の `connection_limit` を **1 にしてはならない(最低 2、推奨 3 以上)**。督促 cron(`/api/cron/announcement-escalation`)は同時実行防止の advisory lock のため、実行中に 1 接続をトランザクションで占有し、内側のクエリが別の接続を使う。未指定(既定)なら問題ない。 |
+
+#### 督促 cron(`/api/cron/announcement-escalation`)の処理時間と打ち切り
+
+- 送信は並列 5(`ESCALATION_SEND_CONCURRENCY`)、SMTP のタイムアウトは接続 10s・greeting 10s・socket 30s。処理の締切は 240s(トランザクション上限 290s − 余裕 50s)で、到達後は新規の送信を始めずに打ち切る。
+- 合計時間の見積り: `宛先数 × 1通の所要時間 ÷ 5`。1通 2 秒なら、240s で約 600 宛先。宛先数がこれを超える見込みのときは、1回で終わらず複数日に分けて処理される。
+- **打ち切りは翌日まで持ち越される**(Scheduler は 1 日 1 回で、打ち切りは 200 で返るため再試行されない)。打ち切り時はログに `Run aborted by deadline`(warn)と、レスポンスに `abortedByDeadline: true` が出る。検知はログベースのアラート(monitoring、infra 側の別 PR の範囲)で行う。
+- 宛先が極端に多い場合や SMTP 接続直後の初回は、先に `?dryRun=1` で対象件数(`notifiedRecipients`)を確認する。
 
 secret を更新した後に Cloud Run に反映するには、新しい revision を作る(`latest` は revision の起動時にのみ読まれる)。**テンプレートが変わらない更新(同一設定の再適用、ラベルのみの変更など)では、新 revision が作られない可能性がある(未検証)。** 実行後は必ず `gcloud run revisions list` で新 revision ができたこと、`latestReadyRevisionName` が変わったことを確認する。
 
@@ -619,3 +627,11 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 | 新 revision を作る再デプロイ(現行イメージ指定の `gcloud run deploy`、`--update-env-vars`)で、実際に新 revision ができること | §3.3 |
 | `terraform force-unlock` の運用(ロック残存時の判断と実行) | §5.3 |
 | `00030` / `00031` へ戻した場合の挙動(旧値の無効化による接続失敗は想定であり、実機では試していない) | §1.7 |
+
+## Scheduler の attempt_deadline
+
+督促 cron 用 Scheduler ジョブは `retry_count = 1`。HTTP ターゲットの `attempt_deadline` 既定は 180s(許容 15s〜30m)で、超えると Scheduler 側で DEADLINE_EXCEEDED の失敗扱いになり再試行(2回目の POST)が飛ぶ。2回目は advisory lock で skippedByLock の 200 になり二重送信はしないが、失敗アラートの誤検知になる。
+
+- `modules/scheduler` の `attempt_deadline`(既定 `300s`)を、envs から `min(cloudrun_timeout_seconds, 1800)` で渡し Cloud Run timeout(300s)と揃えている。督促 cron の処理締切は 240s なので、通常は打切りに達せず 200 で返る
+- 処理が 240s で打切られた場合も 200 で返るため再試行されない(締切超過の失敗とは別経路)
+- `cloudrun_timeout_seconds` を変えると attempt_deadline も追従する(上限 1800s)

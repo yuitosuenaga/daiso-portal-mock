@@ -36,9 +36,9 @@ export function hashIdentifier(email: string): string {
 }
 
 /** リクエストヘッダからクライアントIPの匿名化概要を得る。ヘッダが取れない場合は"unknown"。 */
-export function getClientIpSummary(): string {
+export async function getClientIpSummary(): Promise<string> {
   try {
-    const h = headers();
+    const h = await headers();
     return summarizeIp(h.get("x-forwarded-for") ?? h.get("x-real-ip"));
   } catch {
     return "unknown";
@@ -59,7 +59,7 @@ export interface AuthEventInput {
  * 妨げないよう、例外は握りつぶして標準エラーへ出す。メールアドレス・パスワードは渡さない。
  */
 export async function recordAuthEvent(input: AuthEventInput): Promise<void> {
-  const ipSummary = getClientIpSummary();
+  const ipSummary = await getClientIpSummary();
   const entry = {
     type: input.type,
     method: input.method,

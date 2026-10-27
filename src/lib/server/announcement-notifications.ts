@@ -65,6 +65,9 @@ function resolveUiLocale(preferredLocale: string): string {
     : "en";
 }
 
+/** 宛先1件の送信結果。`AnnouncementNotificationLog.status`と同値。 */
+export type SendOutcome = "sent" | "skipped" | "failed";
+
 interface NotificationRecipient {
   email: string;
   preferredLocale: string;
@@ -79,7 +82,7 @@ async function sendAndLog(
   announcement: Announcement,
   kind: "publish" | "reminder" | "target_added" | "escalation" | "read_reminder",
   recipient: NotificationRecipient
-): Promise<void> {
+): Promise<SendOutcome> {
   const { title, body } = resolveAnnouncementContent(announcement, recipient.preferredLocale);
   const uiLocale = resolveUiLocale(recipient.preferredLocale);
   const detailUrl = `${resolveAppBaseUrl()}/${uiLocale}${ANNOUNCEMENT_DETAIL_PATH_PREFIX}/${announcement.id}`;
@@ -95,6 +98,41 @@ async function sendAndLog(
       subject,
       text: bodyLines.join("\n"),
     });
+  } catch (error) {
+    const isNotConfigured = error instanceof MailerNotConfiguredError;
+    if (!isNotConfigured) {
+      // 宛先メールアドレスはfieldsに入れない（#162の意図）。エラー情報はerrorFieldsで全量出力する。
+      logger.error("[announcement-notifications] Failed to send mail", {
+        kind,
+        announcementId: announcement.id,
+        ...errorFields(error),
+      });
+    }
+    // 失敗ログの書込み自体が失敗しても例外は伝播させず、送信結果だけを返す。
+    try {
+      await prisma.announcementNotificationLog.create({
+        data: {
+          announcementId: announcement.id,
+          kind,
+          recipientEmail: recipient.email,
+          locale: recipient.preferredLocale,
+          status: isNotConfigured ? "skipped" : "failed",
+          errorMessage: isNotConfigured ? null : (error as Error).message,
+        },
+      });
+    } catch (logError) {
+      logger.error("[announcement-notifications] Failed to write notification log", {
+        kind,
+        announcementId: announcement.id,
+        ...errorFields(logError),
+      });
+    }
+    return isNotConfigured ? "skipped" : "failed";
+  }
+
+  // メールは送信済み。ログ書込みの失敗で`failed`扱いにすると再送・未打刻を招くため、
+  // `sent`を返して警告ログのみ残す。
+  try {
     await prisma.announcementNotificationLog.create({
       data: {
         announcementId: announcement.id,
@@ -104,26 +142,14 @@ async function sendAndLog(
         status: "sent",
       },
     });
-  } catch (error) {
-    const isNotConfigured = error instanceof MailerNotConfiguredError;
-    if (!isNotConfigured) {
-      logger.error("[announcement-notifications] Failed to send mail", {
-        kind,
-        announcementId: announcement.id,
-        ...errorFields(error),
-      });
-    }
-    await prisma.announcementNotificationLog.create({
-      data: {
-        announcementId: announcement.id,
-        kind,
-        recipientEmail: recipient.email,
-        locale: recipient.preferredLocale,
-        status: isNotConfigured ? "skipped" : "failed",
-        errorMessage: isNotConfigured ? null : (error as Error).message,
-      },
+  } catch (logError) {
+    logger.warn("[announcement-notifications] Mail sent but failed to write notification log", {
+      kind,
+      announcementId: announcement.id,
+      ...errorFields(logError),
     });
   }
+  return "sent";
 }
 
 /**
@@ -233,6 +259,26 @@ export async function notifyAnnouncementUserReadReminder(
   );
 }
 
+/** `notifyAnnouncementEscalation`の送信結果サマリ（宛先のPII以外は件数のみ）。 */
+export interface EscalationSendSummary {
+  /** 実際に送信に成功した宛先メール（呼び出し元が会社単位の打刻判定にのみ使う。ログ・レスポンスへ出さない）。 */
+  sentEmails: string[];
+  /** SMTP未設定により送信しなかった件数。 */
+  skipped: number;
+  /** 送信に失敗した件数。 */
+  failed: number;
+  /** 締切（`deadlineAt`）到達により、未送信の宛先を残して打ち切った場合のみtrue。 */
+  deadlineReached?: boolean;
+}
+
+/** 督促メールの並列送信数の上限。SMTPサーバーへの同時接続と処理時間の見積りを有界にする。 */
+export const ESCALATION_SEND_CONCURRENCY = 5;
+
+export interface EscalationNotifyOptions {
+  /** この時刻（`Date.now()`基準のミリ秒）以降は新規の送信を開始しない。 */
+  deadlineAt?: number;
+}
+
 /**
  * 対応期限超過の自動エスカレーション（要件38）により、指定した会社コードに属する
  * `ApplicantUser`のうち、当日まだ督促（`escalation`/手動`reminder`）を受け取っていない
@@ -244,15 +290,17 @@ export async function notifyAnnouncementUserReadReminder(
 export async function notifyAnnouncementEscalation(
   announcementId: string,
   companyCodes: string[],
-  alreadyNotifiedEmails: ReadonlySet<string>
-): Promise<void> {
+  alreadyNotifiedEmails: ReadonlySet<string>,
+  options: EscalationNotifyOptions = {}
+): Promise<EscalationSendSummary> {
+  const summary: EscalationSendSummary = { sentEmails: [], skipped: 0, failed: 0 };
   if (companyCodes.length === 0) {
-    return;
+    return summary;
   }
 
   const announcement = await findAnnouncementForNotification(announcementId);
   if (!announcement) {
-    return;
+    return summary;
   }
 
   const recipients = await prisma.applicantUser.findMany({
@@ -267,5 +315,44 @@ export async function notifyAnnouncementEscalation(
 
   const targets = recipients.filter((recipient) => !alreadyNotifiedEmails.has(recipient.email));
 
-  await Promise.all(targets.map((recipient) => sendAndLog(announcement, "escalation", recipient)));
+  // 並列数を`ESCALATION_SEND_CONCURRENCY`に制限したワーカープールで送信する（督促経路のみ。
+  // 他の通知経路は従来どおり）。締切到達後は新規の送信を開始しない。
+  const outcomes: { email: string; outcome: SendOutcome }[] = [];
+  let nextIndex = 0;
+  const worker = async (): Promise<void> => {
+    while (nextIndex < targets.length) {
+      if (options.deadlineAt !== undefined && Date.now() >= options.deadlineAt) {
+        summary.deadlineReached = true;
+        return;
+      }
+      const recipient = targets[nextIndex];
+      nextIndex += 1;
+      let outcome: SendOutcome;
+      try {
+        outcome = await sendAndLog(announcement, "escalation", recipient);
+      } catch (error) {
+        // sendAndLogは通常throwしないが、想定外でもworkerを落とさず（完了済みの結果を捨てず、
+        // 他workerの継続による同時送信数超過も防ぐ）failedとして集計する。
+        logger.error("[announcement-notifications] Unexpected escalation send error", {
+          announcementId: announcement.id,
+          ...errorFields(error),
+        });
+        outcome = "failed";
+      }
+      outcomes.push({ email: recipient.email, outcome });
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(ESCALATION_SEND_CONCURRENCY, targets.length) }, worker)
+  );
+  for (const { email, outcome } of outcomes) {
+    if (outcome === "sent") {
+      summary.sentEmails.push(email);
+    } else if (outcome === "skipped") {
+      summary.skipped += 1;
+    } else {
+      summary.failed += 1;
+    }
+  }
+  return summary;
 }

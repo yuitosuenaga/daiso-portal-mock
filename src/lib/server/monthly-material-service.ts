@@ -17,9 +17,12 @@ import type {
 import { errorFields, logger } from "./logger";
 
 export class MonthlyMaterialNotFoundError extends Error {
+  readonly materialId: string;
+
   constructor(materialId: string) {
-    super(`MonthlyMaterial not found: ${materialId}`);
+    super("MonthlyMaterial not found");
     this.name = "MonthlyMaterialNotFoundError";
+    this.materialId = materialId;
   }
 }
 

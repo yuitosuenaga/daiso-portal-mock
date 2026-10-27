@@ -212,6 +212,8 @@ module "scheduler" {
   service_url = module.cloudrun.uri
   cron_secret = random_password.cron_secret[0].result
   schedule    = var.scheduler_schedule
+  # Cloud Run timeout と揃える（Scheduler HTTP ターゲットの上限 1800s で頭打ち）
+  attempt_deadline = "${min(var.cloudrun_timeout_seconds, 1800)}s"
 
   depends_on = [module.services]
 }

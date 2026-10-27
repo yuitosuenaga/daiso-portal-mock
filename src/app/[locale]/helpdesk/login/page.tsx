@@ -7,14 +7,12 @@ import { isGoogleLoginEnabled } from "@/lib/server/google-login-config";
 
 interface HelpdeskLoginPageProps {
   params: Promise<{ locale: string }>;
-  searchParams?: { googleError?: string | string[] };
+  searchParams?: Promise<{ googleError?: string | string[] }>;
 }
 
-export default async function HelpdeskLoginPage({
-  params,
-  searchParams,
-}: HelpdeskLoginPageProps) {
-  const { locale } = await params;
+export default async function HelpdeskLoginPage(props: HelpdeskLoginPageProps) {
+  const searchParams = await props.searchParams;
+  const { locale } = await props.params;
   const t = await getTranslations({ locale, namespace: "login" });
 
   return (

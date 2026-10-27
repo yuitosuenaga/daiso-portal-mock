@@ -5,14 +5,13 @@ import {
 } from "@/components/features/documents/DocumentList";
 
 interface DocumentCategoryPageProps {
-  params: {
+  params: Promise<{
     categoryId: string;
-  };
+  }>;
 }
 
-export default function DocumentCategoryPage({
-  params,
-}: DocumentCategoryPageProps) {
+export default async function DocumentCategoryPage(props: DocumentCategoryPageProps) {
+  const params = await props.params;
   return (
     <div className="w-full">
       <Suspense fallback={<DocumentListSkeleton />}>

@@ -5,6 +5,7 @@ import {
   getAnnouncementRecipientStatuses as getAnnouncementRecipientStatusesService,
   getAnnouncementSelfStatusForCompany as getAnnouncementSelfStatusForCompanyService,
   getAnnouncementSelfStatuses as getAnnouncementSelfStatusesService,
+  getAnnouncementTrackingStatusesBulk as getAnnouncementTrackingStatusesBulkService,
   getAnnouncementTrackingSummary as getAnnouncementTrackingSummaryService,
   getAnnouncementUserReadStatuses as getAnnouncementUserReadStatusesService,
   getUserConfirmers as getUserConfirmersService,
@@ -15,7 +16,7 @@ import {
   sendAnnouncementReminders as sendAnnouncementRemindersService,
   sendUserReadReminders as sendUserReadRemindersService,
 } from "@/lib/server/announcement-service";
-import type { Announcement } from "@/types/announcement";
+import type { Announcement, AnnouncementTargeting } from "@/types/announcement";
 import type {
   AnnouncementConfirmerView,
   AnnouncementRecipientStatusView,
@@ -35,6 +36,21 @@ export async function getAnnouncementRecipientStatuses(
   await requireHelpdeskStaffSession();
 
   return getAnnouncementRecipientStatusesService(announcementId);
+}
+
+/**
+ * 複数のお知らせ分の実施済み状況（会社単位）・確認済み状況（個人単位）を一括で返す。
+ * ヘルプデスク側お知らせ管理一覧が利用する（お知らせ1件ごとに取得するN+1を避ける）。
+ */
+export async function getAnnouncementTrackingStatusesBulk(
+  announcements: { id: string; targeting: AnnouncementTargeting }[]
+): Promise<{
+  recipientStatuses: Record<string, AnnouncementRecipientStatusView[]>;
+  userReadStatuses: Record<string, AnnouncementUserReadStatusView[]>;
+}> {
+  await requireHelpdeskStaffSession();
+
+  return getAnnouncementTrackingStatusesBulkService(announcements);
 }
 
 /**

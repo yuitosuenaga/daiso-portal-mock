@@ -21,9 +21,12 @@ import { errorFields, logger } from "./logger";
 export { resolveManualContent };
 
 export class ManualNotFoundError extends Error {
+  readonly manualId: string;
+
   constructor(manualId: string) {
-    super(`Manual not found: ${manualId}`);
+    super("Manual not found");
     this.name = "ManualNotFoundError";
+    this.manualId = manualId;
   }
 }
 

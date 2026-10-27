@@ -7,14 +7,13 @@ import { getFaqByIdForHelpdesk } from "@/lib/api/faqs";
 import { FAQ_CATEGORY_CODES } from "@/lib/constants/faq-options";
 
 type HelpdeskFaqEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskFaqEditPage({
-  params,
-}: HelpdeskFaqEditPageProps) {
+export default async function HelpdeskFaqEditPage(props: HelpdeskFaqEditPageProps) {
+  const params = await props.params;
   const [t, tListLabels, tCategories] = await Promise.all([
     getTranslations("helpdeskFaq.form"),
     getTranslations("helpdeskFaq.list"),

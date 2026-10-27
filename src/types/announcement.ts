@@ -87,6 +87,15 @@ export interface Announcement {
 }
 
 /**
+ * 一覧系（申請者のお知らせ一覧・ダッシュボード・ヘルプデスクのお知らせ管理）が扱う軽量なお知らせ。
+ * 添付ファイルは本体（`dataUrl`、Base64）を含まず、メタデータ（ID・名前・MIME・サイズ）のみ。
+ * 一覧では添付本体を使わないため、DBから読み込まないようにする目的の型（`Announcement`は代入可能）。
+ */
+export type AnnouncementSummary = Omit<Announcement, "attachments"> & {
+  attachments: Omit<AnnouncementAttachment, "dataUrl">[];
+};
+
+/**
  * お知らせ作成・編集時のAPI入力契約。
  * `Announcement` から `id`・`publishedAt`（保存時刻から採番）・`createdAt`・`updatedAt`（DB側で管理）を除いたサブセット。
  */

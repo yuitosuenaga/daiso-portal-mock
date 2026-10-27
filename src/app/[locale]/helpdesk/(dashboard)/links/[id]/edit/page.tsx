@@ -8,14 +8,13 @@ import { getAllLinkCategories } from "@/lib/api/link-categories";
 import { toLinkCategoryFormOptions } from "@/lib/link-category-utils";
 
 type HelpdeskLinkEditPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default async function HelpdeskLinkEditPage({
-  params,
-}: HelpdeskLinkEditPageProps) {
+export default async function HelpdeskLinkEditPage(props: HelpdeskLinkEditPageProps) {
+  const params = await props.params;
   const [t, tListLabels] = await Promise.all([
     getTranslations("helpdeskLinks.form"),
     getTranslations("helpdeskLinks.list"),

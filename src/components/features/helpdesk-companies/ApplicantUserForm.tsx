@@ -116,15 +116,23 @@ export function ApplicantUserForm({
   async function onSubmit(values: ApplicantUserFormValues) {
     setHasSubmitError(false);
     try {
-      if (mode === "edit" && applicantUserId) {
-        await updateApplicantUserAction(applicantUserId, values);
-      } else {
-        await createApplicantUserAction(companyId, {
-          email: values.email,
-          displayName: values.displayName,
-          password: values.password ?? "",
-          preferredLocale: values.preferredLocale,
-        });
+      const result =
+        mode === "edit" && applicantUserId
+          ? await updateApplicantUserAction(applicantUserId, values)
+          : await createApplicantUserAction(companyId, {
+              email: values.email,
+              displayName: values.displayName,
+              password: values.password ?? "",
+              preferredLocale: values.preferredLocale,
+            });
+      if (!result.ok) {
+        // 保存に失敗した場合も、パスワード入力欄の平文をフォーム上に残さない
+        // （要件5.9・タスク17: 重複エラー等の保存失敗時は他項目を保持しパスワード欄のみクリアする）。
+        resetField("password");
+        if (result.reason === "emailTaken") {
+          setError("email", { type: "duplicate", message: emailDuplicateMessage });
+        }
+        return;
       }
       // 保存操作の完了後、パスワード入力欄をフォーム・画面上に残さない（要件5.9）。
       reset({
@@ -134,14 +142,9 @@ export function ApplicantUserForm({
         preferredLocale: values.preferredLocale,
       });
       router.push(`/helpdesk/companies/${companyId}`);
-    } catch (error) {
-      // 保存に失敗した場合も、パスワード入力欄の平文をフォーム上に残さない
-      // （要件5.9・タスク17: 重複エラー等の保存失敗時は他項目を保持しパスワード欄のみクリアする）。
+    } catch {
+      // 想定外の失敗（ネットワーク断・サーバーエラー等）。パスワード欄の平文は残さない。
       resetField("password");
-      if (error instanceof Error && error.message.includes("Email already taken")) {
-        setError("email", { type: "duplicate", message: emailDuplicateMessage });
-        return;
-      }
       setHasSubmitError(true);
     }
   }

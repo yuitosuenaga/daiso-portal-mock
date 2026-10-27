@@ -251,7 +251,7 @@ export async function updateReplyTemplateAction(
   const parsed = replyTemplateFormSchema.parse(input);
   const existing = await getReplyTemplateById(id);
   if (!existing) {
-    throw new Error(`ReplyTemplate not found: ${id}`);
+    throw new Error("ReplyTemplate not found");
   }
 
   const sourceChanged = existing.name !== parsed.name || existing.body !== parsed.body;
@@ -280,7 +280,7 @@ export async function retranslateReplyTemplateAction(
 
   const template = await findReplyTemplateById(id);
   if (!template) {
-    throw new Error(`ReplyTemplate not found: ${id}`);
+    throw new Error("ReplyTemplate not found");
   }
 
   const existingLocales = new Set((template.translations ?? []).map((translation) => translation.locale));

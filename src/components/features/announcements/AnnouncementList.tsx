@@ -9,7 +9,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ANNOUNCEMENT_CATEGORY_CODES } from "@/lib/constants/announcement-options";
 import { AnnouncementListClient } from "@/components/features/announcements/AnnouncementListClient";
-import type { Announcement, AnnouncementCategory } from "@/types/announcement";
+import type { AnnouncementCategory, AnnouncementSummary } from "@/types/announcement";
 import type { AnnouncementSelfStatus } from "@/types/announcement-recipient";
 
 export async function AnnouncementList() {
@@ -25,7 +25,7 @@ export async function AnnouncementList() {
     </div>
   );
 
-  let announcements: Announcement[];
+  let announcements: AnnouncementSummary[];
   let companyCode: string;
   try {
     const { claims } = await requireApplicantSession();

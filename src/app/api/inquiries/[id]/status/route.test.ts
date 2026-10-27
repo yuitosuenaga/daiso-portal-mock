@@ -37,7 +37,7 @@ describe("POST /api/inquiries/[id]/status", () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
     const response = await POST(request({ status: "resolved" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(401);
@@ -47,7 +47,7 @@ describe("POST /api/inquiries/[id]/status", () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
     const response = await POST(request({ status: "unknown" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(response.status).toBe(400);
@@ -58,7 +58,7 @@ describe("POST /api/inquiries/[id]/status", () => {
     vi.mocked(updateStatus).mockResolvedValue({ id: "inquiry-1", status: "resolved" } as never);
 
     const response = await POST(request({ status: "resolved" }), {
-      params: { id: "inquiry-1" },
+      params: Promise.resolve({ id: "inquiry-1" }),
     });
 
     expect(updateStatus).toHaveBeenCalledWith("inquiry-1", "resolved");

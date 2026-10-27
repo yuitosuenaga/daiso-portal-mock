@@ -76,3 +76,11 @@ export interface DocumentCategorySaveResult {
   category: DocumentCategory;
   failedLocales: string[];
 }
+
+/**
+ * カテゴリ作成・更新Server Actionの戻り値。同一階層での名称重複は例外ではなく種別コードで返す
+ * （本番ではServer Actionの例外メッセージがクライアントへ届く前にマスクされるため）。
+ */
+export type DocumentCategorySaveOutcome =
+  | ({ ok: true } & DocumentCategorySaveResult)
+  | { ok: false; reason: "nameConflict" };

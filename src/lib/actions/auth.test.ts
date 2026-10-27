@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-auth", () => {
   class MockAuthError extends Error {}
@@ -8,6 +8,16 @@ vi.mock("@/auth", () => ({
   signIn: vi.fn(),
 }));
 
+const cookieSet = vi.fn();
+// cookies()はNext 15以降Promiseを返す。awaitして初めて`.set`が使えることを検証する
+vi.mock("next/headers", () => ({
+  cookies: () => Promise.resolve({ set: cookieSet }),
+}));
+const googleEnabled = vi.hoisted(() => ({ value: true }));
+vi.mock("@/lib/server/google-login-config", () => ({
+  isGoogleLoginEnabled: () => googleEnabled.value,
+}));
+
 vi.mock("@/lib/server/login-throttle", () => ({
   isLoginLocked: vi.fn().mockResolvedValue(false),
 }));
@@ -15,7 +25,11 @@ vi.mock("@/lib/server/login-throttle", () => ({
 import { isLoginLocked } from "@/lib/server/login-throttle";
 import { AuthError as MockAuthError } from "next-auth";
 import { signIn } from "@/auth";
-import { applicantLoginAction, helpdeskLoginAction } from "@/lib/actions/auth";
+import {
+  applicantLoginAction,
+  googleLoginAction,
+  helpdeskLoginAction,
+} from "@/lib/actions/auth";
 
 describe("applicantLoginAction", () => {
   it("有効な認証情報のとき、applicant-credentialsでsignInを呼び出しエラーを返さない", async () => {
@@ -122,5 +136,60 @@ describe("helpdeskLoginAction", () => {
     });
 
     expect(result).toEqual({ error: "invalid_credentials" });
+  });
+});
+
+describe("googleLoginAction", () => {
+  beforeEach(() => {
+    cookieSet.mockClear();
+    vi.mocked(signIn).mockReset();
+    vi.mocked(signIn).mockResolvedValue(undefined as never);
+    googleEnabled.value = true;
+  });
+
+  it("async cookies()経由で文脈cookieを元のオプションでsetし、googleのsignInを呼ぶ", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    await googleLoginAction({ portal: "helpdesk", locale: "en" });
+
+    expect(cookieSet).toHaveBeenCalledWith(
+      "portal_google_login_context",
+      "helpdesk:en",
+      {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,
+        path: "/",
+        maxAge: 600,
+      }
+    );
+    expect(signIn).toHaveBeenCalledWith("google", { redirectTo: "/en/helpdesk" });
+    vi.unstubAllEnvs();
+  });
+
+  it("本番以外ではsecureがfalseになる", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    await googleLoginAction({ portal: "applicant", locale: "ja" });
+
+    expect(cookieSet).toHaveBeenCalledWith(
+      "portal_google_login_context",
+      "applicant:ja",
+      expect.objectContaining({ secure: false, httpOnly: true, maxAge: 600 })
+    );
+    expect(signIn).toHaveBeenCalledWith("google", { redirectTo: "/ja" });
+    vi.unstubAllEnvs();
+  });
+
+  it("未対応localeは既定ロケールに置き換える", async () => {
+    await googleLoginAction({ portal: "applicant", locale: "zz" });
+    const [, value] = cookieSet.mock.calls[0];
+    expect(value).toMatch(/^applicant:[a-z]{2}$/);
+    expect(value).not.toContain("zz");
+  });
+
+  it("Googleログイン無効時はcookieもsignInも呼ばない", async () => {
+    googleEnabled.value = false;
+    await googleLoginAction({ portal: "applicant", locale: "ja" });
+    expect(cookieSet).not.toHaveBeenCalled();
+    expect(signIn).not.toHaveBeenCalled();
   });
 });

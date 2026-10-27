@@ -30,6 +30,15 @@ interface SmtpConfig {
 }
 
 /**
+ * SMTPのタイムアウト（ミリ秒）。nodemailerの既定（接続120s・greeting 30s・socket 600s）では、
+ * SMTPサーバーが応答しない場合に1通の送信が数分ブロックされうる。督促cronはトランザクション内の
+ * 処理時間に上限（約290s）があるため、短い値に固定する。通常のSMTP送信（数百ms〜数秒）を妨げない。
+ */
+const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
+const SMTP_GREETING_TIMEOUT_MS = 10_000;
+const SMTP_SOCKET_TIMEOUT_MS = 30_000;
+
+/**
  * 環境変数からSMTP接続情報を読み取る。1つでも未設定の場合はnullを返す
  * （呼び出し元が`MailerNotConfiguredError`をthrowする判断に使う）。
  */
@@ -69,6 +78,9 @@ export async function sendMail(options: SendMailOptions): Promise<void> {
     host: config.host,
     port: config.port,
     auth: { user: config.user, pass: config.pass },
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+    greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+    socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
   });
 
   await transport.sendMail({
