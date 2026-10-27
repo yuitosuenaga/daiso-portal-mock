@@ -21,6 +21,7 @@ vi.mock("@/lib/server/mailer", () => ({
 
 import { prisma } from "@/lib/db/prisma";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
+import { logger } from "@/lib/server/logger";
 import {
   notifyAnnouncementEscalation,
   notifyAnnouncementPublished,
@@ -643,7 +644,7 @@ describe("notifyAnnouncementEscalation", () => {
     vi.mocked(sendMail).mockImplementation((async ({ to }: { to: string }) => {
       if (to === "ng@example.com") throw new Error("SMTP timeout");
     }) as never);
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     const summary = await notifyAnnouncementEscalation(
       "announcement-1",
@@ -652,17 +653,21 @@ describe("notifyAnnouncementEscalation", () => {
     );
 
     expect(summary).toEqual({ sentEmails: ["ok@example.com"], skipped: 0, failed: 1 });
-    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("example.com");
+    expect(errorSpy).toHaveBeenCalled();
+    for (const [, fields] of errorSpy.mock.calls as Array<[string, Record<string, unknown>]>) {
+      expect(fields).not.toHaveProperty("email");
+      expect(fields).not.toHaveProperty("recipientEmail");
+    }
     errorSpy.mockRestore();
   });
-  it("送信成功後にsentログ書込みが失敗してもsentを返し、警告ログに宛先を出さない", async () => {
+  it("送信成功後にsentログ書込みが失敗してもsentを返し、警告ログのfieldsに宛先を入れない", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(announcementRecord() as never);
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
       { email: "a@example.com", preferredLocale: "ja" },
     ] as never);
     vi.mocked(sendMail).mockResolvedValue(undefined);
     vi.mocked(prisma.announcementNotificationLog.create).mockRejectedValue(new Error("db down a@example.com"));
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
 
     const summary = await notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set());
 
@@ -670,7 +675,11 @@ describe("notifyAnnouncementEscalation", () => {
     // failedログは作らない（sentログの1回のみ試行）。
     expect(prisma.announcementNotificationLog.create).toHaveBeenCalledTimes(1);
     expect(warnSpy).toHaveBeenCalled();
-    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("example.com");
+    for (const [, fields] of warnSpy.mock.calls as Array<[string, Record<string, unknown>]>) {
+      expect(fields).not.toHaveProperty("email");
+      expect(fields).not.toHaveProperty("recipientEmail");
+      expect(fields.errorMessage).toContain("db down");
+    }
     warnSpy.mockRestore();
   });
 
@@ -689,7 +698,7 @@ describe("notifyAnnouncementEscalation", () => {
       throw new Error("SMTP timeout");
     }) as never);
     vi.mocked(prisma.announcementNotificationLog.create).mockRejectedValue(new Error("db down"));
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     const summary = await notifyAnnouncementEscalation("announcement-1", ["vn-daiso-vietnam"], new Set());
 

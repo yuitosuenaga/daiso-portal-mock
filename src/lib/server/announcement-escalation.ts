@@ -8,7 +8,7 @@ import {
   mapAnnouncement,
   targetApplicantUsersWhere,
 } from "@/lib/server/announcement-mapper";
-import { safeErrorLabel } from "@/lib/server/error-label";
+import { errorFields, logger } from "@/lib/server/logger";
 import { notifyAnnouncementEscalation } from "@/lib/server/announcement-notifications";
 import { getAnnouncementRecipientStatuses } from "@/lib/server/announcement-service";
 import type { Announcement } from "@/types/announcement";
@@ -204,10 +204,10 @@ async function processOverdueAnnouncement(
     );
   } catch (error) {
     result.failedAnnouncements += 1;
-    // エラーメッセージ（宛先等のPIIを含みうる）は出さず、名前とPrismaコードのみ記録する。
-    console.error(
-      `[announcement-escalation] Failed to process escalation for announcement ${announcement.id}: ${safeErrorLabel(error)}`
-    );
+    logger.error("[announcement-escalation] Failed to process escalation", {
+      announcementId: announcement.id,
+      ...errorFields(error),
+    });
   }
 }
 
@@ -283,14 +283,13 @@ export async function runAnnouncementAutoEscalation(
       await runEscalation(now, result, false, deadlineMs);
       if (result.abortedByDeadline) {
         // 打ち切り分は翌日の実行まで持ち越される。ログベースアラートで検知する。
-        console.warn(
-          `[announcement-escalation] Run aborted by deadline; remaining work is carried over to the next day's run. ${JSON.stringify(
-            {
-              overdueAnnouncements: result.overdueAnnouncements,
-              sentRecipients: result.sentRecipients,
-              failedRecipients: result.failedRecipients,
-            }
-          )}`
+        logger.warn(
+          "[announcement-escalation] Run aborted by deadline; remaining work is carried over to the next day's run.",
+          {
+            overdueAnnouncements: result.overdueAnnouncements,
+            sentRecipients: result.sentRecipients,
+            failedRecipients: result.failedRecipients,
+          }
         );
       }
     },
@@ -322,9 +321,7 @@ export async function triggerAutoEscalationBestEffort(now: Date = new Date()): P
   try {
     await runAnnouncementAutoEscalation(now);
   } catch (error) {
-    console.error(
-      `[announcement-escalation] triggerAutoEscalationBestEffort failed: ${safeErrorLabel(error)}`
-    );
+    logger.error("[announcement-escalation] triggerAutoEscalationBestEffort failed", errorFields(error));
   } finally {
     lastTriggeredDateKey = todayKey;
   }

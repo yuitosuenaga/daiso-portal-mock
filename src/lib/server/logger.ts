@@ -17,17 +17,30 @@ const MAX_KEYS = 30;
 const REDACTED = "[redacted]";
 
 /**
- * 資格情報の再流出防止（最低限）。エラー詳細は全情報を出す方針だが、
- * Bearer/APIキー/password=/Authorization:/接続文字列のパスワードだけは伏字にする。
- * 限界: 上記以外の形式の秘密値（独自形式のトークン等）は検出できない。
+ * 資格情報の再流出防止（最低限）。エラー詳細は全情報を出す方針だが、次の形式だけは伏字にする。
+ * - `scheme://user:pass@host`（スキーム非依存: postgres/mongodb/redis/amqp等）
+ * - `Bearer xxx` / `sk-ant-...` / `Authorization: ...` / `Cookie:`・`Set-Cookie:` ヘッダ行
+ * - `password|passwd|pwd|token|secret|api_key|apikey`を名前に含む`key=value` / `key: value`（`x-api-key: ...`・`client_secret=...`含む）
+ * 限界: 上記以外の形式の秘密値（独自形式のトークン、キー名を伴わない値）は検出できない。
+ * 逆に`Invalid token: expired`のように「token」の直後に`:`/`=`が続く普通の文は値部分が伏字になりうる。
  */
 export function redactSecrets(text: string): string {
   return text
-    .replace(/(postgres(?:ql)?:\/\/[^:/\s@]*):[^@\s/]*@/gi, `$1:${REDACTED}@`)
+    .replace(/\b([a-z][a-z0-9+.-]*:\/\/[^:/\s@]*):[^@\s/]*@/gi, `$1:${REDACTED}@`)
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, `Bearer ${REDACTED}`)
     .replace(/\bsk-ant-[A-Za-z0-9_-]+/g, REDACTED)
     .replace(/\bAuthorization\s*[:=]\s*(?:(?:Basic|Digest|Token|Bearer)\s+)?[^\s\"',;]+/gi, `Authorization: ${REDACTED}`)
-    .replace(/\b(password|passwd|pwd)(["']?\s*[:=]\s*)(["']?)[^\s"'&,;}]+/gi, `$1$2$3${REDACTED}`);
+    .replace(/\b((?:set-)?cookie)\s*:[^\r\n]+/gi, `$1: ${REDACTED}`)
+    .replace(
+      /\b([A-Za-z0-9_-]*(?:password|passwd|pwd|token|secret|api[_-]?key)(?![A-Za-z0-9_-]))(["']?\s*[:=]\s*)(["']?)[^\s"'&,;}]+/gi,
+      `$1$2$3${REDACTED}`
+    );
+}
+
+// 正規化（小文字化・区切り除去）したキー名が、秘密情報を表す語で始まる/終わる場合は値を伏字にする。
+const SENSITIVE_KEY = /^(secret|password|passwd|pwd|authorization|cookie)|(password|passwd|pwd|token|secret|apikey|authorization|cookie|credentials?|privatekey|sessionid)$/;
+function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
 }
 
 function clip(text: string): string {
@@ -63,6 +76,10 @@ function safeValue(value: unknown, depth: number, seen: WeakSet<object>): unknow
     }
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(obj).slice(0, MAX_KEYS)) {
+      if (isSensitiveKey(key)) {
+        out[key] = REDACTED;
+        continue;
+      }
       try {
         out[key] = safeValue((obj as Record<string, unknown>)[key], depth + 1, seen);
       } catch {
@@ -92,6 +109,10 @@ function describeError(error: Error, depth: number, seen: Set<unknown>): Record<
   // SDKエラーのrequest_id等、列挙可能な追加プロパティ
   const extra: Record<string, unknown> = {};
   for (const key of Object.keys(error).filter((k) => !HANDLED_KEYS.has(k)).slice(0, MAX_KEYS)) {
+    if (isSensitiveKey(key)) {
+      extra[key] = REDACTED;
+      continue;
+    }
     try {
       extra[key] = safeValue(rec[key], 0, new WeakSet());
     } catch {
@@ -130,11 +151,36 @@ function emit(severity: LogSeverity, line: string): void {
   }
 }
 
+/** Cloud Loggingの1エントリ上限(256KB)未満に収めるための1行上限（バイト）。 */
+export const MAX_LINE_BYTES = 200_000;
+const FALLBACK_MESSAGE_CHARS = 2048;
+const FALLBACK_ERROR_MESSAGE_CHARS = 4096;
+
+function oversizeFallback(severity: LogSeverity, message: string, fields: Record<string, unknown> | undefined, originalBytes: number): string {
+  const minimal: Record<string, unknown> = {
+    severity,
+    message: message.slice(0, FALLBACK_MESSAGE_CHARS),
+    logError: "line too large",
+    originalBytes,
+  };
+  const pick = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
+  const name = pick(fields?.errorName, 200);
+  if (name !== undefined) minimal.errorName = name;
+  const code = fields?.errorCode;
+  if (typeof code === "string" || typeof code === "number") minimal.errorCode = code;
+  const msg = pick(fields?.errorMessage, FALLBACK_ERROR_MESSAGE_CHARS);
+  if (msg !== undefined) minimal.errorMessage = msg;
+  return JSON.stringify(minimal);
+}
+
 function write(severity: LogSeverity, message: string, fields?: Record<string, unknown>): void {
   // ログ出力の失敗（循環参照・BigInt・toJSONの例外・書き込み失敗）を呼び出し元へ伝播させない。
   try {
     // `severity` / `message` は予約。fieldsで上書きされないよう最後に置く。
-    emit(severity, JSON.stringify({ ...fields, severity, message }));
+    let line = JSON.stringify({ ...fields, severity, message });
+    const bytes = Buffer.byteLength(line);
+    if (bytes > MAX_LINE_BYTES) line = oversizeFallback(severity, message, fields, bytes);
+    emit(severity, line);
   } catch {
     try {
       emit(severity, JSON.stringify({ severity, message, logError: "serialize failed" }));

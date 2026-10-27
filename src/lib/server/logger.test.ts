@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { errorFields, logger } from "./logger";
+import { errorFields, logger, MAX_LINE_BYTES } from "./logger";
 
 describe("logger", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -98,6 +98,71 @@ describe("logger", () => {
       }
       expect(json).toContain("postgresql://app:[redacted]@db:5432/x");
       expect(json).toContain("Bearer [redacted]");
+    });
+  });
+
+  describe("伏字の拡張", () => {
+    it("素通りしていた形式を伏字にする", () => {
+      const msg =
+        "a token=abc123secret b api_key: AKIA123 c client_secret=abc d mongodb://u:pw@h/db e redis://x:y@h:6379 f amqp://g:hh@h g x-api-key: KEY999 h Cookie: sid=zzz";
+      const json = JSON.stringify(errorFields(new Error(msg)));
+      for (const s of ["abc123secret", "AKIA123", "client_secret=abc", ":pw@", "x:y@", "g:hh@", "KEY999", "sid=zzz"]) {
+        expect(json).not.toContain(s);
+      }
+      expect(json).toContain("mongodb://u:[redacted]@h/db");
+    });
+
+    it("キー名ベースでmeta/errorProps/errorValueの値を伏字にする（大文字小文字・区切り違い許容）", () => {
+      const secrets = { Password: "p1", API_KEY: "p2", "x-api-key": "p3", clientSecret: "p4", Authorization: "p5", "set-cookie": "p6", access_token: "p7", nested: { passwd: "p8" } };
+      const e = Object.assign(new Error("x"), { meta: secrets, token: "p9", request_id: "r1" });
+      const json = JSON.stringify(errorFields(e));
+      for (let i = 1; i <= 9; i++) expect(json).not.toContain(`"p${i}"`);
+      expect(json).toContain("r1");
+      expect(JSON.stringify(errorFields({ secret: "p10", ok: "fine" }))).not.toContain("p10");
+      expect(JSON.stringify(errorFields({ secret: "p10", ok: "fine" }))).toContain("fine");
+    });
+
+    it("普通のメッセージ・キーは壊さない", () => {
+      const msg = "Unexpected token < in JSON at position 0; max_tokens exceeded; see https://example.com:8080/path@x; user=alice";
+      expect(errorFields(new Error(msg)).errorMessage).toBe(msg);
+      const f = errorFields(Object.assign(new Error("x"), { meta: { max_tokens: 5, inputTokens: 3, target: ["email"] } }));
+      expect(f.meta).toEqual({ max_tokens: 5, inputTokens: 3, target: ["email"] });
+    });
+  });
+
+  describe("カスタムプロパティ（#169のIDを持つ例外）", () => {
+    it("inquiryId等の独自プロパティがerrorPropsに出る", () => {
+      class InquiryNotFoundError extends Error {
+        constructor(readonly inquiryId: string, readonly email: string) {
+          super("Inquiry not found");
+          this.name = "InquiryNotFoundError";
+        }
+      }
+      const f = errorFields(new InquiryNotFoundError("inq-1", "a@b.c"));
+      expect(f.errorProps).toEqual({ inquiryId: "inq-1", email: "a@b.c" });
+    });
+  });
+
+  describe("1行サイズ上限", () => {
+    it("巨大なcause/metaでも1行が上限内に収まり、最低限の情報を残す", () => {
+      const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+      const big = "x".repeat(8000);
+      const meta = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`k${i}`, Array.from({ length: 20 }, () => big)]));
+      const e = Object.assign(new Error("boom " + big, { cause: Object.assign(new Error(big), { meta }) }), { meta, code: "P2002" });
+      logger.error("fail", { ...errorFields(e), extra: meta });
+      const line = String(err.mock.calls[0][0]);
+      expect(Buffer.byteLength(line)).toBeLessThanOrEqual(MAX_LINE_BYTES);
+      const parsed = JSON.parse(line);
+      expect(parsed).toMatchObject({ severity: "ERROR", message: "fail", logError: "line too large", errorName: "Error", errorCode: "P2002" });
+      expect(parsed.originalBytes).toBeGreaterThan(MAX_LINE_BYTES);
+      expect(parsed.errorMessage.startsWith("boom ")).toBe(true);
+      expect(parsed.errorMessage.length).toBeLessThanOrEqual(4096);
+    });
+
+    it("上限内なら通常どおり出す", () => {
+      const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+      logger.info("ok", { a: 1 });
+      expect(JSON.parse(String(out.mock.calls[0][0]))).toEqual({ a: 1, severity: "INFO", message: "ok" });
     });
   });
 

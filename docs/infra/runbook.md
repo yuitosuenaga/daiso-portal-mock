@@ -374,7 +374,7 @@ resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
 severity>=ERROR
 
-# DB 接続エラー(アプリログは JSON 1行で jsonPayload に入る。エラーは errorName / errorCode / errorMessage / stack_trace(スタック)/ cause 連鎖を出す。Prisma エラーは meta も出る)
+# DB 接続エラー(アプリログは JSON 1行で jsonPayload に入る。エラーは errorName / errorCode / errorMessage / stack_trace(スタック)/ cause 連鎖を出す。Prisma エラーは meta も出る。翻訳 API の失敗は cause に SDK 側のエラーを保持するため、cause.status / cause.errorProps.request_id / cause.stack_trace で追える。API の 400/401/403/404/409 は応答本文が固定文言のため、原因は message が `[api-errors]` で始まる WARNING ログ(元メッセージ・例外プロパティの ID。Zod の検証失敗は issues の path/code/message のみで、リクエスト本文は出さない)で確認する。例外クラスの独自プロパティ(inquiryId 等)は errorProps に出る)
 # P1000: 認証失敗 / P1001: 接続不可 / P1017: サーバーが接続を閉じた
 resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
@@ -405,7 +405,8 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 機密値が出ないようにするための注意:
 
 - **`gcloud run services describe ... --format=json` や `gcloud ... --format=json` の全体出力は使わない。** サービス定義の環境変数が含まれる(現行環境は Secret 参照に移行済みだが、平文の env が残る環境や過去の revision では値が出る)。必要な項目だけを `--format="value(...)"` で指定する。
-- アプリログのエラー詳細(errorMessage / stack_trace / Prisma の meta)は全情報を出す方針で、**メールアドレスや DB の値などの個人情報が入りうる**。Cloud Logging の閲覧権限と保持期間を管理すること。資格情報(Bearer・API キー・`password=`・`Authorization:`・接続文字列のパスワード)だけは伏字にしているが、検出できない形式の秘密値は残りうる。
+- アプリログのエラー詳細(errorMessage / stack_trace / Prisma の meta)は全情報を出す方針で、**メールアドレスや DB の値などの個人情報が入りうる**。Cloud Logging の閲覧権限と保持期間を管理すること。資格情報だけは伏字にする。対象は、Bearer・`sk-ant-`・`Authorization:`・`Cookie:`/`Set-Cookie:`、`password`/`passwd`/`pwd`/`token`/`secret`/`api_key`(`x-api-key`・`client_secret` 含む)を名前に持つ `key=value`/`key: value`、`scheme://user:pass@host` 形式の接続文字列(postgres/mongodb/redis/amqp 等)、およびオブジェクトのキー名(meta・errorProps・errorValue の `password`/`token`/`secret`/`apiKey`/`authorization`/`cookie` 等。大文字小文字・区切り違いを許容)。**限界**: 上記以外の形式の秘密値(キー名を伴わない値、独自形式のトークン)は残りうる。逆に `Invalid token: expired` のように「token」の直後に `:`/`=` が続く文は値部分が伏字になりうる。
+- ログ 1 行は 200KB(`MAX_LINE_BYTES`)を上限とする。超えた場合は fields を捨て、`logError: "line too large"`・`originalBytes`・errorName/errorCode/errorMessage(先頭 4KB)だけを出す(Cloud Logging の 1 エントリ上限 256KB 未満に収めるため)。個々の文字列は 8KB、cause は 3 段、配列は 20 件、オブジェクトキーは 30 個までで切り詰める。
 - ログの共有・貼り付けの前に、`DATABASE_URL`(パスワードを含む)、`Authorization` ヘッダ、Cookie、トークン、`CRON_SECRET`、API キーが含まれていないか確認する。接続エラーのメッセージには接続先のホスト名やユーザー名が出ることがある。
 - `terraform plan` の出力と state は、機密値(DB パスワード、`AUTH_SECRET`、`CRON_SECRET`)を含みうる。出力をファイルに保存して確認する場合は、確認後に削除する(§5)。
 

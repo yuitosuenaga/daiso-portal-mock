@@ -9,29 +9,40 @@ import {
   DoubleClaimError,
   InquiryNotFoundError,
 } from "@/lib/server/inquiry-service";
+import { errorFields, logger } from "@/lib/server/logger";
 
 /**
  * Route Handler内で送出された例外を、design.mdのAPI Contractで定義された
  * HTTPステータスコードに変換する。
  * レスポンス本文には例外メッセージ（ID等を含みうる）やZodのissuesを載せず、固定文言のみを返す。
- * 詳細のログ出力は logger 導入後（#165）に追加する。
+ * 応答から外した詳細（元メッセージ・例外プロパティのID・Zodのissues）はサーバーログへ出す
+ * （リクエスト本文全体は出さず、Zodはissuesのpath/code/messageのみ）。
  */
 export function toErrorResponse(error: unknown): NextResponse {
   if (error instanceof UnauthorizedSessionError) {
+    logger.warn("[api-errors] Unauthorized", errorFields(error));
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (error instanceof ZodError) {
+    logger.warn("[api-errors] Invalid request", {
+      ...errorFields(error),
+      issues: error.issues.slice(0, 20).map((i) => ({ path: i.path.join("."), code: i.code, message: i.message })),
+    });
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
   if (error instanceof InquiryNotFoundError) {
+    logger.warn("[api-errors] Not Found", errorFields(error));
     return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
   if (error instanceof DoubleClaimError) {
+    logger.warn("[api-errors] Conflict", errorFields(error));
     return NextResponse.json({ error: "Conflict" }, { status: 409 });
   }
   if (error instanceof ClaimOwnershipError) {
+    logger.warn("[api-errors] Forbidden", errorFields(error));
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  logger.error("[api-errors] Unhandled error", errorFields(error));
   return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 }

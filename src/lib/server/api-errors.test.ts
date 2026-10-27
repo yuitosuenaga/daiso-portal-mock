@@ -15,6 +15,7 @@ import {
   InquiryNotFoundError,
 } from "@/lib/server/inquiry-service";
 import { toErrorResponse } from "@/lib/server/api-errors";
+import { logger } from "@/lib/server/logger";
 
 describe("toErrorResponse", () => {
   it("UnauthorizedSessionErrorを401に変換する", () => {
@@ -65,5 +66,27 @@ describe("toErrorResponse", () => {
   it("未知のエラーを500に変換する", () => {
     const response = toErrorResponse(new Error("boom"));
     expect(response.status).toBe(500);
+  });
+
+  it("応答から外した詳細をサーバーログに出す（Zodはissuesのみ、ID等は例外プロパティ）", () => {
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(logger, "error").mockImplementation(() => {});
+
+    const zodError = z.object({ secretField: z.string() }).safeParse({ secretField: 1, body: "x" }).error!;
+    toErrorResponse(zodError);
+    const [, zodFields] = warn.mock.calls[0] as [string, Record<string, unknown>];
+    expect(zodFields.issues).toEqual([
+      expect.objectContaining({ path: "secretField", code: "invalid_type", message: expect.any(String) }),
+    ]);
+
+    toErrorResponse(new InquiryNotFoundError("inq-9"));
+    const [, nfFields] = warn.mock.calls[1] as [string, Record<string, unknown>];
+    expect(nfFields.errorProps).toEqual({ inquiryId: "inq-9" });
+
+    toErrorResponse(new Error("db password=hunter2 down"));
+    const [, ufields] = error.mock.calls[0] as [string, Record<string, unknown>];
+    expect(ufields.errorMessage).toContain("down");
+    expect(JSON.stringify(ufields)).not.toContain("hunter2");
+    vi.restoreAllMocks();
   });
 });

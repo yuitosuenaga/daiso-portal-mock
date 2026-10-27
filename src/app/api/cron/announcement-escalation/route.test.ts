@@ -7,6 +7,7 @@ vi.mock("@/lib/server/announcement-escalation", () => ({
 
 import type { EscalationRunResult } from "@/lib/server/announcement-escalation";
 import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalation";
+import { logger } from "@/lib/server/logger";
 import { GET, POST } from "@/app/api/cron/announcement-escalation/route";
 
 function request(headers: Record<string, string> = {}) {
@@ -135,19 +136,19 @@ describe("認証順序（Cloud Scheduler OIDC対応）", () => {
 });
 
 describe("失敗の可視化・dryRun", () => {
-  it("致命的失敗（中核関数がthrow）は500を返し、レスポンス・ログにエラー詳細（PII）を出さない", async () => {
+  it("致命的失敗（中核関数がthrow）は500を返し、レスポンスにはエラー詳細を出さずサーバーログに全情報を出す", async () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
     vi.mocked(runAnnouncementAutoEscalation).mockRejectedValue(
       new Error("connect ECONNREFUSED user@example.com")
     );
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     const response = await GET(request({ "x-cron-secret": "correct-secret" }));
     const text = await response.text();
 
     expect(response.status).toBe(500);
     expect(text).not.toContain("user@example.com");
-    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("user@example.com");
+    expect(JSON.stringify(errorSpy.mock.calls)).toContain("ECONNREFUSED");
     errorSpy.mockRestore();
   });
 

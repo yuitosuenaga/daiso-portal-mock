@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { safeErrorLabel } from "@/lib/server/error-label";
+import { errorFields, logger } from "@/lib/server/logger";
 import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalation";
 
 // Prisma・`server-only`依存のため、Edge Runtimeでは動作しない。
@@ -67,18 +67,14 @@ async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
   try {
     const result = await runAnnouncementAutoEscalation(new Date(), { dryRun });
     // 件数のみを構造化ログに出す（メール・氏名・本文などのPIIは含めない）。
-    console.info(
-      `[cron] announcement-escalation result ${JSON.stringify({
-        ...result,
-        durationMs: Date.now() - startedAt,
-      })}`
-    );
+    logger.info("[cron] announcement-escalation result", {
+      ...result,
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     // DB接続不可などの致命的失敗。500を返し、Scheduler・監視が失敗を検知できるようにする。
-    console.error(
-      `[cron] announcement-escalation failed: ${safeErrorLabel(error)}`
-    );
+    logger.error("[cron] announcement-escalation failed", errorFields(error));
     return NextResponse.json({ error: "Escalation run failed" }, { status: 500 });
   }
 }
