@@ -8,8 +8,9 @@ export function formatTemplate(
   template: string,
   values: Record<string, string | number>
 ): string {
-  return Object.entries(values).reduce(
-    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
-    template
+  // 単一パスで置換する。逐次置換だと、先に埋めた値に含まれる `{別キー}` が
+  // 後続の置換で再度置き換わってしまうため。
+  return template.replace(/\{([^{}]+)\}/g, (match, key: string) =>
+    Object.hasOwn(values, key) ? String(values[key]) : match
   );
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
 vi.mock("next-intl/server", () => ({
@@ -22,6 +22,11 @@ vi.mock("@/i18n/navigation", () => ({
 
 vi.mock("@/lib/api/inquiries", () => ({
   getAllInquiries: vi.fn().mockRejectedValue(new Error("mock")),
+}));
+
+const isHelpdeskAdminMock = vi.fn();
+vi.mock("@/lib/server/auth-session", () => ({
+  isHelpdeskAdmin: () => isHelpdeskAdminMock(),
 }));
 
 vi.mock("@/lib/api/current-staff", () => ({
@@ -49,17 +54,36 @@ function unwrapCard(node: ReactElement): CardIdentity {
   throw new Error(`予期しないノード種別: ${String(node.type)}`);
 }
 
-describe("HelpdeskHomePage", () => {
-  it("「対応業務」セクションに、問い合わせ一覧カードを含まない8枚のカードが指定順で表示される", async () => {
-    const page = (await HelpdeskHomePage()) as ReactElement;
-    const rootChildren = (page.props as { children: ReactElement[] }).children;
-    const supportSection = rootChildren[1];
-    const supportGrid = (supportSection.props as { children: ReactElement[] })
-      .children[1];
-    const gridChildren = (supportGrid.props as { children: ReactElement[] })
-      .children;
+function supportCards(page: ReactElement): CardIdentity[] {
+  const rootChildren = (page.props as { children: ReactElement[] }).children;
+  const supportGrid = (rootChildren[1].props as { children: ReactElement[] })
+    .children[1];
+  return (supportGrid.props as { children: Array<ReactElement | false> }).children
+    .filter((child): child is ReactElement => child !== false)
+    .map(unwrapCard);
+}
 
-    const cards = gridChildren.map(unwrapCard);
+describe("HelpdeskHomePage", () => {
+  beforeEach(() => {
+    isHelpdeskAdminMock.mockResolvedValue(false);
+  });
+
+  it("adminには「対応業務」の末尾にスタッフ管理カードが表示される", async () => {
+    isHelpdeskAdminMock.mockResolvedValue(true);
+    const cards = supportCards((await HelpdeskHomePage()) as ReactElement);
+
+    expect(cards).toHaveLength(9);
+    expect(cards[8]).toEqual({ href: "/helpdesk/staff", label: "staff" });
+  });
+
+  it("member（非admin）にはスタッフ管理カードが表示されない", async () => {
+    const cards = supportCards((await HelpdeskHomePage()) as ReactElement);
+
+    expect(cards.map((card) => card.href)).not.toContain("/helpdesk/staff");
+  });
+
+  it("「対応業務」セクションに、問い合わせ一覧カードを含まない8枚のカードが指定順で表示される", async () => {
+    const cards = supportCards((await HelpdeskHomePage()) as ReactElement);
 
     expect(cards).toEqual([
       { href: "/helpdesk/announcements", label: "announcements" },

@@ -48,6 +48,7 @@
     "announcements": "Quản lý thông báo",
     "documents": "Quản lý tài liệu",
     "companies": "Quản lý nhà phân phối",
+    "staff": "Quản lý nhân viên",
     "salesFloorMeeting": "Cuộc họp khu bán hàng (Video)",
     "pop": "POP",
     "manuals": "Hướng dẫn sử dụng"
@@ -795,6 +796,82 @@
       "errorMessage": "Vô hiệu hóa hàng loạt không thành công. Vui lòng chờ một lát rồi thử lại."
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "Quản lý nhân viên",
+      "description": "Thêm nhân viên bộ phận hỗ trợ phía Nhật Bản, thay đổi vai trò, vô hiệu hóa hoặc kích hoạt lại.",
+      "empty": "Chưa có nhân viên nào được đăng ký",
+      "error": "Không thể lấy danh sách nhân viên",
+      "addButton": "Thêm nhân viên",
+      "emailHeader": "Địa chỉ email",
+      "displayNameHeader": "Tên hiển thị",
+      "roleHeader": "Vai trò",
+      "sourceHeader": "Nguồn đăng ký",
+      "statusHeader": "Trạng thái",
+      "createdHeader": "Ngày tạo",
+      "actionsHeader": "Thao tác",
+      "youBadge": "Bạn"
+    },
+    "form": {
+      "createTitle": "Tạo nhân viên mới",
+      "backToList": "Quay lại danh sách",
+      "emailLabel": "Địa chỉ email",
+      "emailPlaceholder": "Nhập địa chỉ email",
+      "displayNameLabel": "Tên hiển thị",
+      "displayNamePlaceholder": "Nhập tên hiển thị",
+      "passwordLabel": "Mật khẩu (không bắt buộc)",
+      "passwordPlaceholder": "Chỉ nhập khi cho phép đăng nhập bằng mật khẩu (từ 8 ký tự)",
+      "passwordHint": "Nếu để trống, tài khoản sẽ được tạo không có mật khẩu (chỉ đăng nhập bằng Google).",
+      "roleLabel": "Vai trò",
+      "submitButton": "Tạo",
+      "submitError": "Lưu không thành công. Vui lòng thử lại sau.",
+      "validation": {
+        "required": "Mục này là bắt buộc",
+        "emailInvalid": "Vui lòng nhập địa chỉ email hợp lệ",
+        "emailDuplicate": "Địa chỉ email này đã được sử dụng",
+        "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự"
+      }
+    },
+    "role": {
+      "admin": "Quản trị viên",
+      "member": "Thành viên"
+    },
+    "source": {
+      "seed": "Đăng ký ban đầu",
+      "manual": "Đăng ký thủ công",
+      "google_auto": "Tự động tạo qua Google"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Đã vô hiệu hóa"
+    },
+    "toggle": {
+      "promoteButton": "Đặt làm quản trị viên",
+      "demoteButton": "Đặt làm thành viên",
+      "promoteConfirmTitle": "Chuyển thành quản trị viên",
+      "demoteConfirmTitle": "Chuyển thành thành viên",
+      "promoteConfirm": "“{name}” sẽ trở thành quản trị viên và có thể chỉnh sửa quản lý nhà phân phối và quản lý nhân viên. Bạn có muốn tiếp tục không?",
+      "demoteConfirm": "“{name}” sẽ trở thành thành viên và không thể chỉnh sửa quản lý nhà phân phối và quản lý nhân viên nữa. Bạn có muốn tiếp tục không?",
+      "promoteConfirmButton": "Đặt làm quản trị viên",
+      "demoteConfirmButton": "Đặt làm thành viên",
+      "deactivateButton": "Vô hiệu hóa",
+      "activateButton": "Kích hoạt lại",
+      "deactivateConfirmTitle": "Vô hiệu hóa nhân viên",
+      "activateConfirmTitle": "Kích hoạt lại nhân viên",
+      "deactivateConfirm": "“{name}” sẽ bị vô hiệu hóa. Sau khi vô hiệu hóa sẽ không thể đăng nhập và phiên hiện tại sẽ bị thu hồi. Các yêu cầu hỗ trợ mà nhân viên này đang phụ trách sẽ không bị hủy phân công. Bạn có muốn tiếp tục không?",
+      "activateConfirm": "“{name}” sẽ được kích hoạt lại và có thể đăng nhập trở lại. Bạn có muốn tiếp tục không?",
+      "deactivateConfirmButton": "Thực hiện vô hiệu hóa",
+      "activateConfirmButton": "Thực hiện kích hoạt lại",
+      "cancelButton": "Hủy"
+    },
+    "errors": {
+      "self": "Bạn không thể thay đổi vai trò hoặc vô hiệu hóa chính mình.",
+      "lastAdmin": "Không thể thực hiện thao tác này vì sẽ không còn quản trị viên nào đang hoạt động.",
+      "notFound": "Không tìm thấy nhân viên. Vui lòng tải lại trang.",
+      "invalid": "Dữ liệu nhập không hợp lệ.",
+      "generic": "Cập nhật không thành công. Vui lòng thử lại sau."
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "Thắc mắc",
@@ -874,6 +951,9 @@
     },
     "companies": {
       "description": "Có thể quản lý danh sách các công ty phân phối nước ngoài đã đăng ký và tài khoản người nộp đơn."
+    },
+    "staff": {
+      "description": "Thêm nhân viên phía Nhật Bản, thay đổi vai trò và vô hiệu hóa (chỉ dành cho quản trị viên)."
     },
     "salesFloorMeeting": {
       "description": "Có thể quản lý tài liệu họp kiểm tra bán hàng hàng tháng."

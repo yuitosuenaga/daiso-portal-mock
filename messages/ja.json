@@ -48,6 +48,7 @@
     "announcements": "お知らせ管理",
     "documents": "ドキュメント管理",
     "companies": "販社管理",
+    "staff": "スタッフ管理",
     "salesFloorMeeting": "売場検討会（動画）",
     "pop": "POP",
     "manuals": "マニュアル"
@@ -795,6 +796,82 @@
       "errorMessage": "一括無効化に失敗しました。時間を置いて再度お試しください。"
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "スタッフ管理",
+      "description": "日本側ヘルプデスクスタッフの追加、ロール変更、無効化・再有効化を行えます。",
+      "empty": "スタッフが登録されていません",
+      "error": "スタッフの取得に失敗しました",
+      "addButton": "スタッフを追加",
+      "emailHeader": "メールアドレス",
+      "displayNameHeader": "表示名",
+      "roleHeader": "ロール",
+      "sourceHeader": "登録経路",
+      "statusHeader": "状態",
+      "createdHeader": "作成日",
+      "actionsHeader": "操作",
+      "youBadge": "あなた"
+    },
+    "form": {
+      "createTitle": "スタッフの新規作成",
+      "backToList": "一覧へ戻る",
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力してください",
+      "displayNameLabel": "表示名",
+      "displayNamePlaceholder": "表示名を入力してください",
+      "passwordLabel": "パスワード（任意）",
+      "passwordPlaceholder": "パスワードログインを許可する場合のみ入力してください（8文字以上）",
+      "passwordHint": "空欄のまま保存すると、パスワード未設定（Googleログイン専用）で作成されます。",
+      "roleLabel": "ロール",
+      "submitButton": "作成する",
+      "submitError": "保存に失敗しました。時間を置いて再度お試しください。",
+      "validation": {
+        "required": "この項目は必須です",
+        "emailInvalid": "有効なメールアドレスを入力してください",
+        "emailDuplicate": "このメールアドレスは既に使用されています",
+        "passwordTooShort": "パスワードは8文字以上で入力してください"
+      }
+    },
+    "role": {
+      "admin": "管理者",
+      "member": "メンバー"
+    },
+    "source": {
+      "seed": "初期登録",
+      "manual": "手動登録",
+      "google_auto": "Google自動作成"
+    },
+    "status": {
+      "active": "有効",
+      "inactive": "無効"
+    },
+    "toggle": {
+      "promoteButton": "管理者にする",
+      "demoteButton": "メンバーにする",
+      "promoteConfirmTitle": "管理者への変更",
+      "demoteConfirmTitle": "メンバーへの変更",
+      "promoteConfirm": "『{name}』を管理者にします。販社管理やスタッフ管理を編集できるようになります。よろしいですか？",
+      "demoteConfirm": "『{name}』をメンバーにします。販社管理やスタッフ管理を編集できなくなります。よろしいですか？",
+      "promoteConfirmButton": "管理者にする",
+      "demoteConfirmButton": "メンバーにする",
+      "deactivateButton": "無効化する",
+      "activateButton": "再有効化する",
+      "deactivateConfirmTitle": "スタッフの無効化",
+      "activateConfirmTitle": "スタッフの再有効化",
+      "deactivateConfirm": "『{name}』を無効化します。無効化するとログインできなくなり、現在のセッションも失効します。担当中の問い合わせは解除されません。よろしいですか？",
+      "activateConfirm": "『{name}』を再有効化します。再有効化すると再びログインできるようになります。よろしいですか？",
+      "deactivateConfirmButton": "無効化を実行",
+      "activateConfirmButton": "再有効化を実行",
+      "cancelButton": "キャンセル"
+    },
+    "errors": {
+      "self": "自分自身のロール変更・無効化はできません。",
+      "lastAdmin": "有効な管理者が0人になるため、この操作はできません。",
+      "notFound": "対象のスタッフが見つかりません。画面を更新してください。",
+      "invalid": "入力内容が正しくありません。",
+      "generic": "更新に失敗しました。時間を置いて再度お試しください。"
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "問合せ",
@@ -874,6 +951,9 @@
     },
     "companies": {
       "description": "登録済みの海外販社の一覧・申請者アカウントを管理できます。"
+    },
+    "staff": {
+      "description": "日本側スタッフの追加・ロール変更・無効化を行います（管理者のみ）。"
     },
     "salesFloorMeeting": {
       "description": "月ごとの売場検討会資料を管理できます。"

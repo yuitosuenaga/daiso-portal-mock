@@ -9,10 +9,12 @@ import {
   HelpCircle,
   Link2,
   Tags,
+  Users,
   Video,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { isHelpdeskAdmin } from "@/lib/server/auth-session";
 import { NavigationCard } from "@/components/features/dashboard/NavigationCard";
 import {
   PriorityInquiriesPreviewPanel,
@@ -26,6 +28,7 @@ import {
 export default async function HelpdeskHomePage() {
   const t = await getTranslations("helpdeskDashboard");
   const nav = await getTranslations("helpdeskNav");
+  const canManageStaff = await isHelpdeskAdmin();
 
   return (
     <div className="space-y-6">
@@ -98,6 +101,14 @@ export default async function HelpdeskHomePage() {
             href="/helpdesk/companies"
             icon={Building2}
           />
+          {canManageStaff && (
+            <NavigationCard
+              title={nav("staff")}
+              description={t("staff.description")}
+              href="/helpdesk/staff"
+              icon={Users}
+            />
+          )}
         </div>
       </section>
 

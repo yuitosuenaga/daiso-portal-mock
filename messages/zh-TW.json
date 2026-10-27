@@ -48,6 +48,7 @@
     "announcements": "公告管理",
     "documents": "文件管理",
     "companies": "銷售公司管理",
+    "staff": "員工管理",
     "salesFloorMeeting": "銷售樓層檢討會（影片）",
     "pop": "POP",
     "manuals": "使用手冊"
@@ -795,6 +796,82 @@
       "errorMessage": "批量停用失敗。請稍候後重試。"
     }
   },
+  "helpdeskStaff": {
+    "list": {
+      "title": "員工管理",
+      "description": "可新增日本方服務台員工、變更角色，以及停用或重新啟用。",
+      "empty": "尚未註冊員工",
+      "error": "取得員工失敗",
+      "addButton": "新增員工",
+      "emailHeader": "電子郵件地址",
+      "displayNameHeader": "顯示名稱",
+      "roleHeader": "角色",
+      "sourceHeader": "註冊途徑",
+      "statusHeader": "狀態",
+      "createdHeader": "建立日期",
+      "actionsHeader": "操作",
+      "youBadge": "您"
+    },
+    "form": {
+      "createTitle": "新增員工",
+      "backToList": "返回列表",
+      "emailLabel": "電子郵件地址",
+      "emailPlaceholder": "請輸入電子郵件地址",
+      "displayNameLabel": "顯示名稱",
+      "displayNamePlaceholder": "請輸入顯示名稱",
+      "passwordLabel": "密碼（選填）",
+      "passwordPlaceholder": "僅在允許密碼登入時填寫（8個字元以上）",
+      "passwordHint": "留空儲存時，將建立未設定密碼的帳戶（僅限Google登入）。",
+      "roleLabel": "角色",
+      "submitButton": "建立",
+      "submitError": "儲存失敗。請稍後再試。",
+      "validation": {
+        "required": "此欄位為必填",
+        "emailInvalid": "請輸入有效的電子郵件地址",
+        "emailDuplicate": "此電子郵件地址已被使用",
+        "passwordTooShort": "密碼需至少8個字元"
+      }
+    },
+    "role": {
+      "admin": "管理員",
+      "member": "成員"
+    },
+    "source": {
+      "seed": "初始註冊",
+      "manual": "手動註冊",
+      "google_auto": "Google自動建立"
+    },
+    "status": {
+      "active": "有效",
+      "inactive": "無效"
+    },
+    "toggle": {
+      "promoteButton": "設為管理員",
+      "demoteButton": "設為成員",
+      "promoteConfirmTitle": "變更為管理員",
+      "demoteConfirmTitle": "變更為成員",
+      "promoteConfirm": "將『{name}』設為管理員，其可編輯銷售公司管理和員工管理。確認嗎？",
+      "demoteConfirm": "將『{name}』設為成員，其將無法再編輯銷售公司管理和員工管理。確認嗎？",
+      "promoteConfirmButton": "設為管理員",
+      "demoteConfirmButton": "設為成員",
+      "deactivateButton": "停用",
+      "activateButton": "重新啟用",
+      "deactivateConfirmTitle": "停用員工",
+      "activateConfirmTitle": "重新啟用員工",
+      "deactivateConfirm": "將停用『{name}』。停用後將無法登入，目前的工作階段也將失效。其負責的詢問不會被取消指派。確認嗎？",
+      "activateConfirm": "將重新啟用『{name}』。重新啟用後將可再次登入。確認嗎？",
+      "deactivateConfirmButton": "執行停用",
+      "activateConfirmButton": "執行重新啟用",
+      "cancelButton": "取消"
+    },
+    "errors": {
+      "self": "無法變更自己的角色或停用自己。",
+      "lastAdmin": "這樣會導致沒有有效的管理員，因此無法執行此操作。",
+      "notFound": "找不到該員工。請重新整理頁面。",
+      "invalid": "輸入內容無效。",
+      "generic": "更新失敗。請稍後再試。"
+    }
+  },
   "dashboard": {
     "inquiryForm": {
       "title": "詢問",
@@ -874,6 +951,9 @@
     },
     "companies": {
       "description": "可以管理已註冊的海外販社的列表及申請人帳戶。"
+    },
+    "staff": {
+      "description": "新增日本方員工、變更角色並停用（僅限管理員）。"
     },
     "salesFloorMeeting": {
       "description": "可以管理按月份的賣場檢討會資料。"
