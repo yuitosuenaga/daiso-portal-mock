@@ -10,6 +10,7 @@ import {
   resolveAnnouncementContent,
   targetApplicantUsersWhere,
 } from "@/lib/server/announcement-mapper";
+import { safeErrorLabel } from "@/lib/server/error-label";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
 import type { Announcement } from "@/types/announcement";
 
@@ -97,6 +98,39 @@ async function sendAndLog(
       subject,
       text: bodyLines.join("\n"),
     });
+  } catch (error) {
+    const isNotConfigured = error instanceof MailerNotConfiguredError;
+    if (!isNotConfigured) {
+      // 宛先メールアドレス・エラーメッセージ（SMTPが宛先を含みうる）はログに出さない（PII対策）。
+      // `safeErrorLabel`は`api-errors.ts`（#169）のエラー固定文言化とは別に、ログ用にエラー名と
+      // Prismaコードだけを出す小さなヘルパー（役割は近いが仕組みは統合していない）。
+      console.error(
+        `[announcement-notifications] Failed to send ${kind} mail for announcement ${announcement.id}: ${safeErrorLabel(error)}`
+      );
+    }
+    // 失敗ログの書込み自体が失敗しても例外は伝播させず、送信結果だけを返す。
+    try {
+      await prisma.announcementNotificationLog.create({
+        data: {
+          announcementId: announcement.id,
+          kind,
+          recipientEmail: recipient.email,
+          locale: recipient.preferredLocale,
+          status: isNotConfigured ? "skipped" : "failed",
+          errorMessage: isNotConfigured ? null : (error as Error).message,
+        },
+      });
+    } catch (logError) {
+      console.error(
+        `[announcement-notifications] Failed to write ${kind} log for announcement ${announcement.id}: ${safeErrorLabel(logError)}`
+      );
+    }
+    return isNotConfigured ? "skipped" : "failed";
+  }
+
+  // メールは送信済み。ログ書込みの失敗で`failed`扱いにすると再送・未打刻を招くため、
+  // `sent`を返して警告ログのみ残す。
+  try {
     await prisma.announcementNotificationLog.create({
       data: {
         announcementId: announcement.id,
@@ -106,29 +140,12 @@ async function sendAndLog(
         status: "sent",
       },
     });
-    return "sent";
-  } catch (error) {
-    const isNotConfigured = error instanceof MailerNotConfiguredError;
-    if (!isNotConfigured) {
-      // 宛先メールアドレス・エラーメッセージ（SMTPが宛先を含みうる）はログに出さない（PII対策）。
-      console.error(
-        `[announcement-notifications] Failed to send ${kind} mail for announcement ${announcement.id}: ${
-          error instanceof Error ? error.name : "UnknownError"
-        }`
-      );
-    }
-    await prisma.announcementNotificationLog.create({
-      data: {
-        announcementId: announcement.id,
-        kind,
-        recipientEmail: recipient.email,
-        locale: recipient.preferredLocale,
-        status: isNotConfigured ? "skipped" : "failed",
-        errorMessage: isNotConfigured ? null : (error as Error).message,
-      },
-    });
-    return isNotConfigured ? "skipped" : "failed";
+  } catch (logError) {
+    console.warn(
+      `[announcement-notifications] Mail sent but failed to write ${kind} log for announcement ${announcement.id}: ${safeErrorLabel(logError)}`
+    );
   }
+  return "sent";
 }
 
 /**
@@ -306,10 +323,18 @@ export async function notifyAnnouncementEscalation(
       }
       const recipient = targets[nextIndex];
       nextIndex += 1;
-      outcomes.push({
-        email: recipient.email,
-        outcome: await sendAndLog(announcement, "escalation", recipient),
-      });
+      let outcome: SendOutcome;
+      try {
+        outcome = await sendAndLog(announcement, "escalation", recipient);
+      } catch (error) {
+        // sendAndLogは通常throwしないが、想定外でもworkerを落とさず（完了済みの結果を捨てず、
+        // 他workerの継続による同時送信数超過も防ぐ）failedとして集計する。
+        console.error(
+          `[announcement-notifications] Unexpected escalation send error for announcement ${announcement.id}: ${safeErrorLabel(error)}`
+        );
+        outcome = "failed";
+      }
+      outcomes.push({ email: recipient.email, outcome });
     }
   };
   await Promise.all(
