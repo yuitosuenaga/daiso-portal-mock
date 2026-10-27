@@ -71,14 +71,23 @@ model ApplicantUser {
   announcementReadReceipts AnnouncementReadReceipt[]
 }
 
+/// HelpdeskStaffの登録経路。既存行は既定でmanual（seedのメールのみマイグレーションでseed）。
+enum StaffRegistrationSource {
+  seed
+  manual
+  google_auto
+}
+
 model HelpdeskStaff {
-  id               String         @id @default(cuid())
-  email            String         @unique
-  passwordHash     String
-  displayName      String
-  createdAt        DateTime       @default(now())
-  claimedInquiries Inquiry[]
-  announcements    Announcement[]
+  id                 String                  @id @default(cuid())
+  email              String                  @unique
+  /// NULL=パスワード未設定（Google自動作成。パスワードログイン不可）
+  passwordHash       String?
+  displayName        String
+  createdAt          DateTime                @default(now())
+  registrationSource StaffRegistrationSource @default(manual)
+  claimedInquiries   Inquiry[]
+  announcements      Announcement[]
 }
 
 model Inquiry {
@@ -720,6 +729,7 @@ enum AuthEventType {
   login_failure
   login_locked
   login_blocked
+  account_provisioned
 }
 
 /// 認証イベントの監査ログ。メールアドレス・パスワードは平文で保存しない

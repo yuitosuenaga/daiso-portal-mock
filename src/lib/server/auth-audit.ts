@@ -13,7 +13,8 @@ export type AuthEventType =
   | "login_success"
   | "login_failure"
   | "login_locked"
-  | "login_blocked";
+  | "login_blocked"
+  | "account_provisioned";
 export type AuthMethod = "credentials" | "google";
 export type AuthPortal = "applicant" | "helpdesk";
 

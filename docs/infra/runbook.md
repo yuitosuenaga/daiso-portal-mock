@@ -639,3 +639,13 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 - `modules/scheduler` の `attempt_deadline`(既定 `300s`)を、envs から `min(cloudrun_timeout_seconds, 1800)` で渡し Cloud Run timeout(300s)と揃えている。督促 cron の処理締切は 240s なので、通常は打切りに達せず 200 で返る
 - 処理が 240s で打切られた場合も 200 で返るため再試行されない(締切超過の失敗とは別経路)
 - `cloudrun_timeout_seconds` を変えると attempt_deadline も追従する(上限 1800s)
+
+## ヘルプデスク担当者の Google 自動作成
+
+Google ログイン時に未登録のヘルプデスク担当者(HelpdeskStaff)を自動作成する機能。既定は無効(従来仕様=未登録は `not_registered` で拒否)。申請者(ApplicantUser)は自動作成しない。
+
+- **リリース順**: 「マイグレーション(`prisma migrate deploy`)→ アプリのデプロイ」の順。新カラム・enum 値(`registrationSource` / `account_provisioned`)を先に入れる。この変更自体は既定 OFF のため、デプロイしただけでは挙動は変わらない
+- **有効化**: tfvars で `enable_google_login = true` かつ `enable_helpdesk_auto_provision = true`、`helpdesk_auto_provision_domains = ["<自社ドメイン>"]`(`allowed_email_domains` の部分集合)を指定して `terraform apply`。アプリ側の環境変数は `GOOGLE_HELPDESK_AUTO_PROVISION` / `GOOGLE_HELPDESK_AUTO_PROVISION_DOMAINS`。Google の `hd`(Workspace ドメイン)がメールのドメインと一致しない場合は自動作成されない
+- **無効化**: `enable_helpdesk_auto_provision = false`(既定)に戻して apply。作成済みの担当者は残り、Google ログイン自体は引き続き可能(既存担当者として照合される)
+- **確認 SQL**: `SELECT id, email, "displayName", "createdAt" FROM "HelpdeskStaff" WHERE "registrationSource" = 'google_auto' ORDER BY "createdAt" DESC;`。監査は `AuthEvent` の `type = 'account_provisioned'`
+- **取り消し**: HelpdeskStaff に無効化フラグは無く、行削除のみ。問い合わせの担当・お知らせの作成者など外部キーで参照されていると削除できない場合がある(その場合は参照を外すか、削除せず対象ドメインを外して新規作成を止める)。自動作成された担当者はパスワード未設定でメール+パスワードではログインできない

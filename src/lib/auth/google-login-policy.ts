@@ -42,6 +42,54 @@ export function isEmailDomainAllowed(
   return allowedDomains.some((allowed) => allowed === domain);
 }
 
+/**
+ * ヘルプデスク担当者の自動作成を許可するドメインを決める。
+ * フラグが文字列"true"のときのみ有効で、「自動作成ドメイン ∩ 許可ドメイン」を返す。
+ * それ以外（未設定・"TRUE"・"1"等）は空（=自動作成しない）。
+ */
+export function resolveAutoProvisionDomains(
+  flag: string | undefined | null,
+  rawDomains: string | undefined | null,
+  allowedDomains: readonly string[]
+): string[] {
+  if (flag !== "true") return [];
+  return parseAllowedEmailDomains(rawDomains).filter((d) =>
+    allowedDomains.includes(d)
+  );
+}
+
+/**
+ * Googleログイン時にHelpdeskStaffを自動作成してよいか。
+ * メールのドメインが自動作成ドメインに完全一致し、かつGoogle Workspaceのホストドメイン(hd)が
+ * 同じドメインであること（Workspace管理外の個人Googleアカウントを排除する）。
+ */
+export function canAutoProvisionHelpdesk(input: {
+  email: string;
+  hostedDomain: string | null | undefined;
+  autoProvisionDomains: readonly string[];
+}): boolean {
+  if (!isEmailDomainAllowed(input.email, input.autoProvisionDomains)) return false;
+  // 実行時にhdが文字列以外で来ても例外にしない（型は信用しない）
+  if (typeof input.hostedDomain !== "string" || !input.hostedDomain) return false;
+  const domain = normalizeEmail(input.email).split("@")[1];
+  return input.hostedDomain.trim().toLowerCase() === domain;
+}
+
+const DISPLAY_NAME_MAX_LENGTH = 100;
+
+/** Googleのnameから表示名を作る（トリム・制御文字除去・100文字で切る。空ならメールのローカル部）。 */
+export function deriveStaffDisplayName(
+  name: string | null | undefined,
+  email: string
+): string {
+  const cleaned = (name ?? "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, "")
+    .trim();
+  const base = cleaned || normalizeEmail(email).split("@")[0];
+  return Array.from(base).slice(0, DISPLAY_NAME_MAX_LENGTH).join("");
+}
+
 export interface GoogleLoginInput {
   email: string | null | undefined;
   emailVerified: boolean | null | undefined;

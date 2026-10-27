@@ -99,6 +99,23 @@ variable "allowed_email_domains" {
   }
 }
 
+variable "enable_helpdesk_auto_provision" {
+  type        = bool
+  default     = false
+  description = "Google ログイン時に、未登録のヘルプデスク担当者を自動作成する（GOOGLE_HELPDESK_AUTO_PROVISION=true）。true の場合は enable_google_login=true と helpdesk_auto_provision_domains が必須"
+}
+
+variable "helpdesk_auto_provision_domains" {
+  type        = list(string)
+  default     = []
+  description = "ヘルプデスク担当者の自動作成を許可するメールドメイン。allowed_email_domains の部分集合であること。アプリには GOOGLE_HELPDESK_AUTO_PROVISION_DOMAINS としてカンマ区切りで渡す"
+
+  validation {
+    condition     = alltrue([for d in var.helpdesk_auto_provision_domains : can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\\.[a-z]{2,}$", d))])
+    error_message = "helpdesk_auto_provision_domains の各要素は小文字のドメイン形式（例: example.com）で指定する。空要素は不可。"
+  }
+}
+
 variable "enable_scheduler" {
   type    = bool
   default = true

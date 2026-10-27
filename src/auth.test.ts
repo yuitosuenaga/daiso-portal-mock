@@ -32,8 +32,12 @@ vi.mock("@/lib/server/login-throttle", () => ({
 vi.mock("@/lib/server/google-authorize", () => ({
   authorizeGoogleLogin: vi.fn(),
 }));
+vi.mock("@/lib/server/logger", () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}));
 vi.mock("@/lib/server/google-login-config", () => ({
   getAllowedEmailDomains: () => ["example.com"],
+  getHelpdeskAutoProvisionDomains: () => ["example.com"],
   isGoogleLoginEnabled: () => false,
 }));
 
@@ -41,11 +45,17 @@ import "@/auth";
 import { GOOGLE_LOGIN_CONTEXT_COOKIE } from "@/lib/constants/google-login";
 import { recordAuthEvent } from "@/lib/server/auth-audit";
 import { authorizeGoogleLogin } from "@/lib/server/google-authorize";
+import { logger } from "@/lib/server/logger";
 
 type SignInArgs = {
   user: Record<string, unknown>;
   account: { provider: string } | null;
-  profile?: { email?: string; email_verified?: boolean };
+  profile?: {
+    email?: string;
+    email_verified?: boolean;
+    hd?: unknown;
+    name?: unknown;
+  };
 };
 function signInCallback(args: SignInArgs) {
   const callbacks = captured.config?.callbacks as {
@@ -74,13 +84,19 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
     vi.mocked(authorizeGoogleLogin).mockResolvedValue({
       ok: true,
       user: { id: "s1", role: "helpdesk", staffId: "s1" },
+      provisioned: false,
     } as never);
     const user: Record<string, unknown> = { name: "G", image: "x" };
 
     const result = await signInCallback({
       user,
       account: { provider: "google" },
-      profile: { email: "staff@example.com", email_verified: true },
+      profile: {
+        email: "staff@example.com",
+        email_verified: true,
+        hd: "example.com",
+        name: "田中 太郎",
+      },
     });
 
     expect(result).toBe(true);
@@ -90,6 +106,9 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
       emailVerified: true,
       portal: "helpdesk",
       allowedDomains: ["example.com"],
+      hostedDomain: "example.com",
+      name: "田中 太郎",
+      autoProvisionDomains: ["example.com"],
     });
     expect(recordAuthEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -101,6 +120,36 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
     );
     // Googleのプロフィール項目は消え、認可済みユーザーに置き換わる
     expect(user).toEqual({ id: "s1", role: "helpdesk", staffId: "s1" });
+    // 自動作成でなければaccount_provisionedは記録しない
+    expect(recordAuthEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "account_provisioned" })
+    );
+  });
+
+  it("自動作成されたときaccount_provisionedをlogin_successより先に記録する", async () => {
+    cookieGet.mockReturnValue({ value: "helpdesk:ja" });
+    vi.mocked(authorizeGoogleLogin).mockResolvedValue({
+      ok: true,
+      user: { id: "s2", role: "helpdesk", staffId: "s2" },
+      provisioned: true,
+    } as never);
+
+    const result = await signInCallback({
+      user: {},
+      account: { provider: "google" },
+      profile: { email: "new@example.com", email_verified: true, hd: "example.com" },
+    });
+
+    expect(result).toBe(true);
+    const calls = vi.mocked(recordAuthEvent).mock.calls.map((c) => c[0]);
+    expect(calls.map((c) => c.type)).toEqual(["account_provisioned", "login_success"]);
+    expect(calls[0]).toMatchObject({
+      method: "google",
+      portal: "helpdesk",
+      userId: "s2",
+      identifierHash: "hash:new@example.com",
+      reason: "google_auto",
+    });
   });
 
   it("許可外ドメイン等で拒否された場合、cookieのlocale/portalに応じたエラーパスを返す", async () => {
@@ -144,5 +193,57 @@ describe("auth.ts signIn callback（Googleログイン）", () => {
       expect.objectContaining({ portal: "applicant" })
     );
     expect(result).toMatch(/^\/[a-z]{2}\/login\?googleError=not_registered$/);
+  });
+
+  it("hd/nameが文字列でない場合はnullとして渡す（型を信用しない）", async () => {
+    cookieGet.mockReturnValue({ value: "helpdesk:en" });
+    vi.mocked(authorizeGoogleLogin).mockResolvedValue({
+      ok: false,
+      error: "not_registered",
+    } as never);
+
+    await signInCallback({
+      user: {},
+      account: { provider: "google" },
+      profile: {
+        email: "a@example.com",
+        email_verified: true,
+        hd: 123,
+        name: { evil: true },
+      },
+    });
+
+    expect(authorizeGoogleLogin).toHaveBeenCalledWith(
+      expect.objectContaining({ hostedDomain: null, name: null })
+    );
+  });
+
+  it("authorizeGoogleLoginが例外を投げたら拒否してlogin_failureを記録する（メール平文は記録しない）", async () => {
+    cookieGet.mockReturnValue({ value: "helpdesk:en" });
+    vi.mocked(authorizeGoogleLogin).mockRejectedValue(new Error("db down a@example.com"));
+
+    const result = await signInCallback({
+      user: {},
+      account: { provider: "google" },
+      profile: { email: "a@example.com", email_verified: true, hd: "example.com" },
+    });
+
+    expect(result).toBe("/en/helpdesk/login?googleError=not_registered");
+    expect(recordAuthEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "login_failure",
+        method: "google",
+        portal: "helpdesk",
+        identifierHash: "hash:a@example.com",
+        reason: "authorize_error",
+      })
+    );
+    expect(recordAuthEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "login_success" })
+    );
+    expect(logger.error).toHaveBeenCalled();
+    expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toContain(
+      "a@example.com"
+    );
   });
 });

@@ -72,7 +72,8 @@ export async function authorizeHelpdeskCredentials(
 ): Promise<HelpdeskAuthorizedUser | null> {
   const staff = await prisma.helpdeskStaff.findUnique({ where: { email } });
 
-  if (!staff) {
+  // パスワード未設定（Google自動作成）の担当者も未登録と同扱い（応答時間で存否が分からないようにする）
+  if (!staff || staff.passwordHash === null) {
     await burnPasswordCheck(password);
     return null;
   }
