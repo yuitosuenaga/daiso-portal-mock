@@ -366,7 +366,7 @@ resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
 severity>=ERROR
 
-# DB 接続エラー(アプリログは JSON 1行で jsonPayload に入る。Prisma エラーは errorName / errorCode のみで、メッセージ本文は出ない)
+# DB 接続エラー(アプリログは JSON 1行で jsonPayload に入る。エラーは errorName / errorCode / errorMessage / stack_trace(スタック)/ cause 連鎖を出す。Prisma エラーは meta も出る)
 # P1000: 認証失敗 / P1001: 接続不可 / P1017: サーバーが接続を閉じた
 resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
@@ -397,6 +397,7 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 機密値が出ないようにするための注意:
 
 - **`gcloud run services describe ... --format=json` や `gcloud ... --format=json` の全体出力は使わない。** サービス定義の環境変数が含まれる(現行環境は Secret 参照に移行済みだが、平文の env が残る環境や過去の revision では値が出る)。必要な項目だけを `--format="value(...)"` で指定する。
+- アプリログのエラー詳細(errorMessage / stack_trace / Prisma の meta)は全情報を出す方針で、**メールアドレスや DB の値などの個人情報が入りうる**。Cloud Logging の閲覧権限と保持期間を管理すること。資格情報(Bearer・API キー・`password=`・`Authorization:`・接続文字列のパスワード)だけは伏字にしているが、検出できない形式の秘密値は残りうる。
 - ログの共有・貼り付けの前に、`DATABASE_URL`(パスワードを含む)、`Authorization` ヘッダ、Cookie、トークン、`CRON_SECRET`、API キーが含まれていないか確認する。接続エラーのメッセージには接続先のホスト名やユーザー名が出ることがある。
 - `terraform plan` の出力と state は、機密値(DB パスワード、`AUTH_SECRET`、`CRON_SECRET`)を含みうる。出力をファイルに保存して確認する場合は、確認後に削除する(§5)。
 
