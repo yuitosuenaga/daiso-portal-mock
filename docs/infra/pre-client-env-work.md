@@ -59,7 +59,7 @@
 
 ## 後回しでよいもの(クライアントの要件確定後)
 
-SMTP の本接続と Cloud Scheduler、バックアップの定期エクスポート(保持期間・RPO の確認が先)、監視、CI/CD、Cloud Armor / IAP、カスタムドメイン、Cloud SQL の private IP 化
+SMTP の本接続と Cloud Scheduler(現行環境では見送り。`enable_scheduler` は Terraform 生成の CRON_SECRET 前提で、`use_existing_secrets=true` の現行環境とは両立しない。クライアント環境(新規構築)で実施する。2026-10-27 に plan で確認)、バックアップの定期エクスポート(保持期間・RPO の確認が先)、監視、CI/CD、Cloud Armor / IAP、カスタムドメイン、Cloud SQL の private IP 化
 
 ## 判断待ち(ユーザー)
 

@@ -1,7 +1,7 @@
 # クライアントGCP環境向け IaC（Terraform）導入計画
 
 作成日: 2026-10-23
-ステータス: 計画（未着手）
+ステータス: 実行中(現行環境 `rvp-ai-proto-camp` は Terraform 取り込み・運用済み。クライアント環境は未構築。進捗は `pre-client-env-work.md`)
 
 ## 1. 目的・前提
 
