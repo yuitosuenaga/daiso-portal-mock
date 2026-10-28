@@ -30,6 +30,7 @@ vi.mock("@/lib/server/auth-session", () => ({
 import {
   appendReplyWithAutoTransition,
   changeStatusWithHistory,
+  ClaimOwnershipError,
   DoubleClaimError,
   InquiryNotFoundError,
   setClaim,
@@ -133,6 +134,64 @@ describe.skipIf(!url)("問い合わせのclaim・状態変更の同時実行（�
     expect(await historyOf("released")).toHaveLength(1);
     const row = await testPrisma!.inquiry.findUniqueOrThrow({ where: { id: inquiryId } });
     expect(row.claimedByStaffId).toBeNull();
+  });
+
+  describe("無効化されたスタッフが担当中の解除", () => {
+    let staffC = { id: "", displayName: "C" };
+
+    beforeEach(async () => {
+      const c = await testPrisma!.helpdeskStaff.create({
+        data: { email: `inq-it-c-${suffix()}@example.com`, displayName: "C", role: "member" },
+      });
+      created.staffIds.push(c.id);
+      staffC = { id: c.id, displayName: "C" };
+    });
+
+    it("担当者Aが無効化された後、Bの解除が成功しclaimはnull・released履歴は1件(実行者B)", async () => {
+      await setClaim(inquiryId, { staffId: staffA.id, displayName: "A" }, staffA.id);
+      await testPrisma!.helpdeskStaff.update({
+        where: { id: staffA.id },
+        data: { isActive: false },
+      });
+
+      await setClaim(inquiryId, null, staffB.id, { historyActorName: "B" });
+
+      const row = await testPrisma!.inquiry.findUniqueOrThrow({ where: { id: inquiryId } });
+      expect(row.claimedByStaffId).toBeNull();
+      const released = await historyOf("released");
+      expect(released).toHaveLength(1);
+      expect(released[0]?.actorName).toBe("B");
+    });
+
+    it("BとCの同時解除は両方成功し、released履歴は1件", async () => {
+      await setClaim(inquiryId, { staffId: staffA.id, displayName: "A" }, staffA.id);
+      await testPrisma!.helpdeskStaff.update({
+        where: { id: staffA.id },
+        data: { isActive: false },
+      });
+
+      const results = await Promise.allSettled([
+        setClaim(inquiryId, null, staffB.id, { historyActorName: "B" }),
+        setClaim(inquiryId, null, staffC.id, { historyActorName: "C" }),
+      ]);
+
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(2);
+      expect(await historyOf("released")).toHaveLength(1);
+      const row = await testPrisma!.inquiry.findUniqueOrThrow({ where: { id: inquiryId } });
+      expect(row.claimedByStaffId).toBeNull();
+    });
+
+    it("担当者Aが有効なままなら、Bの解除はClaimOwnershipError", async () => {
+      await setClaim(inquiryId, { staffId: staffA.id, displayName: "A" }, staffA.id);
+
+      await expect(
+        setClaim(inquiryId, null, staffB.id, { historyActorName: "B" })
+      ).rejects.toBeInstanceOf(ClaimOwnershipError);
+
+      const row = await testPrisma!.inquiry.findUniqueOrThrow({ where: { id: inquiryId } });
+      expect(row.claimedByStaffId).toBe(staffA.id);
+      expect(await historyOf("released")).toHaveLength(0);
+    });
   });
 
   const formatDetail = (prev: string, next: string) => `${prev}>${next}`;

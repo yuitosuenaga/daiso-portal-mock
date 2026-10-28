@@ -85,6 +85,21 @@ describe("履歴・状態更新はtx経由で行われる", () => {
     expect(globalMock.inquiryHistoryEntry.create).not.toHaveBeenCalled();
   });
 
+  it("setClaim(無効化済み担当の解除): findUnique・2回のupdateMany・履歴createがすべてtx側", async () => {
+    txMock.inquiry.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    txMock.inquiry.findUnique.mockResolvedValueOnce({
+      claimedByStaffId: "s1",
+      claimedByStaff: { isActive: false },
+    });
+    await setClaim("inquiry-1", null, "s2", { historyActorName: "S2" });
+    expect(txMock.inquiry.findUnique).toHaveBeenCalledTimes(1);
+    expect(txMock.inquiry.updateMany).toHaveBeenCalledTimes(2);
+    expect(txMock.inquiryHistoryEntry.create).toHaveBeenCalledTimes(1);
+    expect(globalMock.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+
   it("setClaim: 履歴createが失敗したらトランザクションごと失敗として伝播する", async () => {
     txMock.inquiry.updateMany.mockResolvedValue({ count: 1 });
     txMock.inquiryHistoryEntry.create.mockRejectedValue(new Error("history failed"));

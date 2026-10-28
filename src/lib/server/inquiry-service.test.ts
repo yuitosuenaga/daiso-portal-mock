@@ -388,7 +388,42 @@ describe("setClaim", () => {
     expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
   });
 
-  it("解除: 更新0件で他人がclaim中ならClaimOwnershipError", async () => {
+  it("解除: 更新0件で他人（有効）がclaim中ならClaimOwnershipError", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
+      claimedByStaffId: "staff-1",
+      claimedByStaff: { isActive: true },
+    } as never);
+
+    await expect(setClaim("inquiry-1", null, "staff-2")).rejects.toThrow(
+      ClaimOwnershipError
+    );
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+
+  it("解除: 読み取りは担当者のisActiveを含むselectで行う", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
+      claimedByStaffId: null,
+      claimedByStaff: null,
+    } as never);
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+      baseInquiryRecord as never
+    );
+
+    await setClaim("inquiry-1", null, "staff-2");
+
+    expect(prisma.inquiry.findUnique).toHaveBeenCalledWith({
+      where: { id: "inquiry-1" },
+      select: {
+        claimedByStaffId: true,
+        claimedByStaff: { select: { isActive: true } },
+      },
+    });
+  });
+
+  it("解除: claimedByStaffがundefinedなら拒否側に倒す", async () => {
     vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
     vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
       claimedByStaffId: "staff-1",
@@ -397,7 +432,95 @@ describe("setClaim", () => {
     await expect(setClaim("inquiry-1", null, "staff-2")).rejects.toThrow(
       ClaimOwnershipError
     );
-    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  describe("担当者が無効化されている場合の他スタッフによる解除", () => {
+    const inactiveOwner = {
+      claimedByStaffId: "staff-1",
+      claimedByStaff: { isActive: false },
+    };
+
+    it("読んだ担当者IDを条件にした2回目のupdateManyで解除し、claimはnullになる", async () => {
+      vi.mocked(prisma.inquiry.updateMany)
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+      vi.mocked(prisma.inquiry.findUnique).mockResolvedValueOnce(inactiveOwner as never);
+      vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+        baseInquiryRecord as never
+      );
+
+      const result = await setClaim("inquiry-1", null, "staff-2");
+
+      expect(prisma.inquiry.updateMany).toHaveBeenCalledTimes(2);
+      expect(prisma.inquiry.updateMany).toHaveBeenNthCalledWith(1, {
+        where: { id: "inquiry-1", claimedByStaffId: "staff-2" },
+        data: { claimedByStaffId: null, claimedAt: null },
+      });
+      expect(prisma.inquiry.updateMany).toHaveBeenNthCalledWith(2, {
+        where: { id: "inquiry-1", claimedByStaffId: "staff-1" },
+        data: { claimedByStaffId: null, claimedAt: null },
+      });
+      expect(result.claim).toBeNull();
+      expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+    });
+
+    it("historyActorName指定ならreleased履歴を実行者名で1件作る", async () => {
+      vi.mocked(prisma.inquiry.updateMany)
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+      vi.mocked(prisma.inquiry.findUnique).mockResolvedValueOnce(inactiveOwner as never);
+      vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+        baseInquiryRecord as never
+      );
+
+      await setClaim("inquiry-1", null, "staff-2", { historyActorName: "鈴木 花子" });
+
+      expect(prisma.inquiryHistoryEntry.create).toHaveBeenCalledTimes(1);
+      expect(
+        vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls[0]?.[0]?.data
+      ).toMatchObject({
+        inquiryId: "inquiry-1",
+        type: "released",
+        actorName: "鈴木 花子",
+      });
+    });
+
+    it("2回目の更新が0件で読み直すと担当なしなら、成功し履歴は残さない", async () => {
+      vi.mocked(prisma.inquiry.updateMany)
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 0 });
+      vi.mocked(prisma.inquiry.findUnique)
+        .mockResolvedValueOnce(inactiveOwner as never)
+        .mockResolvedValueOnce({ claimedByStaffId: null, claimedByStaff: null } as never);
+      vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+        baseInquiryRecord as never
+      );
+
+      const result = await setClaim("inquiry-1", null, "staff-2", {
+        historyActorName: "鈴木 花子",
+      });
+
+      expect(result.claim).toBeNull();
+      expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+    });
+
+    it("2回目の更新が0件で読み直すと有効な別スタッフが担当中ならClaimOwnershipError", async () => {
+      vi.mocked(prisma.inquiry.updateMany)
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 0 });
+      vi.mocked(prisma.inquiry.findUnique)
+        .mockResolvedValueOnce(inactiveOwner as never)
+        .mockResolvedValueOnce({
+          claimedByStaffId: "staff-3",
+          claimedByStaff: { isActive: true },
+        } as never);
+
+      await expect(
+        setClaim("inquiry-1", null, "staff-2", { historyActorName: "鈴木 花子" })
+      ).rejects.toThrow(ClaimOwnershipError);
+      expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+    });
   });
 
   it("historyActorName指定かつ更新1件のとき、同じtx内でclaimed履歴を作る", async () => {
