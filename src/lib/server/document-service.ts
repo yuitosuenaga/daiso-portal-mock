@@ -348,8 +348,11 @@ export async function updateDocumentRecord(
     });
 
     return mapDocumentSummary(record);
-  } catch {
-    throw new DocumentNotFoundError(id);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new DocumentNotFoundError(id);
+    }
+    throw error;
   }
 }
 
@@ -386,8 +389,11 @@ export async function upsertDocumentTranslations(
 export async function deleteDocumentRecord(id: string): Promise<void> {
   try {
     await prisma.document.delete({ where: { id } });
-  } catch {
-    throw new DocumentNotFoundError(id);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new DocumentNotFoundError(id);
+    }
+    throw error;
   }
 }
 

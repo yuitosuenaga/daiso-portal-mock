@@ -354,8 +354,11 @@ export async function updateManualRecord(
     });
 
     return mapManualSummary(record);
-  } catch {
-    throw new ManualNotFoundError(id);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new ManualNotFoundError(id);
+    }
+    throw error;
   }
 }
 
@@ -363,7 +366,10 @@ export async function updateManualRecord(
 export async function deleteManualRecord(id: string): Promise<void> {
   try {
     await prisma.manual.delete({ where: { id } });
-  } catch {
-    throw new ManualNotFoundError(id);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new ManualNotFoundError(id);
+    }
+    throw error;
   }
 }

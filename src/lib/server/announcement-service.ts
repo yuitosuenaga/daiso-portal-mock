@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { isWithinPublishPeriod } from "@/lib/announcement-publish-period";
 import { prisma } from "@/lib/db/prisma";
@@ -526,8 +526,11 @@ export async function deleteAnnouncementRecord(id: string): Promise<void> {
       prisma.announcementRecipientStatus.deleteMany({ where: { announcementId: id } }),
       prisma.announcement.delete({ where: { id } }),
     ]);
-  } catch {
-    throw new AnnouncementNotFoundError(id);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new AnnouncementNotFoundError(id);
+    }
+    throw error;
   }
 }
 
