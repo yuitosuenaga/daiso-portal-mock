@@ -135,7 +135,7 @@ describe.each(["America/Sao_Paulo", "Pacific/Kiritimati"])("日時表示はブ�
             publishEndTime: "18:00",
           },
         ]}
-        categoryLabels={{ maintenance: "メンテナンス", policy: "p", incident: "i", other: "o" }}
+        categoryLabels={{ maintenance: "メンテナンス", policy: "p", incident: "i", hearing: "h", other: "o" }}
         countryLabels={{}}
         categoryOptions={[]}
         locale="ja"
