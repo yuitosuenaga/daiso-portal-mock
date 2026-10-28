@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,7 @@ import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import { toReferenceYearMonth } from "@/lib/reference-date";
 import type { ManualCategory, ManualFormInput } from "@/types/manual";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 
 type UploadFormValues = Extract<ManualFormValues, { sourceType: "upload" }>;
 
@@ -203,7 +203,7 @@ export function ManualForm({
   retranslateErrorMessage,
   missingTranslationLocales = [],
 }: ManualFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   // 保存後に一部言語の翻訳が失敗していた場合の再翻訳対象ID（新規作成時は保存結果のIDを使う）
   const [retranslateTargetId, setRetranslateTargetId] = useState<string | null>(
@@ -299,6 +299,7 @@ export function ManualForm({
   }
 
   async function onSubmit(values: ManualSubmitValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     try {
       // `manualFormSchema`が`sourceType`に応じて正しい形へ再検証・整形するため、変換済みの
@@ -313,7 +314,7 @@ export function ManualForm({
         setRetranslateTargetId(result.manual.id);
         return;
       }
-      router.push("/helpdesk/manuals");
+      navigate("/helpdesk/manuals");
     } catch {
       setHasSubmitError(true);
     }
@@ -329,7 +330,7 @@ export function ManualForm({
         setHasRetranslateError(true);
         return;
       }
-      router.push("/helpdesk/manuals");
+      navigate("/helpdesk/manuals");
     } catch {
       setHasRetranslateError(true);
     } finally {
@@ -570,7 +571,7 @@ export function ManualForm({
       )}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isNavigating}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (
@@ -589,7 +590,7 @@ export function ManualForm({
           <Button
             type="button"
             variant="outline"
-            disabled={isRetranslating}
+            disabled={isRetranslating || isNavigating}
             onClick={handleRetranslate}
           >
             {retranslateButtonLabel}

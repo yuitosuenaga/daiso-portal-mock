@@ -1,10 +1,16 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { StaffForm } from "@/components/features/helpdesk-staff/StaffForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createActionMock = vi.fn();
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/helpdesk-staff", () => ({
   createHelpdeskStaffAction: (...args: unknown[]) => createActionMock(...args),
@@ -69,6 +75,28 @@ describe("StaffForm", () => {
       })
     );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/helpdesk/staff"));
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    createActionMock.mockResolvedValue({ ok: true });
+    render(<StaffForm {...labels} />);
+    fill("new@example.com", "新人");
+    fireEvent.click(screen.getByRole("button", { name: "作成する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "作成する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(createActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("ロールをadminに選んで作成できる", async () => {

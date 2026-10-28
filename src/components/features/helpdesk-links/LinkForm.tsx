@@ -21,6 +21,7 @@ import {
   updateLinkAction,
 } from "@/lib/actions/links";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 
 /** 大分類1件分の選択肢（`getAllLinkCategories()`の大分類一覧、中分類を含む）。 */
 export interface LinkCategoryFormOption {
@@ -89,6 +90,7 @@ export function LinkForm({
   categoryOptions,
 }: LinkFormProps) {
   const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [translationFailedLinkId, setTranslationFailedLinkId] = useState<string | null>(null);
   const [isRetranslating, setIsRetranslating] = useState(false);
@@ -131,6 +133,7 @@ export function LinkForm({
   }, [categoryId, setValue]);
 
   async function onSubmit(values: LinkSubmitValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     try {
       const result =
@@ -142,7 +145,7 @@ export function LinkForm({
         setTranslationFailedLinkId(result.link.id);
         return;
       }
-      router.push("/helpdesk/links");
+      navigate("/helpdesk/links");
     } catch {
       setHasSubmitError(true);
     }
@@ -154,7 +157,7 @@ export function LinkForm({
     try {
       const result = await retranslateLinkAction(translationFailedLinkId);
       if (result.failedLocales.length === 0) {
-        router.push("/helpdesk/links");
+        navigate("/helpdesk/links");
       }
     } catch {
       // 失敗時は案内メッセージを表示したままにする
@@ -243,7 +246,7 @@ export function LinkForm({
       </FormField>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting || translationFailedLinkId !== null}>
+        <Button type="submit" disabled={isSubmitting || isNavigating || translationFailedLinkId !== null}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (
@@ -259,7 +262,7 @@ export function LinkForm({
             type="button"
             variant="outline"
             size="sm"
-            disabled={isRetranslating}
+            disabled={isRetranslating || isNavigating}
             onClick={handleRetranslate}
           >
             {retranslateButtonLabel}

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ManualForm } from "@/components/features/helpdesk-manuals/ManualForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createManualActionMock = vi
   .fn()
@@ -11,6 +12,11 @@ const updateManualActionMock = vi
   .mockResolvedValue({ manual: { id: "existing-id" }, failedLocales: [] });
 const retranslateManualActionMock = vi.fn().mockResolvedValue({ failedLocales: [] });
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/manuals", () => ({
   createManualAction: (...args: unknown[]) => createManualActionMock(...args),
@@ -159,6 +165,46 @@ describe("ManualForm", () => {
       );
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/manuals");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    render(<ManualForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規マニュアル" },
+    });
+    fireEvent.change(screen.getByLabelText(/^カテゴリ/), {
+      target: { value: "accounting" },
+    });
+    fireEvent.change(screen.getByLabelText(/^年/), {
+      target: { value: "2027" },
+    });
+    fireEvent.change(screen.getByLabelText(/^月/), {
+      target: { value: "9" },
+    });
+    fireEvent.change(screen.getByLabelText("登録方法"), {
+      target: { value: "google" },
+    });
+    fireEvent.change(screen.getByLabelText("Googleドキュメントの共有リンク"), {
+      target: { value: "https://docs.google.com/document/d/abc123/edit" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(createManualActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("言語タブや英語入力欄は表示されない（jaのみ入力）", () => {

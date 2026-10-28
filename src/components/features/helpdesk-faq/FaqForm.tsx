@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -22,6 +21,7 @@ import {
   updateFaqAction,
 } from "@/lib/actions/faqs";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 
 export interface FaqFormProps {
   mode: "create" | "edit";
@@ -65,7 +65,7 @@ export function FaqForm({
   retranslateButtonLabel,
   categoryOptions,
 }: FaqFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   // 新規作成で保存済みになった場合のID（以後の送信は更新として扱い、重複作成を防ぐ）
   const [savedFaqId, setSavedFaqId] = useState<string | undefined>(faqId);
@@ -93,6 +93,7 @@ export function FaqForm({
     FAQ_CATEGORY_CODES.map((code) => ({ value: code, label: code }));
 
   async function onSubmit(values: FaqSubmitValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     setFailedLocales([]);
     try {
@@ -105,7 +106,7 @@ export function FaqForm({
         setFailedLocales(result.failedLocales);
         return;
       }
-      router.push("/helpdesk/faq");
+      navigate("/helpdesk/faq");
     } catch {
       setHasSubmitError(true);
     }
@@ -119,7 +120,7 @@ export function FaqForm({
       const result = await retranslateFaqAction(savedFaqId);
       setFailedLocales(result.failedLocales);
       if (result.failedLocales.length === 0) {
-        router.push("/helpdesk/faq");
+        navigate("/helpdesk/faq");
       }
     } catch {
       setHasSubmitError(true);
@@ -173,14 +174,14 @@ export function FaqForm({
       </FormField>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={isSubmitting || isRetranslating}>
+        <Button type="submit" disabled={isSubmitting || isNavigating || isRetranslating}>
           {submitButtonLabel}
         </Button>
         {savedFaqId && (failedLocales.length > 0 || mode === "edit") && (
           <Button
             type="button"
             variant="outline"
-            disabled={isSubmitting || isRetranslating}
+            disabled={isSubmitting || isNavigating || isRetranslating}
             onClick={onRetranslate}
           >
             {retranslateButtonLabel}

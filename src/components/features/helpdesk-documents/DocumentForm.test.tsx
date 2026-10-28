@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DocumentForm } from "@/components/features/helpdesk-documents/DocumentForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createDocumentActionMock = vi
   .fn()
@@ -11,6 +12,11 @@ const updateDocumentActionMock = vi
   .mockResolvedValue({ document: { id: "existing-id" }, failedLocales: [] });
 const retranslateDocumentActionMock = vi.fn().mockResolvedValue({ failedLocales: [] });
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/documents", () => ({
   createDocumentAction: (...args: unknown[]) => createDocumentActionMock(...args),
@@ -125,6 +131,48 @@ describe("DocumentForm", () => {
         })
       );
     });
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    render(<DocumentForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規ドキュメント" },
+    });
+    fireEvent.change(screen.getByLabelText("登録方法"), {
+      target: { value: "google" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("Googleドキュメントの共有リンク"),
+      {
+        target: {
+          value: "https://docs.google.com/document/d/abc123/edit",
+        },
+      }
+    );
+    fireEvent.change(screen.getByLabelText("公開状態"), {
+      target: { value: "published" },
+    });
+    fireEvent.change(screen.getByLabelText(/大分類/), {
+      target: { value: "category-1" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(createDocumentActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("状態選択は登録方法（sourceType）を切り替えても変化しない", () => {

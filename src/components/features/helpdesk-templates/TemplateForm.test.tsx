@@ -1,13 +1,19 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TemplateForm } from "@/components/features/helpdesk-templates/TemplateForm";
 import { TEMPLATE_NAME_MAX_LENGTH } from "@/lib/validation/reply-template";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createReplyTemplateActionMock = vi.fn();
 const updateReplyTemplateActionMock = vi.fn();
 const retranslateReplyTemplateActionMock = vi.fn();
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/helpdesk", () => ({
   createReplyTemplateAction: (...args: unknown[]) =>
@@ -84,6 +90,38 @@ describe("TemplateForm", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/templates");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    render(<TemplateForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("テンプレート名"), {
+      target: { value: "新規テンプレート名" },
+    });
+    fireEvent.change(screen.getByLabelText("案件種別"), {
+      target: { value: "defect" },
+    });
+    fireEvent.change(screen.getByLabelText("本文"), {
+      target: { value: "新規テンプレート本文" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(createReplyTemplateActionMock).toHaveBeenCalledTimes(1);
+    // 保存済みIDが設定されると2回目の送信は更新扱いになるため、更新側も呼ばれないことを確認する
+    expect(updateReplyTemplateActionMock).not.toHaveBeenCalled();
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("テンプレート名が上限文字数を超える場合、送信がブロックされエラーが表示される", async () => {

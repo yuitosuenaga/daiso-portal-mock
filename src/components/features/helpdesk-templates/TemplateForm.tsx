@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -21,6 +20,7 @@ import {
   updateReplyTemplateAction,
 } from "@/lib/actions/helpdesk";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 
 export interface TemplateFormProps {
   mode: "create" | "edit";
@@ -65,7 +65,7 @@ export function TemplateForm({
   retranslateButtonLabel,
   categoryOptions,
 }: TemplateFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   // 新規作成で保存済みになった場合のID（以後の送信は更新として扱い、重複作成を防ぐ）
   const [savedTemplateId, setSavedTemplateId] = useState<string | undefined>(templateId);
@@ -93,6 +93,7 @@ export function TemplateForm({
     INQUIRY_CATEGORY_CODES.map((code) => ({ value: code, label: code }));
 
   async function onSubmit(values: ReplyTemplateFormValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     setFailedLocales([]);
     try {
@@ -104,7 +105,7 @@ export function TemplateForm({
         setFailedLocales(result.failedLocales);
         return;
       }
-      router.push("/helpdesk/templates");
+      navigate("/helpdesk/templates");
     } catch {
       setHasSubmitError(true);
     }
@@ -118,7 +119,7 @@ export function TemplateForm({
       const result = await retranslateReplyTemplateAction(savedTemplateId);
       setFailedLocales(result.failedLocales);
       if (result.failedLocales.length === 0) {
-        router.push("/helpdesk/templates");
+        navigate("/helpdesk/templates");
       }
     } catch {
       setHasSubmitError(true);
@@ -178,14 +179,14 @@ export function TemplateForm({
       </FormField>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={isSubmitting || isRetranslating}>
+        <Button type="submit" disabled={isSubmitting || isNavigating || isRetranslating}>
           {submitButtonLabel}
         </Button>
         {savedTemplateId && (failedLocales.length > 0 || mode === "edit") && (
           <Button
             type="button"
             variant="outline"
-            disabled={isSubmitting || isRetranslating}
+            disabled={isSubmitting || isNavigating || isRetranslating}
             onClick={onRetranslate}
           >
             {retranslateButtonLabel}

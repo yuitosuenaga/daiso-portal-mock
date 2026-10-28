@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const saveResult = (id: string) => ({
   announcement: { id },
@@ -11,6 +12,11 @@ const saveResult = (id: string) => ({
 const createAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("new-id"));
 const updateAnnouncementActionMock = vi.fn().mockResolvedValue(saveResult("existing-id"));
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/applicant-users", () => ({
   searchTargetingCandidatesAction: vi.fn().mockResolvedValue({ companies: [], users: [] }),
@@ -177,6 +183,36 @@ describe("AnnouncementForm", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/announcements");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    render(<AnnouncementForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText(/タイトル/), {
+      target: { value: "新規お知らせ" },
+    });
+    fireEvent.change(screen.getByLabelText(/本文/), {
+      target: { value: "本文テキスト" },
+    });
+    fireEvent.change(screen.getByLabelText(/種別/), {
+      target: { value: "maintenance" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(createAnnouncementActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("公開状態の初期値は「下書き」であり、「公開」に変更して送信するとその内容で送信される", async () => {
