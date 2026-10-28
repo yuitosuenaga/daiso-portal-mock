@@ -5,13 +5,13 @@ import type { Prisma } from "@prisma/client";
 import { routing } from "@/i18n/routing";
 import { prisma } from "@/lib/db/prisma";
 import {
-  ANNOUNCEMENT_INCLUDE,
-  mapAnnouncement,
+  ANNOUNCEMENT_LIST_INCLUDE,
+  mapAnnouncementSummary,
   resolveAnnouncementContent,
   targetApplicantUsersWhere,
 } from "@/lib/server/announcement-mapper";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 import { errorFields, logger } from "./logger";
 
 /**
@@ -22,12 +22,12 @@ import { errorFields, logger } from "./logger";
  */
 async function findAnnouncementForNotification(
   announcementId: string
-): Promise<Announcement | null> {
+): Promise<AnnouncementSummary | null> {
   const record = await prisma.announcement.findUnique({
     where: { id: announcementId },
-    include: ANNOUNCEMENT_INCLUDE,
+    include: ANNOUNCEMENT_LIST_INCLUDE,
   });
-  return record ? mapAnnouncement(record) : null;
+  return record ? mapAnnouncementSummary(record) : null;
 }
 
 /** 通知メール本文に含めるポータルの詳細ページのパス（ロケールプレフィックスは含めない）。 */
@@ -79,7 +79,7 @@ interface NotificationRecipient {
  * `failed`として記録する。例外はこの関数の外へは伝播させない（ベストエフォート、要件29.1）。
  */
 async function sendAndLog(
-  announcement: Announcement,
+  announcement: AnnouncementSummary,
   kind: "publish" | "reminder" | "target_added" | "escalation" | "read_reminder",
   recipient: NotificationRecipient
 ): Promise<SendOutcome> {

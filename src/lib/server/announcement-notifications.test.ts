@@ -22,6 +22,7 @@ vi.mock("@/lib/server/mailer", () => ({
 import { prisma } from "@/lib/db/prisma";
 import { MailerNotConfiguredError, sendMail } from "@/lib/server/mailer";
 import { logger } from "@/lib/server/logger";
+import { ANNOUNCEMENT_LIST_INCLUDE } from "@/lib/server/announcement-mapper";
 import {
   notifyAnnouncementEscalation,
   notifyAnnouncementPublished,
@@ -71,6 +72,21 @@ function announcementRecord(
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("通知用のお知らせ取得", () => {
+  it("添付本体（dataUrl）を読み込まない一覧用includeで取得する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(announcementRecord() as never);
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([] as never);
+
+    await notifyAnnouncementPublished("announcement-1");
+
+    const args = vi.mocked(prisma.announcement.findUnique).mock.calls[0][0] as {
+      include: typeof ANNOUNCEMENT_LIST_INCLUDE;
+    };
+    expect(args.include).toEqual(ANNOUNCEMENT_LIST_INCLUDE);
+    expect(JSON.stringify(args.include)).not.toContain("dataUrl");
+  });
 });
 
 describe("notifyAnnouncementPublished", () => {
