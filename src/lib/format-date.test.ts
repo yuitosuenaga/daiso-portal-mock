@@ -45,7 +45,7 @@ describe.each(TIME_ZONES)("format-date（TZ=%s）", (tz) => {
 
   it("formatDateTimeの時刻はJSTの時:分", () => {
     expect(formatDateTime("2026-10-30T14:30:00Z", "ja")).toContain("23:30");
-    expect(formatDateTime("2026-10-29T15:05:00Z", "en")).toContain("00:05");
+    expect(formatDateTime("2026-10-29T15:05:00Z", "en")).toBe("Oct 30, 2026, 12:05 AM");
     expect(formatDateTime("2026-10-29T15:05:00Z", "ja")).toContain("10月30日");
   });
 
