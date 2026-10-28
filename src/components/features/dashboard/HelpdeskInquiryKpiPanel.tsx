@@ -47,9 +47,9 @@ export async function HelpdeskInquiryKpiPanel({
       getAllInquiries(),
       // 自分の担当タイルは付加的な情報であり、取得に失敗してもKPIパネル全体は表示を継続する。
       getCurrentHelpdeskStaffName().catch((error) => {
-      logLoadFailure("HelpdeskInquiryKpiPanel", error, { optional: true });
-      return null;
-    }),
+        logLoadFailure("HelpdeskInquiryKpiPanel", error, { optional: true });
+        return null;
+      }),
     ]);
     currentStaffName = staffName;
     stats = computeHelpdeskInquiryStats(inquiries, {
