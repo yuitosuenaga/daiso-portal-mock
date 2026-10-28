@@ -25,7 +25,8 @@ export function sanitizeRequestPath(path: unknown): string | undefined {
       return undefined;
     }
   }
-  return path.split(/[?#]/)[0].slice(0, MAX_PATH);
+  // scheme無しの `//host/path` がホスト付きに見えないよう先頭の連続スラッシュを1つにする
+  return path.split(/[?#]/)[0].replace(/^\/{2,}/, "/").slice(0, MAX_PATH);
 }
 
 const CONTROL_FLOW_PREFIXES = [
@@ -71,7 +72,10 @@ export function buildRequestContextFields(
     renderType: str((context as { renderType?: unknown } | undefined)?.renderType),
   };
   const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(candidates)) if (v !== undefined) out[k] = v;  return out;
+  for (const [k, v] of Object.entries(candidates)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
 }
 
 /** Edge用の構造化ログ1行。Edgeでは秘密値を伏字にできないため、errorMessage/stackは出さない。 */

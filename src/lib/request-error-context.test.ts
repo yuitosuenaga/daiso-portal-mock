@@ -28,6 +28,10 @@ describe("sanitizeRequestPath", () => {
   it("絶対URLはpathnameのみ", () => {
     expect(sanitizeRequestPath("https://example.com/ja/a?x=1")).toBe("/ja/a");
   });
+  it("先頭の連続スラッシュを1つに正規化する", () => {
+    expect(sanitizeRequestPath("//evil.com/a?x")).toBe("/evil.com/a");
+    expect(sanitizeRequestPath("///a")).toBe("/a");
+  });
   it("非文字列はundefined", () => {
     expect(sanitizeRequestPath(undefined)).toBeUndefined();
     expect(sanitizeRequestPath(123)).toBeUndefined();
@@ -42,6 +46,15 @@ describe("isNextControlFlowDigest", () => {
     expect(isNextControlFlowDigest("NEXT_REDIRECT;replace;/ja/login;307;")).toBe(true);
     expect(isNextControlFlowDigest("NEXT_HTTP_ERROR_FALLBACK;404")).toBe(true);
     expect(isNextControlFlowDigest("DYNAMIC_SERVER_USAGE")).toBe(true);
+  });
+  it.each([
+    "NEXT_REDIRECT;replace;/a;307;",
+    "NEXT_HTTP_ERROR_FALLBACK;404",
+    "NEXT_NOT_FOUND",
+    "DYNAMIC_SERVER_USAGE",
+    "BAILOUT_TO_CLIENT_SIDE_RENDERING",
+  ])("各プレフィックスをtrueと判定する: %s", (digest) => {
+    expect(isNextControlFlowDigest(digest)).toBe(true);
   });
   it("それ以外はfalse", () => {
     expect(isNextControlFlowDigest("123456789")).toBe(false);
