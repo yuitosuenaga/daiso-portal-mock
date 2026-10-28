@@ -1,8 +1,9 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
+import type { PdfFileStats } from "@/lib/server/file-response";
 import {
   DEFAULT_DOCUMENT_LOCALE,
   DOCUMENT_FILE_SELECT,
@@ -38,9 +39,7 @@ const ORDER_BY_UPLOADED_AT_DESC = { uploadedAt: "desc" } as const;
  * fileName等）は明示的に`null`にし、編集時に登録方式が切り替わっても前の方式のデータが
  * 残留しないようにする。
  */
-function toDocumentData(
-  input: CreateDocumentInput
-): Prisma.DocumentUncheckedCreateInput {
+function toDocumentData(input: CreateDocumentInput): Prisma.DocumentUncheckedCreateInput {
   const targetingColumns = targetingToColumns(input.targeting);
 
   if (input.sourceType === "google") {
@@ -190,6 +189,12 @@ export interface DocumentFile {
   dataUrl: string;
 }
 
+/** 認可確認用の軽量な情報（本体は含まない）。 */
+export interface DocumentFileMeta {
+  id: string;
+  fileName: string;
+}
+
 function toDocumentFile(
   record: { sourceType: string; fileName: string | null; dataUrl: string | null } | null
 ): DocumentFile | null {
@@ -199,10 +204,85 @@ function toDocumentFile(
   return { fileName: record.fileName ?? "document.pdf", dataUrl: record.dataUrl };
 }
 
+function toDocumentFileMeta(
+  record: { id: string; sourceType: string; fileName: string | null } | null
+): DocumentFileMeta | null {
+  if (!record || record.sourceType !== "upload") {
+    return null;
+  }
+  return { id: record.id, fileName: record.fileName ?? "document.pdf" };
+}
+
+const DOCUMENT_FILE_META_SELECT = { id: true, sourceType: true, fileName: true } as const;
+
 /**
- * 自社に可視なドキュメントのファイル本体を1件取得する。可視性は一覧と同じ述語
- * （`documentVisibleToWhere`）を再利用する。他社向け・下書き・存在しない・Google方式・
- * 本体なしはいずれもnull（呼び出し側で区別しない）。
+ * 自社に可視なアップロード方式ドキュメントの認可確認（本体は読まない）。可視性は一覧と同じ述語
+ * （`documentVisibleToWhere`）を再利用する。他社向け・下書き・存在しない・Google方式はnull。
+ */
+export async function findDocumentFileMetaVisibleTo(
+  id: string,
+  country: string,
+  companyCode: string
+): Promise<DocumentFileMeta | null> {
+  const record = await prisma.document.findFirst({
+    where: { id, ...documentVisibleToWhere(country, companyCode) },
+    select: DOCUMENT_FILE_META_SELECT,
+  });
+  return toDocumentFileMeta(record);
+}
+
+/** 公開範囲によらずIDだけで認可確認する（ヘルプデスク用、本体は読まない）。 */
+export async function findDocumentFileMetaById(id: string): Promise<DocumentFileMeta | null> {
+  const record = await prisma.document.findUnique({
+    where: { id },
+    select: DOCUMENT_FILE_META_SELECT,
+  });
+  return toDocumentFileMeta(record);
+}
+
+/**
+ * HEAD用。認可確認済みのIDについて、本体をNodeへ転送せずDB側で長さ・先頭・末尾だけ集計する。
+ * dataUrlがnullまたは存在しない場合はnull。
+ */
+export async function getDocumentFileStats(id: string): Promise<PdfFileStats | null> {
+  const rows = await prisma.$queryRaw<
+    {
+      head: string;
+      clean_length: number | bigint;
+      clean_tail: string;
+      first_pad: number | bigint;
+    }[]
+  >(Prisma.sql`
+    WITH src AS MATERIALIZED (
+      SELECT substr("dataUrl", 1, 300) AS head,
+             regexp_replace(
+               substr("dataUrl", strpos(substr("dataUrl", 1, 300), ',') + 1),
+               '[^A-Za-z0-9+/=_-]', '', 'g'
+             ) AS clean
+      FROM "Document"
+      WHERE id = ${id} AND "sourceType" = 'upload' AND "dataUrl" IS NOT NULL
+    )
+    SELECT head,
+           length(clean) AS clean_length,
+           right(clean, 2) AS clean_tail,
+           strpos(clean, '=') AS first_pad
+    FROM src
+  `);
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+  return {
+    head: row.head,
+    cleanLength: Number(row.clean_length),
+    cleanTail: row.clean_tail,
+    firstPad: Number(row.first_pad),
+  };
+}
+
+/**
+ * 自社に可視なドキュメントのファイル本体を1件取得する（セマフォ取得後に呼ぶ）。可視性は
+ * 認可確認と同じ述語を再適用する。他社向け・下書き・存在しない・Google方式・本体なしはnull。
  */
 export async function findDocumentFileVisibleTo(
   id: string,
@@ -226,9 +306,7 @@ export async function findDocumentFileById(id: string): Promise<DocumentFile | n
 }
 
 /** ドキュメントを新規作成する。アップロード日時は保存操作を行った時刻とする。 */
-export async function createDocumentRecord(
-  input: CreateDocumentInput
-): Promise<DocumentSummary> {
+export async function createDocumentRecord(input: CreateDocumentInput): Promise<DocumentSummary> {
   const record = await prisma.document.create({
     data: {
       ...toDocumentData(input),

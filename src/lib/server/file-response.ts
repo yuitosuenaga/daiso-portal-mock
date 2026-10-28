@@ -137,23 +137,57 @@ function fileHeaders(
 }
 
 /**
- * HEAD用。本体を保持・配信しないためセマフォは使わず、ヘッダーだけ返す（GETと同じヘッダー）。
- * dataUrlがPDFとして不正な場合は404。
+ * HEAD用にDB側で集計した本体の統計（本体そのものはNodeへ転送しない）。
+ * `head`は先頭プレフィックス、`cleanLength`はプレフィックス以降からbase64の文字以外（改行・空白）を
+ * 除いた長さ、`cleanTail`はその末尾2文字、`firstPad`は最初の`=`の位置（1始まり、無ければ0）。
+ */
+export interface PdfFileStats {
+  head: string;
+  cleanLength: number;
+  cleanTail: string;
+  firstPad: number;
+}
+
+/** Node 20の`Buffer.byteLength(str, "base64")`と同じ計算（パディング`=`を考慮）。 */
+export function base64DecodedSize(cleanLength: number, cleanTail: string): number {
+  let size = cleanLength;
+  if (size > 0 && cleanTail.endsWith("=")) {
+    size -= 1;
+    if (size > 0 && cleanTail.length >= 2 && cleanTail[cleanTail.length - 2] === "=") {
+      size -= 1;
+    }
+  }
+  const remainder = size % 4;
+  let bytes = Math.floor(size / 4) * 3;
+  if (remainder) {
+    bytes = bytes === 0 && remainder === 1 ? 0 : bytes + 1 + (remainder === 3 ? 1 : 0);
+  }
+  return bytes;
+}
+
+/**
+ * HEAD用。本体を読み込まず、DB側で集計した統計からGETと同じヘッダーだけを返す
+ * （そのためセマフォも使わない）。dataUrlがPDFのプレフィックスでない場合は404。
+ * 注意: 末尾以外に`=`を含む不正なbase64では、HEADのContent-LengthとGETの実バイト数が
+ * 食い違い得る（GETは実際にデコードした長さを返すので自己整合）。検出時は警告ログを残す。
  */
 export function pdfFileHeadResponse(
-  file: { fileName: string; dataUrl: string },
+  file: { fileName: string },
+  stats: PdfFileStats,
   options: { download: boolean }
 ): Response {
-  const match = PDF_DATA_URL_PREFIX.exec(file.dataUrl);
-  if (!match) {
+  if (!PDF_DATA_URL_PREFIX.test(stats.head)) {
     logger.error("document file integrity error: dataUrl is not a base64 PDF", {
       fileName: file.fileName,
     });
     return withNoStore(Response.json({ error: "Not Found" }, { status: 404 }));
   }
-  // 改行入りbase64でもGETのBuffer.fromと同じ長さになるよう、base64の文字以外（改行・空白）は数えない
-  const payload = file.dataUrl.slice(match[0].length).replace(/[^A-Za-z0-9+/=_-]/g, "");
-  const length = Buffer.byteLength(payload, "base64");
+  if (stats.firstPad > 0 && stats.firstPad < stats.cleanLength - 1) {
+    logger.warn("document file integrity warning: base64 has padding before the end", {
+      fileName: file.fileName,
+    });
+  }
+  const length = base64DecodedSize(stats.cleanLength, stats.cleanTail);
   return new Response(null, { status: 200, headers: fileHeaders(length, file.fileName, options) });
 }
 
@@ -184,14 +218,15 @@ function bufferToStream(buffer: Buffer, onDone: () => void): ReadableStream<Uint
 }
 
 /**
- * DBのdataUrlからPDF配信レスポンスを作る。Content-Typeは固定で`application/pdf`
- * （DBのfileTypeは使わない）、`nosniff`・`private, no-store`を付ける。dataUrlが
- * PDFとして不正な場合は404（整合性エラーとしてログに残す）。
- * 本体を保持している間はセマフォの許可を1つ消費し、ボディの送信完了・中断で解放する
- * （保険として最大保持時間でも解放）。許可待ちが長引いた場合は503。
+ * PDF配信レスポンスを作る。本体（dataUrl）をDBから読む前にセマフォの許可を取得し、
+ * `load`で本体を取得→デコード→ストリーム送信の間だけ許可を保持する（同時にメモリへ載る本体は
+ * 最大2件）。許可の解放はボディの送信完了・cancel・例外・本体なし（404）で必ず行い、
+ * 保険として最大保持時間でも解放する。許可待ちが長引いた場合は503。
+ * Content-Typeは固定で`application/pdf`（DBのfileTypeは使わない）、`nosniff`・`private, no-store`を付ける。
+ * `load`がnull・dataUrlがPDFとして不正な場合は404。
  */
 export async function pdfFileResponse(
-  file: { fileName: string; dataUrl: string },
+  load: () => Promise<{ fileName: string; dataUrl: string } | null>,
   options: { download: boolean }
 ): Promise<Response> {
   let releaseOnce: () => void;
@@ -206,6 +241,11 @@ export async function pdfFileResponse(
   }
 
   try {
+    const file = await load();
+    if (!file) {
+      releaseOnce();
+      return withNoStore(Response.json({ error: "Not Found" }, { status: 404 }));
+    }
     const buffer = parsePdfDataUrl(file.dataUrl);
     if (!buffer) {
       logger.error("document file integrity error: dataUrl is not a base64 PDF", {

@@ -10,6 +10,7 @@ vi.mock("@/lib/db/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -20,8 +21,11 @@ import {
   deleteDocumentRecord,
   findDocumentById,
   findDocumentFileById,
+  findDocumentFileMetaById,
+  findDocumentFileMetaVisibleTo,
   findDocumentFileVisibleTo,
   findDocumentVisibleTo,
+  getDocumentFileStats,
   listAllDocuments,
   listDocumentsVisibleTo,
   listVisibleDocumentsInCategory,
@@ -654,5 +658,73 @@ describe("findDocumentFileById", () => {
       baseDocumentRecord({ dataUrl: null }) as never
     );
     expect(await findDocumentFileById("x")).toBeNull();
+  });
+});
+
+describe("findDocumentFileMetaVisibleTo / ById（本体を読まない認可確認）", () => {
+  it("可視性述語を再利用し、selectにdataUrlを含めない", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(baseDocumentRecord() as never);
+
+    const result = await findDocumentFileMetaVisibleTo("doc-1", "VN", "vn-co");
+
+    expect(prisma.document.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "doc-1",
+        status: "published",
+        OR: [
+          { targetingScope: "all" },
+          { targetingScope: "countries", targetingCountries: { has: "VN" } },
+          { targetingScope: "companies", targetingCompanyCodes: { has: "vn-co" } },
+        ],
+      },
+      select: { id: true, sourceType: true, fileName: true },
+    });
+    expect(result).toEqual({ id: "document-1", fileName: "test.pdf" });
+  });
+
+  it("存在しない・google型はnull", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValueOnce(null);
+    expect(await findDocumentFileMetaVisibleTo("x", "VN", "vn-co")).toBeNull();
+    vi.mocked(prisma.document.findFirst).mockResolvedValueOnce(
+      baseDocumentRecord({ sourceType: "google" }) as never
+    );
+    expect(await findDocumentFileMetaVisibleTo("x", "VN", "vn-co")).toBeNull();
+  });
+
+  it("ById: IDだけで取得しselectにdataUrlを含めない", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      baseDocumentRecord({ status: "draft" }) as never
+    );
+    expect(await findDocumentFileMetaById("doc-1")).toEqual({ id: "document-1", fileName: "test.pdf" });
+    expect(prisma.document.findUnique).toHaveBeenCalledWith({
+      where: { id: "doc-1" },
+      select: { id: true, sourceType: true, fileName: true },
+    });
+    vi.mocked(prisma.document.findUnique).mockResolvedValueOnce(null);
+    expect(await findDocumentFileMetaById("x")).toBeNull();
+  });
+});
+
+describe("getDocumentFileStats", () => {
+  it("DB側集計の結果を数値に変換して返す（bigintも許容）", async () => {
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      {
+        head: "data:application/pdf;base64,AA",
+        clean_length: BigInt(8),
+        clean_tail: "A=",
+        first_pad: BigInt(8),
+      },
+    ] as never);
+    expect(await getDocumentFileStats("doc-1")).toEqual({
+      head: "data:application/pdf;base64,AA",
+      cleanLength: 8,
+      cleanTail: "A=",
+      firstPad: 8,
+    });
+  });
+
+  it("行がない（dataUrlなし・存在しない）場合はnull", async () => {
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([] as never);
+    expect(await getDocumentFileStats("x")).toBeNull();
   });
 });

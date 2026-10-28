@@ -9,6 +9,7 @@ import { logger } from "@/lib/server/logger";
 import {
   ACQUIRE_TIMEOUT_MS,
   MAX_HOLD_MS,
+  base64DecodedSize,
   buildContentDisposition,
   parsePdfDataUrl,
   pdfFileHeadResponse,
@@ -70,7 +71,7 @@ describe("buildContentDisposition", () => {
 describe("pdfFileResponse", () => {
   it("PDFを固定Content-Type・安全なヘッダーで返す", async () => {
     const response = await pdfFileResponse(
-      { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
+      async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }),
       { download: false }
     );
 
@@ -85,7 +86,7 @@ describe("pdfFileResponse", () => {
 
   it("download:trueでattachmentにする", async () => {
     const response = await pdfFileResponse(
-      { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
+      async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }),
       { download: true }
     );
     expect(response.headers.get("Content-Disposition")).toMatch(/^attachment;/);
@@ -94,7 +95,10 @@ describe("pdfFileResponse", () => {
 
   it("PDFでないdataUrlは404にしてログに残す", async () => {
     const response = await pdfFileResponse(
-      { fileName: "a.pdf", dataUrl: "data:text/html;base64,PGI+PC9iPg==" },
+      async () => ({
+        fileName: "a.pdf",
+        dataUrl: "data:text/html;base64,PGI+PC9iPg==",
+      }),
       { download: false }
     );
     expect(response.status).toBe(404);
@@ -104,15 +108,14 @@ describe("pdfFileResponse", () => {
   it("本体を読まずにcancelしても許可が解放され、後続が詰まらない", async () => {
     for (let i = 0; i < 4; i += 1) {
       const response = await pdfFileResponse(
-        { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
+        async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }),
         { download: false }
       );
       await response.body?.cancel();
     }
-    const last = await pdfFileResponse(
-      { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
-      { download: false }
-    );
+    const last = await pdfFileResponse(async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }), {
+      download: false,
+    });
     expect(last.status).toBe(200);
     await last.arrayBuffer();
   });
@@ -121,7 +124,7 @@ describe("pdfFileResponse", () => {
     const statuses = await Promise.all(
       Array.from({ length: 6 }, async () => {
         const response = await pdfFileResponse(
-          { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
+          async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }),
           { download: false }
         );
         await response.arrayBuffer();
@@ -135,7 +138,10 @@ describe("pdfFileResponse", () => {
 describe("pdfFileResponse: 404のキャッシュ制御", () => {
   it("PDFでないdataUrlの404にもCache-Control: private, no-storeを付ける", async () => {
     const response = await pdfFileResponse(
-      { fileName: "a.pdf", dataUrl: "data:text/html;base64,PGI+PC9iPg==" },
+      async () => ({
+        fileName: "a.pdf",
+        dataUrl: "data:text/html;base64,PGI+PC9iPg==",
+      }),
       { download: false }
     );
     expect(response.status).toBe(404);
@@ -151,14 +157,45 @@ describe("withNoStore", () => {
   });
 });
 
+/** テスト用: GET本体と同じ計算になるはずの統計をJS側で作る（SQLの集計の代用）。 */
+function statsOf(dataUrl: string) {
+  const head = dataUrl.slice(0, 300);
+  const clean = dataUrl.slice(dataUrl.indexOf(",") + 1).replace(/[^A-Za-z0-9+/=_-]/g, "");
+  return {
+    head,
+    cleanLength: clean.length,
+    cleanTail: clean.slice(-2),
+    firstPad: clean.indexOf("=") + 1,
+  };
+}
+const getFile = (dataUrl: string) => async () => ({
+  fileName: "a.pdf",
+  dataUrl,
+});
+
+describe("base64DecodedSize", () => {
+  it("Buffer.from(..., base64).lengthと一致する（パディング有無・各長さ・改行除去後）", () => {
+    for (let n = 0; n < 40; n += 1) {
+      const bytes = Buffer.alloc(n, 7);
+      const padded = bytes.toString("base64");
+      const unpadded = padded.replace(/=+$/, "");
+      for (const text of [padded, unpadded]) {
+        const stats = statsOf(`data:application/pdf;base64,${text}`);
+        expect(base64DecodedSize(stats.cleanLength, stats.cleanTail)).toBe(
+          Buffer.from(text, "base64").length
+        );
+      }
+    }
+  });
+});
+
 describe("pdfFileHeadResponse", () => {
   it("ボディなしでGETと同じヘッダーを返し、許可を消費しない", async () => {
     // 許可を超える回数呼んでも詰まらない（acquireしない）
     for (let i = 0; i < 5; i += 1) {
-      const response = pdfFileHeadResponse(
-        { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
-        { download: false }
-      );
+      const response = pdfFileHeadResponse({ fileName: "a.pdf" }, statsOf(PDF_DATA_URL), {
+        download: false,
+      });
       expect(response.status).toBe(200);
       expect(response.body).toBeNull();
       expect(response.headers.get("Content-Type")).toBe("application/pdf");
@@ -167,31 +204,125 @@ describe("pdfFileHeadResponse", () => {
       expect(response.headers.get("Cache-Control")).toBe("private, no-store");
       expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     }
-    const get = await pdfFileResponse(
-      { fileName: "a.pdf", dataUrl: PDF_DATA_URL },
-      { download: false }
-    );
+    const get = await pdfFileResponse(getFile(PDF_DATA_URL), {
+      download: false,
+    });
     expect(get.status).toBe(200);
     await get.arrayBuffer();
   });
 
   it("改行入りbase64でもContent-LengthがGET本体のバイト数と一致する", async () => {
-    const wrapped = PDF_BYTES.toString("base64").replace(/(.{8})/g, "$1\n");
+    const wrapped = PDF_BYTES.toString("base64").replace(/(.{8})/g, "$1\r\n");
     const dataUrl = `data:application/pdf;base64,${wrapped}`;
-    const head = pdfFileHeadResponse({ fileName: "a.pdf", dataUrl }, { download: false });
-    const get = await pdfFileResponse({ fileName: "a.pdf", dataUrl }, { download: false });
+    const head = pdfFileHeadResponse({ fileName: "a.pdf" }, statsOf(dataUrl), {
+      download: false,
+    });
+    const get = await pdfFileResponse(getFile(dataUrl), { download: false });
     const body = Buffer.from(await get.arrayBuffer());
     expect(head.headers.get("Content-Length")).toBe(String(body.length));
     expect(body.equals(PDF_BYTES)).toBe(true);
   });
 
-  it("PDFでないdataUrlは404（no-store）", () => {
+  it("PDFでないdataUrl（先頭プレフィックス）は404（no-store）", () => {
     const response = pdfFileHeadResponse(
-      { fileName: "a.pdf", dataUrl: "data:text/html;base64,PGI+PC9iPg==" },
+      { fileName: "a.pdf" },
+      statsOf("data:text/html;base64,PGI+PC9iPg=="),
       { download: false }
     );
     expect(response.status).toBe(404);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("末尾以外に=があるbase64は警告ログを残す", () => {
+    pdfFileHeadResponse({ fileName: "a.pdf" }, statsOf("data:application/pdf;base64,QQ==QQ=="), {
+      download: false,
+    });
+    expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+describe("pdfFileResponse: 本体読み込みはセマフォ取得後", () => {
+  it("loadが許可取得後にだけ呼ばれ、同時にloadが走るのは最大2件（50並列）", async () => {
+    let running = 0;
+    let maxRunning = 0;
+    const load = async () => {
+      running += 1;
+      maxRunning = Math.max(maxRunning, running);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      return { fileName: "a.pdf", dataUrl: PDF_DATA_URL };
+    };
+    const statuses = await Promise.all(
+      Array.from({ length: 50 }, async () => {
+        const response = await pdfFileResponse(
+          async () => {
+            return load();
+          },
+          { download: false }
+        );
+        // 読み始める時点（許可の解放より前）で保持終了とみなす（過小計上なので緩い側。無制限なら50件が同時に走り検出できる）
+        const reader = response.body!.getReader();
+        running -= 1;
+        await reader.read();
+        await reader.read();
+        return response.status;
+      })
+    );
+    expect(statuses.every((status) => status === 200)).toBe(true);
+    expect(maxRunning).toBeLessThanOrEqual(2);
+  });
+
+  it("許可が埋まっている間はloadを呼ばない", async () => {
+    const first = await pdfFileResponse(getFile(PDF_DATA_URL), {
+      download: false,
+    });
+    const second = await pdfFileResponse(getFile(PDF_DATA_URL), {
+      download: false,
+    });
+    const load = vi.fn(async () => ({
+      fileName: "a.pdf",
+      dataUrl: PDF_DATA_URL,
+    }));
+    const third = pdfFileResponse(load, { download: false });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(load).not.toHaveBeenCalled();
+    await first.body?.cancel();
+    const response = await third;
+    expect(load).toHaveBeenCalledTimes(1);
+    await response.body?.cancel();
+    await second.body?.cancel();
+  });
+
+  it("loadが例外でも許可が解放され、後続が詰まらない", async () => {
+    for (let i = 0; i < 4; i += 1) {
+      await expect(
+        pdfFileResponse(
+          async () => {
+            throw new Error("db down");
+          },
+          { download: false }
+        )
+      ).rejects.toThrow("db down");
+    }
+    const ok = await pdfFileResponse(getFile(PDF_DATA_URL), {
+      download: false,
+    });
+    expect(ok.status).toBe(200);
+    await ok.arrayBuffer();
+  });
+
+  it("loadがnullなら404で、許可も解放される", async () => {
+    for (let i = 0; i < 4; i += 1) {
+      const response = await pdfFileResponse(async () => null, {
+        download: false,
+      });
+      expect(response.status).toBe(404);
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    }
+    const ok = await pdfFileResponse(getFile(PDF_DATA_URL), {
+      download: false,
+    });
+    expect(ok.status).toBe(200);
+    await ok.arrayBuffer();
   });
 });
 
@@ -202,7 +333,9 @@ describe("セマフォの保険（許可が戻らない場合）", () => {
     vi.resetModules();
     const fresh = await import("@/lib/server/file-response");
     open = () =>
-      fresh.pdfFileResponse({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }, { download: false });
+      fresh.pdfFileResponse(async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }), {
+        download: false,
+      });
   });
 
   afterEach(() => {

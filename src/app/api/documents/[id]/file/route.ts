@@ -4,7 +4,10 @@ import { toErrorResponse } from "@/lib/server/api-errors";
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
 import {
   findDocumentFileById,
+  findDocumentFileMetaById,
+  findDocumentFileMetaVisibleTo,
   findDocumentFileVisibleTo,
+  getDocumentFileStats,
 } from "@/lib/server/document-service";
 import { pdfFileHeadResponse, pdfFileResponse, withNoStore } from "@/lib/server/file-response";
 import { getSession } from "@/lib/server/get-session";
@@ -27,19 +30,35 @@ async function handle(request: Request, props: RouteParams, head: boolean): Prom
     }
     const claims = session.claims;
 
-    const file =
-      claims.role === "applicant"
-        ? await findDocumentFileVisibleTo(params.id, claims.country, claims.companyCode)
-        : await findDocumentFileById(params.id);
+    const applicant = claims.role === "applicant";
 
-    if (!file) {
+    // 認可確認は本体を読まない軽いクエリで行う（未認可・存在しない・Google型は404）
+    const meta = applicant
+      ? await findDocumentFileMetaVisibleTo(params.id, claims.country, claims.companyCode)
+      : await findDocumentFileMetaById(params.id);
+    if (!meta) {
       return withNoStore(NextResponse.json({ error: "Not Found" }, { status: 404 }));
     }
 
     const download = new URL(request.url).searchParams.get("download") === "1";
-    return head
-      ? pdfFileHeadResponse(file, { download })
-      : await pdfFileResponse(file, { download });
+
+    if (head) {
+      // HEADは本体を読まず、DB側で集計した長さ・先頭・末尾だけでヘッダーを組み立てる
+      const stats = await getDocumentFileStats(meta.id);
+      if (!stats) {
+        return withNoStore(NextResponse.json({ error: "Not Found" }, { status: 404 }));
+      }
+      return pdfFileHeadResponse(meta, stats, { download });
+    }
+
+    // GETはセマフォ取得後に本体を読む（同時にメモリへ載る本体を制限）。可視性述語は再適用される
+    return await pdfFileResponse(
+      () =>
+        applicant
+          ? findDocumentFileVisibleTo(params.id, claims.country, claims.companyCode)
+          : findDocumentFileById(params.id),
+      { download }
+    );
   } catch (error) {
     return withNoStore(toErrorResponse(error));
   }
@@ -51,7 +70,8 @@ export async function GET(request: Request, props: RouteParams): Promise<Respons
 
 /**
  * HEADを明示的に処理する。Next.jsはHEADをGETで代行するが、その場合ボディを読まず
- * cancelもしないため、本体保持用のセマフォ許可が戻らなくなる。ヘッダーだけを返す。
+ * cancelもしないため、本体保持用のセマフォ許可が戻らなくなる。HEADは本体を読まず、
+ * DB側の集計（長さ・先頭・末尾）だけでヘッダーを返す。
  */
 export async function HEAD(request: Request, props: RouteParams): Promise<Response> {
   return handle(request, props, true);
