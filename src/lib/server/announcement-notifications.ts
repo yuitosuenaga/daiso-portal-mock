@@ -157,7 +157,8 @@ async function sendAndLog(
 /**
  * お知らせが公開されたことを、配信対象（`targeting`）に含まれる国に属する`ApplicantUser`の
  * うち有効なメールアドレスを持つ全員へメールで通知する（要件27）。宛先ごとの送信は
- * ベストエフォートで行い、この関数自体は例外をthrowしない。
+ * ベストエフォートで行い、宛先ごとの送信失敗はthrowしない。
+ * 通知用の取得・宛先検索のDBエラーはthrowしうるため、保存後に呼ぶ側（`announcement-service.ts`）で包む。
  */
 export async function notifyAnnouncementPublished(announcementId: string): Promise<void> {
   const announcement = await findAnnouncementForNotification(announcementId);
@@ -182,7 +183,8 @@ export async function notifyAnnouncementPublished(announcementId: string): Promi
  * `announcement-mapper.ts`の`addedTargetApplicantUsersWhere`で算出した、新規追加分のみを
  * 表す`where`であることを前提とする（差分算出そのものは行わない）。本文は公開通知
  * （`notifyAnnouncementPublished`）と同型（`Due:`行なし）。宛先ごとの送信はベストエフォートで
- * 行い、この関数自体は例外をthrowしない。
+ * 行い、宛先ごとの送信失敗はthrowしない。
+ * 通知用の取得・宛先検索のDBエラーはthrowしうるため、保存後に呼ぶ側（`announcement-service.ts`）で包む。
  */
 export async function notifyAnnouncementTargetExpanded(
   announcementId: string,
