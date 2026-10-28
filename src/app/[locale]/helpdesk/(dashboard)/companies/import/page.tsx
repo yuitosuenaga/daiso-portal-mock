@@ -3,7 +3,8 @@ import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-pa
 
 import { BackLink } from "@/components/ui/back-link";
 import { CompanyCsvImportForm } from "@/components/features/helpdesk-companies/CompanyCsvImportForm";
-import type { CompanyCsvRowErrorCode } from "@/lib/company-csv";
+import { formatTemplate } from "@/lib/format-template";
+import { MAX_COMPANY_CSV_ROWS, type CompanyCsvRowErrorCode } from "@/lib/company-csv";
 
 const CSV_TEMPLATE_ROWS = [
   ["name", "country", "companyCode"],
@@ -17,6 +18,7 @@ const CSV_ROW_ERROR_CODES: readonly CompanyCsvRowErrorCode[] = [
   "invalidCountry",
   "companyCodeDuplicate",
   "duplicateInFile",
+  "columnCount",
 ];
 
 function buildCsvTemplateDataUrl(): string {
@@ -43,6 +45,10 @@ export default async function HelpdeskCompanyImportPage() {
     empty: tImport("fileErrors.empty"),
     headerMismatch: tImport("fileErrors.headerMismatch"),
     noDataRows: tImport("fileErrors.noDataRows"),
+    invalidEncoding: tImport("fileErrors.invalidEncoding"),
+    tooManyRows: formatTemplate(tImport("fileErrors.tooManyRows"), {
+      max: MAX_COMPANY_CSV_ROWS,
+    }),
   };
 
   return (

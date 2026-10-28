@@ -10,7 +10,7 @@ import {
   importCompaniesAction,
   type CompanyCsvImportResult,
 } from "@/lib/actions/companies";
-import type { CompanyCsvRowErrorCode } from "@/lib/company-csv";
+import { precheckCompanyCsvText, type CompanyCsvRowErrorCode } from "@/lib/company-csv";
 
 export interface CompanyCsvImportFormProps {
   fileInputLabel: string;
@@ -96,6 +96,15 @@ export function CompanyCsvImportForm({
 
     try {
       const csvText = await readFileAsText(file);
+
+      // 文字コード・件数の問題はServer Actionを呼ぶ前にクライアントで弾く
+      // （サーバー側でも`parseAndValidateCompanyCsv`が同じ判定を行う）。
+      const precheckError = precheckCompanyCsvText(csvText);
+      if (precheckError) {
+        setValidationMessage(fileErrorMessages[precheckError] ?? precheckError);
+        return;
+      }
+
       const actionResult = await importCompaniesAction(csvText);
       setResult(actionResult);
     } catch {

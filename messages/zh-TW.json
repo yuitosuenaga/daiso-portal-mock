@@ -775,12 +775,15 @@
         "companyCodeFormat": "販售公司代碼格式不正確（只能使用半形小寫英文字母、數字及連字號，開頭、結尾或連續的連字號無法使用）",
         "invalidCountry": "國家代碼無效",
         "companyCodeDuplicate": "此販售公司代碼已被登記",
-        "duplicateInFile": "此CSV內販售公司代碼重複"
+        "duplicateInFile": "此CSV內販售公司代碼重複",
+        "columnCount": "欄位數過多。若公司名稱包含逗號，請以雙引號將該值括起來"
       },
       "fileErrors": {
         "empty": "CSV檔案為空",
         "headerMismatch": "標題行與「name,country,companyCode」不符",
-        "noDataRows": "資料行為0筆"
+        "noDataRows": "資料行為0筆",
+        "invalidEncoding": "CSV檔案的編碼不是UTF-8。請在Excel中另存為「CSV UTF-8（逗號分隔）」",
+        "tooManyRows": "每次最多可登記'{max}'行。請拆分檔案"
       }
     },
     "bulkDeactivate": {

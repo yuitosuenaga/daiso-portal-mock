@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CompanyCsvImportForm } from "@/components/features/helpdesk-companies/CompanyCsvImportForm";
 import type { CompanyCsvImportResult } from "@/lib/actions/companies";
+import { MAX_COMPANY_CSV_ROWS } from "@/lib/company-csv";
 
 const importCompaniesActionMock = vi.fn();
 
@@ -31,11 +32,14 @@ const props = {
     invalidCountry: "国コードが不正です",
     companyCodeDuplicate: "この販社コードは既に登録されています",
     duplicateInFile: "このCSV内で販社コードが重複しています",
+    columnCount: "列数が多すぎます",
   },
   fileErrorMessages: {
     empty: "CSVファイルが空です",
     headerMismatch: "ヘッダー行が一致しません",
     noDataRows: "データ行が0件です",
+    invalidEncoding: "文字コードがUTF-8ではありません",
+    tooManyRows: "行数が多すぎます（最大500行）",
   },
 };
 
@@ -178,5 +182,38 @@ describe("CompanyCsvImportForm", () => {
         screen.getByText("検証・登録に失敗しました。時間を置いて再度お試しください。")
       ).toBeTruthy();
     });
+  });
+
+  it("U+FFFDを含むファイル（UTF-8以外で保存）はactionを呼ばずエンコーディングのエラー文言を表示する", async () => {
+    render(<CompanyCsvImportForm {...props} />);
+
+    const file = csvFile("name,country,companyCode\n\uFFFD\uFFFD,JP,jp-001");
+    fireEvent.change(screen.getByLabelText("CSVファイルを選択"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "検証してアップロード" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("文字コードがUTF-8ではありません")).toBeTruthy();
+    });
+    expect(importCompaniesActionMock).not.toHaveBeenCalled();
+  });
+
+  it("MAX+1行のファイルはactionを呼ばず行数超過の文言を表示する", async () => {
+    render(<CompanyCsvImportForm {...props} />);
+
+    const lines = ["name,country,companyCode"];
+    for (let i = 1; i <= MAX_COMPANY_CSV_ROWS + 1; i += 1) {
+      lines.push(`Company ${i},TH,code-${i}`);
+    }
+    fireEvent.change(screen.getByLabelText("CSVファイルを選択"), {
+      target: { files: [csvFile(lines.join("\n"))] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "検証してアップロード" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("行数が多すぎます（最大500行）")).toBeTruthy();
+    });
+    expect(importCompaniesActionMock).not.toHaveBeenCalled();
   });
 });

@@ -775,12 +775,15 @@
         "companyCodeFormat": "O formato do código do distribuidor está incorreto (apenas letras minúsculas, números e hífens são permitidos; hífens não podem aparecer no início, fim ou consecutivamente)",
         "invalidCountry": "O código do país é inválido",
         "companyCodeDuplicate": "Este código de distribuidor já está registrado",
-        "duplicateInFile": "O código do distribuidor está duplicado neste CSV"
+        "duplicateInFile": "O código do distribuidor está duplicado neste CSV",
+        "columnCount": "Há colunas demais. Se o nome da empresa contiver vírgula, coloque o valor entre aspas duplas"
       },
       "fileErrors": {
         "empty": "O arquivo CSV está vazio",
         "headerMismatch": "A linha de cabeçalho não corresponde a \"name,country,companyCode\"",
-        "noDataRows": "Nenhuma linha de dados encontrada"
+        "noDataRows": "Nenhuma linha de dados encontrada",
+        "invalidEncoding": "O arquivo CSV não está codificado em UTF-8. Salve-o novamente como \"CSV UTF-8 (delimitado por vírgulas)\" no Excel",
+        "tooManyRows": "É possível registrar até '{max}' linhas por vez. Divida o arquivo"
       }
     },
     "bulkDeactivate": {

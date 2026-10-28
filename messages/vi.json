@@ -775,12 +775,15 @@
         "companyCodeFormat": "Định dạng mã nhà phân phối không chính xác (chỉ cho phép chữ cái tiếng Anh viết thường, chữ số và dấu gạch ngang; không được phép sử dụng dấu gạch ngang ở đầu, cuối hoặc liên tiếp)",
         "invalidCountry": "Mã quốc gia không hợp lệ",
         "companyCodeDuplicate": "Mã nhà phân phối này đã được đăng ký",
-        "duplicateInFile": "Mã nhà phân phối bị trùng lặp trong CSV này"
+        "duplicateInFile": "Mã nhà phân phối bị trùng lặp trong CSV này",
+        "columnCount": "Có quá nhiều cột. Nếu tên công ty chứa dấu phẩy, hãy đặt giá trị đó trong dấu ngoặc kép"
       },
       "fileErrors": {
         "empty": "Tệp CSV trống",
         "headerMismatch": "Hàng tiêu đề không khớp với \"name,country,companyCode\"",
-        "noDataRows": "Không có hàng dữ liệu"
+        "noDataRows": "Không có hàng dữ liệu",
+        "invalidEncoding": "Tệp CSV không được mã hóa UTF-8. Hãy lưu lại dưới dạng \"CSV UTF-8 (Comma delimited)\" trong Excel",
+        "tooManyRows": "Mỗi lần chỉ đăng ký được tối đa '{max}' hàng. Vui lòng chia nhỏ tệp"
       }
     },
     "bulkDeactivate": {
