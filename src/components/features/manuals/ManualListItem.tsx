@@ -50,7 +50,7 @@ export function ManualListItem({
         ) : (
           <PdfViewer
             variant="upload"
-            dataUrl={manual.dataUrl}
+            fileUrl={manual.dataUrl}
             title={manual.title}
             downloadFileName={manual.fileName}
             downloadLinkLabel={downloadLinkLabel}

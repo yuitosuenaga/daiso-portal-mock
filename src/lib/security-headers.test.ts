@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  FILE_ROUTE_SOURCES,
   buildContentSecurityPolicy,
+  buildFileRouteSecurityHeaders,
+  buildHeadersConfig,
   buildSecurityHeaders,
 } from "@/lib/security-headers.mjs";
 
@@ -44,5 +47,33 @@ describe("buildContentSecurityPolicy", () => {
     const csp = buildContentSecurityPolicy();
     expect(csp).toContain("https://accounts.google.com");
     expect(csp).toContain("https://docs.google.com");
+  });
+});
+
+describe("buildFileRouteSecurityHeaders", () => {
+  it("同一オリジンiframeを許可し、他のヘッダーは全体用と同じ", () => {
+    const h = byKey(buildFileRouteSecurityHeaders({ isDev: false }));
+    expect(h["X-Frame-Options"]).toBe("SAMEORIGIN");
+    expect(h["Content-Security-Policy"]).toContain("frame-ancestors 'self'");
+    expect(h["Content-Security-Policy"]).not.toContain("frame-ancestors 'none'");
+    expect(h["X-Content-Type-Options"]).toBe("nosniff");
+    expect(h["Strict-Transport-Security"]).toContain("max-age=");
+  });
+});
+
+describe("buildHeadersConfig", () => {
+  it("全体用の後にファイルルート用が並ぶ（後勝ちで上書きする順序）", () => {
+    const config = buildHeadersConfig({ isDev: false });
+    expect(config[0].source).toBe("/:path*");
+    expect(byKey(config[0].headers)["X-Frame-Options"]).toBe("DENY");
+    const rest = config.slice(1);
+    expect(rest.map((entry: { source: string }) => entry.source)).toEqual([...FILE_ROUTE_SOURCES]);
+    for (const entry of rest) {
+      expect(byKey(entry.headers)["X-Frame-Options"]).toBe("SAMEORIGIN");
+    }
+  });
+
+  it("PR1ではドキュメントのファイル配信ルートのみ", () => {
+    expect(FILE_ROUTE_SOURCES).toEqual(["/api/documents/:id/file"]);
   });
 });

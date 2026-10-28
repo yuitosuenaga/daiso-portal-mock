@@ -11,7 +11,7 @@ import {
   ManagementListMessageCard,
   ManagementListSkeleton,
 } from "@/components/features/helpdesk-shared/ManagementList";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 
 export async function DocumentManagementList() {
   const [t, tCountries, locale, categories] = await Promise.all([
@@ -40,7 +40,7 @@ export async function DocumentManagementList() {
     </div>
   );
 
-  let documents: Document[];
+  let documents: DocumentSummary[];
   try {
     documents = await getAllDocuments();
   } catch {

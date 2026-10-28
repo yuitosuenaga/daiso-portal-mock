@@ -60,10 +60,10 @@ export function validateDocumentFile(file: File): DocumentFileValidationResult {
  * タイトル・説明の部分一致（大文字小文字を区別しない）でドキュメントを絞り込む。
  * キーワードが空のとき、入力配列をそのまま（順序維持で）返す。
  */
-export function filterDocuments(
-  documents: Document[],
+export function filterDocuments<T extends Pick<Document, "title" | "description">>(
+  documents: T[],
   keyword: string
-): Document[] {
+): T[] {
   const normalizedKeyword = keyword.trim().toLowerCase();
 
   if (!normalizedKeyword) {

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DocumentListClient } from "@/components/features/documents/DocumentListClient";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 import messages from "../../../../messages/ja.json";
 
 function resolveMessage(namespace: string, key: string): string {
@@ -23,8 +23,8 @@ vi.mock("next-intl", () => ({
 }));
 
 function makeDocument(
-  overrides: Partial<Omit<Document, "sourceType">>
-): Document {
+  overrides: Partial<Omit<DocumentSummary, "sourceType">>
+): DocumentSummary {
   return {
     id: "1",
     title: "テストドキュメント",
@@ -33,14 +33,13 @@ function makeDocument(
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
-    targeting: { scope: "all" },
+      targeting: { scope: "all" },
     uploadedAt: "2026-07-01T09:00:00Z",
     translations: [],
     categoryId: "cat-1",
     subCategoryId: null,
     ...overrides,
-  } as Document;
+  } as DocumentSummary;
 }
 
 const BASE_PROPS = {

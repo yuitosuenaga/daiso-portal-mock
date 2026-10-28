@@ -145,7 +145,7 @@ describe("DocumentDetailPanel", () => {
     expect(screen.getByLabelText(/タイトル/)).toBeTruthy();
 
     const iframe = screen.getByTitle("テストドキュメント");
-    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
+    expect(iframe.getAttribute("src")).toBe(`/api/documents/${DOCUMENT.id}/file`);
 
     expect(screen.queryByRole("button", { name: "編集" })).toBeNull();
   });
@@ -165,7 +165,7 @@ describe("DocumentDetailPanel", () => {
     expect(screen.queryByLabelText(/タイトル/)).toBeNull();
 
     const iframe = screen.getByTitle("テストドキュメント");
-    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
+    expect(iframe.getAttribute("src")).toBe(`/api/documents/${DOCUMENT.id}/file`);
   });
 
   it("表示モードで「編集」ボタンをクリックすると編集モードに戻る", () => {

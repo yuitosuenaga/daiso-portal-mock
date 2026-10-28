@@ -395,7 +395,6 @@ describe("AnnouncementDetail", () => {
             fileName: "manual.pdf",
             fileType: "application/pdf",
             fileSize: 2048,
-            dataUrl: "data:application/pdf;base64,BBBB",
             targeting: { scope: "all" },
             uploadedAt: "2026-07-01T00:00:00Z",
           }
@@ -410,7 +409,9 @@ describe("AnnouncementDetail", () => {
     render(jsx);
 
     expect(screen.getByText("添付ファイル")).toBeTruthy();
-    expect(screen.getByTitle("業務マニュアル")).toBeTruthy();
+    expect(screen.getByTitle("業務マニュアル").getAttribute("src")).toBe(
+      "/api/documents/doc-1/file"
+    );
     expect(screen.getByText("ダウンロード")).toBeTruthy();
   });
 

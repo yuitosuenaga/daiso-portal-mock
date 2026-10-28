@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DocumentManagementList } from "@/components/features/helpdesk-documents/DocumentManagementList";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 import messages from "../../../../messages/ja.json";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -68,7 +68,7 @@ vi.mock("next-intl", () => ({
       resolveMessage(namespace, key, values),
 }));
 
-const DOCUMENT: Document = {
+const DOCUMENT: DocumentSummary = {
   id: "1",
   title: "テストドキュメント",
   sourceType: "upload",
@@ -76,7 +76,6 @@ const DOCUMENT: Document = {
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
-  dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
@@ -84,7 +83,7 @@ const DOCUMENT: Document = {
   subCategoryId: null,
 };
 
-const GOOGLE_DOCUMENT: Document = {
+const GOOGLE_DOCUMENT: DocumentSummary = {
   id: "2",
   title: "Googleドキュメント",
   sourceType: "google",
@@ -150,7 +149,7 @@ describe("DocumentManagementList", () => {
   });
 
   it("キーワードで絞り込むと一覧が即時に絞り込まれ、0件時はメッセージを表示する", async () => {
-    const otherDocument: Document = {
+    const otherDocument: DocumentSummary = {
       ...DOCUMENT,
       id: "2",
       title: "Onboarding Guide",
@@ -197,7 +196,7 @@ describe("DocumentManagementList", () => {
   });
 
   it("ページネーションで11件を超える一覧は10件ずつ表示される", async () => {
-    const manyDocuments: Document[] = Array.from({ length: 11 }, (_, index) => ({
+    const manyDocuments: DocumentSummary[] = Array.from({ length: 11 }, (_, index) => ({
       ...DOCUMENT,
       id: `doc-${index}`,
       title: `ドキュメント${index}`,

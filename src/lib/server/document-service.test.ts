@@ -19,6 +19,8 @@ import {
   createDocumentRecord,
   deleteDocumentRecord,
   findDocumentById,
+  findDocumentFileById,
+  findDocumentFileVisibleTo,
   findDocumentVisibleTo,
   listAllDocuments,
   listDocumentsVisibleTo,
@@ -487,5 +489,170 @@ describe("listVisibleDocumentsInCategory", () => {
         orderBy: { uploadedAt: "desc" },
       })
     );
+  });
+});
+
+function selectArg(mock: unknown): Record<string, unknown> {
+  const calls = (mock as { mock: { calls: unknown[][] } }).mock.calls;
+  const arg = calls[0]?.[0] as { select?: Record<string, unknown> } | undefined;
+  expect(arg?.select).toBeDefined();
+  return arg?.select as Record<string, unknown>;
+}
+
+describe("一覧・単件取得・保存系はファイル本体(dataUrl)を読まず、返さない", () => {
+  it("listDocumentsVisibleToはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([baseDocumentRecord({ id: "1" })] as never);
+
+    const result = await listDocumentsVisibleTo("VN", "vn");
+
+    const select = selectArg(prisma.document.findMany);
+    expect(select).not.toHaveProperty("dataUrl");
+    expect(select).toHaveProperty("translations");
+    expect(result[0]).not.toHaveProperty("dataUrl");
+  });
+
+  it("listAllDocumentsはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([baseDocumentRecord({ id: "1" })] as never);
+
+    const result = await listAllDocuments();
+
+    expect(selectArg(prisma.document.findMany)).not.toHaveProperty("dataUrl");
+    expect(result[0]).not.toHaveProperty("dataUrl");
+  });
+
+  it("listVisibleDocumentsInCategoryはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([baseDocumentRecord({ id: "1" })] as never);
+
+    const result = await listVisibleDocumentsInCategory("c1", "VN", "vn");
+
+    expect(selectArg(prisma.document.findMany)).not.toHaveProperty("dataUrl");
+    expect(result[0]).not.toHaveProperty("dataUrl");
+  });
+
+  it("findDocumentVisibleToはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(baseDocumentRecord({ id: "1" }) as never);
+
+    const result = await findDocumentVisibleTo("1", "VN", "vn");
+
+    expect(selectArg(prisma.document.findFirst)).not.toHaveProperty("dataUrl");
+    expect(result).not.toHaveProperty("dataUrl");
+  });
+
+  it("createDocumentRecordはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.document.create).mockResolvedValue(baseDocumentRecord({ id: "1" }) as never);
+
+    const result = await createDocumentRecord({
+      sourceType: "upload",
+      title: "t",
+      status: "published",
+      fileName: "t.pdf",
+      fileType: "application/pdf",
+      fileSize: 1,
+      dataUrl: "data:application/pdf;base64,AAAA",
+      targeting: { scope: "all" },
+      translations: [],
+      categoryId: "c1",
+      subCategoryId: null,
+    });
+
+    expect(selectArg(prisma.document.create)).not.toHaveProperty("dataUrl");
+    expect(result).not.toHaveProperty("dataUrl");
+  });
+
+  it("updateDocumentRecordはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.document.update).mockResolvedValue(baseDocumentRecord({ id: "1" }) as never);
+
+    const result = await updateDocumentRecord("1", {
+      sourceType: "upload",
+      title: "t",
+      status: "published",
+      fileName: "t.pdf",
+      fileType: "application/pdf",
+      fileSize: 1,
+      dataUrl: "data:application/pdf;base64,AAAA",
+      targeting: { scope: "all" },
+      translations: [],
+      categoryId: "c1",
+      subCategoryId: null,
+    });
+
+    expect(selectArg(prisma.document.update)).not.toHaveProperty("dataUrl");
+    expect(result).not.toHaveProperty("dataUrl");
+  });
+});
+
+describe("findDocumentFileVisibleTo", () => {
+  it("可視性述語を再利用したwhereと、ファイル用selectで1件取得する", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(baseDocumentRecord() as never);
+
+    const result = await findDocumentFileVisibleTo("doc-1", "VN", "vn-co");
+
+    expect(prisma.document.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "doc-1",
+        status: "published",
+        OR: [
+          { targetingScope: "all" },
+          { targetingScope: "countries", targetingCountries: { has: "VN" } },
+          { targetingScope: "companies", targetingCompanyCodes: { has: "vn-co" } },
+        ],
+      },
+      select: { sourceType: true, fileName: true, fileType: true, dataUrl: true },
+    });
+    expect(result).toEqual({
+      fileName: "test.pdf",
+      dataUrl: "data:application/pdf;base64,AAAA",
+    });
+  });
+
+  it("存在しない場合はnullを返す", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(null);
+    expect(await findDocumentFileVisibleTo("x", "VN", "vn-co")).toBeNull();
+  });
+
+  it("google型はnullを返す", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(
+      baseDocumentRecord({ sourceType: "google", dataUrl: null, fileName: null }) as never
+    );
+    expect(await findDocumentFileVisibleTo("x", "VN", "vn-co")).toBeNull();
+  });
+
+  it("dataUrlがnullのupload型はnullを返す", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(
+      baseDocumentRecord({ dataUrl: null }) as never
+    );
+    expect(await findDocumentFileVisibleTo("x", "VN", "vn-co")).toBeNull();
+  });
+});
+
+describe("findDocumentFileById", () => {
+  it("公開状態・範囲で絞らずIDだけで取得する", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      baseDocumentRecord({ status: "draft" }) as never
+    );
+
+    const result = await findDocumentFileById("doc-1");
+
+    expect(prisma.document.findUnique).toHaveBeenCalledWith({
+      where: { id: "doc-1" },
+      select: { sourceType: true, fileName: true, fileType: true, dataUrl: true },
+    });
+    expect(result).toEqual({
+      fileName: "test.pdf",
+      dataUrl: "data:application/pdf;base64,AAAA",
+    });
+  });
+
+  it("存在しない・google型・dataUrlなしはnull", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValueOnce(null);
+    expect(await findDocumentFileById("x")).toBeNull();
+    vi.mocked(prisma.document.findUnique).mockResolvedValueOnce(
+      baseDocumentRecord({ sourceType: "google", dataUrl: null }) as never
+    );
+    expect(await findDocumentFileById("x")).toBeNull();
+    vi.mocked(prisma.document.findUnique).mockResolvedValueOnce(
+      baseDocumentRecord({ dataUrl: null }) as never
+    );
+    expect(await findDocumentFileById("x")).toBeNull();
   });
 });

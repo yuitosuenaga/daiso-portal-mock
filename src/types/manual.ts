@@ -5,6 +5,8 @@
 // Base64データURLとして本体を保持する。Google方式はGoogleドキュメント/スプレッドシート/
 // スライドの共有リンクを保持し、実体のコピーは持たない。
 
+import type { DistributiveOmit } from "@/types/utility";
+
 /** マニュアルの大分類カテゴリ。固定10種類（`manual-mapper.ts`のPrisma enumと対応）。 */
 export type ManualCategory =
   | "storeOperations"
@@ -78,8 +80,6 @@ export type Manual =
 export type CreateManualInput =
   | Omit<Extract<Manual, { sourceType: "upload" }>, "id" | "createdAt" | "updatedAt">
   | Omit<Extract<Manual, { sourceType: "google" }>, "id" | "createdAt" | "updatedAt">;
-
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 /**
  * ヘルプデスクのフォームから送信される入力。日本語（`ja`）の原文のみを持ち、他言語の

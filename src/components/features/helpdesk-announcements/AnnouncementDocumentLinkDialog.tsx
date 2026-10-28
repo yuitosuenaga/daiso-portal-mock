@@ -10,13 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/attachment-utils";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 
 export interface AnnouncementDocumentLinkDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** 選択候補となる登録済みドキュメント一覧（絞り込みなしの全件）。 */
-  documentOptions: Document[];
+  documentOptions: DocumentSummary[];
   /** 現在選択済みのドキュメントID一覧。 */
   selectedIds: string[];
   onConfirm: (ids: string[]) => void;
@@ -32,7 +32,7 @@ export interface AnnouncementDocumentLinkDialogProps {
 }
 
 function targetingSummary(
-  document: Document,
+  document: DocumentSummary,
   targetingAllLabel: string,
   targetingCountriesPrefixLabel: string,
   targetingCompaniesPrefixLabel: string

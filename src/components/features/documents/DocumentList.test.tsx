@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DocumentList } from "@/components/features/documents/DocumentList";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 import type { DocumentCategoryDetail } from "@/types/document-category";
 import messages from "../../../../messages/ja.json";
 
@@ -63,7 +63,7 @@ const CATEGORY: DocumentCategoryDetail = {
   subCategories: [],
 };
 
-const DOCUMENT: Document = {
+const DOCUMENT: DocumentSummary = {
   id: "1",
   title: "テストドキュメント",
   sourceType: "upload",
@@ -71,7 +71,6 @@ const DOCUMENT: Document = {
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
-  dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
@@ -147,12 +146,31 @@ describe("DocumentList", () => {
 
     expect(screen.getByText("テストドキュメント")).toBeTruthy();
     const iframe = screen.getByTitle("テストドキュメント");
-    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
-    expect(screen.getByText("ダウンロード")).toBeTruthy();
+    expect(iframe.getAttribute("src")).toBe("/api/documents/1/file");
+    expect(screen.getByText("ダウンロード").getAttribute("href")).toBe(
+      "/api/documents/1/file?download=1"
+    );
+  });
+
+  it("DocumentListClientへ渡るpropsとレンダリング結果にファイル本体(dataUrl)を含めない", async () => {
+    getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
+    getDocumentsByCategoryMock.mockResolvedValueOnce([DOCUMENT]);
+
+    const jsx = await DocumentList({ categoryId: "cat-1" });
+    const clientElement = (
+      jsx.props.children as { props?: { documents?: unknown[] } }[]
+    ).find((child) => child?.props?.documents);
+    expect(clientElement?.props?.documents).toHaveLength(1);
+    for (const doc of clientElement?.props?.documents ?? []) {
+      expect(doc).not.toHaveProperty("dataUrl");
+    }
+
+    const { container } = render(jsx);
+    expect(container.innerHTML).not.toContain("data:application/pdf");
   });
 
   it("キーワードで絞り込むと一覧が即時に絞り込まれ、0件時はメッセージを表示する", async () => {
-    const otherDocument: Document = {
+    const otherDocument: DocumentSummary = {
       ...DOCUMENT,
       id: "2",
       title: "Onboarding Guide",
@@ -183,7 +201,7 @@ describe("DocumentList", () => {
   });
 
   it("sourceTypeがupload/googleで混在していても両方をプレビュー付きで表示する", async () => {
-    const googleDocument: Document = {
+    const googleDocument: DocumentSummary = {
       id: "2",
       title: "Google経由のドキュメント",
       sourceType: "google",
@@ -203,7 +221,7 @@ describe("DocumentList", () => {
     render(jsx);
 
     const uploadIframe = screen.getByTitle("テストドキュメント");
-    expect(uploadIframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
+    expect(uploadIframe.getAttribute("src")).toBe("/api/documents/1/file");
     expect(screen.getByText("ダウンロード")).toBeTruthy();
 
     const googleIframe = screen.getByTitle("Google経由のドキュメント");

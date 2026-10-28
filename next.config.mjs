@@ -1,6 +1,6 @@
 import createNextIntlPlugin from "next-intl/plugin";
 
-import { buildSecurityHeaders } from "./src/lib/security-headers.mjs";
+import { buildHeadersConfig } from "./src/lib/security-headers.mjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -9,14 +9,7 @@ const nextConfig = {
   // コンテナ（Dockerfile）向けに最小構成で出力する
   output: "standalone",
   async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: buildSecurityHeaders({
-          isDev: process.env.NODE_ENV !== "production",
-        }),
-      },
-    ];
+    return buildHeadersConfig({ isDev: process.env.NODE_ENV !== "production" });
   },
   experimental: {
     serverActions: {

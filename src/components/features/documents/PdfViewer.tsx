@@ -12,7 +12,10 @@ export type PdfViewerSize = "default" | "compact";
 export type PdfViewerProps =
   | {
       variant: "upload";
-      dataUrl: string;
+      /** 表示するファイルのURL。data: URL、または同一オリジンの配信URL（`documentFileUrl`等）。 */
+      fileUrl: string;
+      /** ダウンロードリンクのURL。省略時は`fileUrl`（配信URLではContent-Dispositionをattachmentにするために指定する）。 */
+      downloadUrl?: string;
       /** iframeのtitle属性（スクリーンリーダー等の支援技術向けのアクセシブルな名前） */
       title: string;
       downloadFileName: string;
@@ -156,7 +159,7 @@ export function PdfViewer(props: PdfViewerProps) {
     <div className="flex flex-col gap-3">
       <div className={frameClassName}>
         <iframe
-          src={props.dataUrl}
+          src={props.fileUrl}
           title={props.title}
           loading="lazy"
           className="h-full w-full"
@@ -164,7 +167,7 @@ export function PdfViewer(props: PdfViewerProps) {
       </div>
       {!isCompact && !props.hideDownloadLink && (
         <a
-          href={props.dataUrl}
+          href={props.downloadUrl ?? props.fileUrl}
           download={props.downloadFileName}
           className="inline-flex w-fit items-center justify-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
         >

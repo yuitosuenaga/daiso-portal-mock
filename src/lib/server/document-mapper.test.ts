@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DocumentDataIntegrityError,
   mapDocument,
+  mapDocumentSummary,
   resolveDocumentContent,
 } from "@/lib/server/document-mapper";
 
@@ -198,5 +199,46 @@ describe("resolveDocumentContent", () => {
     const result = resolveDocumentContent(document({ translations: [] }), "vi");
 
     expect(result).toEqual({ title: "日本語タイトル", description: "日本語の説明" });
+  });
+});
+
+describe("mapDocumentSummary", () => {
+  it("upload型の出力にdataUrlを含まない", () => {
+    const result = mapDocumentSummary(baseRecord() as never);
+
+    expect(result.sourceType).toBe("upload");
+    expect(result).not.toHaveProperty("dataUrl");
+    if (result.sourceType === "upload") {
+      expect(result.fileName).toBe("test.pdf");
+      expect(result.fileSize).toBe(1024);
+    }
+  });
+
+  it("dataUrlが無くても例外にならない（selectで読まないため）", () => {
+    const withoutDataUrl: Record<string, unknown> = baseRecord();
+    delete withoutDataUrl.dataUrl;
+    expect(() => mapDocumentSummary(withoutDataUrl as never)).not.toThrow();
+  });
+
+  it("fileNameが無いupload型はDocumentDataIntegrityErrorを送出する", () => {
+    expect(() => mapDocumentSummary(baseRecord({ fileName: null }) as never)).toThrow(
+      DocumentDataIntegrityError
+    );
+  });
+
+  it("google型をマッピングし、URLが欠落していればDocumentDataIntegrityError", () => {
+    const google = {
+      sourceType: "google",
+      fileName: null,
+      fileType: null,
+      fileSize: null,
+      googleUrl: "https://docs.google.com/document/d/a/edit",
+      googleEmbedUrl: "https://docs.google.com/document/d/a/preview",
+    };
+    const ok = mapDocumentSummary(baseRecord(google) as never);
+    expect(ok.sourceType).toBe("google");
+    expect(() =>
+      mapDocumentSummary(baseRecord({ ...google, googleEmbedUrl: null }) as never)
+    ).toThrow(DocumentDataIntegrityError);
   });
 });

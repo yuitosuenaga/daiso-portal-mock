@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { filterDocuments } from "@/lib/document-utils";
 import { DocumentSearchBar } from "@/components/features/documents/DocumentSearchBar";
 import { DocumentListItem } from "@/components/features/documents/DocumentListItem";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 import type { DocumentSubCategoryOption } from "@/types/document-category";
 
 /** 中分類の絞り込み未選択（「すべての中分類」）を表す値。 */
@@ -13,7 +13,7 @@ export const DOCUMENT_SUB_CATEGORY_FILTER_ALL = "";
 
 export interface DocumentListClientProps {
   /** アップロード日降順で整列済みのドキュメント */
-  documents: Document[];
+  documents: DocumentSummary[];
   /** 当該大分類配下で自社に公開されている中分類（displayOrder昇順、要件21.5） */
   subCategories: DocumentSubCategoryOption[];
   locale: string;

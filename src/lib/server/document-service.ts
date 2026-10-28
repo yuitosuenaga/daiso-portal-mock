@@ -5,12 +5,15 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   DEFAULT_DOCUMENT_LOCALE,
+  DOCUMENT_FILE_SELECT,
   DOCUMENT_INCLUDE,
+  DOCUMENT_SUMMARY_SELECT,
   mapDocument,
+  mapDocumentSummary,
   resolveDocumentContent,
   targetingToColumns,
 } from "@/lib/server/document-mapper";
-import type { CreateDocumentInput, Document } from "@/types/document";
+import type { CreateDocumentInput, Document, DocumentSummary } from "@/types/document";
 
 // `resolveDocumentContent`は`document-mapper.ts`から再エクスポートし、
 // `document-mapper.ts`に依存する呼び出し元が本モジュール経由でも参照できるようにする
@@ -119,15 +122,15 @@ export async function listDocumentsVisibleTo(
   country: string,
   companyCode: string,
   locale: string = DEFAULT_DOCUMENT_LOCALE
-): Promise<Document[]> {
+): Promise<DocumentSummary[]> {
   const records = await prisma.document.findMany({
     where: documentVisibleToWhere(country, companyCode),
     orderBy: ORDER_BY_UPLOADED_AT_DESC,
-    include: DOCUMENT_INCLUDE,
+    select: DOCUMENT_SUMMARY_SELECT,
   });
 
   return records
-    .map(mapDocument)
+    .map(mapDocumentSummary)
     .map((item) => ({ ...item, ...resolveDocumentContent(item, locale) }));
 }
 
@@ -141,16 +144,16 @@ export async function findDocumentVisibleTo(
   country: string,
   companyCode: string,
   locale: string = DEFAULT_DOCUMENT_LOCALE
-): Promise<Document | null> {
+): Promise<DocumentSummary | null> {
   const record = await prisma.document.findFirst({
     where: { id, ...documentVisibleToWhere(country, companyCode) },
-    include: DOCUMENT_INCLUDE,
+    select: DOCUMENT_SUMMARY_SELECT,
   });
   if (!record) {
     return null;
   }
 
-  const document = mapDocument(record);
+  const document = mapDocumentSummary(record);
   return { ...document, ...resolveDocumentContent(document, locale) };
 }
 
@@ -159,13 +162,13 @@ export async function findDocumentVisibleTo(
  * 表示解決（`resolveDocumentContent`）は行わず、既定言語（`ja`＝親列）と全翻訳をそのまま返す
  * （ヘルプデスク側フォームが全言語を編集できるようにするため）。
  */
-export async function listAllDocuments(): Promise<Document[]> {
+export async function listAllDocuments(): Promise<DocumentSummary[]> {
   const records = await prisma.document.findMany({
     orderBy: ORDER_BY_UPLOADED_AT_DESC,
-    include: DOCUMENT_INCLUDE,
+    select: DOCUMENT_SUMMARY_SELECT,
   });
 
-  return records.map(mapDocument);
+  return records.map(mapDocumentSummary);
 }
 
 /**
@@ -181,10 +184,51 @@ export async function findDocumentById(id: string): Promise<Document | null> {
   return record ? mapDocument(record) : null;
 }
 
+/** 配信ルートが返すファイル本体（アップロード方式のPDFのみ）。 */
+export interface DocumentFile {
+  fileName: string;
+  dataUrl: string;
+}
+
+function toDocumentFile(
+  record: { sourceType: string; fileName: string | null; dataUrl: string | null } | null
+): DocumentFile | null {
+  if (!record || record.sourceType !== "upload" || !record.dataUrl) {
+    return null;
+  }
+  return { fileName: record.fileName ?? "document.pdf", dataUrl: record.dataUrl };
+}
+
+/**
+ * 自社に可視なドキュメントのファイル本体を1件取得する。可視性は一覧と同じ述語
+ * （`documentVisibleToWhere`）を再利用する。他社向け・下書き・存在しない・Google方式・
+ * 本体なしはいずれもnull（呼び出し側で区別しない）。
+ */
+export async function findDocumentFileVisibleTo(
+  id: string,
+  country: string,
+  companyCode: string
+): Promise<DocumentFile | null> {
+  const record = await prisma.document.findFirst({
+    where: { id, ...documentVisibleToWhere(country, companyCode) },
+    select: DOCUMENT_FILE_SELECT,
+  });
+  return toDocumentFile(record);
+}
+
+/** 公開範囲によらずIDだけでファイル本体を取得する（ヘルプデスク用）。 */
+export async function findDocumentFileById(id: string): Promise<DocumentFile | null> {
+  const record = await prisma.document.findUnique({
+    where: { id },
+    select: DOCUMENT_FILE_SELECT,
+  });
+  return toDocumentFile(record);
+}
+
 /** ドキュメントを新規作成する。アップロード日時は保存操作を行った時刻とする。 */
 export async function createDocumentRecord(
   input: CreateDocumentInput
-): Promise<Document> {
+): Promise<DocumentSummary> {
   const record = await prisma.document.create({
     data: {
       ...toDocumentData(input),
@@ -199,17 +243,17 @@ export async function createDocumentRecord(
         })),
       },
     },
-    include: DOCUMENT_INCLUDE,
+    select: DOCUMENT_SUMMARY_SELECT,
   });
 
-  return mapDocument(record);
+  return mapDocumentSummary(record);
 }
 
 /** 既存ドキュメントの内容を更新する。存在しない場合は`DocumentNotFoundError`を送出する。 */
 export async function updateDocumentRecord(
   id: string,
   input: CreateDocumentInput
-): Promise<Document> {
+): Promise<DocumentSummary> {
   try {
     const record = await prisma.document.update({
       where: { id },
@@ -217,10 +261,10 @@ export async function updateDocumentRecord(
         ...toDocumentData(input),
         translations: translationsToNestedWrite(input.translations),
       },
-      include: DOCUMENT_INCLUDE,
+      select: DOCUMENT_SUMMARY_SELECT,
     });
 
-    return mapDocument(record);
+    return mapDocumentSummary(record);
   } catch {
     throw new DocumentNotFoundError(id);
   }
@@ -275,14 +319,14 @@ export async function listVisibleDocumentsInCategory(
   country: string,
   companyCode: string,
   locale: string = DEFAULT_DOCUMENT_LOCALE
-): Promise<Document[]> {
+): Promise<DocumentSummary[]> {
   const records = await prisma.document.findMany({
     where: { categoryId, ...documentVisibleToWhere(country, companyCode) },
     orderBy: ORDER_BY_UPLOADED_AT_DESC,
-    include: DOCUMENT_INCLUDE,
+    select: DOCUMENT_SUMMARY_SELECT,
   });
 
   return records
-    .map(mapDocument)
+    .map(mapDocumentSummary)
     .map((item) => ({ ...item, ...resolveDocumentContent(item, locale) }));
 }

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { DocumentManagementListClient } from "@/components/features/helpdesk-documents/DocumentManagementListClient";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
@@ -78,7 +78,7 @@ vi.mock("next-intl", () => ({
   },
 }));
 
-function buildDocument(overrides: Partial<Document> & { id: string }): Document {
+function buildDocument(overrides: Partial<DocumentSummary> & { id: string }): DocumentSummary {
   return {
     title: "ドキュメント",
     sourceType: "upload",
@@ -86,11 +86,10 @@ function buildDocument(overrides: Partial<Document> & { id: string }): Document 
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00Z",
     ...overrides,
-  } as Document;
+  } as DocumentSummary;
 }
 
 const DEFAULT_PROPS = {
