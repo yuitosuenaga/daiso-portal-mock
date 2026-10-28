@@ -74,6 +74,13 @@ export type Manual =
     });
 
 /**
+ * 一覧・保存結果など、ファイル本体（`dataUrl`、最大約27MB/件）を載せない表示用の型。
+ * プレビュー・ダウンロードは認可付きの配信ルート（`/api/manuals/[id]/file`、`manualFileUrl`）
+ * から取得する。
+ */
+export type ManualSummary = DistributiveOmit<Manual, "dataUrl">;
+
+/**
  * マニュアル新規作成・編集時のAPI入力契約。
  * `Manual`から`id`（API側で生成）・`createdAt`・`updatedAt`（保存時刻を採番）を除いたサブセット。
  */
@@ -89,6 +96,6 @@ export type ManualFormInput = DistributiveOmit<CreateManualInput, "translations"
 
 /** マニュアル保存・再翻訳アクションの戻り値。`failedLocales`が空でなければ一部言語の翻訳に失敗している。 */
 export interface ManualSaveResult {
-  manual: Manual;
+  manual: ManualSummary;
   failedLocales: string[];
 }

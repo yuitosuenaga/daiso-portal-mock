@@ -1,4 +1,4 @@
-import { Manual, CreateManualInput } from "@/types/manual";
+import { Manual, ManualSummary, CreateManualInput } from "@/types/manual";
 import {
   requireApplicantSession,
   requireHelpdeskStaffSession,
@@ -19,7 +19,7 @@ import {
  */
 export async function getManuals(
   options?: { locale?: string }
-): Promise<Manual[]> {
+): Promise<ManualSummary[]> {
   const { claims } = await requireApplicantSession();
 
   return options?.locale
@@ -31,7 +31,7 @@ export async function getManuals(
  * 公開範囲による絞り込みを行わず、マニュアル全件を年月の降順で返す。
  * ヘルプデスク側のマニュアル管理画面が利用する。
  */
-export async function getAllManuals(): Promise<Manual[]> {
+export async function getAllManuals(): Promise<ManualSummary[]> {
   await requireHelpdeskStaffSession();
 
   return listAllManualsService();
@@ -52,7 +52,7 @@ export async function getManualByIdForHelpdesk(
 /** マニュアルを新規作成する。 */
 export async function createManual(
   input: CreateManualInput
-): Promise<Manual> {
+): Promise<ManualSummary> {
   await requireHelpdeskStaffSession();
 
   return createManualRecord(input);
@@ -62,7 +62,7 @@ export async function createManual(
 export async function updateManual(
   id: string,
   input: CreateManualInput
-): Promise<Manual> {
+): Promise<ManualSummary> {
   await requireHelpdeskStaffSession();
 
   return updateManualRecord(id, input);

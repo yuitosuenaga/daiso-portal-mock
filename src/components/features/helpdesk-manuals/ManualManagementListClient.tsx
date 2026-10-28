@@ -25,11 +25,11 @@ import {
   ManagementListRow,
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
-import type { Manual } from "@/types/manual";
+import type { ManualSummary } from "@/types/manual";
 
 export interface ManualManagementListClientProps {
   /** 年月降順で整列済みの全マニュアル */
-  manuals: Manual[];
+  manuals: ManualSummary[];
   locale: string;
   listTitle: string;
   editLinkLabel: string;

@@ -8,7 +8,9 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      findFirst: vi.fn(),
     },
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -18,6 +20,11 @@ import {
   createManualRecord,
   deleteManualRecord,
   findManualById,
+  findManualFileById,
+  findManualFileMetaById,
+  findManualFileMetaVisibleTo,
+  findManualFileVisibleTo,
+  getManualFileStats,
   listAllManuals,
   listManualsVisibleTo,
   updateManualRecord,
@@ -102,7 +109,7 @@ describe("listManualsVisibleTo", () => {
 
   it("破損レコード（データ不整合）はスキップし、残りは正常に返す", async () => {
     vi.mocked(prisma.manual.findMany).mockResolvedValue([
-      baseManualRecord({ id: "1", dataUrl: null }),
+      baseManualRecord({ id: "1", fileName: null }),
       baseManualRecord({ id: "2" }),
     ] as never);
 
@@ -336,5 +343,196 @@ describe("createManualRecord / updateManualRecord / deleteManualRecord", () => {
     await deleteManualRecord("1");
 
     expect(prisma.manual.delete).toHaveBeenCalledWith({ where: { id: "1" } });
+  });
+});
+
+function selectArg(mock: unknown): Record<string, unknown> {
+  const calls = (mock as { mock: { calls: unknown[][] } }).mock.calls;
+  const arg = calls[0]?.[0] as { select?: Record<string, unknown> } | undefined;
+  expect(arg?.select).toBeDefined();
+  return arg?.select as Record<string, unknown>;
+}
+
+const UPLOAD_INPUT = {
+  sourceType: "upload" as const,
+  title: "t",
+  category: "storeOperations" as const,
+  year: 2026,
+  month: 9,
+  fileName: "t.pdf",
+  fileType: "application/pdf" as const,
+  fileSize: 1,
+  dataUrl: "data:application/pdf;base64,AAAA",
+  targeting: { scope: "all" as const },
+  translations: [],
+};
+
+const VISIBLE_WHERE = {
+  OR: [
+    { targetingScope: "all" },
+    { targetingScope: "countries", targetingCountries: { has: "VN" } },
+    { targetingScope: "companies", targetingCompanyCodes: { has: "vn-co" } },
+  ],
+};
+
+describe("一覧・保存系はファイル本体(dataUrl)を読まず、返さない", () => {
+  it("listManualsVisibleToはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.manual.findMany).mockResolvedValue([baseManualRecord({ id: "1" })] as never);
+
+    const result = await listManualsVisibleTo("VN", "vn");
+
+    const select = selectArg(prisma.manual.findMany);
+    expect(select).not.toHaveProperty("dataUrl");
+    expect(select).toHaveProperty("translations");
+    expect(vi.mocked(prisma.manual.findMany).mock.calls[0]?.[0]).not.toHaveProperty("include");
+    expect(result[0]).not.toHaveProperty("dataUrl");
+  });
+
+  it("listAllManualsはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.manual.findMany).mockResolvedValue([baseManualRecord({ id: "1" })] as never);
+
+    const result = await listAllManuals();
+
+    expect(selectArg(prisma.manual.findMany)).not.toHaveProperty("dataUrl");
+    expect(result[0]).not.toHaveProperty("dataUrl");
+  });
+
+  it("createManualRecordはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.manual.create).mockResolvedValue(baseManualRecord({ id: "1" }) as never);
+
+    const result = await createManualRecord(UPLOAD_INPUT);
+
+    expect(selectArg(prisma.manual.create)).not.toHaveProperty("dataUrl");
+    expect(result).not.toHaveProperty("dataUrl");
+  });
+
+  it("updateManualRecordはselectでdataUrlを除外し、結果にdataUrlを含まない", async () => {
+    vi.mocked(prisma.manual.update).mockResolvedValue(baseManualRecord({ id: "1" }) as never);
+
+    const result = await updateManualRecord("1", UPLOAD_INPUT);
+
+    expect(selectArg(prisma.manual.update)).not.toHaveProperty("dataUrl");
+    expect(result).not.toHaveProperty("dataUrl");
+  });
+});
+
+describe("findManualFileVisibleTo", () => {
+  it("可視性述語を再利用したwhereと、ファイル用selectで1件取得する", async () => {
+    vi.mocked(prisma.manual.findFirst).mockResolvedValue(baseManualRecord() as never);
+
+    const result = await findManualFileVisibleTo("manual-1", "VN", "vn-co");
+
+    expect(prisma.manual.findFirst).toHaveBeenCalledWith({
+      where: { id: "manual-1", ...VISIBLE_WHERE },
+      select: { sourceType: true, fileName: true, fileType: true, dataUrl: true },
+    });
+    expect(result).toEqual({ fileName: "test.pdf", dataUrl: "data:application/pdf;base64,AAAA" });
+  });
+
+  it("存在しない・google型・dataUrlなしはnull", async () => {
+    vi.mocked(prisma.manual.findFirst).mockResolvedValueOnce(null);
+    expect(await findManualFileVisibleTo("x", "VN", "vn-co")).toBeNull();
+    vi.mocked(prisma.manual.findFirst).mockResolvedValueOnce(
+      baseManualRecord({ sourceType: "google", dataUrl: null, fileName: null }) as never
+    );
+    expect(await findManualFileVisibleTo("x", "VN", "vn-co")).toBeNull();
+    vi.mocked(prisma.manual.findFirst).mockResolvedValueOnce(
+      baseManualRecord({ dataUrl: null }) as never
+    );
+    expect(await findManualFileVisibleTo("x", "VN", "vn-co")).toBeNull();
+  });
+});
+
+describe("findManualFileById", () => {
+  it("公開範囲で絞らずIDだけで取得する", async () => {
+    vi.mocked(prisma.manual.findUnique).mockResolvedValue(baseManualRecord() as never);
+
+    const result = await findManualFileById("manual-1");
+
+    expect(prisma.manual.findUnique).toHaveBeenCalledWith({
+      where: { id: "manual-1" },
+      select: { sourceType: true, fileName: true, fileType: true, dataUrl: true },
+    });
+    expect(result).toEqual({ fileName: "test.pdf", dataUrl: "data:application/pdf;base64,AAAA" });
+  });
+
+  it("存在しない・google型・dataUrlなしはnull", async () => {
+    vi.mocked(prisma.manual.findUnique).mockResolvedValueOnce(null);
+    expect(await findManualFileById("x")).toBeNull();
+    vi.mocked(prisma.manual.findUnique).mockResolvedValueOnce(
+      baseManualRecord({ sourceType: "google", dataUrl: null }) as never
+    );
+    expect(await findManualFileById("x")).toBeNull();
+    vi.mocked(prisma.manual.findUnique).mockResolvedValueOnce(
+      baseManualRecord({ dataUrl: null }) as never
+    );
+    expect(await findManualFileById("x")).toBeNull();
+  });
+});
+
+describe("findManualFileMetaVisibleTo / ById（本体を読まない認可確認）", () => {
+  it("可視性述語を再利用し、selectにdataUrlを含めない", async () => {
+    vi.mocked(prisma.manual.findFirst).mockResolvedValue(baseManualRecord() as never);
+
+    const result = await findManualFileMetaVisibleTo("manual-1", "VN", "vn-co");
+
+    expect(prisma.manual.findFirst).toHaveBeenCalledWith({
+      where: { id: "manual-1", ...VISIBLE_WHERE },
+      select: { id: true, sourceType: true, fileName: true },
+    });
+    expect(result).toEqual({ id: "manual-1", fileName: "test.pdf" });
+  });
+
+  it("存在しない・google型はnull", async () => {
+    vi.mocked(prisma.manual.findFirst).mockResolvedValueOnce(null);
+    expect(await findManualFileMetaVisibleTo("x", "VN", "vn-co")).toBeNull();
+    vi.mocked(prisma.manual.findFirst).mockResolvedValueOnce(
+      baseManualRecord({ sourceType: "google" }) as never
+    );
+    expect(await findManualFileMetaVisibleTo("x", "VN", "vn-co")).toBeNull();
+  });
+
+  it("ById: IDだけで取得しselectにdataUrlを含めない", async () => {
+    vi.mocked(prisma.manual.findUnique).mockResolvedValue(baseManualRecord() as never);
+    expect(await findManualFileMetaById("manual-1")).toEqual({ id: "manual-1", fileName: "test.pdf" });
+    expect(prisma.manual.findUnique).toHaveBeenCalledWith({
+      where: { id: "manual-1" },
+      select: { id: true, sourceType: true, fileName: true },
+    });
+    vi.mocked(prisma.manual.findUnique).mockResolvedValueOnce(null);
+    expect(await findManualFileMetaById("x")).toBeNull();
+  });
+});
+
+describe("getManualFileStats", () => {
+  it("DB側集計の結果を数値に変換して返す（bigintも許容）", async () => {
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      {
+        head: "data:application/pdf;base64,AA",
+        clean_length: BigInt(8),
+        clean_tail: "A=",
+        first_pad: BigInt(8),
+      },
+    ] as never);
+    expect(await getManualFileStats("manual-1")).toEqual({
+      head: "data:application/pdf;base64,AA",
+      cleanLength: 8,
+      cleanTail: "A=",
+      firstPad: 8,
+    });
+  });
+
+  it("行がない（dataUrlなし・存在しない）場合はnull", async () => {
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([] as never);
+    expect(await getManualFileStats("x")).toBeNull();
+  });
+
+  it("Manualテーブルに対するタグ付きテンプレートで集計し、IDはパラメータ化される", async () => {
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([] as never);
+    await getManualFileStats("m'; DROP TABLE x;--");
+    const sql = vi.mocked(prisma.$queryRaw).mock.calls[0]?.[0] as { sql: string; values: unknown[] };
+    expect(sql.sql).toContain('FROM "Manual"');
+    expect(sql.sql).not.toContain("DROP TABLE");
+    expect(sql.values).toContain("m'; DROP TABLE x;--");
   });
 });

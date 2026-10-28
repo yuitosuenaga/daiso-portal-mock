@@ -1,9 +1,10 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
-import type { Manual } from "@/types/manual";
+import { manualFileUrl } from "@/lib/file-urls";
+import type { ManualSummary } from "@/types/manual";
 
 export interface ManualListItemProps {
-  manual: Manual;
+  manual: ManualSummary;
   categoryLabel: string;
   revisionLabel: string;
   downloadLinkLabel: string;
@@ -50,7 +51,8 @@ export function ManualListItem({
         ) : (
           <PdfViewer
             variant="upload"
-            fileUrl={manual.dataUrl}
+            fileUrl={manualFileUrl(manual.id)}
+            downloadUrl={manualFileUrl(manual.id, { download: true })}
             title={manual.title}
             downloadFileName={manual.fileName}
             downloadLinkLabel={downloadLinkLabel}

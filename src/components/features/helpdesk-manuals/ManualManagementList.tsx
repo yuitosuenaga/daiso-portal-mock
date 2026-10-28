@@ -8,7 +8,7 @@ import {
   ManagementListMessageCard,
   ManagementListSkeleton,
 } from "@/components/features/helpdesk-shared/ManagementList";
-import type { Manual } from "@/types/manual";
+import type { ManualSummary } from "@/types/manual";
 
 export async function ManualManagementList() {
   const [t, tCountries, locale] = await Promise.all([
@@ -26,7 +26,7 @@ export async function ManualManagementList() {
     />
   );
 
-  let manuals: Manual[];
+  let manuals: ManualSummary[];
   try {
     manuals = await getAllManuals();
   } catch {

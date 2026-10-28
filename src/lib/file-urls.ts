@@ -6,3 +6,8 @@ export function documentFileUrl(id: string, options: { download?: boolean } = {}
   const base = `/api/documents/${encodeURIComponent(id)}/file`;
   return options.download ? `${base}?download=1` : base;
 }
+
+export function manualFileUrl(id: string, options: { download?: boolean } = {}): string {
+  const base = `/api/manuals/${encodeURIComponent(id)}/file`;
+  return options.download ? `${base}?download=1` : base;
+}
