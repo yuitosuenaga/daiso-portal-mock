@@ -1,5 +1,10 @@
 // 認証セッションのクレーム形状（フェーズ3で導入する認証機能）。
 
+/**
+ * `companyId`/`companyName`/`companyCode`/`country`はJWTにはログイン時の値が入るが、
+ * `getSession`がDBの現在値で上書きして返す。JWT由来の値（`/api/auth/session`の応答など）を
+ * 権限判定やデータのキーに使わないこと。
+ */
 export type ApplicantSessionClaims = {
   role: "applicant";
   applicantUserId: string;
