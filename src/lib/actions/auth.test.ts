@@ -163,7 +163,6 @@ describe("googleLoginAction", () => {
       }
     );
     expect(signIn).toHaveBeenCalledWith("google", { redirectTo: "/en/helpdesk" });
-    vi.unstubAllEnvs();
   });
 
   it("本番以外ではsecureがfalseになる", async () => {
@@ -176,7 +175,6 @@ describe("googleLoginAction", () => {
       expect.objectContaining({ secure: false, httpOnly: true, maxAge: 600 })
     );
     expect(signIn).toHaveBeenCalledWith("google", { redirectTo: "/ja" });
-    vi.unstubAllEnvs();
   });
 
   it("未対応localeは既定ロケールに置き換える", async () => {

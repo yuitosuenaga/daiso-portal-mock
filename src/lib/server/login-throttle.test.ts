@@ -159,7 +159,6 @@ describe("hashIdentifier（AUTH_SECRET）", () => {
     vi.stubEnv("AUTH_SECRET", "");
     vi.stubEnv("NODE_ENV", "production");
     expect(() => hashIdentifier(EMAIL)).toThrow();
-    vi.unstubAllEnvs();
   });
 });
 

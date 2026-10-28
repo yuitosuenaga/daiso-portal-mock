@@ -306,7 +306,6 @@ describe("notifyAnnouncementPublished", () => {
         ),
       })
     );
-    vi.unstubAllEnvs();
   });
 
   it("存在しないお知らせIDに対しては何もしない", async () => {
