@@ -1,5 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { Prisma } from "@prisma/client";
+
+function prismaError(code: string) {
+  return new Prisma.PrismaClientKnownRequestError("prisma error", {
+    code,
+    clientVersion: "test",
+  });
+}
+
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     document: {
@@ -433,7 +442,7 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
   });
 
   it("存在しないIDの更新はDocumentNotFoundErrorを送出する", async () => {
-    vi.mocked(prisma.document.update).mockRejectedValue(new Error("not found"));
+    vi.mocked(prisma.document.update).mockRejectedValue(prismaError("P2025"));
 
     await expect(
       updateDocumentRecord("missing", {
@@ -452,8 +461,40 @@ describe("createDocumentRecord / updateDocumentRecord / deleteDocumentRecord", (
     ).rejects.toThrow(DocumentNotFoundError);
   });
 
+  it.each([
+    ["P2003", prismaError("P2003")],
+    ["接続断", new Error("connection lost")],
+  ])("更新でP2025以外(%s)はNotFoundに変換せず元の例外を送出する", async (_label, err) => {
+    vi.mocked(prisma.document.update).mockRejectedValue(err);
+
+    await expect(
+      updateDocumentRecord("1", {
+        sourceType: "upload",
+        title: "t",
+        status: "published",
+        fileName: "t.pdf",
+        fileType: "application/pdf",
+        fileSize: 1,
+        dataUrl: "data:application/pdf;base64,AAAA",
+        targeting: { scope: "all" },
+        translations: [],
+        categoryId: "category-1",
+        subCategoryId: null,
+      })
+    ).rejects.toBe(err);
+  });
+
+  it.each([
+    ["P2003", prismaError("P2003")],
+    ["接続断", new Error("connection lost")],
+  ])("削除でP2025以外(%s)はNotFoundに変換せず元の例外を送出する", async (_label, err) => {
+    vi.mocked(prisma.document.delete).mockRejectedValue(err);
+
+    await expect(deleteDocumentRecord("1")).rejects.toBe(err);
+  });
+
   it("存在しないIDの削除はDocumentNotFoundErrorを送出する", async () => {
-    vi.mocked(prisma.document.delete).mockRejectedValue(new Error("not found"));
+    vi.mocked(prisma.document.delete).mockRejectedValue(prismaError("P2025"));
 
     await expect(deleteDocumentRecord("missing")).rejects.toThrow(
       DocumentNotFoundError

@@ -1,5 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { Prisma } from "@prisma/client";
+
+function prismaError(code: string) {
+  return new Prisma.PrismaClientKnownRequestError("prisma error", {
+    code,
+    clientVersion: "test",
+  });
+}
+
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     announcement: {
@@ -1088,11 +1097,20 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
   });
 
   it("存在しないIDの削除はAnnouncementNotFoundErrorを送出する", async () => {
-    vi.mocked(prisma.announcement.delete).mockRejectedValue(new Error("not found"));
+    vi.mocked(prisma.announcement.delete).mockRejectedValue(prismaError("P2025"));
 
     await expect(deleteAnnouncementRecord("missing")).rejects.toThrow(
       AnnouncementNotFoundError
     );
+  });
+
+  it.each([
+    ["P2003", prismaError("P2003")],
+    ["接続断", new Error("connection lost")],
+  ])("削除でP2025以外(%s)はNotFoundに変換せず元の例外を送出する", async (_label, err) => {
+    vi.mocked(prisma.announcement.delete).mockRejectedValue(err);
+
+    await expect(deleteAnnouncementRecord("1")).rejects.toBe(err);
   });
 
   it("関連するAnnouncementRecipientStatusを先に削除してからお知らせを削除する（ON DELETE RESTRICT対策）", async () => {

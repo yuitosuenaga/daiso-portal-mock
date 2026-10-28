@@ -1,5 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { Prisma } from "@prisma/client";
+
+function prismaError(code: string) {
+  return new Prisma.PrismaClientKnownRequestError("prisma error", {
+    code,
+    clientVersion: "test",
+  });
+}
+
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     manual: {
@@ -310,7 +319,7 @@ describe("createManualRecord / updateManualRecord / deleteManualRecord", () => {
   });
 
   it("存在しないIDの更新はManualNotFoundErrorを送出する", async () => {
-    vi.mocked(prisma.manual.update).mockRejectedValue(new Error("not found"));
+    vi.mocked(prisma.manual.update).mockRejectedValue(prismaError("P2025"));
 
     await expect(
       updateManualRecord("missing", {
@@ -329,8 +338,40 @@ describe("createManualRecord / updateManualRecord / deleteManualRecord", () => {
     ).rejects.toThrow(ManualNotFoundError);
   });
 
+  it.each([
+    ["P2003", prismaError("P2003")],
+    ["接続断", new Error("connection lost")],
+  ])("更新でP2025以外(%s)はNotFoundに変換せず元の例外を送出する", async (_label, err) => {
+    vi.mocked(prisma.manual.update).mockRejectedValue(err);
+
+    await expect(
+      updateManualRecord("1", {
+        sourceType: "upload",
+        title: "t",
+        category: "storeOperations",
+        year: 2026,
+        month: 9,
+        fileName: "t.pdf",
+        fileType: "application/pdf",
+        fileSize: 1,
+        dataUrl: "data:application/pdf;base64,AAAA",
+        targeting: { scope: "all" },
+        translations: [],
+      })
+    ).rejects.toBe(err);
+  });
+
+  it.each([
+    ["P2003", prismaError("P2003")],
+    ["接続断", new Error("connection lost")],
+  ])("削除でP2025以外(%s)はNotFoundに変換せず元の例外を送出する", async (_label, err) => {
+    vi.mocked(prisma.manual.delete).mockRejectedValue(err);
+
+    await expect(deleteManualRecord("1")).rejects.toBe(err);
+  });
+
   it("存在しないIDの削除はManualNotFoundErrorを送出する", async () => {
-    vi.mocked(prisma.manual.delete).mockRejectedValue(new Error("not found"));
+    vi.mocked(prisma.manual.delete).mockRejectedValue(prismaError("P2025"));
 
     await expect(deleteManualRecord("missing")).rejects.toThrow(ManualNotFoundError);
   });
