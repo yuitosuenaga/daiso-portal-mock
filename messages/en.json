@@ -795,7 +795,7 @@
       "confirmMessage": "This will deactivate all '{userCount}' active applicant account(s) belonging to the '{companyCount}' selected company(ies). Deactivated accounts will no longer be able to log in. Are you sure?",
       "confirmButton": "Confirm Bulk Deactivation",
       "cancelButton": "Cancel",
-      "successMessage": "Deactivated {count} applicant account(s)",
+      "successMessage": "Deactivated '{count}' applicant account(s)",
       "errorMessage": "Bulk deactivation failed. Please try again later."
     }
   },

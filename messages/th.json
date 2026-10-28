@@ -323,7 +323,7 @@
       "columnContact": "ชื่อผู้ประสานงาน",
       "columnEmail": "ที่อยู่อีเมล",
       "columnCompany": "บริษัท",
-      "columnCountry": "ประเทศ/地域",
+      "columnCountry": "ประเทศ/ภูมิภาค",
       "remindButton": "ส่งข้อความเตือน",
       "remindAllButton": "ส่งข้อความเตือนให้ทั้งหมด",
       "remindSuccessMessage": "ส่งข้อความเตือนแล้ว",
@@ -1181,8 +1181,8 @@
         "placeholder": "โปรดเลือกระดับเร่งด่วน"
       },
       "storeRegion": {
-        "label": "ร้านค้า/地域",
-        "placeholder": "โปรดป้อนร้านค้า/地域"
+        "label": "ร้านค้า/ภูมิภาค",
+        "placeholder": "โปรดป้อนร้านค้า/ภูมิภาค"
       },
       "originalText": {
         "label": "เนื้อหาของการสอบถาม (คำอธิบายอิสระ)",
@@ -1509,7 +1509,7 @@
         "localeDuplicateError": "กรุณากรอกรหัสภาษาที่ไม่ซ้ำกับภาษาอื่น"
       },
       "validation": {
-        "required": "項目นี้เป็นสิ่งจำเป็น",
+        "required": "ข้อมูลนี้เป็นสิ่งจำเป็น",
         "nameConflict": "มีหมวดหมู่ที่มีชื่อเดียวกันอยู่แล้วในชั้นเดียวกัน",
         "countriesRequired": "กรุณาเลือกอย่างน้อยหนึ่งประเทศ/ภูมิภาค",
         "companiesRequired": "กรุณาเลือกอย่างน้อยหนึ่งบริษัทจำหน่าย"
@@ -1568,7 +1568,7 @@
       "sourceTypeUploadBadge": "อัปโหลด",
       "sourceTypeGoogleBadge": "ลิงก์ Google",
       "targetingAllLabel": "เปิดเผยต่อสาธารณะทั่วไป",
-      "targetingCountriesLabel": "ประเทศ/অঞ्চลที่กำหนดเป้าหมาย",
+      "targetingCountriesLabel": "ประเทศ/ภูมิภาคที่กำหนดเป้าหมาย",
       "targetingCompaniesLabel": "ตัวแทนจำหน่ายที่กำหนดเป้าหมาย",
       "filter": {
         "keywordLabel": "ค้นหาคำหลัก",
@@ -1611,7 +1611,7 @@
       "googleUrlHint": "โปรดตั้งค่าการแชร์เอกสาร/สเปรดชีต/สไลด์ Google เป็น \"ผู้ที่มีลิงก์สามารถดูได้\" ก่อนลงทะเบียน",
       "targetingLabel": "ขอบเขตการเผยแพร่",
       "targetingAllOption": "เผยแพร่สาธารณะทั่วไป",
-      "targetingCountriesOption": "ระบุประเทศ/地域เฉพาะ",
+      "targetingCountriesOption": "ระบุประเทศ/ภูมิภาคเฉพาะ",
       "targetingCompaniesOption": "ระบุผู้จัดจำหน่ายเฉพาะ",
       "countriesLabel": "ประเทศ/เขตพื้นที่ (เลือกหลายรายการได้)",
       "companiesLabel": "ผู้จัดจำหน่าย (เลือกหลายรายการได้)",

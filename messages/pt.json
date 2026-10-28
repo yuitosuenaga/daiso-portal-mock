@@ -767,7 +767,7 @@
       "rowErrorsHeader": "Detalhes do erro",
       "statusOk": "Pronto para registrar",
       "statusError": "Erro",
-      "successMessage": "{count} empresa(s) registrada(s)",
+      "successMessage": "'{count}' empresa(s) registrada(s)",
       "noFileSelected": "Por favor, selecione um arquivo CSV",
       "genericError": "Falha na validação e registro. Aguarde um pouco e tente novamente.",
       "errors": {
