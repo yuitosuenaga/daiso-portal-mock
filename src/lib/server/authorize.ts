@@ -2,7 +2,11 @@ import "server-only";
 
 import bcrypt from "bcryptjs";
 
+import { normalizeEmail } from "@/lib/auth/google-login-policy";
+import { pickAccountByEmail } from "@/lib/auth/email-match";
 import { prisma } from "@/lib/db/prisma";
+import { hashIdentifier } from "@/lib/server/auth-audit";
+import { logger } from "@/lib/server/logger";
 import type {
   ApplicantAuthorizedUser,
   HelpdeskAuthorizedUser,
@@ -28,15 +32,26 @@ export async function authorizeApplicantCredentials(
   email: string,
   password: string
 ): Promise<ApplicantAuthorizedUser | null> {
-  const applicantUser = await prisma.applicantUser.findUnique({
-    where: { email },
+  // 大文字小文字を無視して候補を取り（保存値に大文字が残る既存データでもログインできる）、
+  // 重複しているときは入力と完全一致する行だけを採用する。曖昧なら拒否する。
+  const candidates = await prisma.applicantUser.findMany({
+    where: { email: { equals: normalizeEmail(email), mode: "insensitive" } },
     include: { company: true },
+    take: 2,
   });
+  const picked = pickAccountByEmail(candidates, email);
 
-  if (!applicantUser) {
+  if (picked === null || picked === "ambiguous") {
+    if (picked === "ambiguous") {
+      logger.warn("login rejected: ambiguous email", {
+        portal: "applicant",
+        identifierHash: hashIdentifier(email),
+      });
+    }
     await burnPasswordCheck(password);
     return null;
   }
+  const applicantUser = picked;
 
   const isValid = await bcrypt.compare(password, applicantUser.passwordHash);
   if (!isValid) {
@@ -70,7 +85,18 @@ export async function authorizeHelpdeskCredentials(
   email: string,
   password: string
 ): Promise<HelpdeskAuthorizedUser | null> {
-  const staff = await prisma.helpdeskStaff.findUnique({ where: { email } });
+  const candidates = await prisma.helpdeskStaff.findMany({
+    where: { email: { equals: normalizeEmail(email), mode: "insensitive" } },
+    take: 2,
+  });
+  const picked = pickAccountByEmail(candidates, email);
+  if (picked === "ambiguous") {
+    logger.warn("login rejected: ambiguous email", {
+      portal: "helpdesk",
+      identifierHash: hashIdentifier(email),
+    });
+  }
+  const staff = picked === "ambiguous" ? null : picked;
 
   // パスワード未設定（Google自動作成）の担当者も未登録と同扱い（応答時間で存否が分からないようにする）
   if (!staff || staff.passwordHash === null) {

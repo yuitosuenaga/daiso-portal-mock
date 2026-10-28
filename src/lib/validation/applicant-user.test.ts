@@ -21,6 +21,14 @@ describe("applicantUserCreateFormSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("メールアドレスは前後の空白を除去して小文字化する", () => {
+    const result = applicantUserCreateFormSchema.parse(
+      buildInput({ email: "  Tanaka@X.com " })
+    );
+
+    expect(result.email).toBe("tanaka@x.com");
+  });
+
   it("メールアドレスが未入力の場合はエラーになる", () => {
     const result = applicantUserCreateFormSchema.safeParse(
       buildInput({ email: "" })
@@ -117,6 +125,14 @@ describe("applicantUserUpdateFormSchema", () => {
       ...overrides,
     };
   }
+
+  it("メールアドレスは前後の空白を除去して小文字化する", () => {
+    const result = applicantUserUpdateFormSchema.parse(
+      buildInput({ email: "  Tanaka@X.com " })
+    );
+
+    expect(result.email).toBe("tanaka@x.com");
+  });
 
   it("パスワードが空文字列の場合でも検証を通過する（既存パスワードを維持）", () => {
     const result = applicantUserUpdateFormSchema.safeParse(
