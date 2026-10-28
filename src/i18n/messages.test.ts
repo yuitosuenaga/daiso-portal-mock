@@ -48,6 +48,30 @@ function quotingStyles(message: string): Record<string, "quoted" | "bare"> {
   return styles;
 }
 
+/** ICU構文として解析できないメッセージのキーを返す。 */
+function findUnparsable(messages: Record<string, string>, locale: string): string[] {
+  return Object.keys(messages).filter((key) => {
+    try {
+      new IntlMessageFormat(messages[key], locale);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+}
+
+describe("findUnparsable（構文検査の自己検証）", () => {
+  it("閉じ括弧欠落・不正なpluralを検出し、正しいメッセージは検出しない", () => {
+    const fixture = {
+      missingBrace: "Hello {name",
+      brokenPlural: "{n, plural, one {x}",
+      ok: "Hello {name}",
+      okPlural: "{n, plural, one {x} other {y}}",
+    };
+    expect(findUnparsable(fixture, "en")).toEqual(["missingBrace", "brokenPlural"]);
+  });
+});
+
 const ja = flatten(load("ja"));
 const otherLocales = SUPPORTED_LOCALES.filter((locale) => locale !== "ja");
 
@@ -89,14 +113,7 @@ describe.each(otherLocales)("messages/%s.json", (locale) => {
   });
 
   it("全メッセージがICU構文として解析できる", () => {
-    const failed = Object.keys(messages).filter((key) => {
-      try {
-        new IntlMessageFormat(messages[key], locale);
-        return false;
-      } catch {
-        return true;
-      }
-    });
+    const failed = findUnparsable(messages, locale);
     expect(failed).toEqual([]);
   });
 });
