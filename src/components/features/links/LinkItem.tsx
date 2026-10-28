@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { isRecentlyCreated } from "@/lib/link-utils";
 import type { LinkWithTimestamp } from "@/types/link";
+import { formatDate } from "@/lib/format-date";
 
 export interface LinkItemProps {
   /** 表示対象のリンク1件分のデータ */
@@ -50,11 +51,7 @@ export function LinkItem({
         </p>
       ) : null}
       <time dateTime={link.createdAt} className="mt-1 block text-xs text-muted-foreground">
-        {new Date(link.createdAt).toLocaleDateString(locale, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
+        {formatDate(link.createdAt, locale)}
       </time>
     </a>
   );

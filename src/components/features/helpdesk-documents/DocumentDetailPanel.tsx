@@ -15,6 +15,7 @@ import { DeleteDocumentButton } from "@/components/features/helpdesk-documents/D
 import { documentFileUrl } from "@/lib/file-urls";
 import type { Document } from "@/types/document";
 import type { DocumentFormValues } from "@/lib/validation/document";
+import { formatDate } from "@/lib/format-date";
 
 export interface DocumentDetailPanelProps {
   document: Document;
@@ -182,11 +183,7 @@ export function DocumentDetailPanel({
                 <span>
                   {uploadedAtLabel}:{" "}
                   <time dateTime={document.uploadedAt}>
-                    {new Date(document.uploadedAt).toLocaleDateString(locale, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {formatDate(document.uploadedAt, locale)}
                   </time>
                 </span>
                 {document.sourceType === "upload" && (

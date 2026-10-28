@@ -5,6 +5,7 @@ import { isRecentlyUploaded } from "@/lib/document-utils";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { documentFileUrl } from "@/lib/file-urls";
 import type { DocumentSummary } from "@/types/document";
+import { formatDate } from "@/lib/format-date";
 
 export interface DocumentListItemProps {
   document: DocumentSummary;
@@ -42,11 +43,7 @@ export function DocumentListItem({
             <span>{formatFileSize(document.fileSize)}</span>
           )}
           <time dateTime={document.uploadedAt}>
-            {new Date(document.uploadedAt).toLocaleDateString(locale, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
+            {formatDate(document.uploadedAt, locale)}
           </time>
         </div>
       </CardHeader>

@@ -8,6 +8,7 @@ import {
 } from "@/components/features/announcements/SelfReportStatusBadges";
 import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
 import type { AnnouncementSummary } from "@/types/announcement";
+import { formatDate, formatDateOnly } from "@/lib/format-date";
 
 export interface AnnouncementListItemProps {
   /** 表示対象のお知らせ1件分のデータ */
@@ -109,11 +110,7 @@ export function AnnouncementListItem({
               }
             >
               {dueDateLabel}:{" "}
-              {new Date(announcement.dueDate).toLocaleDateString(locale, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
+              {formatDateOnly(announcement.dueDate, locale)}
             </span>
           )}
           <OverdueBadge isOverdue={isOverdue} />
@@ -121,11 +118,7 @@ export function AnnouncementListItem({
             dateTime={announcement.publishedAt!}
             className="text-xs text-muted-foreground"
           >
-            {new Date(announcement.publishedAt!).toLocaleDateString(locale, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
+            {formatDate(announcement.publishedAt!, locale)}
           </time>
         </div>
       </div>

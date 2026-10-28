@@ -11,6 +11,7 @@ import { MarkInquiryRead } from "@/components/features/inquiry-list/MarkInquiryR
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import { inquiryCountryLabel } from "@/lib/constants/inquiry-options";
 import { resolveInquiryContent } from "@/lib/inquiry-content";
+import { formatDateTime } from "@/lib/format-date";
 
 export async function InquiryDetail({ id }: { id: string }) {
   const [t, tStatuses, tCategories, tUrgencies, tCountries, tMessage, locale] =
@@ -94,13 +95,7 @@ export async function InquiryDetail({ id }: { id: string }) {
             <span>
               {t("createdAtLabel")}:{" "}
               <time dateTime={inquiry.createdAt}>
-                {new Date(inquiry.createdAt).toLocaleString(locale, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateTime(inquiry.createdAt, locale)}
               </time>
             </span>
           </div>
