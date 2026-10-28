@@ -44,7 +44,7 @@ vi.mock("@/lib/server/announcement-notifications", () => ({
   notifyAnnouncementUserReadReminder: vi.fn().mockResolvedValue(undefined),
 }));
 
-import type { AnnouncementTargeting } from "@/types/announcement";
+import type { AnnouncementTargeting, CreateAnnouncementInput } from "@/types/announcement";
 import { prisma } from "@/lib/db/prisma";
 import {
   notifyAnnouncementPublished,
@@ -94,6 +94,8 @@ function baseAnnouncementRecord(
     targetingCompanyIds: string[];
     publishStartDate: Date | null;
     publishEndDate: Date | null;
+    publishStartTime: string | null;
+    publishEndTime: string | null;
     dueDate: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -124,6 +126,8 @@ function baseAnnouncementRecord(
     targetingCompanyIds: [] as string[],
     publishStartDate: null,
     publishEndDate: null,
+    publishStartTime: null,
+    publishEndTime: null,
     dueDate: null,
     createdAt: new Date("2026-07-01T09:00:00.000Z"),
     updatedAt: new Date("2026-07-01T09:00:00.000Z"),
@@ -816,7 +820,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("配信対象国を拡大（VN→VN,TH）して公開のまま更新すると、新規追加分（TH）のwhereで追加通知が1回呼ばれ、公開通知は呼ばれない（要件35.1, 35.2）", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({
+      baseAnnouncementRecord({ sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -824,7 +828,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       }) as never
     );
     vi.mocked(prisma.announcement.update).mockResolvedValue(
-      baseAnnouncementRecord({
+      baseAnnouncementRecord({ sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -839,7 +843,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
       actionRequired: false,
-      sendEmailNotification: false,
+      sendEmailNotification: true,
       attachments: [],
       linkedDocumentIds: [],
       translations: [],
@@ -917,7 +921,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("配信対象がcountries=[VN]からallへ変更されたとき、notIn:[VN]のwhereで追加通知が呼ばれる（要件35.4）", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({
+      baseAnnouncementRecord({ sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -925,7 +929,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       }) as never
     );
     vi.mocked(prisma.announcement.update).mockResolvedValue(
-      baseAnnouncementRecord({ id: "1", status: "published", targetingScope: "all" }) as never
+      baseAnnouncementRecord({ sendEmailNotification: true, id: "1", status: "published", targetingScope: "all" }) as never
     );
 
     await updateAnnouncementRecord("1", {
@@ -935,7 +939,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
-      sendEmailNotification: false,
+      sendEmailNotification: true,
       attachments: [],
       linkedDocumentIds: [],
       translations: [],
@@ -949,7 +953,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("下書き→公開への更新ではnotifyAnnouncementPublishedのみが呼ばれ、追加通知は呼ばれない（要件35.6、二重送信防止）", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({
+      baseAnnouncementRecord({ sendEmailNotification: true,
         id: "1",
         status: "draft",
         publishedAt: null,
@@ -958,7 +962,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       }) as never
     );
     vi.mocked(prisma.announcement.update).mockResolvedValue(
-      baseAnnouncementRecord({
+      baseAnnouncementRecord({ sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -973,7 +977,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       status: "published",
       targeting: { scope: "countries", countries: ["VN", "TH"] },
       actionRequired: false,
-      sendEmailNotification: false,
+      sendEmailNotification: true,
       attachments: [],
       linkedDocumentIds: [],
       translations: [],
@@ -1402,6 +1406,12 @@ describe("isReminderPendingForCompany", () => {
 });
 
 describe("sendAnnouncementReminders", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", actionRequired: true }) as never
+    );
+  });
+
   it("対象担当者ごとにreminderSentAtをupsertする", async () => {
     vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue(
       {} as never
@@ -1445,7 +1455,7 @@ describe("sendAnnouncementReminders", () => {
 describe("createAnnouncementRecord / updateAnnouncementRecord: 通知呼び出し結線", () => {
   it("公開状態で新規作成した場合、notifyAnnouncementPublishedを呼び出す", async () => {
     vi.mocked(prisma.announcement.create).mockResolvedValue(
-      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+      baseAnnouncementRecord({ sendEmailNotification: true, id: "1", status: "published" }) as never
     );
 
     await createAnnouncementRecord({
@@ -1455,7 +1465,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord: 通知呼び出�
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
-      sendEmailNotification: false,
+      sendEmailNotification: true,
       attachments: [],
       linkedDocumentIds: [],
       translations: [{ locale: "en", title: "Title", body: "Body" }],
@@ -1487,10 +1497,10 @@ describe("createAnnouncementRecord / updateAnnouncementRecord: 通知呼び出�
 
   it("下書き→公開への更新の場合、notifyAnnouncementPublishedを呼び出す", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+      baseAnnouncementRecord({ sendEmailNotification: true, id: "1", status: "draft", publishedAt: null }) as never
     );
     vi.mocked(prisma.announcement.update).mockResolvedValue(
-      baseAnnouncementRecord({ id: "1", status: "published" }) as never
+      baseAnnouncementRecord({ sendEmailNotification: true, id: "1", status: "published" }) as never
     );
 
     await updateAnnouncementRecord("1", {
@@ -1500,7 +1510,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord: 通知呼び出�
       status: "published",
       targeting: { scope: "all" },
       actionRequired: false,
-      sendEmailNotification: false,
+      sendEmailNotification: true,
       attachments: [],
       linkedDocumentIds: [],
       translations: [{ locale: "en", title: "Title", body: "Body" }],
@@ -1748,6 +1758,12 @@ describe("getUserSelfConfirmation", () => {
 });
 
 describe("sendUserReadReminders", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1" }) as never
+    );
+  });
+
   it("未確認の対象ユーザーの受信レシートにreadReminderSentAtを記録し、個人宛通知を呼び出す", async () => {
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([
       applicantUserRecord("u1", "vn-daiso-vietnam", "VN"),
@@ -2421,5 +2437,317 @@ describe("getAnnouncementTrackingStatusesBulk: 1件ずつ取得した結果と�
     expect(
       (await getAnnouncementRecipientStatuses("a-users-inactive-person")).map((view) => view.companyCode)
     ).toEqual(["US1"]);
+  });
+});
+
+function publishInput(overrides: Partial<CreateAnnouncementInput> = {}): CreateAnnouncementInput {
+  return {
+    title: "タイトル",
+    body: "本文",
+    category: "other",
+    status: "published",
+    targeting: { scope: "all" },
+    actionRequired: false,
+    sendEmailNotification: false,
+    attachments: [],
+    linkedDocumentIds: [],
+    translations: [{ locale: "en", title: "Title", body: "Body" }],
+    ...overrides,
+  };
+}
+
+describe("公開通知メールの抑止（sendEmailNotification・公開期間）", () => {
+  const FUTURE = new Date("2099-01-01T00:00:00.000Z");
+  const PAST = new Date("2000-01-01T00:00:00.000Z");
+
+  it("A: 公開で新規作成しsendEmailNotificationが偽なら公開通知を呼ばない", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: false }) as never
+    );
+
+    await createAnnouncementRecord(publishInput());
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("A: 公開で新規作成しsendEmailNotificationが真なら公開通知を呼ぶ", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: true }) as never
+    );
+
+    await createAnnouncementRecord(publishInput({ sendEmailNotification: true }));
+
+    expect(notifyAnnouncementPublished).toHaveBeenCalledWith("1");
+  });
+
+  it("B: 下書き→公開でsendEmailNotificationが偽なら公開通知を呼ばないが、publishedAtは打刻する", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: false }) as never
+    );
+
+    await updateAnnouncementRecord("1", publishInput());
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+    expect(prisma.announcement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ publishedAt: expect.any(Date) }),
+      })
+    );
+  });
+
+  it("B: 下書き→公開でsendEmailNotificationが真なら公開通知を呼ぶ", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: true }) as never
+    );
+
+    await updateAnnouncementRecord("1", publishInput({ sendEmailNotification: true }));
+
+    expect(notifyAnnouncementPublished).toHaveBeenCalledWith("1");
+  });
+
+  it("C: 配信対象拡大でもsendEmailNotificationが偽なら追加通知を呼ばない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: false,
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord(
+      "1",
+      publishInput({ targeting: { scope: "countries", countries: ["VN", "TH"] } })
+    );
+
+    expect(notifyAnnouncementTargetExpanded).not.toHaveBeenCalled();
+  });
+
+  it("C: 配信対象拡大でsendEmailNotificationが真なら追加分のwhereで追加通知を呼ぶ", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord(
+      "1",
+      publishInput({
+        sendEmailNotification: true,
+        targeting: { scope: "countries", countries: ["VN", "TH"] },
+      })
+    );
+
+    expect(notifyAnnouncementTargetExpanded).toHaveBeenCalledWith("1", {
+      isActive: true,
+      company: { country: { in: ["TH"] } },
+    });
+  });
+
+  it("D: 真でも作成時に公開開始日が未来なら公開通知を呼ばない", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        publishStartDate: FUTURE,
+      }) as never
+    );
+
+    await createAnnouncementRecord(publishInput({ sendEmailNotification: true }));
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("D: 真でも作成時に公開終了日が過去なら公開通知を呼ばない", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        publishEndDate: PAST,
+      }) as never
+    );
+
+    await createAnnouncementRecord(publishInput({ sendEmailNotification: true }));
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("D: 下書き→公開でも公開開始日が未来なら公開通知を呼ばない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        publishStartDate: FUTURE,
+      }) as never
+    );
+
+    await updateAnnouncementRecord("1", publishInput({ sendEmailNotification: true }));
+
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("D: 配信対象拡大でも公開期間外なら追加通知を呼ばない", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        publishEndDate: PAST,
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+
+    await updateAnnouncementRecord(
+      "1",
+      publishInput({
+        sendEmailNotification: true,
+        targeting: { scope: "countries", countries: ["VN", "TH"] },
+      })
+    );
+
+    expect(notifyAnnouncementTargetExpanded).not.toHaveBeenCalled();
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendAnnouncementReminders: 対象外お知らせのガード", () => {
+  const guardRecord = (overrides: Record<string, unknown> = {}) =>
+    ({
+      id: "1",
+      status: "published",
+      actionRequired: true,
+      targetingScope: "all",
+      targetingCountries: [],
+      targetingUserIds: [],
+      targetingCompanyIds: [],
+      publishStartDate: null,
+      publishEndDate: null,
+      publishStartTime: null,
+      publishEndTime: null,
+      ...overrides,
+    }) as never;
+
+  beforeEach(() => {
+    vi.mocked(prisma.announcementRecipientStatus.upsert).mockResolvedValue({} as never);
+    vi.mocked(prisma.announcementRecipient.findMany).mockResolvedValue([
+      recipientRecord("r1", "vn-daiso-vietnam", "VN"),
+    ] as never);
+  });
+
+  it.each([
+    ["存在しない", null],
+    ["下書き", { status: "draft" }],
+    ["actionRequiredが偽", { actionRequired: false }],
+    ["公開期間外（終了日が過去）", { publishEndDate: new Date("2000-01-01") }],
+    ["公開期間外（開始日が未来）", { publishStartDate: new Date("2099-01-01") }],
+  ])("%sお知らせでは何もしない", async (_label, override) => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      override === null ? null : guardRecord(override)
+    );
+
+    await sendAnnouncementReminders("1", ["r1"]);
+
+    expect(prisma.announcementRecipientStatus.upsert).not.toHaveBeenCalled();
+    expect(notifyAnnouncementReminder).not.toHaveBeenCalled();
+  });
+
+  it("存在しない・対象外のIDは除外され、見つかった担当者にのみupsertする", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(guardRecord());
+
+    await sendAnnouncementReminders("1", ["r1", "ghost"]);
+
+    expect(prisma.announcementRecipient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { AND: [{ id: { in: ["r1", "ghost"] } }, {}] } })
+    );
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.announcementRecipientStatus.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { announcementId_recipientId: { announcementId: "1", recipientId: "r1" } },
+      })
+    );
+  });
+});
+
+describe("sendUserReadReminders: 対象外お知らせのガード", () => {
+  const guardRecord = (overrides: Record<string, unknown> = {}) =>
+    ({
+      id: "1",
+      status: "published",
+      actionRequired: false,
+      targetingScope: "all",
+      targetingCountries: [],
+      targetingUserIds: [],
+      targetingCompanyIds: [],
+      publishStartDate: null,
+      publishEndDate: null,
+      publishStartTime: null,
+      publishEndTime: null,
+      ...overrides,
+    }) as never;
+
+  it.each([
+    ["存在しない", null],
+    ["下書き", { status: "draft" }],
+    ["公開期間外", { publishEndDate: new Date("2000-01-01") }],
+  ])("%sお知らせでは何もしない", async (_label, override) => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      override === null ? null : guardRecord(override)
+    );
+
+    await sendUserReadReminders("1", ["u1"]);
+
+    expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
+    expect(prisma.announcementReadReceipt.upsert).not.toHaveBeenCalled();
+    expect(notifyAnnouncementUserReadReminder).not.toHaveBeenCalled();
+  });
+
+  it("配信対象・有効アカウントとの積集合に絞り込む（countries=[VN]）", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      guardRecord({ targetingScope: "countries", targetingCountries: ["VN"] })
+    );
+    vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([] as never);
+
+    await sendUserReadReminders("1", ["u1"]);
+
+    expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [{ id: { in: ["u1"] } }, { isActive: true, company: { country: { in: ["VN"] } } }],
+        },
+      })
+    );
   });
 });
