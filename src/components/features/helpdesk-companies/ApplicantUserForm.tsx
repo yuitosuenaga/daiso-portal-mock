@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
   type ApplicantUserUpdateFormValues,
 } from "@/lib/validation/applicant-user";
 import { APPLICANT_USER_DEFAULT_LOCALE } from "@/lib/constants/applicant-user";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 import {
   createApplicantUserAction,
   updateApplicantUserAction,
@@ -87,7 +87,7 @@ export function ApplicantUserForm({
   passwordTooShortMessage,
   submitErrorMessage,
 }: ApplicantUserFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const schema =
     mode === "create" ? applicantUserCreateFormSchema : applicantUserUpdateFormSchema;
@@ -114,6 +114,7 @@ export function ApplicantUserForm({
   });
 
   async function onSubmit(values: ApplicantUserFormValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     try {
       const result =
@@ -141,7 +142,7 @@ export function ApplicantUserForm({
         password: "",
         preferredLocale: values.preferredLocale,
       });
-      router.push(`/helpdesk/companies/${companyId}`);
+      navigate(`/helpdesk/companies/${companyId}`);
     } catch {
       // 想定外の失敗（ネットワーク断・サーバーエラー等）。パスワード欄の平文は残さない。
       resetField("password");
@@ -219,7 +220,7 @@ export function ApplicantUserForm({
       </FormField>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isNavigating}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (

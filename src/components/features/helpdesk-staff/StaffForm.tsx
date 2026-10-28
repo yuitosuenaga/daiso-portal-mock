@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { createHelpdeskStaffAction } from "@/lib/actions/helpdesk-staff";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 import {
   helpdeskStaffCreateFormSchema,
   type HelpdeskStaffCreateFormInput,
@@ -55,7 +55,7 @@ export function StaffForm({
   passwordTooShortMessage,
   submitErrorMessage,
 }: StaffFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const {
     register,
@@ -73,6 +73,7 @@ export function StaffForm({
   });
 
   async function onSubmit(values: HelpdeskStaffCreateFormValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     try {
       const result = await createHelpdeskStaffAction(values);
@@ -87,7 +88,7 @@ export function StaffForm({
         return;
       }
       resetField("password");
-      router.push("/helpdesk/staff");
+      navigate("/helpdesk/staff");
     } catch {
       resetField("password");
       setHasSubmitError(true);
@@ -149,7 +150,7 @@ export function StaffForm({
       </FormField>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isNavigating}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (

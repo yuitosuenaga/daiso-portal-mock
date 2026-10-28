@@ -28,6 +28,7 @@ import {
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type { DocumentFormInput } from "@/types/document";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 
 /** カテゴリ選択肢1件（大分類＋配下の中分類）。名称は既定言語（ja）で解決済み（要件20.10）。 */
 export interface DocumentCategoryFormOption {
@@ -220,6 +221,7 @@ export function DocumentForm({
   backToListButtonLabel,
 }: DocumentFormProps) {
   const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   // 保存後に一部言語の翻訳が失敗した場合の状態。保存済みIDを保持し、再送信で二重作成しない。
   const [savedDocumentId, setSavedDocumentId] = useState<string | undefined>(documentId);
@@ -334,6 +336,7 @@ export function DocumentForm({
   }
 
   async function onSubmit(values: DocumentSubmitValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     setTranslationFailed(false);
     try {
@@ -350,7 +353,7 @@ export function DocumentForm({
         setTranslationFailed(true);
         return;
       }
-      router.push("/helpdesk/documents");
+      navigate("/helpdesk/documents");
     } catch {
       setHasSubmitError(true);
     }
@@ -584,7 +587,7 @@ export function DocumentForm({
       )}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isNavigating}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (
