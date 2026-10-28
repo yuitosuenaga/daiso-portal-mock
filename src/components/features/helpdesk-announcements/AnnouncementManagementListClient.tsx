@@ -21,6 +21,7 @@ import type {
   AnnouncementRecipientStatusView,
   AnnouncementUserReadStatusView,
 } from "@/types/announcement-recipient";
+import { formatDate, formatDateOnly } from "@/lib/format-date";
 
 export interface AnnouncementManagementListClientProps {
   /** 公開日降順で整列済みの全お知らせ */
@@ -92,24 +93,16 @@ export function AnnouncementManagementListClient({
       .join(", ")}`;
   }
 
-  function formatDate(value: string): string {
-    return new Date(value).toLocaleDateString(locale, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-
   function publishPeriodText(announcement: AnnouncementSummary): string {
     const { publishStartDate, publishEndDate } = announcement;
     if (!publishStartDate && !publishEndDate) {
       return publishPeriodAlwaysLabel;
     }
     const start = publishStartDate
-      ? `${formatDate(publishStartDate)} ${announcement.publishStartTime ?? ""}`.trim()
+      ? `${formatDateOnly(publishStartDate, locale)} ${announcement.publishStartTime ?? ""}`.trim()
       : "";
     const end = publishEndDate
-      ? `${formatDate(publishEndDate)} ${announcement.publishEndTime ?? ""}`.trim()
+      ? `${formatDateOnly(publishEndDate, locale)} ${announcement.publishEndTime ?? ""}`.trim()
       : "";
     return `${publishPeriodLabel}: ${start} ${publishPeriodToSeparator} ${end}`.trim();
   }
@@ -142,10 +135,7 @@ export function AnnouncementManagementListClient({
                   <span>{categoryLabels[announcement.category]}</span>
                   {announcement.publishedAt ? (
                     <time dateTime={announcement.publishedAt}>
-                      {new Date(announcement.publishedAt).toLocaleDateString(
-                        locale,
-                        { year: "numeric", month: "short", day: "numeric" }
-                      )}
+                      {formatDate(announcement.publishedAt, locale)}
                     </time>
                   ) : (
                     <span>—</span>
@@ -157,7 +147,7 @@ export function AnnouncementManagementListClient({
                   <span>{publishPeriodText(announcement)}</span>
                   {announcement.actionRequired && announcement.dueDate && (
                     <span>
-                      {dueDateLabel}: {formatDate(announcement.dueDate)}
+                      {dueDateLabel}: {formatDateOnly(announcement.dueDate, locale)}
                     </span>
                   )}
                 </div>

@@ -26,6 +26,7 @@ import {
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { DocumentSummary } from "@/types/document";
 import type { DocumentCategoryFormOption } from "@/components/features/helpdesk-documents/DocumentForm";
+import { formatDate } from "@/lib/format-date";
 
 export interface DocumentManagementListClientProps {
   /** アップロード日降順で整列済みの全ドキュメント */
@@ -184,10 +185,7 @@ export function DocumentManagementListClient({
                           : categoryUnassignedLabel}
                       </span>
                       <time dateTime={document.uploadedAt}>
-                        {new Date(document.uploadedAt).toLocaleDateString(
-                          locale,
-                          { year: "numeric", month: "short", day: "numeric" }
-                        )}
+                        {formatDate(document.uploadedAt, locale)}
                       </time>
                       <span>{targetingLabel(document.targeting, targetingLabels)}</span>
                     </div>

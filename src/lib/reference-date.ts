@@ -28,3 +28,12 @@ export function toReferenceDateKey(date: Date): string {
 export function startOfReferenceDay(date: Date): Date {
   return new Date(`${toReferenceDateKey(date)}T00:00:00+09:00`);
 }
+
+/**
+ * 指定時刻が属する日本時間（JST）の年・月（月は1〜12）を返す。
+ * フォームの年月の既定値など、SSR（UTC）とブラウザでずれてはならない用途向け。
+ */
+export function toReferenceYearMonth(date: Date): { year: number; month: number } {
+  const [year, month] = toReferenceDateKey(date).split("-");
+  return { year: Number(year), month: Number(month) };
+}

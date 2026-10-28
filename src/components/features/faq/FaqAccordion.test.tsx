@@ -18,9 +18,7 @@ const FAQS: Faq[] = [
     question: "問い合わせはどの方法で行えば良いですか。",
     answer: "ポータル上の問い合わせ申請ページから送信してください。",
     createdAt: "2020-01-01T00:00:00.000Z",
-    // 実装側は表示TZ未固定（toLocaleDateString）のため、UTC-8〜UTC+14 のどのTZでも
-    // 2020-01-01 になる時刻にしている。表示TZ統一は別PRで対応する。
-    updatedAt: "2020-01-01T09:00:00.000Z",
+    updatedAt: "2020-01-01T00:00:00.000Z",
     translations: [],
   },
   {

@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { isRecentlyUpdated } from "@/lib/faq-utils";
 import type { Faq } from "@/types/faq";
+import { formatDate } from "@/lib/format-date";
 
 interface FaqAccordionProps {
   faqs: Faq[];
@@ -48,11 +49,7 @@ export function FaqAccordion({
               {isNew && <Badge variant="default">{newBadgeLabel}</Badge>}
               <time dateTime={faq.updatedAt}>
                 {updatedLabel}:{" "}
-                {new Date(faq.updatedAt).toLocaleDateString(locale, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
+                {formatDate(faq.updatedAt, locale)}
               </time>
             </div>
             <AccordionTrigger>{faq.question}</AccordionTrigger>

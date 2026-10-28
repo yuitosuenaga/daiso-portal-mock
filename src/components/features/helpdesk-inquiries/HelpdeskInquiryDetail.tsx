@@ -20,6 +20,7 @@ import {
 } from "@/lib/constants/inquiry-options";
 import { resolveInquiryContent } from "@/lib/inquiry-content";
 import type { Inquiry } from "@/types/inquiry";
+import { formatDateTime } from "@/lib/format-date";
 
 export async function HelpdeskInquiryDetail({ id }: { id: string }) {
   const [t, tStatuses, tCategories, tUrgencies, tCountries, tClaim, tStatus, tReply, tHistory, locale] =
@@ -117,13 +118,7 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
             <span>{inquiryCountryLabel(inquiry.submittedBy.country, tCountries)}</span>
             <span>{inquiry.storeRegion}</span>
             <time dateTime={inquiry.createdAt}>
-              {new Date(inquiry.createdAt).toLocaleString(locale, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatDateTime(inquiry.createdAt, locale)}
             </time>
           </div>
         </CardHeader>

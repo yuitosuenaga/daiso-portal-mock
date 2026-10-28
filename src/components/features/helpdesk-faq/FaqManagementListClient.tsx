@@ -17,6 +17,7 @@ import {
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { Faq } from "@/types/faq";
+import { formatDate } from "@/lib/format-date";
 
 export interface FaqManagementListClientProps {
   /** 登録日（`createdAt`）降順で整列済みの全FAQ */
@@ -105,11 +106,7 @@ export function FaqManagementListClient({
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{tCategories(faq.category)}</span>
                       <time dateTime={faq.createdAt}>
-                        {new Date(faq.createdAt).toLocaleDateString(locale, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {formatDate(faq.createdAt, locale)}
                       </time>
                     </div>
                   </div>

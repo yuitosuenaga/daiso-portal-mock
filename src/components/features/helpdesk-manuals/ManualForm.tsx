@@ -26,6 +26,7 @@ import {
   type ManualSubmitValues,
 } from "@/lib/validation/manual";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
+import { toReferenceYearMonth } from "@/lib/reference-date";
 import type { ManualCategory, ManualFormInput } from "@/types/manual";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
@@ -234,8 +235,7 @@ export function ManualForm({
             title: "",
             description: "",
             category: categoryOptions[0]?.value as ManualCategory,
-            year: new Date().getFullYear(),
-            month: new Date().getMonth() + 1,
+            ...toReferenceYearMonth(new Date()),
             targeting: { scope: "all" },
             ...EMPTY_UPLOAD_VALUES,
             ...EMPTY_GOOGLE_VALUES,
