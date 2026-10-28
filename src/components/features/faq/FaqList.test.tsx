@@ -44,6 +44,10 @@ const INQUIRY_METHOD_FAQ: Faq = {
   translations: [],
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("FaqList", () => {
   it("FAQが0件のとき空状態メッセージを表示する", async () => {
     getFaqsMock.mockResolvedValueOnce([]);
@@ -61,6 +65,8 @@ describe("FaqList", () => {
     render(jsx);
 
     expect(screen.getByText("FAQの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("FaqList", expect.any(Error));
   });
 
   it("getFaqsへ選択中ロケール（getLocale()の結果）を渡す（要件12.6）", async () => {

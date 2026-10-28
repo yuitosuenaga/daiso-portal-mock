@@ -118,6 +118,10 @@ function buildAnnouncement(overrides: Partial<Announcement>): Announcement {
   };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("AnnouncementManagementList", () => {
   it("お知らせが0件のとき空状態メッセージを表示する", async () => {
     getAllAnnouncementsMock.mockResolvedValueOnce([]);
@@ -145,6 +149,8 @@ describe("AnnouncementManagementList", () => {
     render(jsx);
 
     expect(screen.getByText("お知らせの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("AnnouncementManagementList", expect.any(Error));
   });
 
   it("全件を表示し、種別・配信対象・編集リンクを表示する", async () => {

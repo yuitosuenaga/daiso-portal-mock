@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getInquiryHistory } from "@/lib/api/inquiry-history";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
@@ -74,7 +75,8 @@ export async function InquiryHistoryList({
   let entries: InquiryHistoryEntry[];
   try {
     entries = await getInquiryHistory(inquiryId);
-  } catch {
+  } catch (error) {
+    logLoadFailure("InquiryHistoryList", error);
     return (
       <div>
         <p className="text-sm font-medium text-muted-foreground">

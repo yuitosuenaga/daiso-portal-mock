@@ -47,6 +47,10 @@ function makeInquiry(overrides: Partial<Inquiry> & { id: string }): Inquiry {
   };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("PriorityInquiriesPreviewPanel", () => {
   afterEach(() => {
     getAllInquiriesMock.mockReset();
@@ -137,6 +141,8 @@ describe("PriorityInquiriesPreviewPanel", () => {
     expect(
       screen.getByText("dashboard.priorityInquiriesPreview.error")
     ).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("PriorityInquiriesPreviewPanel", expect.any(Error));
   });
 
   it("「一覧を見る」リンクがviewAllHrefを指す", async () => {

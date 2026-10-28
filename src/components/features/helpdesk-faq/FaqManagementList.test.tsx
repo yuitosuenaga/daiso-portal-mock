@@ -73,6 +73,10 @@ const FAQ: FaqWithTimestamp = {
   translations: [],
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("FaqManagementList", () => {
   it("FAQが0件のとき空状態メッセージを表示する", async () => {
     getFaqsForHelpdeskMock.mockResolvedValueOnce([]);
@@ -90,6 +94,8 @@ describe("FaqManagementList", () => {
     render(jsx);
 
     expect(screen.getByText("FAQの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("FaqManagementList", expect.any(Error));
   });
 
   it("取得成功時にFAQ一覧をカテゴリ表示名付きで表示する", async () => {

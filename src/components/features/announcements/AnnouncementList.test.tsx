@@ -88,6 +88,10 @@ const ANNOUNCEMENT: Announcement = {
   translations: [],
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("AnnouncementList", () => {
   beforeEach(() => {
     getAnnouncementSelfStatusMock.mockClear();
@@ -117,6 +121,8 @@ describe("AnnouncementList", () => {
     render(jsx);
 
     expect(screen.getByText("お知らせの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("AnnouncementList", expect.any(Error));
   });
 
   it("取得成功時にお知らせ一覧を表示する", async () => {

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getManuals } from "@/lib/api/manuals";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -19,7 +20,8 @@ export async function ManualList() {
   let manuals: ManualSummary[];
   try {
     manuals = await getManuals({ locale });
-  } catch {
+  } catch (error) {
+    logLoadFailure("ManualList", error);
     return (
       <div>
         <Heading title={t("title")} description={t("description")} />

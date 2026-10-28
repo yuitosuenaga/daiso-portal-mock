@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllManuals } from "@/lib/api/manuals";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
@@ -29,7 +30,8 @@ export async function ManualManagementList() {
   let manuals: ManualSummary[];
   try {
     manuals = await getAllManuals();
-  } catch {
+  } catch (error) {
+    logLoadFailure("ManualManagementList", error);
     return (
       <div>
         {heading}

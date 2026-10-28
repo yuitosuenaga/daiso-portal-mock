@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllInquiries } from "@/lib/api/inquiries";
 import { getCurrentHelpdeskStaffName } from "@/lib/api/current-staff";
@@ -33,7 +34,10 @@ export async function HelpdeskInquiryList({
     getTranslations("helpdeskInquiries.claim"),
     getLocale(),
     // 「自分の担当」絞り込みは付加的な情報であり、取得に失敗しても一覧表示自体は継続する。
-    getCurrentHelpdeskStaffName().catch(() => null),
+    getCurrentHelpdeskStaffName().catch((error) => {
+      logLoadFailure("HelpdeskInquiryList", error, { optional: true });
+      return null;
+    }),
   ]);
 
   const heading = (
@@ -46,7 +50,8 @@ export async function HelpdeskInquiryList({
   let inquiries: Inquiry[];
   try {
     inquiries = await getAllInquiries();
-  } catch {
+  } catch (error) {
+    logLoadFailure("HelpdeskInquiryList", error);
     return (
       <div>
         {heading}

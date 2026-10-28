@@ -84,6 +84,10 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("MonthlyMaterialGallery", () => {
   it("editable=falseの場合、公開範囲でフィルタ済みの一覧（getMonthlyMaterials）を取得する", async () => {
     getMonthlyMaterialsMock.mockResolvedValue([material()]);
@@ -166,5 +170,7 @@ describe("MonthlyMaterialGallery", () => {
     render(jsx);
 
     expect(screen.getByText("資料の取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("MonthlyMaterialGallery", expect.any(Error));
   });
 });

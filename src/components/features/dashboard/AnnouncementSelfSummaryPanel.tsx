@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations } from "next-intl/server";
 
 import { StatsBarList } from "@/components/features/inquiry-stats/StatsBarList";
@@ -74,7 +75,8 @@ export async function AnnouncementSelfSummaryPanel({
       statusRows: toBarListRows(statusRows),
       categoryRows: toBarListRows(categoryRows),
     };
-  } catch {
+  } catch (error) {
+    logLoadFailure("AnnouncementSelfSummaryPanel", error);
     data = null;
   }
 

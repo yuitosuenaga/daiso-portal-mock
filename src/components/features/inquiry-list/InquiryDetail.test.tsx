@@ -50,6 +50,10 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("InquiryDetail", () => {
   it("getInquiryByIdがnullを返したとき見つからないメッセージを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce(null);
@@ -67,6 +71,8 @@ describe("InquiryDetail", () => {
     render(jsx);
 
     expect(screen.getByText("問合せの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryDetail", expect.any(Error));
   });
 
   it("見つからない状態とエラー状態は異なるメッセージで表示される", async () => {
@@ -84,6 +90,8 @@ describe("InquiryDetail", () => {
     ).textContent;
 
     expect(notFoundText).not.toBe(errorText);
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryDetail", expect.any(Error));
   });
 
   it("見つからない状態でも一覧へ戻るリンクを表示する", async () => {
@@ -102,6 +110,8 @@ describe("InquiryDetail", () => {
     render(jsx);
 
     expect(screen.getByText("一覧へ戻る")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryDetail", expect.any(Error));
   });
 
   it("取得成功時にも一覧へ戻るリンクを表示する", async () => {

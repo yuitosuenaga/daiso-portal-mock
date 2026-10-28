@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getLinks } from "@/lib/api/links";
 import { getLinkCategoriesForApplicant } from "@/lib/api/link-categories";
@@ -24,7 +25,8 @@ export async function LinkList() {
   let links: LinkWithTimestamp[];
   try {
     links = await getLinks();
-  } catch {
+  } catch (error) {
+    logLoadFailure("LinkList", error);
     return (
       <div>
         {heading}

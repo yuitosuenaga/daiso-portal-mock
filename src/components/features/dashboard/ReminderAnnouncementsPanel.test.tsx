@@ -78,6 +78,10 @@ function makeAnnouncement(
   };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("ReminderAnnouncementsPanel", () => {
   afterEach(() => {
     getAnnouncementsMock.mockReset();
@@ -143,5 +147,7 @@ describe("ReminderAnnouncementsPanel", () => {
     const jsx = await ReminderAnnouncementsPanel();
 
     expect(jsx).toBeNull();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("ReminderAnnouncementsPanel", expect.any(Error));
   });
 });

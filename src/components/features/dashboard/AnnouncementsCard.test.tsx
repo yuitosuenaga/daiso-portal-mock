@@ -60,6 +60,10 @@ function makeAnnouncement(
 
 const NOW = "2026-07-10T00:00:00.000Z";
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("AnnouncementsCard", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -163,6 +167,8 @@ describe("AnnouncementsCard", () => {
     expect(
       screen.getByRole("link", { name: /dashboard\.announcements\.title/ })
     ).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("AnnouncementsCard", expect.any(Error));
   });
 
   it("recentDaysを指定した場合はその日数を基準に集計する", async () => {

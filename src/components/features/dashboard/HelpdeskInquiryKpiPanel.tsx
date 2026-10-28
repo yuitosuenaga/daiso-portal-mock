@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { AlertTriangle } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
@@ -45,14 +46,18 @@ export async function HelpdeskInquiryKpiPanel({
     const [inquiries, staffName] = await Promise.all([
       getAllInquiries(),
       // 自分の担当タイルは付加的な情報であり、取得に失敗してもKPIパネル全体は表示を継続する。
-      getCurrentHelpdeskStaffName().catch(() => null),
+      getCurrentHelpdeskStaffName().catch((error) => {
+      logLoadFailure("HelpdeskInquiryKpiPanel", error, { optional: true });
+      return null;
+    }),
     ]);
     currentStaffName = staffName;
     stats = computeHelpdeskInquiryStats(inquiries, {
       referenceDate,
       currentStaffName: currentStaffName ?? undefined,
     });
-  } catch {
+  } catch (error) {
+    logLoadFailure("HelpdeskInquiryKpiPanel", error);
     stats = null;
   }
 

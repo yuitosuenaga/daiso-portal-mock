@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import {
@@ -36,7 +37,8 @@ export async function StaffManagementList() {
   let staff: HelpdeskStaffSummary[];
   try {
     staff = await listHelpdeskStaff();
-  } catch {
+  } catch (error) {
+    logLoadFailure("StaffManagementList", error);
     return (
       <div>
         {heading}

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 
 import {
@@ -47,7 +48,8 @@ export async function MonthlyMaterialGallery({
     materials = editable
       ? await getAllMonthlyMaterialsForHelpdesk(category)
       : await getMonthlyMaterials(category);
-  } catch {
+  } catch (error) {
+    logLoadFailure("MonthlyMaterialGallery", error);
     return (
       <Card>
         <CardContent className="pt-6">

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAllAnnouncements } from "@/lib/api/announcements";
 import { getAnnouncementTrackingStatusesBulk } from "@/lib/api/announcement-tracking";
@@ -37,7 +38,8 @@ export async function AnnouncementManagementList() {
   let announcements: AnnouncementSummary[];
   try {
     announcements = await getAllAnnouncements();
-  } catch {
+  } catch (error) {
+    logLoadFailure("AnnouncementManagementList", error);
     return (
       <div>
         {heading}

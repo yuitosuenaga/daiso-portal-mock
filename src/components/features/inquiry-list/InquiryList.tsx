@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getInquiries, getUnreadReplyInquiryIds } from "@/lib/api/inquiries";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -53,14 +54,12 @@ export async function InquiryList({
       getUnreadReplyInquiryIds().catch((error) => {
         // 新着バッジは付加的な情報であり、取得に失敗しても一覧表示自体は継続する。
         // ただし失敗を握りつぶすとバッジが常に非表示になる不具合に気づけないため、ログには残す。
-        console.error(
-          "[inquiry-list] Failed to fetch unread reply inquiry ids:",
-          error
-        );
+        logLoadFailure("InquiryList.unreadReplyIds", error, { optional: true });
         return [] as string[];
       }),
     ]);
-  } catch {
+  } catch (error) {
+    logLoadFailure("InquiryList", error);
     return (
       <div>
         {heading}

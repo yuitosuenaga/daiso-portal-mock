@@ -46,6 +46,10 @@ vi.mock("next-intl", () => ({
     (key: string) => resolveMessage(namespace, key),
 }));
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("InquiryList", () => {
   beforeEach(() => {
     getUnreadReplyInquiryIdsMock.mockReset().mockResolvedValue([]);
@@ -67,6 +71,8 @@ describe("InquiryList", () => {
     render(jsx);
 
     expect(screen.getByText("問合せの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryList", expect.any(Error));
   });
 
   it("取得成功時に各行のタイトル・種別バッジ・本文プレビューを表示する", async () => {
@@ -177,11 +183,13 @@ describe("InquiryList", () => {
         submittedBy: { companyName: "Test Company", country: "JP" },
       },
     ]);
-    getUnreadReplyInquiryIdsMock.mockRejectedValueOnce(new Error("failed"));
+    const unreadError = new Error("failed");
+    getUnreadReplyInquiryIdsMock.mockRejectedValueOnce(unreadError);
 
     const jsx = await InquiryList();
     render(jsx);
 
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryList.unreadReplyIds", unreadError, { optional: true });
     expect(screen.getByRole("link", { name: "対象" })).toBeTruthy();
     expect(screen.queryByText("新着")).toBeNull();
   });
@@ -199,6 +207,8 @@ describe("InquiryList", () => {
     ).textContent;
 
     expect(emptyText).not.toBe(errorText);
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryList", expect.any(Error));
   });
 
   it("searchParamsから初期フィルタ（unresolved=1）がフィルタバーに反映される", async () => {

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { AnnouncementListItem } from "@/components/features/announcements/AnnouncementListItem";
@@ -29,7 +30,8 @@ export async function ReminderAnnouncementsPanel() {
       )
     );
     reminderAnnouncements = announcements.filter((_, index) => pendingFlags[index]);
-  } catch {
+  } catch (error) {
+    logLoadFailure("ReminderAnnouncementsPanel", error);
     return null;
   }
 

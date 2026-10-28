@@ -104,6 +104,10 @@ function link(overrides: Partial<LinkWithTimestamp> & { id: string }): LinkWithT
 
 const LINK: LinkWithTimestamp = link({ id: "1" });
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("LinkManagementList", () => {
   it("リンクが0件のとき空状態メッセージを表示する", async () => {
     getLinksForHelpdeskMock.mockResolvedValueOnce([]);
@@ -121,6 +125,8 @@ describe("LinkManagementList", () => {
     render(jsx);
 
     expect(screen.getByText("リンクの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("LinkManagementList", expect.any(Error));
   });
 
   it("取得成功時にリンク一覧をカテゴリ表示名付きで表示する", async () => {

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { AnnouncementListItem } from "@/components/features/announcements/AnnouncementListItem";
@@ -36,7 +37,8 @@ export async function AnnouncementsPreviewPanel({
   let announcements: AnnouncementSummary[] | null = null;
   try {
     announcements = await getRecentAnnouncements({ limit: PREVIEW_LIMIT, locale });
-  } catch {
+  } catch (error) {
+    logLoadFailure("AnnouncementsPreviewPanel", error);
     announcements = null;
   }
 

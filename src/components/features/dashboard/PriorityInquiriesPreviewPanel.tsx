@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { HelpdeskInquiryListItem } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryListItem";
@@ -52,7 +53,8 @@ export async function PriorityInquiriesPreviewPanel({
       0,
       PREVIEW_LIMIT
     );
-  } catch {
+  } catch (error) {
+    logLoadFailure("PriorityInquiriesPreviewPanel", error);
     priorityInquiries = null;
   }
 

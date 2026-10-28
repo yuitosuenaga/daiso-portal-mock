@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { listCompaniesForManagement } from "@/lib/server/company-service";
@@ -46,7 +47,8 @@ export async function CompanyManagementList() {
   let companies: CompanyWithStats[];
   try {
     companies = await listCompaniesForManagement();
-  } catch {
+  } catch (error) {
+    logLoadFailure("CompanyManagementList", error);
     return (
       <div>
         {heading}

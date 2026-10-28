@@ -116,6 +116,10 @@ const ANNOUNCEMENT: Announcement = {
   translations: [],
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("AnnouncementDetail", () => {
   beforeEach(() => {
     getAnnouncementSelfStatusMock.mockClear();
@@ -149,6 +153,8 @@ describe("AnnouncementDetail", () => {
     render(jsx);
 
     expect(screen.getByText("お知らせの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("AnnouncementDetail", expect.any(Error));
   });
 
   it("見つからない状態とエラー状態は異なるメッセージで表示される", async () => {
@@ -162,6 +168,8 @@ describe("AnnouncementDetail", () => {
     const errorText = screen.getByText("お知らせの取得に失敗しました").textContent;
 
     expect(notFoundText).not.toBe(errorText);
+
+    expect(logLoadFailure).toHaveBeenCalledWith("AnnouncementDetail", expect.any(Error));
   });
 
   it("取得成功時にタイトル・本文を表示する", async () => {

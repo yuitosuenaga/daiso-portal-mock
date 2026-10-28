@@ -61,6 +61,10 @@ const CATEGORY: DocumentCategorySummary = {
   documentCount: 3,
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("DocumentCategoryList", () => {
   it("見出し（h1+説明文）を全分岐で描画する", async () => {
     getVisibleDocumentCategoriesMock.mockResolvedValueOnce([]);
@@ -102,6 +106,8 @@ describe("DocumentCategoryList", () => {
     render(jsx);
 
     expect(screen.getByText("ドキュメントの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("DocumentCategoryList", expect.any(Error));
   });
 
   it("getVisibleDocumentCategoriesへ選択中のロケールを渡す", async () => {
