@@ -1189,14 +1189,6 @@
         "label": "原文語言",
         "placeholder": "請選擇原文語言"
       },
-      "companyName": {
-        "label": "公司名稱",
-        "placeholder": "請輸入公司名稱"
-      },
-      "country": {
-        "label": "國家",
-        "placeholder": "請選擇國家"
-      },
       "targetCompany": {
         "label": "目標公司",
         "placeholder": "請選擇登記詢問的公司",

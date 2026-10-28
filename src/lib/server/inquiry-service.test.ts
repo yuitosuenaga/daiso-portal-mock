@@ -1,7 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    company: {
+      findUnique: vi.fn(),
+    },
     inquiry: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -18,6 +22,7 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/db/prisma";
+import { CompanyNotFoundError } from "@/lib/server/company-service";
 import {
   appendHistoryEntry,
   ClaimOwnershipError,
@@ -59,9 +64,50 @@ const baseInquiryRecord = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.company.findUnique).mockResolvedValue({
+    name: "Daiso Japan",
+    country: "JP",
+  } as never);
 });
 
 describe("createInquiryRecord", () => {
+  const BASE_DATA = {
+    title: "商品破損についての問い合わせ",
+    category: "defect",
+    urgency: "high",
+    storeRegion: "Kanto",
+    originalText: "破損しています",
+    originalLanguage: "ja",
+  } as const;
+
+  it("status は new 固定、会社名・国は Company から導出し、createdAt は DB 既定に任せる", async () => {
+    vi.mocked(prisma.inquiry.create).mockResolvedValue(baseInquiryRecord as never);
+
+    await createInquiryRecord({ data: BASE_DATA, companyId: "company-1" });
+
+    expect(prisma.company.findUnique).toHaveBeenCalledWith({
+      where: { id: "company-1" },
+      select: { name: true, country: true },
+    });
+    const createArgs = vi.mocked(prisma.inquiry.create).mock.calls[0]?.[0];
+    expect(createArgs?.data).toMatchObject({
+      status: "new",
+      companyId: "company-1",
+      submittedByCompanyName: "Daiso Japan",
+      submittedByCountry: "JP",
+    });
+    expect(createArgs?.data).not.toHaveProperty("createdAt");
+  });
+
+  it("会社が存在しない場合は CompanyNotFoundError を投げ、create を呼ばない", async () => {
+    vi.mocked(prisma.company.findUnique).mockResolvedValue(null);
+
+    await expect(
+      createInquiryRecord({ data: BASE_DATA, companyId: "missing" })
+    ).rejects.toBeInstanceOf(CompanyNotFoundError);
+    expect(prisma.inquiry.create).not.toHaveBeenCalled();
+  });
+
   it("セッションのcompanyIdを永続化し、既存Inquiry型に整形した結果を返す", async () => {
     vi.mocked(prisma.inquiry.create).mockResolvedValue(baseInquiryRecord as never);
 
@@ -73,9 +119,6 @@ describe("createInquiryRecord", () => {
         storeRegion: "Kanto",
         originalText: "破損しています",
         originalLanguage: "ja",
-        status: "new",
-        createdAt: "2026-06-28T09:15:00.000Z",
-        submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
       },
       companyId: "company-1",
     });
@@ -104,9 +147,6 @@ describe("createInquiryRecord", () => {
         storeRegion: "West Coast",
         originalText: "We would like to place an additional order.",
         originalLanguage: "en",
-        status: "new",
-        createdAt: "2026-06-28T09:15:00.000Z",
-        submittedBy: { companyName: "Daiso USA Inc.", country: "US" },
       },
       companyId: "company-1",
     });
@@ -127,9 +167,6 @@ describe("createInquiryRecord", () => {
         storeRegion: "Kanto",
         originalText: "破損しています",
         originalLanguage: "ja",
-        status: "new",
-        createdAt: "2026-06-28T09:15:00.000Z",
-        submittedBy: { companyName: "Daiso Japan Trading Co.", country: "JP" },
       },
       companyId: "company-1",
     });

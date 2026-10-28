@@ -53,11 +53,17 @@ export type InquiryTranslation = {
 };
 
 /**
- * 問い合わせ・申請送信時のAPI入力契約。
- * `Inquiry` から `id`（API側で生成）・`translatedText`（非推奨）・`translations`・`translationStatus`
- * （いずれもAPI側で書き込む）を除いたサブセット。
+ * 問い合わせ・申請送信時のAPI入力契約。クライアントが入力する項目のみを含む。
+ * `status`（常に`new`）・`createdAt`（DB既定）・`submittedBy`（`companyId`のCompanyから導出）・
+ * `claim`・翻訳関連はサーバー側で決めるため、クライアント入力には含めない。
  */
-export type CreateInquiryInput = Omit<
+export type CreateInquiryInput = Pick<
   Inquiry,
-  "id" | "translatedText" | "translations" | "translationStatus"
+  | "title"
+  | "category"
+  | "urgency"
+  | "storeRegion"
+  | "originalText"
+  | "originalLanguage"
+  | "attachments"
 >;

@@ -98,9 +98,6 @@ describe("createInquiry", () => {
       storeRegion: "関東",
       originalText: "テスト",
       originalLanguage: "ja",
-      status: "new",
-      createdAt: "2026-07-01T00:00:00.000Z",
-      submittedBy: { companyName: "Test Company", country: "JP" },
     };
 
     const result = await createInquiry(input);
@@ -110,6 +107,31 @@ describe("createInquiry", () => {
       companyId: "company-1",
     });
     expect(result.id).toBe("inquiry-1");
+  });
+
+  it("クライアントが status・submittedBy・createdAt を混ぜても無視し、companyId はセッションのものを使う", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(createInquiryRecord).mockResolvedValue(inquiry());
+
+    const tampered = {
+      title: "追加発注についての問い合わせ",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+      status: "resolved",
+      createdAt: "2000-01-01T00:00:00.000Z",
+      submittedBy: { companyName: "Evil Co.", country: "US" },
+    } as unknown as CreateInquiryInput;
+
+    await createInquiry(tampered);
+
+    const arg = vi.mocked(createInquiryRecord).mock.calls[0]?.[0];
+    expect(arg?.companyId).toBe("company-1");
+    expect(arg?.data).not.toHaveProperty("status");
+    expect(arg?.data).not.toHaveProperty("submittedBy");
+    expect(arg?.data).not.toHaveProperty("createdAt");
   });
 
   it("未ログインのとき例外を送出する", async () => {
@@ -131,9 +153,6 @@ describe("createInquiry", () => {
       storeRegion: "関東",
       originalText: "テスト",
       originalLanguage: "ja",
-      status: "new",
-      createdAt: "2026-07-01T00:00:00.000Z",
-      submittedBy: { companyName: "Test Company", country: "JP" },
     };
 
     const result = await createInquiry(input, "target-company-1");
@@ -173,9 +192,6 @@ describe("createInquiry", () => {
       storeRegion: "関東",
       originalText: "テスト",
       originalLanguage: "ja",
-      status: "new",
-      createdAt: "2026-07-01T00:00:00.000Z",
-      submittedBy: { companyName: "Test Company", country: "JP" },
       attachments: Array.from({ length: 100 }, (_, index) => ({
         id: `attachment-${index}`,
         fileName: `file-${index}.pdf`,

@@ -88,9 +88,6 @@ describe("POST /api/inquiries", () => {
         storeRegion: "Kanto",
         originalText: "破損しています",
         originalLanguage: "ja",
-        status: "new",
-        createdAt: "2026-07-08T00:00:00.000Z",
-        submittedBy: { companyName: "Test Co.", country: "JP" },
       })
     );
 
@@ -98,6 +95,33 @@ describe("POST /api/inquiries", () => {
     expect(createInquiryRecord).toHaveBeenCalledWith(
       expect.objectContaining({ companyId: "company-1" })
     );
+  });
+
+  it("status・createdAt・submittedBy を送っても201で、作成処理には渡らない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(createInquiryRecord).mockClear();
+    vi.mocked(createInquiryRecord).mockResolvedValue({ id: "inquiry-1" } as never);
+    vi.mocked(findInquiryById).mockResolvedValue({ id: "inquiry-1" } as never);
+
+    const response = await POST(
+      jsonRequest({
+        title: "商品破損についての問い合わせ",
+        category: "defect",
+        urgency: "high",
+        storeRegion: "Kanto",
+        originalText: "破損しています",
+        originalLanguage: "ja",
+        status: "resolved",
+        createdAt: "1999-01-01T00:00:00.000Z",
+        submittedBy: { companyName: "Evil Co.", country: "US" },
+      })
+    );
+
+    expect(response.status).toBe(201);
+    const arg = vi.mocked(createInquiryRecord).mock.calls[0]?.[0];
+    expect(arg?.data).not.toHaveProperty("status");
+    expect(arg?.data).not.toHaveProperty("createdAt");
+    expect(arg?.data).not.toHaveProperty("submittedBy");
   });
 
   describe("添付ファイル", () => {
@@ -108,9 +132,6 @@ describe("POST /api/inquiries", () => {
       storeRegion: "Kanto",
       originalText: "x",
       originalLanguage: "ja",
-      status: "new",
-      createdAt: "2026-07-08T00:00:00.000Z",
-      submittedBy: { companyName: "Test Co.", country: "JP" },
     };
 
     it("正当な添付は201で通る", async () => {

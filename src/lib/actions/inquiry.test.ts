@@ -63,6 +63,19 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+
+const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+function pngAttachment(size: number, fileSize = size, id = "att-1") {
+  const bytes = Buffer.concat([PNG_HEAD, Buffer.alloc(size - PNG_HEAD.length)]);
+  return {
+    id,
+    fileName: "photo.png",
+    fileType: "image/png",
+    fileSize,
+    dataUrl: `data:image/png;base64,${bytes.toString("base64")}`,
+  };
+}
+
 describe("createInquiryAction", () => {
   it("createInquiryRecordへ委譲し、セッションのcompanyIdを付与する", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
@@ -75,9 +88,6 @@ describe("createInquiryAction", () => {
       storeRegion: "関東",
       originalText: "テスト",
       originalLanguage: "ja",
-      status: "new",
-      createdAt: "2026-07-01T00:00:00.000Z",
-      submittedBy: { companyName: "Test Company", country: "JP" },
     };
 
     const result = await createInquiryAction(input);
@@ -108,9 +118,6 @@ describe("createInquiryAction", () => {
       storeRegion: "関東",
       originalText: "テスト",
       originalLanguage: "ja",
-      status: "new",
-      createdAt: "2026-07-01T00:00:00.000Z",
-      submittedBy: { companyName: "Test Company", country: "JP" },
     };
 
     await createInquiryAction(input, "target-company-1");
@@ -120,13 +127,29 @@ describe("createInquiryAction", () => {
       companyId: "target-company-1",
     });
   });
+
+  it("空白だけの proxyCompanyId は例外になり、作成されない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    const input: CreateInquiryInput = {
+      title: "t",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+    };
+
+    await expect(createInquiryAction(input, "   ")).rejects.toThrow();
+    expect(createInquiryRecord).not.toHaveBeenCalled();
+  });
 });
 
 describe("sendApplicantMessageAction", () => {
   it("自社の問い合わせにメッセージを対応履歴として記録する", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
     vi.mocked(findInquiryForCompany).mockResolvedValue(
-      inquiry({ submittedBy: { companyName: "Test Co.", country: "JP" } })
+      inquiry({ submittedBy: { companyName: "Renamed Co. (inquiry)", country: "JP" } })
     );
     vi.mocked(appendHistoryEntry).mockResolvedValue({
       id: "history-1",
@@ -152,6 +175,16 @@ describe("sendApplicantMessageAction", () => {
       })
     );
     expect(revalidatePath).toHaveBeenCalled();
+  });
+
+  it("本文が上限（10000文字）を超えると例外になり、履歴に記録されない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      sendApplicantMessageAction("inquiry-1", "a".repeat(10001))
+    ).rejects.toThrow();
+
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
   it("他社の問い合わせ（所有権なし）には例外を送出する", async () => {
@@ -199,6 +232,33 @@ describe("sendApplicantMessageAction", () => {
     expect(appendHistoryEntry).toHaveBeenCalledWith(
       expect.objectContaining({ attachments: [attachment] })
     );
+  });
+});
+
+describe("sendApplicantMessageAction の添付ファイル整合性", () => {
+  it("fileSizeを偽装した添付は例外になり、履歴に記録されない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue(inquiry());
+
+    await expect(
+      sendApplicantMessageAction("inquiry-1", "本文", [pngAttachment(1000, 1)])
+    ).rejects.toThrow();
+
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+  });
+
+  it("合計サイズ上限を超える添付は例外になり、履歴に記録されない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findInquiryForCompany).mockResolvedValue(inquiry());
+    const five = Array.from({ length: 5 }, (_, i) =>
+      pngAttachment(5 * 1024 * 1024, undefined, `att-${i}`)
+    );
+
+    await expect(
+      sendApplicantMessageAction("inquiry-1", "本文", five)
+    ).rejects.toThrow();
+
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 });
 

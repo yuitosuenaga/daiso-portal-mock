@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { toCreateInquiryInput } from "@/lib/inquiry-form-mapper";
 import type { InquiryFormValues } from "@/lib/validation/inquiry";
@@ -10,27 +10,9 @@ const FORM_VALUES: InquiryFormValues = {
   storeRegion: "Tokyo",
   originalText: "問い合わせ内容のテストです。",
   originalLanguage: "ja",
-  companyName: "Daiso",
-  country: "JP",
 };
 
 describe("toCreateInquiryInput", () => {
-  it("companyName・country を submittedBy にネストする", () => {
-    const result = toCreateInquiryInput(FORM_VALUES);
-
-    expect(result.submittedBy).toEqual({
-      companyName: "Daiso",
-      country: "JP",
-    });
-  });
-
-  it("フラットな companyName・country フィールドを結果に含めない", () => {
-    const result = toCreateInquiryInput(FORM_VALUES);
-
-    expect(result).not.toHaveProperty("companyName");
-    expect(result).not.toHaveProperty("country");
-  });
-
   it("category・urgency・storeRegion・originalText・originalLanguage をそのまま引き継ぐ", () => {
     const result = toCreateInquiryInput(FORM_VALUES);
 
@@ -42,21 +24,15 @@ describe("toCreateInquiryInput", () => {
     expect(result.originalLanguage).toBe(FORM_VALUES.originalLanguage);
   });
 
-  it("status に \"new\" を設定する", () => {
-    const result = toCreateInquiryInput(FORM_VALUES);
+  it("status・createdAt・submittedBy・mode・targetCompanyId を結果に含めない", () => {
+    const result = toCreateInquiryInput({
+      ...FORM_VALUES,
+      mode: "helpdeskProxy",
+      targetCompanyId: "company-1",
+    });
 
-    expect(result.status).toBe("new");
-  });
-
-  it("createdAt に現在時刻の ISO 8601 文字列を設定する", () => {
-    const fixedDate = new Date("2026-07-01T00:00:00.000Z");
-    vi.useFakeTimers();
-    vi.setSystemTime(fixedDate);
-
-    const result = toCreateInquiryInput(FORM_VALUES);
-
-    expect(result.createdAt).toBe(fixedDate.toISOString());
-
-    vi.useRealTimers();
+    for (const key of ["status", "createdAt", "submittedBy", "mode", "targetCompanyId"]) {
+      expect(result).not.toHaveProperty(key);
+    }
   });
 });

@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   inquiryAttachmentSchema,
   inquiryAttachmentsArraySchema,
+  createInquirySchema,
   inquiryFormSchema,
   ORIGINAL_TEXT_MAX_LENGTH,
+  STORE_REGION_MAX_LENGTH,
   TITLE_MAX_LENGTH,
   type InquiryFormValues,
 } from "@/lib/validation/inquiry";
@@ -21,8 +23,6 @@ const VALID_INPUT: InquiryFormValues = {
   storeRegion: "Tokyo",
   originalText: "問い合わせ内容のテストです。",
   originalLanguage: "ja",
-  companyName: "Daiso",
-  country: "JP",
 };
 
 describe("inquiryFormSchema", () => {
@@ -147,19 +147,16 @@ describe("inquiryFormSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("companyName が空文字の場合はエラーになる", () => {
-    const result = inquiryFormSchema.safeParse({
-      ...VALID_INPUT,
-      companyName: "",
-    });
+  it("companyName・country が無くても成功する（会社名・国はサーバーがログイン会社から導出する）", () => {
+    const result = inquiryFormSchema.safeParse(VALID_INPUT);
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
-  it("country が未入力の場合はエラーになる", () => {
+  it("storeRegion が最大文字数を超える場合はエラーになる", () => {
     const result = inquiryFormSchema.safeParse({
       ...VALID_INPUT,
-      country: "",
+      storeRegion: "a".repeat(STORE_REGION_MAX_LENGTH + 1),
     });
 
     expect(result.success).toBe(false);
@@ -265,5 +262,59 @@ describe("inquiryAttachmentsArraySchema", () => {
     expect(inquiryAttachmentsArraySchema.safeParse(attachments).success).toBe(
       false
     );
+  });
+});
+
+describe("createInquirySchema", () => {
+  const VALID_CREATE_INPUT = {
+    title: "商品破損についての問い合わせ",
+    category: "defect",
+    urgency: "high",
+    storeRegion: "Tokyo",
+    originalText: "問い合わせ内容のテストです。",
+    originalLanguage: "ja",
+  };
+
+  it("クライアントが status・createdAt・submittedBy を送っても成功し、結果に含まれない", () => {
+    const result = createInquirySchema.safeParse({
+      ...VALID_CREATE_INPUT,
+      status: "resolved",
+      createdAt: "2000-01-01",
+      submittedBy: { companyName: "Other", country: "US" },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("status");
+      expect(result.data).not.toHaveProperty("createdAt");
+      expect(result.data).not.toHaveProperty("submittedBy");
+    }
+  });
+
+  it("originalText が最大文字数を超えると失敗する", () => {
+    const result = createInquirySchema.safeParse({
+      ...VALID_CREATE_INPUT,
+      originalText: "a".repeat(ORIGINAL_TEXT_MAX_LENGTH + 1),
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("storeRegion が101文字だと失敗する", () => {
+    const result = createInquirySchema.safeParse({
+      ...VALID_CREATE_INPUT,
+      storeRegion: "a".repeat(101),
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("originalLanguage が対応言語コード以外だと失敗する", () => {
+    const result = createInquirySchema.safeParse({
+      ...VALID_CREATE_INPUT,
+      originalLanguage: "xx",
+    });
+
+    expect(result.success).toBe(false);
   });
 });

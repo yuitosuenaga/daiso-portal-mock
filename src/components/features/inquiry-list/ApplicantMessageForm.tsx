@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ATTACHMENT_MAX_TOTAL_SIZE_BYTES } from "@/lib/constants/attachment";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { sendApplicantMessageAction } from "@/lib/actions/inquiry";
+import { MESSAGE_BODY_MAX_LENGTH } from "@/lib/validation/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
 
 export interface ApplicantMessageFormProps {
@@ -76,6 +77,7 @@ export function ApplicantMessageForm({
           placeholder={bodyPlaceholder}
           onChange={(event) => setBody(event.target.value)}
           rows={4}
+          maxLength={MESSAGE_BODY_MAX_LENGTH}
         />
       </div>
       <AttachmentField
