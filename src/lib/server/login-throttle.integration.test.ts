@@ -4,7 +4,7 @@
 //     DATABASE_URL=postgresql://postgres:test@localhost:5599/postgres npx prisma migrate deploy
 //     THROTTLE_TEST_DATABASE_URL=同URL npx vitest run login-throttle.integration
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type AuthEventType } from "@prisma/client";
 
 const url = process.env.THROTTLE_TEST_DATABASE_URL;
 const testPrisma = url ? new PrismaClient({ datasources: { db: { url } } }) : null;
@@ -117,7 +117,7 @@ describe.skipIf(!url)("LoginThrottle 並列実行（実DB）", () => {
   });
 
   describe("照合前の予約（並列すり抜け防止）", () => {
-    const eventCount = (type: string) =>
+    const eventCount = (type: AuthEventType) =>
       testPrisma!.authEvent.count({
         where: { identifierHash: hashIdentifier(EMAIL), type },
       });
