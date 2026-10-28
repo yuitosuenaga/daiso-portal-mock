@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { APPLICANT_USER_PASSWORD_MIN_LENGTH } from "@/lib/constants/applicant-user";
+import { emailSchema } from "@/lib/validation/email";
 
 /** スタッフに付与できるロール。 */
 export const HELPDESK_STAFF_ROLES = ["admin", "member"] as const;
@@ -12,7 +13,7 @@ export const HELPDESK_STAFF_ROLES = ["admin", "member"] as const;
  * （申請者アカウントと同じ定数）を検証する。ロールの既定は`member`。
  */
 export const helpdeskStaffCreateFormSchema = z.object({
-  email: z.string().trim().toLowerCase().min(1).email(),
+  email: emailSchema,
   displayName: z.string().trim().min(1),
   password: z
     .string()

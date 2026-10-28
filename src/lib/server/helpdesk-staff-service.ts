@@ -8,6 +8,10 @@ import {
   ForbiddenSessionError,
   requireHelpdeskAdminSession,
 } from "@/lib/server/auth-session";
+import {
+  findApplicantUserIdsByEmail,
+  findHelpdeskStaffIdsByEmail,
+} from "@/lib/server/email-lookup";
 import type {
   CreateHelpdeskStaffInput,
   HelpdeskStaffRole,
@@ -108,13 +112,13 @@ export async function listHelpdeskStaff(): Promise<HelpdeskStaffSummary[]> {
 export async function isStaffEmailTaken(email: string): Promise<boolean> {
   await requireHelpdeskAdminSession();
 
-  const where = { email: { equals: email, mode: "insensitive" as const } };
-  const [staff, applicant] = await Promise.all([
-    prisma.helpdeskStaff.findFirst({ where }),
-    prisma.applicantUser.findFirst({ where }),
+  // ILIKEだと`_`・`%`がワイルドカードになるため、`lower(email) = $1`で照会する。
+  const [staffIds, applicantIds] = await Promise.all([
+    findHelpdeskStaffIdsByEmail(email),
+    findApplicantUserIdsByEmail(email),
   ]);
 
-  return staff !== null || applicant !== null;
+  return staffIds.length > 0 || applicantIds.length > 0;
 }
 
 /**
