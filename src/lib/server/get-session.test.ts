@@ -65,7 +65,7 @@ describe("getSession", () => {
     });
   });
 
-  it("申請者セッションでApplicantUserが有効なとき、セッションをそのまま返す", async () => {
+  it("申請者セッションでApplicantUserが有効かつ会社情報が同じとき、セッションをそのまま返す", async () => {
     const session = {
       claims: {
         id: "applicant-1",
@@ -80,6 +80,8 @@ describe("getSession", () => {
     vi.mocked(auth).mockResolvedValue(session as never);
     vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue({
       isActive: true,
+      companyId: "company-1",
+      company: { name: "Test Co.", companyCode: "test-co", country: "JP" },
     } as never);
 
     const result = await getSession();
@@ -87,7 +89,43 @@ describe("getSession", () => {
     expect(result).toEqual(session);
     expect(prisma.applicantUser.findUnique).toHaveBeenCalledWith({
       where: { id: "applicant-1" },
-      select: { isActive: true },
+      select: {
+        isActive: true,
+        companyId: true,
+        company: { select: { name: true, companyCode: true, country: true } },
+      },
+    });
+  });
+
+  it("JWTの会社情報が古いとき、DBの現在値で上書きしid・role・applicantUserIdは保持する", async () => {
+    const session = {
+      claims: {
+        id: "applicant-1",
+        role: "applicant",
+        applicantUserId: "applicant-1",
+        companyId: "company-old",
+        companyName: "Old",
+        companyCode: "old-co",
+        country: "JP",
+      },
+    };
+    vi.mocked(auth).mockResolvedValue(session as never);
+    vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue({
+      isActive: true,
+      companyId: "company-new",
+      company: { name: "New", companyCode: "new-co", country: "TH" },
+    } as never);
+
+    const result = await getSession();
+
+    expect(result?.claims).toEqual({
+      id: "applicant-1",
+      role: "applicant",
+      applicantUserId: "applicant-1",
+      companyId: "company-new",
+      companyName: "New",
+      companyCode: "new-co",
+      country: "TH",
     });
   });
 
@@ -106,6 +144,8 @@ describe("getSession", () => {
     vi.mocked(auth).mockResolvedValue(session as never);
     vi.mocked(prisma.applicantUser.findUnique).mockResolvedValue({
       isActive: false,
+      companyId: "company-1",
+      company: { name: "Test Co.", companyCode: "test-co", country: "JP" },
     } as never);
 
     const result = await getSession();
