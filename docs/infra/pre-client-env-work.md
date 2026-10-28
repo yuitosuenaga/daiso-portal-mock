@@ -37,7 +37,23 @@
 - ヘルプデスク担当者の Google 自動作成(2026-10-27、PR #179。既定 OFF のまま有効化していない)
   - マイグレーション `20261027000000_add_helpdesk_staff_registration_source` を現行環境に適用(事前にオンデマンドバックアップ取得)。デプロイは revision `00035-2qh`(ERROR ログ 0 件)
   - 担当者1名を手動登録(`registrationSource=manual`、パスワード未設定の Google 専用)
-  - 有効化の前に決めること: 自動作成の対象ドメイン(有効にすると、そのドメインの全員がヘルプデスク権限を得る。Workspace 管理下のドメインでないと `hd` 不一致で動かない)、取り消し手段(無効化フラグが無く行削除のみ)
+  - 有効化の前に決めること: 自動作成の対象ドメイン(有効にすると、そのドメインの全員がヘルプデスク権限を得る。Workspace 管理下のドメインでないと `hd` 不一致で動かない)、取り消し手段(当時は無効化フラグが無く行削除のみだったが、現在は `HelpdeskStaff.isActive` と `/helpdesk/staff` からの無効化で取り消せる。PR #185・#186)
+- アプリ・インフラの追加改善(2026-10-26〜27 に main へマージ。#162〜#170 は `00035-2qh` のデプロイ時点(#179 マージ後)の main に含まれるため、デプロイ済み)
+  - #162 督促 cron のハードニング(認証順序・JST 固定・二重送信防止・500 返却・dryRun)
+  - #163 問い合わせ添付の合計上限とサーバー側整合性検証
+  - #164 Next 15 / React 19 へのアップグレード
+  - #165 Cloud Logging 向け構造化ロガー
+  - #166 お知らせ一覧の添付本体取得を除外
+  - #167 Terraform 予算アラートモジュールと CI(`docs/infra/ci-and-budget.md`)
+  - #168 Terraform 本番化トグル(PITR・定期エクスポート・private IP)
+  - #169 ブラウザへ返す情報の最小化
+  - #170 Scheduler ジョブの `attempt_deadline`
+- 以降の変更(デプロイ未確認。`00035-2qh` 以降のデプロイ記録がこの文書にないため)
+  - #183 `npm audit` の本番依存の脆弱性 11 件を解消
+  - #184 vitest 4 へ更新し `npm audit` 残り 3 件を解消
+  - #182 ヘルプデスクスタッフの admin / member ロール(マイグレーション `20261028000000_add_helpdesk_staff_role`)
+  - #185 ヘルプデスクスタッフの `isActive`(マイグレーション `20261029000000_add_helpdesk_staff_is_active`)。未適用のまま新コードをデプロイすると全スタッフのログインが失敗する
+  - #186 日本側スタッフ管理画面 `/helpdesk/staff`(admin 専用)
 - 許可メールドメインの複数指定対応(コミット 94534d1、ブランチ `chore/iac-terraform-plan`)
 - Terraform 一式(`infra/`: bootstrap / modules / envs dev・prod)と取り込み手順書
 - 現行環境へのデプロイ(2026-10-26)
@@ -50,7 +66,7 @@
 - (段階4a は適用済み: 自動バックアップ有効・削除保護有効。再起動なし、Cloud Run のエラーなしを確認)
 - (段階4b は適用済み: Cloud SQL の TLS 必須化 `sslMode=ENCRYPTED_ONLY`。適用後に Cloud Run の正常稼働を確認)
 - 段階5: 後始末
-  - 旧 revision の削除: 完了(00001〜00029 を削除。00030/00031 は保持、00032 が 100% 配信)。注意: 00030/00031 は Secret 切替前の旧値(ローテーション済み=無効)を持つため、戻しても動かない(`runbook.md` §1.7)
+  - 旧 revision の削除: 完了(00001〜00029 を削除。00030/00031 は保持、記録時点。現在は `00035-2qh` が配信中と記録している(下記)。`00033-dcr` も保持中)。注意: 00030/00031 は Secret 切替前の旧値(ローテーション済み=無効)を持つため、戻しても動かない(`runbook.md` §1.7)
   - 旧 secret version: 無し(対応不要)
   - GCS 上の state 旧世代: 巻き戻し用に保持
   - 作業用ファイルの削除: 完了(2026-10-26)
@@ -67,7 +83,7 @@
 
 ## 後回しでよいもの(クライアントの要件確定後)
 
-SMTP の本接続と Cloud Scheduler(現行環境では見送り。`enable_scheduler` は Terraform 生成の CRON_SECRET 前提で、`use_existing_secrets=true` の現行環境とは両立しない。クライアント環境(新規構築)で実施する。2026-10-27 に plan で確認)、バックアップの定期エクスポート(保持期間・RPO の確認が先)、監視、CI/CD、Cloud Armor / IAP、カスタムドメイン、Cloud SQL の private IP 化
+SMTP の本接続と Cloud Scheduler(現行環境では見送り。`enable_scheduler` は Terraform 生成の CRON_SECRET 前提で、`use_existing_secrets=true` の現行環境とは両立しない。クライアント環境(新規構築)で実施する。2026-10-27 に plan で確認)、バックアップの定期エクスポート(Terraform では実装済み・既定無効 = PR #168。現行環境で有効にするかは保持期間・RPO の確認が先)、監視、CI/CD、Cloud Armor / IAP、カスタムドメイン、Cloud SQL の private IP 化
 
 ## 判断待ち(ユーザー)
 

@@ -177,7 +177,7 @@ gcloud run deploy portal-mock --project $PROJECT --region $REGION \
 
 現行環境で保持している revision は **`portal-mock-00030` / `00031` / `00032-mcg` / `00033-dcr`**(旧 revision は削除済み。2026-10-27 のデプロイ以降は `00035-2qh` が 100% を受けている。`00034-fgg` と `00033-dcr` も保持中)。ロールバック先はこの範囲に限られ、直前の正常な revision は `00034-fgg` である。ただしロールバック先の revision が、適用済みのマイグレーション(新カラムの追加と `passwordHash` の NULL 許容化)と互換かは、戻す前に確認する(§1.3)。ロールバックの実行自体は**未検証**(コマンドは下記)。
 
-**重要: `00030` / `00031` は Secret 参照への切替前の revision で、平文 env の旧値(DB パスワード、`AUTH_SECRET`)を持つ。これらの旧値はローテーション済みで無効のため、`00030` / `00031` へトラフィックを戻しても、DB 接続も `AUTH_SECRET` も合わず動かない。** 実質、安全に戻せる先は Secret 参照後の `00032`(現行)だけと考える。
+**重要: `00030` / `00031` は Secret 参照への切替前の revision で、平文 env の旧値(DB パスワード、`AUTH_SECRET`)を持つ。これらの旧値はローテーション済みで無効のため、`00030` / `00031` へトラフィックを戻しても、DB 接続も `AUTH_SECRET` も合わず動かない。** 実質、安全に戻せる先は Secret 参照後の `00032-mcg` 以降(`00032-mcg` / `00033-dcr` / `00034-fgg`)と考える。なお現在の revision は gcloud で再確認しておらず、`pre-client-env-work.md` の記録(`00035-2qh`。#179 マージ後のデプロイ)に基づく。
 
 したがって、ロールバックの実質的な手段は次のどちらかである。
 
@@ -274,12 +274,12 @@ gcloud sql backups restore <BACKUP_ID> --restore-instance <新インスタンス
 | 自動バックアップ + PITR(prod 例) | 数分程度(ログの保持範囲内で時点を指定できる) | PITR のクローンは**未検証** |
 | オンデマンドバックアップ | 取得時点まで | 同上(別インスタンスへの復元の実測を参照) |
 
-上記はあくまで目安であり、クライアントの要件(許容できるデータ損失・停止時間)を確認して確定する。要件が厳しい場合は、PITR、HA(`db_high_availability`、費用は約2倍)、定期エクスポート(GCS への `gcloud sql export`)を検討する。定期エクスポートは**現状未実装**である。
+上記はあくまで目安であり、クライアントの要件(許容できるデータ損失・停止時間)を確認して確定する。要件が厳しい場合は、PITR、HA(`db_high_availability`、費用は約2倍)、定期エクスポート(GCS への `gcloud sql export`)を検討する。定期エクスポートは Terraform(`infra/modules/cloudsql`、PR #168)で実装済みだが、既定は無効(`db_export_enabled = false`)で、現行環境では有効にしていない(prod の tfvars 例は `true`)。
 
 ### 2.5 注意点
 
 - Cloud SQL を**インスタンスごと削除すると、自動バックアップも削除される**(オンデマンドバックアップは残るが、これも削除操作の対象になりうる)。削除保護(`deletion_protection`)は有効にしておく。
-- バックアップはインスタンスと同じリージョンに保存される。リージョン障害への備えとしては、別途エクスポートを別リージョンの GCS へ保存する運用が必要(未実装)。
+- バックアップはインスタンスと同じリージョンに保存される。リージョン障害への備えとしては、別途エクスポートを別リージョンの GCS へ保存する運用が必要。モジュール(`export_location`)は別リージョン出力に対応しているが、`infra/envs` からは渡していないため未対応である。
 - バックアップには、機密情報を含む業務データがすべて含まれる。取得・復元・エクスポートの権限は最小限にする。
 - 現行環境では、DB を停止しても(`activationPolicy=NEVER`)バックアップ自体は削除されない。ただし停止中は新規の自動バックアップが取れない。
 
@@ -651,4 +651,4 @@ Google ログイン時に未登録のヘルプデスク担当者(HelpdeskStaff)�
 - **有効化**: tfvars で `enable_google_login = true` かつ `enable_helpdesk_auto_provision = true`、`helpdesk_auto_provision_domains = ["<自社ドメイン>"]`(`allowed_email_domains` の部分集合)を指定して `terraform apply`。アプリ側の環境変数は `GOOGLE_HELPDESK_AUTO_PROVISION` / `GOOGLE_HELPDESK_AUTO_PROVISION_DOMAINS`。Google の `hd`(Workspace ドメイン)がメールのドメインと一致しない場合は自動作成されない
 - **無効化**: `enable_helpdesk_auto_provision = false`(既定)に戻して apply。作成済みの担当者は残り、Google ログイン自体は引き続き可能(既存担当者として照合される)
 - **確認 SQL**: `SELECT id, email, "displayName", "createdAt" FROM "HelpdeskStaff" WHERE "registrationSource" = 'google_auto' ORDER BY "createdAt" DESC;`。監査は `AuthEvent` の `type = 'account_provisioned'`
-- **取り消し**: HelpdeskStaff に無効化フラグは無く、行削除のみ。問い合わせの担当・お知らせの作成者など外部キーで参照されていると削除できない場合がある(その場合は参照を外すか、削除せず対象ドメインを外して新規作成を止める)。自動作成された担当者はパスワード未設定でメール+パスワードではログインできない
+- **取り消し**: `/helpdesk/staff`(admin)から対象の担当者を無効化(`isActive=false`)する。ログイン拒否とセッションの即時失効が行われ、行の削除は不要(PR #185・#186)。あわせて、対象ドメインを外して新規作成を止める。自動作成された担当者はパスワード未設定でメール+パスワードではログインできない
