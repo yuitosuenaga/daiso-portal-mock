@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MonthlyMaterialGallery } from "@/components/features/monthly-materials/MonthlyMaterialGallery";
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 import messages from "../../../../messages/ja.json";
 
 const getMonthlyMaterialsMock = vi.fn();
@@ -61,9 +61,8 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
-const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
 
-function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
+function material(overrides: Partial<MonthlyMaterialSummary> = {}): MonthlyMaterialSummary {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting",
@@ -74,12 +73,11 @@ function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
     ...overrides,
-  } as MonthlyMaterial;
+  } as MonthlyMaterialSummary;
 }
 
 beforeEach(() => {

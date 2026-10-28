@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { monthlyMaterialFormSchema } from "@/lib/validation/monthly-material";
+import { monthlyMaterialFormSchema, monthlyMaterialUpdateSchema } from "@/lib/validation/monthly-material";
 import { DOCUMENT_MAX_FILE_SIZE_BYTES } from "@/lib/constants/document";
 
 const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
@@ -135,5 +135,69 @@ describe("monthlyMaterialFormSchema", () => {
     const result = monthlyMaterialFormSchema.safeParse(input);
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("monthlyMaterialUpdateSchema", () => {
+  function withoutDataUrl() {
+    const input = buildValidUploadInput();
+    delete (input as { dataUrl?: string }).dataUrl;
+    return input;
+  }
+
+  it("アップロード方式でdataUrlを省略した入力（ファイルを差し替えない編集）を許可する", () => {
+    const result = monthlyMaterialUpdateSchema.safeParse(withoutDataUrl());
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as { dataUrl?: string }).dataUrl).toBeUndefined();
+    }
+  });
+
+  it("dataUrlが空文字（フォームの未差し替え状態）でも省略として許可する", () => {
+    const result = monthlyMaterialUpdateSchema.safeParse(buildValidUploadInput({ dataUrl: "" }));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as { dataUrl?: string }).dataUrl).toBeUndefined();
+    }
+  });
+
+  it("dataUrlを指定する場合は新規登録と同じ検証を行う（PDF以外は拒否）", () => {
+    expect(monthlyMaterialUpdateSchema.safeParse(buildValidUploadInput()).success).toBe(true);
+    expect(
+      monthlyMaterialUpdateSchema.safeParse(
+        buildValidUploadInput({ dataUrl: "data:image/png;base64,AAAA" })
+      ).success
+    ).toBe(false);
+  });
+
+  it("dataUrl以外の項目（年月・ファイル名・公開範囲など）は新規登録と同じ検証を行う", () => {
+    expect(monthlyMaterialUpdateSchema.safeParse({ ...withoutDataUrl(), month: 13 }).success).toBe(
+      false
+    );
+    expect(monthlyMaterialUpdateSchema.safeParse({ ...withoutDataUrl(), fileName: "" }).success).toBe(
+      false
+    );
+    expect(
+      monthlyMaterialUpdateSchema.safeParse({
+        ...withoutDataUrl(),
+        targeting: { scope: "countries", countries: [] },
+      }).success
+    ).toBe(false);
+  });
+
+  it("Google方式は新規登録と同じ検証を行う", () => {
+    expect(monthlyMaterialUpdateSchema.safeParse(buildValidGoogleInput()).success).toBe(true);
+    expect(
+      monthlyMaterialUpdateSchema.safeParse(
+        buildValidGoogleInput({ googleUrl: "https://example.com/not-google" })
+      ).success
+    ).toBe(false);
+  });
+
+  it("新規登録用のmonthlyMaterialFormSchemaはdataUrl必須のまま", () => {
+    expect(monthlyMaterialFormSchema.safeParse(withoutDataUrl()).success).toBe(false);
+    expect(monthlyMaterialFormSchema.safeParse(buildValidUploadInput({ dataUrl: "" })).success).toBe(
+      false
+    );
   });
 });

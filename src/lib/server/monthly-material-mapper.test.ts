@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MonthlyMaterialDataIntegrityError,
   mapMonthlyMaterial,
+  mapMonthlyMaterialSummary,
 } from "@/lib/server/monthly-material-mapper";
 
 function baseRecord(overrides: Record<string, unknown> = {}) {
@@ -127,5 +128,40 @@ describe("mapMonthlyMaterial", () => {
         }) as never
       )
     ).toThrow(MonthlyMaterialDataIntegrityError);
+  });
+});
+
+describe("mapMonthlyMaterialSummary", () => {
+  it("アップロード型はdataUrlを出力に含めず、レコードにdataUrlが無くても成立する", () => {
+    const record = baseRecord();
+    delete (record as { dataUrl?: string }).dataUrl;
+
+    const result = mapMonthlyMaterialSummary(record as never);
+
+    expect(result).not.toHaveProperty("dataUrl");
+    expect(result).toMatchObject({
+      sourceType: "upload",
+      fileName: "test.pdf",
+      fileType: "application/pdf",
+      fileSize: 1024,
+    });
+  });
+
+  it("レコードにdataUrlが含まれていても出力には含めない", () => {
+    expect(mapMonthlyMaterialSummary(baseRecord() as never)).not.toHaveProperty("dataUrl");
+  });
+
+  it("アップロード型でファイル名などが欠けていればデータ不整合エラー", () => {
+    expect(() =>
+      mapMonthlyMaterialSummary(baseRecord({ fileName: null }) as never)
+    ).toThrow(MonthlyMaterialDataIntegrityError);
+  });
+});
+
+describe("mapMonthlyMaterial（詳細用）", () => {
+  it("アップロード型でdataUrlが無ければデータ不整合エラー", () => {
+    expect(() => mapMonthlyMaterial(baseRecord({ dataUrl: null }) as never)).toThrow(
+      MonthlyMaterialDataIntegrityError
+    );
   });
 });

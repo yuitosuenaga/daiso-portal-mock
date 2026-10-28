@@ -1,7 +1,7 @@
 import { matchesCategoryYearMonth } from "@/lib/category-year-month-filter";
 import type { CategoryYearMonthFilters } from "@/lib/constants/category-year-month-filter";
 import type { SelectOption } from "@/components/ui/select";
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 
 /**
  * 資料の売場（商品部門）カテゴリ×年月フィルタ条件を満たす資料のみを返す。
@@ -9,9 +9,9 @@ import type { MonthlyMaterial } from "@/types/monthly-material";
  * 既に絞り込み済みのため、本フィルタの対象外）。
  */
 export function filterMonthlyMaterials(
-  materials: MonthlyMaterial[],
+  materials: MonthlyMaterialSummary[],
   filters: CategoryYearMonthFilters
-): MonthlyMaterial[] {
+): MonthlyMaterialSummary[] {
   return materials.filter((material) =>
     matchesCategoryYearMonth(
       material,
@@ -36,7 +36,7 @@ export interface MonthlyMaterialGroup {
   year: number;
   month: number;
   heading: string;
-  items: MonthlyMaterial[];
+  items: MonthlyMaterialSummary[];
 }
 
 /**
@@ -45,7 +45,7 @@ export interface MonthlyMaterialGroup {
  * フィルタ後の配列に対して呼び出す場合も、フィルタで並び順が変わらないためこの前提は保たれる。
  */
 export function groupMaterialsByYearMonth(
-  materials: MonthlyMaterial[],
+  materials: MonthlyMaterialSummary[],
   locale: string
 ): MonthlyMaterialGroup[] {
   const groups: MonthlyMaterialGroup[] = [];

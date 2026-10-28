@@ -22,11 +22,11 @@ import {
   gridColumnsClassName,
   groupMaterialsByYearMonth,
 } from "@/lib/monthly-material-utils";
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 
 export interface MonthlyMaterialGalleryClientProps {
   /** 呼び出し元（`MonthlyMaterialGallery`）が取得済みの資料一覧（フィルタ前）。 */
-  materials: MonthlyMaterial[];
+  materials: MonthlyMaterialSummary[];
   editable: boolean;
   locale: string;
   /** カテゴリ（`department`）フィルタ・Badge表示・フォームのカテゴリSelectで共用する選択肢。 */
@@ -99,7 +99,7 @@ export function MonthlyMaterialGalleryClient({
   const filteredMaterials = filterMonthlyMaterials(materials, filters);
   const groups = groupMaterialsByYearMonth(filteredMaterials, locale);
 
-  function departmentLabelFor(material: MonthlyMaterial): string {
+  function departmentLabelFor(material: MonthlyMaterialSummary): string {
     return (
       departmentOptions.find((option) => option.value === material.department)?.label ??
       material.department

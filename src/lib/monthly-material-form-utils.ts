@@ -1,13 +1,13 @@
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 import type { MonthlyMaterialFormValues } from "@/lib/validation/monthly-material";
 
 /**
- * `MonthlyMaterial`（ドメイン型）を`MonthlyMaterialForm`の初期値（`MonthlyMaterialFormValues`）へ
+ * `MonthlyMaterialSummary`（一覧用の型、`dataUrl`なし）を`MonthlyMaterialForm`の初期値（`MonthlyMaterialFormValues`）へ
  * 変換する。Server ComponentからClient Componentへ関数をpropsで渡すことはできないため
  * （シリアライズ不可）、呼び出し元（Client Component）がこの純粋関数を直接importして使う。
  */
 export function toMonthlyMaterialFormDefaultValues(
-  material: MonthlyMaterial
+  material: MonthlyMaterialSummary
 ): MonthlyMaterialFormValues {
   const base = {
     category: material.category,
@@ -32,6 +32,8 @@ export function toMonthlyMaterialFormDefaultValues(
     fileName: material.fileName,
     fileType: material.fileType,
     fileSize: material.fileSize,
-    dataUrl: material.dataUrl,
+    // 一覧はファイル本体を持たない。空のままにしておき、フォームは差し替えない限り`dataUrl`を
+    // 送らない（サーバー側は既存ファイルを保持して更新する）。
+    dataUrl: "",
   };
 }

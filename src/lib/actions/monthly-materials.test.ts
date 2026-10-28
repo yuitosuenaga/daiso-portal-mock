@@ -193,6 +193,43 @@ describe("updateMonthlyMaterialAction / deleteMonthlyMaterialAction", () => {
     );
   });
 
+  it("ファイルを差し替えない更新（dataUrlなし）を許可し、dataUrlなしのままサービスへ渡す", async () => {
+    vi.mocked(updateMonthlyMaterial).mockResolvedValue(monthlyMaterial({ month: 10 }));
+    const input = buildInput({ month: 10 }) as unknown as Record<string, unknown>;
+    delete input.dataUrl;
+
+    await updateMonthlyMaterialAction(
+      "monthly-material-1",
+      input as unknown as CreateMonthlyMaterialInput
+    );
+
+    const passed = vi.mocked(updateMonthlyMaterial).mock.calls[0]![1] as { dataUrl?: string };
+    expect(passed.dataUrl).toBeUndefined();
+    expect(updateMonthlyMaterial).toHaveBeenCalledWith(
+      "monthly-material-1",
+      expect.objectContaining({ month: 10, sourceType: "upload" })
+    );
+  });
+
+  it("更新でもdataUrlを指定する場合は検証し、PDF以外は例外になり保存されない", async () => {
+    await expect(
+      updateMonthlyMaterialAction(
+        "monthly-material-1",
+        buildInput({ dataUrl: "data:image/png;base64,AAAA" } as Partial<CreateMonthlyMaterialInput>)
+      )
+    ).rejects.toThrow();
+    expect(updateMonthlyMaterial).not.toHaveBeenCalled();
+  });
+
+  it("更新でも年月などの不正な入力は例外になり保存されない", async () => {
+    const input = buildInput({ month: 13 }) as unknown as Record<string, unknown>;
+    delete input.dataUrl;
+    await expect(
+      updateMonthlyMaterialAction("monthly-material-1", input as unknown as CreateMonthlyMaterialInput)
+    ).rejects.toThrow();
+    expect(updateMonthlyMaterial).not.toHaveBeenCalled();
+  });
+
   it("既存の資料を削除し、ルートを再検証する", async () => {
     vi.mocked(deleteMonthlyMaterial).mockResolvedValue(undefined);
 

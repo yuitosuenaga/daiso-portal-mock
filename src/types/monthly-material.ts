@@ -1,3 +1,5 @@
+import type { DistributiveOmit } from "@/types/utility";
+
 // 月次資料ギャラリー（売場検討会資料・POP資料）のドメイン型定義。
 // `documents`/`documents-management`specの`Document`型とは独立させる
 // （`monthly-document-gallery`spec所有）。タイトル・説明・多言語翻訳は持たず、
@@ -74,3 +76,21 @@ export type MonthlyMaterial =
 export type CreateMonthlyMaterialInput =
   | Omit<Extract<MonthlyMaterial, { sourceType: "upload" }>, "id" | "createdAt" | "updatedAt">
   | Omit<Extract<MonthlyMaterial, { sourceType: "google" }>, "id" | "createdAt" | "updatedAt">;
+
+/**
+ * 一覧・保存結果など、ファイル本体（`dataUrl`、最大約27MB/件）を載せない表示用の型。
+ * プレビュー・ダウンロードは認可付きの配信ルート（`/api/monthly-materials/[id]/file`、
+ * `monthlyMaterialFileUrl`）から取得する。
+ */
+export type MonthlyMaterialSummary = DistributiveOmit<MonthlyMaterial, "dataUrl">;
+
+/**
+ * 資料編集時のAPI入力契約。`CreateMonthlyMaterialInput`に加え、アップロード方式で`dataUrl`を
+ * 省略した入力（ファイルを差し替えず、既存ファイルを保持したまま年月・部門・公開範囲だけを
+ * 更新する）を許す。省略時、`fileName`/`fileType`/`fileSize`はサーバー側で無視され、DBの値が残る。
+ */
+export type UpdateMonthlyMaterialInput =
+  | CreateMonthlyMaterialInput
+  | (Omit<Extract<CreateMonthlyMaterialInput, { sourceType: "upload" }>, "dataUrl"> & {
+      dataUrl?: undefined;
+    });

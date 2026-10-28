@@ -7,9 +7,14 @@ import {
   deleteMonthlyMaterial,
   updateMonthlyMaterial,
 } from "@/lib/api/monthly-materials";
-import { monthlyMaterialFormSchema } from "@/lib/validation/monthly-material";
+import { monthlyMaterialFormSchema, monthlyMaterialUpdateSchema } from "@/lib/validation/monthly-material";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
-import type { CreateMonthlyMaterialInput, MonthlyMaterial, MonthlyMaterialCategory } from "@/types/monthly-material";
+import type {
+  CreateMonthlyMaterialInput,
+  MonthlyMaterialCategory,
+  MonthlyMaterialSummary,
+  UpdateMonthlyMaterialInput,
+} from "@/types/monthly-material";
 
 const APPLICANT_ROUTE_BY_CATEGORY: Record<MonthlyMaterialCategory, string> = {
   salesFloorMeeting: "/[locale]/sales-floor-meeting",
@@ -35,9 +40,7 @@ function revalidateMonthlyMaterialRoutes(category: MonthlyMaterialCategory) {
  * 信頼せず、`googleUrl`からサーバー側で再計算する（`documents`specの
  * `withServerRecomputedEmbedUrl`と同型の措置）。
  */
-function withServerRecomputedEmbedUrl(
-  input: CreateMonthlyMaterialInput
-): CreateMonthlyMaterialInput {
+function withServerRecomputedEmbedUrl<T extends UpdateMonthlyMaterialInput>(input: T): T {
   if (input.sourceType !== "google") return input;
 
   const googleEmbedUrl = toGoogleEmbedUrl(input.googleUrl);
@@ -55,7 +58,7 @@ function withServerRecomputedEmbedUrl(
  */
 export async function createMonthlyMaterialAction(
   input: CreateMonthlyMaterialInput
-): Promise<MonthlyMaterial> {
+): Promise<MonthlyMaterialSummary> {
   const parsed = monthlyMaterialFormSchema.parse(input);
   const created = await createMonthlyMaterial(withServerRecomputedEmbedUrl(parsed));
   revalidateMonthlyMaterialRoutes(created.category);
@@ -65,13 +68,14 @@ export async function createMonthlyMaterialAction(
 
 /**
  * 既存の資料の内容を更新し、対象カテゴリのルートを再検証する。不正な入力は保存せず
- * 例外を送出する。
+ * 例外を送出する。アップロード方式で`dataUrl`が無い入力は、ファイルを差し替えず既存ファイルを
+ * 保持したまま年月などだけを更新する（`updateMonthlyMaterialRecord`）。
  */
 export async function updateMonthlyMaterialAction(
   id: string,
-  input: CreateMonthlyMaterialInput
-): Promise<MonthlyMaterial> {
-  const parsed = monthlyMaterialFormSchema.parse(input);
+  input: UpdateMonthlyMaterialInput
+): Promise<MonthlyMaterialSummary> {
+  const parsed = monthlyMaterialUpdateSchema.parse(input) as UpdateMonthlyMaterialInput;
   const updated = await updateMonthlyMaterial(id, withServerRecomputedEmbedUrl(parsed));
   revalidateMonthlyMaterialRoutes(updated.category);
 

@@ -1,7 +1,8 @@
 import type {
   CreateMonthlyMaterialInput,
-  MonthlyMaterial,
   MonthlyMaterialCategory,
+  MonthlyMaterialSummary,
+  UpdateMonthlyMaterialInput,
 } from "@/types/monthly-material";
 import {
   requireApplicantSession,
@@ -21,7 +22,7 @@ import {
  */
 export async function getMonthlyMaterials(
   category: MonthlyMaterialCategory
-): Promise<MonthlyMaterial[]> {
+): Promise<MonthlyMaterialSummary[]> {
   const { claims } = await requireApplicantSession();
 
   return listMonthlyMaterialsVisibleTo(category, claims.country, claims.companyCode);
@@ -33,7 +34,7 @@ export async function getMonthlyMaterials(
  */
 export async function getAllMonthlyMaterialsForHelpdesk(
   category: MonthlyMaterialCategory
-): Promise<MonthlyMaterial[]> {
+): Promise<MonthlyMaterialSummary[]> {
   await requireHelpdeskStaffSession();
 
   return listAllMonthlyMaterialsService(category);
@@ -42,7 +43,7 @@ export async function getAllMonthlyMaterialsForHelpdesk(
 /** 資料を新規作成する。 */
 export async function createMonthlyMaterial(
   input: CreateMonthlyMaterialInput
-): Promise<MonthlyMaterial> {
+): Promise<MonthlyMaterialSummary> {
   await requireHelpdeskStaffSession();
 
   return createMonthlyMaterialRecord(input);
@@ -51,8 +52,8 @@ export async function createMonthlyMaterial(
 /** 既存の資料の内容を更新する。 */
 export async function updateMonthlyMaterial(
   id: string,
-  input: CreateMonthlyMaterialInput
-): Promise<MonthlyMaterial> {
+  input: UpdateMonthlyMaterialInput
+): Promise<MonthlyMaterialSummary> {
   await requireHelpdeskStaffSession();
 
   return updateMonthlyMaterialRecord(id, input);

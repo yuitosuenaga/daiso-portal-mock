@@ -20,13 +20,15 @@ import {
 } from "@/lib/actions/monthly-materials";
 import {
   monthlyMaterialFormSchema,
+  monthlyMaterialUpdateSchema,
   type MonthlyMaterialFormValues,
   type MonthlyMaterialSubmitValues,
 } from "@/lib/validation/monthly-material";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
 import type {
   CreateMonthlyMaterialInput,
-  MonthlyMaterial,
+  MonthlyMaterialSummary,
+  UpdateMonthlyMaterialInput,
   MonthlyMaterialCategory,
   MonthlyMaterialDepartment,
 } from "@/types/monthly-material";
@@ -126,7 +128,7 @@ export interface MonthlyMaterialFormProps {
   submitButtonLabel: string;
   cancelButtonLabel: string;
   onCancel: () => void;
-  onSuccess: (material: MonthlyMaterial) => void;
+  onSuccess: (material: MonthlyMaterialSummary) => void;
   requiredErrorMessage: string;
   countriesRequiredErrorMessage: string;
   companiesRequiredErrorMessage: string;
@@ -196,7 +198,10 @@ export function MonthlyMaterialForm({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<MonthlyMaterialFormFieldValues, unknown, MonthlyMaterialSubmitValues>({
-    resolver: zodResolver(monthlyMaterialFormSchema) as unknown as Resolver<
+    // 編集では`dataUrl`省略（ファイルを差し替えない）を許すスキーマを使う
+    resolver: zodResolver(
+      mode === "edit" ? monthlyMaterialUpdateSchema : monthlyMaterialFormSchema
+    ) as unknown as Resolver<
       MonthlyMaterialFormFieldValues,
       unknown,
       MonthlyMaterialSubmitValues
@@ -275,11 +280,17 @@ export function MonthlyMaterialForm({
   async function onSubmit(values: MonthlyMaterialSubmitValues) {
     setHasSubmitError(false);
     try {
-      const input = values as unknown as CreateMonthlyMaterialInput;
-      const saved =
-        mode === "edit" && materialId
-          ? await updateMonthlyMaterialAction(materialId, input)
-          : await createMonthlyMaterialAction(input);
+      const input = values as unknown as UpdateMonthlyMaterialInput;
+      let saved: MonthlyMaterialSummary;
+      if (mode === "edit" && materialId) {
+        // ファイルを差し替えていない場合は`dataUrl`を送らない（サーバー側は既存ファイルを保持して更新する）
+        if (input.sourceType === "upload" && !input.dataUrl) {
+          delete (input as { dataUrl?: string }).dataUrl;
+        }
+        saved = await updateMonthlyMaterialAction(materialId, input);
+      } else {
+        saved = await createMonthlyMaterialAction(input as CreateMonthlyMaterialInput);
+      }
       router.refresh();
       onSuccess(saved);
     } catch {

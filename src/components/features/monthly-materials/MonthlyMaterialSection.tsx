@@ -9,7 +9,8 @@ import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { MonthlyMaterialForm } from "@/components/features/monthly-materials/MonthlyMaterialForm";
 import { DeleteMonthlyMaterialButton } from "@/components/features/monthly-materials/DeleteMonthlyMaterialButton";
 import { toMonthlyMaterialFormDefaultValues } from "@/lib/monthly-material-form-utils";
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import { monthlyMaterialFileUrl } from "@/lib/file-urls";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 
 /** 資料本体（アップロード型・Google型）のプレビュー表示に必要な文言をまとめて渡す。 */
 export interface MonthlyMaterialViewerLabels {
@@ -60,7 +61,7 @@ export interface MonthlyMaterialFormLabels {
 }
 
 export interface MonthlyMaterialSectionProps {
-  material: MonthlyMaterial;
+  material: MonthlyMaterialSummary;
   /** 見出し（例:「2026年9月」）。ロケールに応じた表示名は呼び出し側で解決済み。 */
   heading: string;
   /** `material.department`に対応する翻訳済みラベル（例:「季節・催事」）。Badgeとして表示する。 */
@@ -131,7 +132,8 @@ export function MonthlyMaterialSection({
         <p className="text-sm font-medium text-foreground">{material.fileName}</p>
         <PdfViewer
           variant="upload"
-          fileUrl={material.dataUrl}
+          fileUrl={monthlyMaterialFileUrl(material.id)}
+          downloadUrl={monthlyMaterialFileUrl(material.id, { download: true })}
           title={heading}
           downloadFileName={material.fileName}
           downloadLinkLabel={viewerLabels.downloadLinkLabel}
@@ -156,7 +158,8 @@ export function MonthlyMaterialSection({
       <PdfViewer
         variant="upload"
         size="compact"
-        fileUrl={material.dataUrl}
+        fileUrl={monthlyMaterialFileUrl(material.id)}
+        downloadUrl={monthlyMaterialFileUrl(material.id, { download: true })}
         title={heading}
         downloadFileName={material.fileName}
         downloadLinkLabel={viewerLabels.downloadLinkLabel}
