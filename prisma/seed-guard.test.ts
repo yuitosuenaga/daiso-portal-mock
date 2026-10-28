@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assertSeedAllowed } from "./seed-guard";
+import { assertSeedAllowed, loadDotEnvForGuard } from "./seed-guard";
 
 const LOCAL_URL = "postgresql://portal_mock:portal_mock@localhost:5432/portal_mock";
 
@@ -70,5 +70,38 @@ describe("assertSeedAllowed", () => {
     expect(() =>
       assertSeedAllowed(env({ ALLOW_SEED: "1", DATABASE_URL: "postgresql://u:p@127.0.0.1:5433/db" }))
     ).not.toThrow();
+  });
+});
+
+describe("loadDotEnvForGuard", () => {
+  it("ファイルが無い（ENOENT）場合は無視する", () => {
+    const loader = () => {
+      throw Object.assign(new Error("no such file"), { code: "ENOENT" });
+    };
+    expect(() => loadDotEnvForGuard(loader)).not.toThrow();
+  });
+
+  it("ENOENT 以外のエラーは再送出する", () => {
+    const loader = () => {
+      throw Object.assign(new Error("bad"), { code: "EACCES" });
+    };
+    expect(() => loadDotEnvForGuard(loader)).toThrow(/bad/);
+  });
+
+  it(".env にだけ書かれた Cloud SQL 形式の DATABASE_URL をガードが検出する", () => {
+    const saved = { ...process.env };
+    try {
+      delete process.env.DATABASE_URL;
+      process.env.ALLOW_SEED = "1";
+      loadDotEnvForGuard((path) => {
+        if (path === ".env") {
+          process.env.DATABASE_URL = "postgresql://u:p@localhost/x?host=/cloudsql/p:r:i";
+        }
+      });
+      expect(() => assertSeedAllowed(process.env)).toThrow(/Cloud SQL/);
+    } finally {
+      for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+      Object.assign(process.env, saved);
+    }
   });
 });

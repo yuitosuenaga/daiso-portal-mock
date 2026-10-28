@@ -28,6 +28,7 @@ ALLOW_SEED=1 npm run db:seed
 
 seed は誤投入防止のため `ALLOW_SEED=1` を付けないと中止する（`NODE_ENV=production` や Cloud SQL を指す `DATABASE_URL` では、フラグがあっても中止する）。
 
+- ガードが防ぐのは Cloud SQL 形式のURL・`NODE_ENV=production`・フラグ忘れ（`.env` の `DATABASE_URL` も判定に使う）。Cloud SQL Auth Proxy 経由の `127.0.0.1` URL やIP直結は検出できないので、本番相当DBに向けた接続情報を `.env` / 環境変数に置かない運用が前提
 - `ALLOW_SEED` は `.env` に書かない。実行のたびにコマンドへ付ける（`.env` に書くと常時有効になりガードが無意味になる）
 - `npx prisma migrate reset` は seed を自動実行するため、`ALLOW_SEED=1 npx prisma migrate reset` と付ける（付けないとリセットは成功するが seed だけ失敗する）
 

@@ -7,6 +7,12 @@
  * 2. `ALLOW_SEED` が `"1"` ではない（`"true"` 等は拒否）
  * 3. `DATABASE_URL` が Cloud SQL を指しているように見える
  *    （ローカルから Cloud SQL Auth Proxy 経由で本番URLを指定する事故の防止）
+ *
+ * 防げるもの: Cloud SQL 形式のURL（`/cloudsql/` または `host=project:region:instance`）・
+ * `NODE_ENV=production`・フラグ忘れ。
+ * 検出できないもの: Cloud SQL Auth Proxy 経由の `127.0.0.1:5432`、プライベートIP直結、
+ * `host=` が `project:region:instance` 形式でないもの。これらは検出できないため、
+ * 本番相当DBに向けた接続情報を `.env` / 環境変数に置かない運用が前提。
  */
 export function assertSeedAllowed(env: NodeJS.ProcessEnv): void {
   if (env.NODE_ENV === "production") {
@@ -42,4 +48,22 @@ function looksLikeCloudSql(databaseUrl: string | undefined): boolean {
   }
   // Cloud SQL のインスタンス接続名は `project:region:instance`（コロン2つ）
   return (host.match(/:/g) ?? []).length >= 2;
+}
+
+/**
+ * ガード判定用に `.env` を process.env へ反映する。`tsx` は `.env` を読まず、Prisma は最初のクエリ時に
+ * 読むため、そのままだと `.env` だけに書かれた DATABASE_URL をガードが見落とす。
+ * `process.loadEnvFile` は既存の process.env を上書きしないので、Prisma 自身の読込結果と一致する。
+ * ファイルが無い場合は無視し、それ以外のエラー（構文不正等）は再送出する。
+ */
+export function loadDotEnvForGuard(
+  loader: (path: string) => void = (path) => process.loadEnvFile(path)
+): void {
+  for (const path of [".env", "prisma/.env"]) {
+    try {
+      loader(path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
 }
