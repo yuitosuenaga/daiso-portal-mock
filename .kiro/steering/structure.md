@@ -6,11 +6,14 @@
 src/
   app/
     [locale]/
-      (applicant)/          # 申請者側ルート（ダッシュボード・inquiry・announcements・documents・links・faq）
-      helpdesk/              # ヘルプデスク側ルート（各管理画面）
-      login/                 # ログイン画面
+      (applicant)/          # 申請者側ルート（ダッシュボード・inquiry・announcements・documents・links・faq・manuals・pop・sales-floor-meeting）
+      helpdesk/
+        login/               # ヘルプデスク側ログイン画面
+        (dashboard)/         # ヘルプデスク側の管理画面（announcements・companies・documents・faq・inquiries・inquiry・links・manuals・pop・sales-floor-meeting・staff・templates）
+      login/                 # 申請者側ログイン画面
     api/
       auth/                  # Auth.js（NextAuth）ルートハンドラ
+      cron/                  # 保護付き定期実行エンドポイント（announcement-escalation。CRON_SECRET で認証）
       inquiries/             # 問い合わせ関連APIルート
   components/
     ui/                      # 汎用UI（shadcn/ui）
@@ -30,22 +33,40 @@ src/
       helpdesk-links/        # リンク集管理（ヘルプデスク側）
       helpdesk-faq/          # FAQ管理（ヘルプデスク側）
       helpdesk-templates/    # 返信テンプレート管理（ヘルプデスク側）
+      helpdesk-companies/    # 販社（会社）管理・アカウント管理（ヘルプデスク側）
+      helpdesk-staff/        # 日本側スタッフ管理（ヘルプデスク側、admin 専用）
+      helpdesk-manuals/      # マニュアル管理（ヘルプデスク側）
+      helpdesk-document-categories/ # ドキュメントカテゴリ管理（ヘルプデスク側）
+      manuals/               # マニュアル閲覧（申請者側）
+      inquiry-stats/         # 問い合わせ統計の表示部品
+      monthly-materials/     # 月次資料（POP・売場会議）
+      shared/                # 両ポータル共通の部品
       helpdesk-shared/       # ヘルプデスク側共通コンポーネント
   lib/
     actions/                 # Server Actions
     api/                     # データアクセス関数（Prisma経由。旧モックAPIから実DB接続に差し替え済み）
+    auth/                    # 認証ポリシー（Googleログイン・ログイン試行制限など）
     db/                      # Prismaクライアント等
-    server/                  # セッション・ルート保護等サーバー専用ロジック
+    server/                  # セッション・ルート保護・各種サービス等サーバー専用ロジック
+    translation/             # 自動翻訳（Claude API。claude-translator.ts）
     validation/              # zodスキーマ
     constants/                # 定数
     test/                    # テストユーティリティ
   types/                     # 型定義
   i18n/                      # next-intlルーティング設定（対応ロケール定義）
-messages/                    # 多言語ファイル（ja.json, en.json）— リポジトリ直下（src/配下ではない）
+messages/                    # 多言語ファイル（ja・en・es・pt・th・vi・zh・zh-TW の8言語）— リポジトリ直下（src/配下ではない）
 prisma/
   schema.prisma              # DBスキーマ（PostgreSQL）
   seed.ts                    # 初期データ投入スクリプト
+  migrations/                # マイグレーション（適用済みの名前は変更しない）
 ```
+
+### マイグレーション名の付け方
+
+- 新規マイグレーション名は、既存の最大値（`ls prisma/migrations | tail -2`）より大きいタイムスタンプにする
+- `20261029000000_add_helpdesk_staff_is_active` は手で付けた未来日付である。その日時（UTC）より前にマイグレーションを作るときは、`20261029000001_...` のように手で調整する
+- 順序が逆になると、新しい DB（dev・クライアント環境）で適用順が本番と変わる
+- 適用済みの名前のリネームはしない（適用履歴と食い違う）
 
 ## データ構造（Prisma実装済み。`prisma/schema.prisma`が正）
 
@@ -60,7 +81,7 @@ model Inquiry {
   storeRegion            String
   originalText           String            // 自由記述（原文）
   originalLanguage       String            // ISO 639-1 言語コード（例: "th", "vi", "en"）
-  translatedText         String?           // 日本語訳。Google Cloud Translation API連携は未実装のまま
+  translatedText         String?           // 日本語訳。Claude APIによる自動翻訳（src/lib/translation/claude-translator.ts）
   status                 InquiryStatus     @default(new)
   createdAt              DateTime          @default(now())
   companyId              String
@@ -73,9 +94,11 @@ model Inquiry {
 }
 ```
 
-> 注: `category`（`InquiryCategory` enum）はヘルプデスク担当者へのヒアリング後に変更される前提の仮値のままフェーズ3のDBスキーマに固定化されている。ヒアリング結果が出たら、enum・マイグレーション・フォームの選択肢を最初に更新すること（変更は既存specへの要件追記として行う。`CLAUDE.md`のspec管理ルール参照）。
+> 注: `category`（`InquiryCategory` enum）はヘルプデスク担当者へのヒアリング後に変更される前提の仮値のままフェーズ3のDBスキーマに固定化されている。ヒアリング結果が出たら、enum・マイグレーション・フォームの選択肢を最初に更新すること（kiro の spec 駆動フローは廃止済みのため、変更はこの steering と `prisma/schema.prisma` を直接更新して行う）。
 
-## spec-driven開発の仕様書配置
+## kiro 配下の仕様書配置（過去の記録）
+
+kiro の spec 駆動フローは廃止済み。`.kiro/specs/` は過去の記録として残し、更新・新規作成はしない。
 
 ```
 .kiro/

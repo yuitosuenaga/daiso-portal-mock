@@ -1,5 +1,7 @@
 # 現行 GCP 環境（rvp-ai-proto-camp）portal-mock の実測値
 
+> 2026-10-23 時点のスナップショット。現状は `docs/infra/runbook.md` §0.1 と `docs/infra/pre-client-env-work.md` を参照する(本文は更新していない)。
+
 取得日: 2026-10-23（gcloud 読み取りのみ）。機密値（`DATABASE_URL` / `AUTH_SECRET` の値）は記録しない。
 
 ## Cloud Run `portal-mock`（asia-northeast1）

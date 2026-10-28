@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# portal-mock
+
+海外販社向け問い合わせ・お知らせポータル（Next.js App Router + Prisma + PostgreSQL）。プロジェクトの背景・技術構成は `.kiro/steering/`（`product.md` / `tech.md` / `structure.md`）を参照する。
+
+前提: Node.js 20（`Dockerfile` は `node:20-bookworm-slim`）、Docker（ローカルの PostgreSQL 用）。
 
 ## Getting Started
 
@@ -45,25 +49,26 @@ seed は誤投入防止のため `ALLOW_SEED=1` を付けないと中止する�
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで <http://localhost:3000> を開く。
 
 未ログインで保護されたページ（ダッシュボード・問い合わせ関連ページ等）にアクセスすると、それぞれのロールのログイン画面へリダイレクトされる。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 開発コマンド
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test          # vitest（単体テスト）
+npm run lint      # next lint
+npx tsc --noEmit  # 型チェック（typecheck 用の npm script は無い）
+npm run build     # 本番ビルド
+```
 
-## Learn More
+## ドキュメント
 
-To learn more about Next.js, take a look at the following resources:
+- `.kiro/steering/` — プロダクト概要・技術スタック・ディレクトリ構成
+- `docs/infra/runbook.md` — リリース・バックアップ復旧・障害対応・機密値ローテーションの運用手順書
+- `docs/infra/` — インフラ（Terraform、監視、CI・予算アラートなど）の計画・記録
+- `CLAUDE.md` — 開発ルール（ブランチ運用・実装ワークフロー）
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## デプロイ
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+現行環境（Cloud Run `portal-mock`）へのデプロイは、`.claude/commands/deploy-main.md`（`deploy-main`）と `docs/infra/runbook.md` §1 の手順に従う。マイグレーションを含む場合は、デプロイより先に本番 DB へ `prisma migrate deploy` を適用する。
