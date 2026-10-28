@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { isWithinPublishPeriod } from "@/lib/announcement-publish-period";
 import { prisma } from "@/lib/db/prisma";
+import { errorFields, logger } from "@/lib/server/logger";
 import {
   addedTargetApplicantUsersWhere,
   ANNOUNCEMENT_INCLUDE,
@@ -43,6 +44,23 @@ import type {
 // （サービス層に依存しないleafモジュール）に定義されている（`announcement-notifications.ts`
 // との循環importを避けるため）。本モジュールの公開APIとしては引き続きここから再エクスポートする。
 export { resolveAnnouncementContent, targetApplicantUsersWhere };
+
+/**
+ * 保存済みのお知らせに対する通知をbest-effortで実行する。通知の失敗（通知用の取得・宛先検索のDBエラー等）で
+ * 保存結果を例外にすると、UIの再送で同じお知らせが二重作成・二重送信されるため、ログに残して握りつぶす。
+ * ログにはkindとIDとエラー情報のみ出し、本文・宛先は出さない。
+ */
+async function notifyBestEffort(
+  kind: "published" | "target_expanded",
+  announcementId: string,
+  notify: () => Promise<unknown>
+): Promise<void> {
+  try {
+    await notify();
+  } catch (error) {
+    logger.error("[announcement-service] notification failed", { kind, announcementId, ...errorFields(error) });
+  }
+}
 
 export class AnnouncementNotFoundError extends Error {
   readonly announcementId: string;
@@ -388,7 +406,7 @@ export async function createAnnouncementRecord(
 
   const announcement = mapAnnouncement(record);
   if (announcement.status === "published" && shouldSendDistributionMail(announcement, new Date())) {
-    await notifyAnnouncementPublished(announcement.id);
+    await notifyBestEffort("published", announcement.id, () => notifyAnnouncementPublished(announcement.id));
   }
 
   return announcement;
@@ -432,8 +450,8 @@ export async function updateAnnouncementRecord(
   const linkedDocumentIds = await filterExistingDocumentIds(input.linkedDocumentIds);
   const targeting = await normalizeTargeting(input.targeting);
 
-  try {
-    const record = await prisma.announcement.update({
+  const record = await prisma.announcement
+    .update({
       where: { id },
       data: {
         title: input.title,
@@ -465,36 +483,39 @@ export async function updateAnnouncementRecord(
         translations: translationsToNestedWrite(input.translations),
       },
       include: ANNOUNCEMENT_INCLUDE,
+    })
+    .catch((error: unknown) => {
+      // 存在しない行のP2025だけをNotFoundに変換する。それ以外は握りつぶさずそのまま投げる。
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        throw new AnnouncementNotFoundError(id);
+      }
+      throw error;
     });
 
-    const announcement = mapAnnouncement(record);
-    // メール送信が無効、または公開期間外のお知らせでは、公開通知・追加通知のどちらも送らない。
-    const sendMail = shouldSendDistributionMail(announcement, new Date());
-    if (shouldStampPublishedAt) {
-      // 下書き→公開への遷移では、既存の公開通知が全対象者へ通知するため、
-      // 配信対象拡大の追加通知は行わない（要件35.6、二重送信防止）。
-      if (sendMail) {
-        await notifyAnnouncementPublished(announcement.id);
-      }
-    } else if (announcement.status === "published" && sendMail) {
-      // 公開のまま保存された場合のみ、配信対象の拡大差分を検出し、
-      // 新規追加分の対象者にのみ追加通知を送る（要件35.1, 35.2, 35.7）。
-      const addedWhere = addedTargetApplicantUsersWhere(
-        { targeting: previousTargeting },
-        { targeting: announcement.targeting }
+  const announcement = mapAnnouncement(record);
+  // メール送信が無効、または公開期間外のお知らせでは、公開通知・追加通知のどちらも送らない。
+  const sendMail = shouldSendDistributionMail(announcement, new Date());
+  if (shouldStampPublishedAt) {
+    // 下書き→公開への遷移では、既存の公開通知が全対象者へ通知するため、
+    // 配信対象拡大の追加通知は行わない（要件35.6、二重送信防止）。
+    if (sendMail) {
+      await notifyBestEffort("published", announcement.id, () => notifyAnnouncementPublished(announcement.id));
+    }
+  } else if (announcement.status === "published" && sendMail) {
+    // 公開のまま保存された場合のみ、配信対象の拡大差分を検出し、
+    // 新規追加分の対象者にのみ追加通知を送る（要件35.1, 35.2, 35.7）。
+    const addedWhere = addedTargetApplicantUsersWhere(
+      { targeting: previousTargeting },
+      { targeting: announcement.targeting }
+    );
+    if (addedWhere) {
+      await notifyBestEffort("target_expanded", announcement.id, () =>
+        notifyAnnouncementTargetExpanded(announcement.id, addedWhere)
       );
-      if (addedWhere) {
-        await notifyAnnouncementTargetExpanded(announcement.id, addedWhere);
-      }
     }
-
-    return announcement;
-  } catch (error) {
-    if (error instanceof AnnouncementNotFoundError) {
-      throw error;
-    }
-    throw new AnnouncementNotFoundError(id);
   }
+
+  return announcement;
 }
 
 /**

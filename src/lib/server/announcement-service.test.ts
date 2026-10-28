@@ -46,6 +46,14 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/server/logger", () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+  errorFields: (error: unknown) => ({
+    errorName: error instanceof Error ? error.name : typeof error,
+    errorMessage: error instanceof Error ? error.message : String(error),
+  }),
+}));
+
 vi.mock("@/lib/server/announcement-notifications", () => ({
   notifyAnnouncementPublished: vi.fn().mockResolvedValue(undefined),
   notifyAnnouncementReminder: vi.fn().mockResolvedValue(undefined),
@@ -55,6 +63,7 @@ vi.mock("@/lib/server/announcement-notifications", () => ({
 
 import type { AnnouncementTargeting, CreateAnnouncementInput } from "@/types/announcement";
 import { prisma } from "@/lib/db/prisma";
+import { logger } from "@/lib/server/logger";
 import {
   notifyAnnouncementPublished,
   notifyAnnouncementReminder,
@@ -725,7 +734,7 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("存在しないIDの更新はAnnouncementNotFoundErrorを送出する", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.announcement.update).mockRejectedValue(new Error("not found"));
+    vi.mocked(prisma.announcement.update).mockRejectedValue(prismaError("P2025"));
 
     await expect(
       updateAnnouncementRecord("missing", {
@@ -2772,5 +2781,113 @@ describe("sendUserReadReminders: 対象外お知らせのガード", () => {
         },
       })
     );
+  });
+});
+
+describe("更新時の例外変換と通知のbest-effort化", () => {
+  const PUBLISHED_NOTIFY_INPUT = (overrides: Partial<CreateAnnouncementInput> = {}) =>
+    publishInput({ sendEmailNotification: true, ...overrides });
+
+  function mockDraftToPublished() {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: true, status: "published" }) as never
+    );
+  }
+
+  it.each([
+    ["P2003", prismaError("P2003")],
+    ["接続断", new Error("connection lost")],
+  ])("更新でP2025以外(%s)はNotFoundに変換せず元の例外を送出する", async (_label, err) => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", status: "draft", publishedAt: null }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockRejectedValue(err);
+
+    await expect(updateAnnouncementRecord("1", publishInput())).rejects.toBe(err);
+    expect(notifyAnnouncementPublished).not.toHaveBeenCalled();
+  });
+
+  it("下書き→公開で公開通知が失敗しても保存結果を返し、publishedAtを打刻し、ログにkindとIDを残す", async () => {
+    mockDraftToPublished();
+    vi.mocked(notifyAnnouncementPublished).mockRejectedValueOnce(new Error("db down: user@example.com"));
+
+    const result = await updateAnnouncementRecord("1", PUBLISHED_NOTIFY_INPUT());
+
+    expect(result.id).toBe("1");
+    expect(result.status).toBe("published");
+    const data = vi.mocked(prisma.announcement.update).mock.calls[0][0].data as { publishedAt?: Date };
+    expect(data.publishedAt).toBeInstanceOf(Date);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[announcement-service] notification failed",
+      expect.objectContaining({ kind: "published", announcementId: "1", errorName: "Error" })
+    );
+  });
+
+  it("配信対象拡大の追加通知が失敗しても保存結果を返し、ログにkindとIDを残す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+    vi.mocked(notifyAnnouncementTargetExpanded).mockRejectedValueOnce(new Error("lookup failed"));
+
+    const result = await updateAnnouncementRecord(
+      "1",
+      PUBLISHED_NOTIFY_INPUT({ targeting: { scope: "countries", countries: ["VN", "TH"] } })
+    );
+
+    expect(result.id).toBe("1");
+    expect(notifyAnnouncementTargetExpanded).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[announcement-service] notification failed",
+      expect.objectContaining({ kind: "target_expanded", announcementId: "1" })
+    );
+  });
+
+  it("公開で新規作成した際の公開通知が失敗しても作成結果を返し、ログにkindとIDを残す", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: true }) as never
+    );
+    vi.mocked(notifyAnnouncementPublished).mockRejectedValueOnce(new Error("lookup failed"));
+
+    const result = await createAnnouncementRecord(PUBLISHED_NOTIFY_INPUT());
+
+    expect(result.id).toBe("1");
+    expect(prisma.announcement.create).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[announcement-service] notification failed",
+      expect.objectContaining({ kind: "published", announcementId: "1" })
+    );
+  });
+
+  it("通知失敗のログフィールドに本文・タイトル・メールアドレスを含めない", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: true }) as never
+    );
+    vi.mocked(notifyAnnouncementPublished).mockRejectedValueOnce(new Error("boom"));
+
+    await createAnnouncementRecord(PUBLISHED_NOTIFY_INPUT({ title: "SECRET-TITLE", body: "SECRET-BODY" }));
+
+    const fields = vi.mocked(logger.error).mock.calls[0][1] as Record<string, unknown>;
+    expect(Object.keys(fields).sort()).toEqual(["announcementId", "errorMessage", "errorName", "kind"]);
+    const serialized = JSON.stringify(fields);
+    expect(serialized).not.toContain("SECRET");
+    expect(serialized).not.toMatch(/@/);
   });
 });
