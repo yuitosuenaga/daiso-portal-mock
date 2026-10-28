@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ManualDataIntegrityError,
   mapManual,
+  mapManualSummary,
   resolveManualContent,
 } from "@/lib/server/manual-mapper";
 
@@ -128,6 +129,53 @@ describe("mapManual", () => {
     expect(result.translations).toEqual([
       { locale: "en", title: "English title", description: "English description" },
     ]);
+  });
+});
+
+describe("mapManualSummary", () => {
+  it("アップロード型の出力にdataUrlを含めず、メタデータは保持する", () => {
+    const result = mapManualSummary(baseRecord() as never);
+
+    expect(result).not.toHaveProperty("dataUrl");
+    expect(result).toMatchObject({
+      sourceType: "upload",
+      fileName: "test.pdf",
+      fileType: "application/pdf",
+      fileSize: 1024,
+    });
+  });
+
+  it("dataUrlが入力にあっても出力へ漏らさず、dataUrlが無くても整合性エラーにならない", () => {
+    const withoutBody: Record<string, unknown> = { ...baseRecord() };
+    delete withoutBody.dataUrl;
+    expect(() => mapManualSummary(withoutBody as never)).not.toThrow();
+    expect(mapManualSummary(baseRecord() as never)).not.toHaveProperty("dataUrl");
+  });
+
+  it("アップロード型でfileName/fileType/fileSizeが欠けるとManualDataIntegrityErrorを送出する", () => {
+    expect(() => mapManualSummary(baseRecord({ fileName: null }) as never)).toThrow(
+      ManualDataIntegrityError
+    );
+    expect(() => mapManualSummary(baseRecord({ fileType: null }) as never)).toThrow(
+      ManualDataIntegrityError
+    );
+    expect(() => mapManualSummary(baseRecord({ fileSize: null }) as never)).toThrow(
+      ManualDataIntegrityError
+    );
+  });
+
+  it("Google型でgoogleUrlが欠けるとManualDataIntegrityErrorを送出する", () => {
+    expect(() =>
+      mapManualSummary(
+        baseRecord({ sourceType: "google", googleUrl: null, googleEmbedUrl: "x" }) as never
+      )
+    ).toThrow(ManualDataIntegrityError);
+  });
+
+  it("mapManualはdataUrlが無いアップロード型を従来どおり整合性エラーにする", () => {
+    expect(() => mapManual(baseRecord({ dataUrl: null }) as never)).toThrow(
+      ManualDataIntegrityError
+    );
   });
 });
 

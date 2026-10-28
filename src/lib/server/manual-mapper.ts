@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma, ManualTargetingScope } from "@prisma/client";
 
-import type { Manual, ManualTargeting } from "@/types/manual";
+import type { Manual, ManualSummary, ManualTargeting } from "@/types/manual";
 
 /** 翻訳行を含むManualレコードの読み取り時のinclude句。 */
 export const MANUAL_INCLUDE = {
@@ -12,6 +12,43 @@ export const MANUAL_INCLUDE = {
 export type PrismaManualWithTranslations = Prisma.ManualGetPayload<{
   include: typeof MANUAL_INCLUDE;
 }>;
+
+/**
+ * 一覧・保存結果用のselect句。ファイル本体（`dataUrl`、Base64で最大約27MB/件）を読み込まず、
+ * メタデータだけを取得する。本体は`MANUAL_FILE_SELECT`で配信ルートが1件ずつ読む。
+ */
+export const MANUAL_SUMMARY_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  category: true,
+  year: true,
+  month: true,
+  sourceType: true,
+  fileName: true,
+  fileType: true,
+  fileSize: true,
+  googleUrl: true,
+  googleEmbedUrl: true,
+  targetingScope: true,
+  targetingCountries: true,
+  targetingCompanyCodes: true,
+  createdAt: true,
+  updatedAt: true,
+  translations: true,
+} as const satisfies Prisma.ManualSelect;
+
+export type PrismaManualSummary = Prisma.ManualGetPayload<{
+  select: typeof MANUAL_SUMMARY_SELECT;
+}>;
+
+/** ファイル配信ルート用のselect句（1件分のファイル本体を読む）。 */
+export const MANUAL_FILE_SELECT = {
+  sourceType: true,
+  fileName: true,
+  fileType: true,
+  dataUrl: true,
+} as const satisfies Prisma.ManualSelect;
 
 /**
  * 公開範囲3列（`targetingScope`/`targetingCountries`/`targetingCompanyCodes`）を持つ
@@ -70,7 +107,8 @@ export class ManualDataIntegrityError extends Error {
   }
 }
 
-export function mapManual(record: PrismaManualWithTranslations): Manual {
+/** 一覧用。`dataUrl`を読み込まず、出力にも含めない。 */
+export function mapManualSummary(record: PrismaManualSummary): ManualSummary {
   const base = {
     id: record.id,
     title: record.title,
@@ -100,7 +138,7 @@ export function mapManual(record: PrismaManualWithTranslations): Manual {
     };
   }
 
-  if (!record.fileName || !record.fileType || record.fileSize == null || !record.dataUrl) {
+  if (!record.fileName || !record.fileType || record.fileSize == null) {
     throw new ManualDataIntegrityError(record.id, record.sourceType);
   }
   return {
@@ -109,8 +147,19 @@ export function mapManual(record: PrismaManualWithTranslations): Manual {
     fileName: record.fileName,
     fileType: "application/pdf",
     fileSize: record.fileSize,
-    dataUrl: record.dataUrl,
   };
+}
+
+/** 詳細用（`dataUrl`を含む）。ヘルプデスクの編集フォーム初期値と再翻訳で使う。 */
+export function mapManual(record: PrismaManualWithTranslations): Manual {
+  const summary = mapManualSummary(record);
+  if (summary.sourceType === "google") {
+    return summary;
+  }
+  if (!record.dataUrl) {
+    throw new ManualDataIntegrityError(record.id, record.sourceType);
+  }
+  return { ...summary, dataUrl: record.dataUrl };
 }
 
 /**

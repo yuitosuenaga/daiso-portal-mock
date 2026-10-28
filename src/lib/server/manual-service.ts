@@ -1,18 +1,22 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
+import type { PdfFileStats } from "@/lib/server/file-response";
 import {
   DEFAULT_MANUAL_LOCALE,
+  MANUAL_FILE_SELECT,
   MANUAL_INCLUDE,
+  MANUAL_SUMMARY_SELECT,
   ManualDataIntegrityError,
   mapManual,
+  mapManualSummary,
   resolveManualContent,
   targetingToColumns,
-  type PrismaManualWithTranslations,
+  type PrismaManualSummary,
 } from "@/lib/server/manual-mapper";
-import type { CreateManualInput, Manual } from "@/types/manual";
+import type { CreateManualInput, Manual, ManualSummary } from "@/types/manual";
 import { errorFields, logger } from "./logger";
 
 // `resolveManualContent`は`manual-mapper.ts`から再エクスポートし、`manual-mapper.ts`に
@@ -120,16 +124,16 @@ function translationsToNestedWrite(translations: Manual["translations"]) {
 }
 
 /**
- * `mapManual`が`ManualDataIntegrityError`を送出したレコードのみをスキップし、残りは正常に
+ * `mapManualSummary`が`ManualDataIntegrityError`を送出したレコードのみをスキップし、残りは正常に
  * 返す。1件のデータ不整合が原因で一覧取得が丸ごと失敗しないようにするための措置
  * （`monthly-material-service.ts`の`mapMonthlyMaterialsSkippingCorrupted`と同型）。
  */
 function mapManualsSkippingCorrupted(
-  records: PrismaManualWithTranslations[]
-): Manual[] {
+  records: PrismaManualSummary[]
+): ManualSummary[] {
   return records.flatMap((record) => {
     try {
-      return [mapManual(record)];
+      return [mapManualSummary(record)];
     } catch (error) {
       if (error instanceof ManualDataIntegrityError) {
         logger.error("[manual-service] Skipping corrupted record", errorFields(error));
@@ -148,11 +152,11 @@ export async function listManualsVisibleTo(
   country: string,
   companyCode: string,
   locale: string = DEFAULT_MANUAL_LOCALE
-): Promise<Manual[]> {
+): Promise<ManualSummary[]> {
   const records = await prisma.manual.findMany({
     where: manualVisibleToWhere(country, companyCode),
     orderBy: ORDER_BY_YEAR_MONTH_DESC,
-    include: MANUAL_INCLUDE,
+    select: MANUAL_SUMMARY_SELECT,
   });
 
   return mapManualsSkippingCorrupted(records).map((item) => ({
@@ -166,10 +170,10 @@ export async function listManualsVisibleTo(
  * （`resolveManualContent`）は行わず、既定言語（`ja`＝親列）と全翻訳をそのまま返す
  * （ヘルプデスク側フォームが全言語を編集できるようにするため）。
  */
-export async function listAllManuals(): Promise<Manual[]> {
+export async function listAllManuals(): Promise<ManualSummary[]> {
   const records = await prisma.manual.findMany({
     orderBy: ORDER_BY_YEAR_MONTH_DESC,
-    include: MANUAL_INCLUDE,
+    select: MANUAL_SUMMARY_SELECT,
   });
 
   return mapManualsSkippingCorrupted(records);
@@ -187,10 +191,133 @@ export async function findManualById(id: string): Promise<Manual | null> {
   return record ? mapManual(record) : null;
 }
 
+/** 配信ルートが返すファイル本体（アップロード方式のPDFのみ）。 */
+export interface ManualFile {
+  fileName: string;
+  dataUrl: string;
+}
+
+/** 認可確認用の軽量な情報（本体は含まない）。 */
+export interface ManualFileMeta {
+  id: string;
+  fileName: string;
+}
+
+function toManualFile(
+  record: { sourceType: string; fileName: string | null; dataUrl: string | null } | null
+): ManualFile | null {
+  if (!record || record.sourceType !== "upload" || !record.dataUrl) {
+    return null;
+  }
+  return { fileName: record.fileName ?? "manual.pdf", dataUrl: record.dataUrl };
+}
+
+function toManualFileMeta(
+  record: { id: string; sourceType: string; fileName: string | null } | null
+): ManualFileMeta | null {
+  if (!record || record.sourceType !== "upload") {
+    return null;
+  }
+  return { id: record.id, fileName: record.fileName ?? "manual.pdf" };
+}
+
+const MANUAL_FILE_META_SELECT = { id: true, sourceType: true, fileName: true } as const;
+
+/**
+ * 自社に可視なアップロード方式マニュアルの認可確認（本体は読まない）。可視性は一覧と同じ述語
+ * （`manualVisibleToWhere`）を再利用する。他社向け・存在しない・Google方式はnull。
+ */
+export async function findManualFileMetaVisibleTo(
+  id: string,
+  country: string,
+  companyCode: string
+): Promise<ManualFileMeta | null> {
+  const record = await prisma.manual.findFirst({
+    where: { id, ...manualVisibleToWhere(country, companyCode) },
+    select: MANUAL_FILE_META_SELECT,
+  });
+  return toManualFileMeta(record);
+}
+
+/** 公開範囲によらずIDだけで認可確認する（ヘルプデスク用、本体は読まない）。 */
+export async function findManualFileMetaById(id: string): Promise<ManualFileMeta | null> {
+  const record = await prisma.manual.findUnique({
+    where: { id },
+    select: MANUAL_FILE_META_SELECT,
+  });
+  return toManualFileMeta(record);
+}
+
+/**
+ * HEAD用。認可確認済みのIDについて、本体をNodeへ転送せずDB側で長さ・先頭・末尾だけ集計する。
+ * dataUrlがnullまたは存在しない場合はnull。設計・注意点は`getDocumentFileStats`と同じ
+ * （改行・空白だけを`replace`で除去／先頭プレフィックスの判定は先頭300文字のみ／同時数は呼び出し側で制限）。
+ */
+export async function getManualFileStats(id: string): Promise<PdfFileStats | null> {
+  const rows = await prisma.$queryRaw<
+    {
+      head: string;
+      clean_length: number | bigint;
+      clean_tail: string;
+      first_pad: number | bigint;
+    }[]
+  >(Prisma.sql`
+    WITH src AS MATERIALIZED (
+      SELECT substr("dataUrl", 1, 300) AS head,
+             replace(replace(replace(replace(
+               substr("dataUrl", strpos(substr("dataUrl", 1, 300), ',') + 1),
+               E'\\r', ''), E'\\n', ''), E'\\t', ''), ' ', ''
+             ) AS clean
+      FROM "Manual"
+      WHERE id = ${id} AND "sourceType" = 'upload' AND "dataUrl" IS NOT NULL
+    )
+    SELECT head,
+           length(clean) AS clean_length,
+           right(clean, 2) AS clean_tail,
+           strpos(clean, '=') AS first_pad
+    FROM src
+  `);
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+  return {
+    head: row.head,
+    cleanLength: Number(row.clean_length),
+    cleanTail: row.clean_tail,
+    firstPad: Number(row.first_pad),
+  };
+}
+
+/**
+ * 自社に可視なマニュアルのファイル本体を1件取得する（セマフォ取得後に呼ぶ）。可視性は
+ * 認可確認と同じ述語を再適用する。他社向け・存在しない・Google方式・本体なしはnull。
+ */
+export async function findManualFileVisibleTo(
+  id: string,
+  country: string,
+  companyCode: string
+): Promise<ManualFile | null> {
+  const record = await prisma.manual.findFirst({
+    where: { id, ...manualVisibleToWhere(country, companyCode) },
+    select: MANUAL_FILE_SELECT,
+  });
+  return toManualFile(record);
+}
+
+/** 公開範囲によらずIDだけでファイル本体を取得する（ヘルプデスク用）。 */
+export async function findManualFileById(id: string): Promise<ManualFile | null> {
+  const record = await prisma.manual.findUnique({
+    where: { id },
+    select: MANUAL_FILE_SELECT,
+  });
+  return toManualFile(record);
+}
+
 /** マニュアルを新規作成する。 */
 export async function createManualRecord(
   input: CreateManualInput
-): Promise<Manual> {
+): Promise<ManualSummary> {
   const record = await prisma.manual.create({
     data: {
       ...toManualData(input),
@@ -205,17 +332,17 @@ export async function createManualRecord(
         })),
       },
     },
-    include: MANUAL_INCLUDE,
+    select: MANUAL_SUMMARY_SELECT,
   });
 
-  return mapManual(record);
+  return mapManualSummary(record);
 }
 
 /** 既存マニュアルの内容を更新する。存在しない場合は`ManualNotFoundError`を送出する。 */
 export async function updateManualRecord(
   id: string,
   input: CreateManualInput
-): Promise<Manual> {
+): Promise<ManualSummary> {
   try {
     const record = await prisma.manual.update({
       where: { id },
@@ -223,10 +350,10 @@ export async function updateManualRecord(
         ...toManualData(input),
         translations: translationsToNestedWrite(input.translations),
       },
-      include: MANUAL_INCLUDE,
+      select: MANUAL_SUMMARY_SELECT,
     });
 
-    return mapManual(record);
+    return mapManualSummary(record);
   } catch {
     throw new ManualNotFoundError(id);
   }

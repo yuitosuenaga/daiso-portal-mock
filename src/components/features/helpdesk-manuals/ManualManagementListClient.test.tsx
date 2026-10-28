@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ManualManagementListClient } from "@/components/features/helpdesk-manuals/ManualManagementListClient";
-import type { Manual } from "@/types/manual";
+import type { ManualSummary } from "@/types/manual";
 import messages from "../../../../messages/ja.json";
 
 function resolveMessage(
@@ -44,7 +44,7 @@ vi.mock("@/lib/actions/manuals", () => ({
   deleteManualAction: vi.fn(),
 }));
 
-function makeManual(overrides: Partial<Manual> = {}): Manual {
+function makeManual(overrides: Partial<ManualSummary> = {}): ManualSummary {
   return {
     id: "1",
     title: "テストマニュアル",
@@ -55,13 +55,12 @@ function makeManual(overrides: Partial<Manual> = {}): Manual {
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
     translations: [],
     createdAt: "2026-07-01T09:00:00Z",
     updatedAt: "2026-07-01T09:00:00Z",
     ...overrides,
-  } as Manual;
+  } as ManualSummary;
 }
 
 const BASE_PROPS = {

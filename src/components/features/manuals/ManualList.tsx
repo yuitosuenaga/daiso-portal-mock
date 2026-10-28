@@ -3,7 +3,7 @@ import { getManuals } from "@/lib/api/manuals";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ManualListClient } from "@/components/features/manuals/ManualListClient";
-import type { Manual } from "@/types/manual";
+import type { ManualSummary } from "@/types/manual";
 
 /**
  * 自社に公開範囲が及ぶマニュアル一覧（`documents`specの`DocumentList`のマニュアル版）。
@@ -16,7 +16,7 @@ export async function ManualList() {
     getLocale(),
   ]);
 
-  let manuals: Manual[];
+  let manuals: ManualSummary[];
   try {
     manuals = await getManuals({ locale });
   } catch {

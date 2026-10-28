@@ -1,4 +1,4 @@
-import type { Manual, ManualTargeting } from "@/types/manual";
+import type { Manual, ManualSummary, ManualTargeting } from "@/types/manual";
 
 export interface ManualTargetingLabelDictionary {
   allLabel: string;
@@ -34,7 +34,10 @@ export function manualTargetingLabel(
  * キーワードが空のとき、入力配列をそのまま（順序維持で）返す
  * （`document-utils.ts`の`filterDocuments`と同型）。
  */
-export function filterManuals(manuals: Manual[], keyword: string): Manual[] {
+export function filterManuals<T extends Pick<Manual, "title" | "description">>(
+  manuals: T[],
+  keyword: string
+): T[] {
   const normalizedKeyword = keyword.trim().toLowerCase();
 
   if (!normalizedKeyword) {
@@ -57,7 +60,7 @@ export function filterManuals(manuals: Manual[], keyword: string): Manual[] {
  * （サーバー側の`resolveManualContent`と異なり、クライアント側で解決済みでないタイトルの
  * 表示用に使う軽量版）。
  */
-export function resolveManualTitle(manual: Manual, locale: string): string {
+export function resolveManualTitle(manual: Pick<ManualSummary, "title" | "translations">, locale: string): string {
   if (locale === "ja") {
     return manual.title;
   }

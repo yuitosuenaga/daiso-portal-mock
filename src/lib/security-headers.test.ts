@@ -73,7 +73,23 @@ describe("buildHeadersConfig", () => {
     }
   });
 
-  it("PR1ではドキュメントのファイル配信ルートのみ", () => {
-    expect(FILE_ROUTE_SOURCES).toEqual(["/api/documents/:id/file"]);
+  it("ファイル配信ルートは資料とマニュアルの`:id`1セグメントに限定する", () => {
+    expect(FILE_ROUTE_SOURCES).toEqual(["/api/documents/:id/file", "/api/manuals/:id/file"]);
+  });
+
+  it("マニュアル配信ルートはSAMEORIGIN・frame-ancestors 'self'、他のマニュアル配下は全体用（DENY）のまま", () => {
+    const config = buildHeadersConfig({ isDev: false });
+    const manual = config.find(
+      (entry: { source: string }) => entry.source === "/api/manuals/:id/file"
+    );
+    expect(manual).toBeDefined();
+    const h = byKey(manual!.headers);
+    expect(h["X-Frame-Options"]).toBe("SAMEORIGIN");
+    expect(h["Content-Security-Policy"]).toContain("frame-ancestors 'self'");
+    // `/api/manuals/x/other`に一致するのは全体用（/:path*）のみ
+    expect(config.filter((entry: { source: string }) => entry.source !== "/:path*")
+      .every((entry: { source: string }) => /^\/api\/(documents|manuals)\/:id\/file$/.test(entry.source))).toBe(true);
+    expect(byKey(config[0].headers)["X-Frame-Options"]).toBe("DENY");
+    expect(byKey(config[0].headers)["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
   });
 });

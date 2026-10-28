@@ -17,11 +17,11 @@ import {
 import { MANUAL_CATEGORIES } from "@/lib/constants/manual";
 import { CategoryYearMonthFilterBar } from "@/components/features/shared/CategoryYearMonthFilterBar";
 import { ManualListItem } from "@/components/features/manuals/ManualListItem";
-import type { Manual } from "@/types/manual";
+import type { ManualSummary } from "@/types/manual";
 
 export interface ManualListClientProps {
   /** 年月降順で整列済みのマニュアル */
-  manuals: Manual[];
+  manuals: ManualSummary[];
   locale: string;
   downloadLinkLabel: string;
   openOriginalLinkLabel: string;

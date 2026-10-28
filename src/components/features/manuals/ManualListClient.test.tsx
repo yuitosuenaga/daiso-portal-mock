@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ManualListClient } from "@/components/features/manuals/ManualListClient";
-import type { Manual } from "@/types/manual";
+import type { ManualSummary } from "@/types/manual";
 import messages from "../../../../messages/ja.json";
 
 function resolveMessage(namespace: string, key: string): string {
@@ -21,7 +21,7 @@ vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) => resolveMessage(namespace, key),
 }));
 
-function makeManual(overrides: Partial<Manual> = {}): Manual {
+function makeManual(overrides: Partial<ManualSummary> = {}): ManualSummary {
   return {
     id: "1",
     title: "テストマニュアル",
@@ -32,13 +32,12 @@ function makeManual(overrides: Partial<Manual> = {}): Manual {
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
     targeting: { scope: "all" },
     translations: [],
     createdAt: "2026-07-01T09:00:00Z",
     updatedAt: "2026-07-01T09:00:00Z",
     ...overrides,
-  } as Manual;
+  } as ManualSummary;
 }
 
 const BASE_PROPS = {
@@ -49,6 +48,17 @@ const BASE_PROPS = {
 };
 
 describe("ManualListClient", () => {
+  it("アップロード型はdataUrlなしでも配信URLをiframeとダウンロードリンクに使う", () => {
+    render(<ManualListClient {...BASE_PROPS} manuals={[makeManual({ id: "m-1" })]} />);
+
+    expect(screen.getByTitle("テストマニュアル").getAttribute("src")).toBe(
+      "/api/manuals/m-1/file"
+    );
+    expect(screen.getByText("ダウンロード").getAttribute("href")).toBe(
+      "/api/manuals/m-1/file?download=1"
+    );
+  });
+
   it("カテゴリを選択すると該当マニュアルのみに絞り込む", async () => {
     const manualA = makeManual({ id: "1", title: "店舗運営A", category: "storeOperations" });
     const manualB = makeManual({ id: "2", title: "経理B", category: "accounting" });
