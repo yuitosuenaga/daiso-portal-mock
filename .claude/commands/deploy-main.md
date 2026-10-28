@@ -28,7 +28,7 @@ allowed-tools: Bash
    f. 未適用がある場合のみ`DATABASE_URL="<書き換え後の値>" npx prisma migrate deploy`を実行し、再度`migrate status`で`Database schema is up to date!`になることを確認する
    g. Proxyプロセスを終了し、ソケットディレクトリを削除して、`unset DB_URL`する（`DATABASE_URL`はファイルに書かない運用のため、一時ファイルは作られない）
 4. 対象ブランチ・コミットハッシュ（`git log -1 --oneline`）をユーザーに提示し、本番Cloud Runサービスへのデプロイであることを踏まえて実行前に確認を取ってから進める
-5. 承認後、そのディレクトリで `gcloud run deploy portal-mock --source . --project rvp-ai-proto-camp --region asia-northeast1 --quiet` を実行する
+5. 承認後、そのディレクトリで `gcloud run deploy portal-mock --source . --clear-base-image --project rvp-ai-proto-camp --region asia-northeast1 --quiet` を実行する
 6. デプロイ完了後、`gcloud run services describe portal-mock --region asia-northeast1 --format="value(status.latestReadyRevisionName,status.url)"` 等で反映されたリビジョン・URLを確認し、ユーザーに結果を報告する。ログインして動作確認する場合は、`gcloud run services describe`が表示するURL（`*-an.a.run.app`）ではなく、`AUTH_URL`に固定されているホスト（`https://portal-mock-700069905019.asia-northeast1.run.app`）を使う（別のホストからログインするとリダイレクトでセッションが引き継がれず、ログイン画面に戻される）
 7. 翻訳対象のテーブルを追加したデプロイでは、既存データの翻訳が空のため、手順3の接続方法（Proxy＋書き換えた`DATABASE_URL`）で`ANTHROPIC_API_KEY`を環境変数に渡して`npx tsx prisma/backfill-all-translations.ts --table=<対象> --dry-run`で件数を確認してから、`--dry-run`を外して本実行する（冪等。実行前にCloud SQLのオンデマンドバックアップを作成する）。APIキーはSecret Manager（`anthropic-api-key-suenaga-daiso-portal`）から取得し、ファイルには残さない。この手順も本番DBへの書き込みを伴うため、マニュアルモードで行う
    h. **ヘルプデスクスタッフのロール（`HelpdeskStaffRole`）導入マイグレーション（`20261028000000_add_helpdesk_staff_role`）を含むデプロイでは、デプロイ後に初期 admin を手動 UPDATE で指定する**（手順3の接続方法・マニュアルモード）。例: `UPDATE "HelpdeskStaff" SET "role"='admin' WHERE "email" IN (...)`（実メールアドレスはリポジトリに書かず、ユーザーから都度受け取る）。マイグレーションは admin を自動付与しない（dev・本番とも既存スタッフは全員 member になる）ため、デプロイ直後に必ず手動で admin を指定する。指定を忘れると admin が0人になり、販社の新規作成・編集・CSV取込・アカウント管理が誰にもできなくなる（member は閲覧のみ）。あわせて、本番に seed 担当者（`staff@helpdesk.example.com`）が残っていないか `SELECT "email","role" FROM "HelpdeskStaff"` で確認し、残っていれば admin にせず削除または無効化の要否をユーザーに確認する。実行前にバックアップの要否を確認し、実行後に `SELECT "email","role" FROM "HelpdeskStaff"` で反映を確認する
@@ -38,8 +38,10 @@ allowed-tools: Bash
 - **`release`ブランチには一切触れない**（チェックアウト・マージ・push、いずれも不可）。`main`→`release`の反映は別運用であり、このコマンドの対象外
 - 現在の作業ディレクトリのカレントブランチ・未コミットの変更を切り替えたり破棄したりしない。必ず独立した一時ディレクトリ（`git worktree add`等）で作業する
 - 本番サービスへの反映となるため、実行前に対象コミットを提示してユーザーの確認を得てから`gcloud run deploy`を実行する（確認を省略しない）
+- `Dockerfile` 導入後は `gcloud run deploy --source .` に `--clear-base-image` が必須（付けないと `Missing required argument [--clear-base-image]` で即エラー。`docs/infra/runbook.md` §1.4）
 - ビルドは`gcloud run deploy --source .`のCloud Build任せでよく、事前にローカルで`npm run build`等を必須で通す必要はないが、明らかなビルドエラーが疑われる場合は事前確認してもよい
 - デプロイが失敗した場合はエラー内容をそのまま報告し、勝手にリトライ内容を変えたり`--set-env-vars`等を追加したりしない
+- 新規マイグレーション名は既存の最大値（`ls prisma/migrations | tail -2`）より大きいタイムスタンプにする。`20261029000000` は手で付けた未来日付のため、その日時（UTC）より前に作るときは `20261029000001_...` のように手で調整する（適用済み名のリネームはしない。詳細は `.kiro/steering/structure.md` の prisma 節）
 - `HelpdeskStaff.isActive`列追加マイグレーション（20261029000000）を適用せずに新コードをデプロイすると、全スタッフのログインが失敗する。`migrate deploy`を必ず先に行うこと
 - 新規マイグレーションを含むデプロイでは、本番DBへの`migrate deploy`が完了し`migrate status`で差分なしを確認してから`gcloud run deploy`を実行する（先にデプロイすると、新テーブルを参照する画面が本番でエラーになる）
 - 本番DBへの直接アクセスが必要な場面（手順3・7）では、実行前に必ずユーザーへマニュアルモードへの切替を依頼する。自動モードのまま強行しない

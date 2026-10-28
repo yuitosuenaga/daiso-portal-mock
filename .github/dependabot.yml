@@ -1,0 +1,45 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    groups:
+      prod-minor-patch:
+        dependency-type: production
+        update-types: [minor, patch]
+      dev-minor-patch:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    ignore:
+      # Node 22 への移行は別 PR で計画的に行う
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
