@@ -21,7 +21,7 @@ function flatten(node: Json, prefix = ""): Record<string, string> {
 const HAN = /\p{Script=Han}/u;
 const HIRAGANA = /\p{Script=Hiragana}/u;
 // U+30FB(「・」)は中国語の文でも区切りとして使うため除く
-const KATAKANA = /[\p{Script=Katakana}--[・]]/v;
+const KATAKANA = /(?!\u30FB)\p{Script=Katakana}/u;
 const THAI = /\p{Script=Thai}/u;
 const HANGUL = /\p{Script=Hangul}/u;
 const BENGALI = /\p{Script=Bengali}/u;
