@@ -23,6 +23,28 @@ describe("ConfirmDialog", () => {
     expect(screen.getByText(labels.description)).toBeTruthy();
   });
 
+  it("triggerClassNameを渡すとトリガーボタンにそのクラスが付く", () => {
+    render(
+      <ConfirmDialog
+        {...labels}
+        triggerClassName="whitespace-normal text-left"
+        onConfirm={vi.fn()}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: labels.triggerLabel });
+    expect(trigger.className).toContain("whitespace-normal");
+    expect(trigger.className).toContain("text-left");
+  });
+
+  it("triggerClassNameを渡さなければトリガーボタンは既存のクラスのまま", () => {
+    render(<ConfirmDialog {...labels} onConfirm={vi.fn()} />);
+
+    const trigger = screen.getByRole("button", { name: labels.triggerLabel });
+    expect(trigger.className).toContain("whitespace-nowrap");
+    expect(trigger.className).not.toContain("text-left");
+  });
+
   it("確認ボタン押下でonConfirmが1回呼ばれる", () => {
     const onConfirm = vi.fn();
     render(<ConfirmDialog {...labels} onConfirm={onConfirm} />);
