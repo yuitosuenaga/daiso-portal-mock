@@ -2,6 +2,9 @@ import path from "path";
 
 import { defineConfig } from "vitest/config";
 
+// 日付表示の期待値がTZに依存するため、未指定ならJSTに固定する（ワーカーへ継承される）
+process.env.TZ ??= "Asia/Tokyo";
+
 export default defineConfig({
   // vite 8 は esbuild ではなく oxc で変換するため、JSX の自動ランタイムは oxc で指定する
   oxc: {
@@ -11,6 +14,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // vi.stubEnv の値を各テスト後に自動で戻す（assert失敗時の汚染防止）
+    unstubEnvs: true,
     setupFiles: ["./vitest.setup.ts"],
     // 他エージェントが並行作業中の git worktree（.claude/worktrees/配下）が
     // このリポジトリ内にネストされている場合があるため、それらのテストファイルを

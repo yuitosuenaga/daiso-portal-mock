@@ -1,8 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
 
-const NOW = new Date(2026, 6, 15); // 2026-07-15（ローカル時刻の当日0時）
+const NOW = new Date("2026-07-15T03:00:00.000Z"); // JST 2026-07-15 12:00
 
 describe("isAnnouncementDueDateOverdue", () => {
   it("dueDateが昨日のときtrueを返す", () => {
@@ -25,14 +25,18 @@ describe("isAnnouncementDueDateOverdue", () => {
     expect(isAnnouncementDueDateOverdue(undefined, NOW)).toBe(false);
   });
 
-  it("nowを省略した場合は現在時刻を基準に判定する", () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yyyy = yesterday.getFullYear();
-    const mm = String(yesterday.getMonth() + 1).padStart(2, "0");
-    const dd = String(yesterday.getDate()).padStart(2, "0");
+  describe("nowを省略した場合", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-    expect(isAnnouncementDueDateOverdue(`${yyyy}-${mm}-${dd}`)).toBe(true);
+    it("現在時刻を基準に判定する", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+
+      expect(isAnnouncementDueDateOverdue("2026-07-14")).toBe(true);
+      expect(isAnnouncementDueDateOverdue("2026-07-15")).toBe(false);
+    });
   });
 });
 

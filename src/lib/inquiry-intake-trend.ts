@@ -1,4 +1,4 @@
-import { toReferenceDateKey } from "@/lib/reference-date";
+import { REFERENCE_TIME_ZONE, toReferenceDateKey } from "@/lib/reference-date";
 import type { Inquiry } from "@/types/inquiry";
 
 export interface DailyIntakePoint {
@@ -57,5 +57,9 @@ export function toIntakeTrendColumns(points: DailyIntakePoint[]): IntakeTrendCol
  */
 export function formatIntakeDateLabel(dateKey: string, locale: string): string {
   const date = new Date(`${dateKey}T12:00:00+09:00`);
-  return new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: REFERENCE_TIME_ZONE,
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
 }

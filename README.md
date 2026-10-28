@@ -23,8 +23,13 @@ DBeaverから確認する場合は、`.env`の`POSTGRES_*`の値（デフォル�
 
 ```bash
 npx prisma migrate deploy
-npm run db:seed
+ALLOW_SEED=1 npm run db:seed
 ```
+
+seed は誤投入防止のため `ALLOW_SEED=1` を付けないと中止する（`NODE_ENV=production` や Cloud SQL を指す `DATABASE_URL` では、フラグがあっても中止する）。
+
+- `ALLOW_SEED` は `.env` に書かない。実行のたびにコマンドへ付ける（`.env` に書くと常時有効になりガードが無意味になる）
+- `npx prisma migrate reset` は seed を自動実行するため、`ALLOW_SEED=1 npx prisma migrate reset` と付ける（付けないとリセットは成功するが seed だけ失敗する）
 
 シード投入後、以下のアカウントでログインできる（パスワードは共通で`password1234`）。
 

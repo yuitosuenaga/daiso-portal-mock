@@ -12,7 +12,7 @@
 -- ログインアカウント: applicant@daiso-vietnam.example.com / staff@helpdesk.example.com
 --   いずれもパスワードは password1234（bcryptハッシュ済み）。
 --
--- 使い方（ローカル・Cloud SQLどちらも同じ）:
+-- 使い方（ローカル専用。Cloud SQL・本番には投入しない: 既知パスワード password1234 の admin が作られる）:
 --   DBeaverでDB接続 → SQLエディタでこのファイルを開く → 全体実行
 --   （既に同一IDのレコードが存在する場合は一意制約違反になるため、
 --    空のDB、または対象テーブルを空にした状態で実行すること）

@@ -88,11 +88,11 @@ describe("toIntakeTrendColumns", () => {
 describe("formatIntakeDateLabel", () => {
   it("サーバーのTZに依存せず同一のJST日付でラベルを生成する", () => {
     const label = formatIntakeDateLabel("2026-07-22", "ja");
-    expect(label).toContain("22");
+    expect(label).toBe("7/22");
   });
 
   it("日付境界付近でも前後の日にずれない", () => {
     const label = formatIntakeDateLabel("2026-01-01", "ja");
-    expect(label).toContain("1");
+    expect(label).toBe("1/1");
   });
 });
