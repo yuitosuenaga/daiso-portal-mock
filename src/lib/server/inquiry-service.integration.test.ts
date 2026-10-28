@@ -2,6 +2,8 @@
 // INQUIRY_TEST_DATABASE_URL（使い捨てローカルDB。マイグレーション適用済み）がある時のみ実行する。
 // 他の統合テスト（helpdesk-staff-service は beforeEach で helpdeskStaff.deleteMany({}) する）と
 // 並列に動くと claim が SetNull で消えるため、必ず --no-file-parallelism で実行すること。
+// 実測では同時 claim のテストが不安定になる（状態変更系も理論上は巻き込まれ得る）。
+// CI は --no-file-parallelism で実行する。
 // 例: docker run -d --rm --name inquiry-it -e POSTGRES_PASSWORD=test -p 127.0.0.1:5598:5432 postgres:16
 //     DATABASE_URL=postgresql://postgres:test@127.0.0.1:5598/postgres npx prisma migrate deploy
 //     INQUIRY_TEST_DATABASE_URL=postgresql://postgres:test@127.0.0.1:5598/postgres \
@@ -177,5 +179,23 @@ describe.skipIf(!url)("問い合わせのclaim・状態変更の同時実行（�
     await expect(
       setClaim("missing-id", { staffId: staffA.id, displayName: "A" }, staffA.id)
     ).rejects.toBeInstanceOf(InquiryNotFoundError);
+  });
+  // 履歴 create を確実に失敗させる: PostgreSQL の text は NUL 文字(\u0000)を保存できない。
+  // 返信は reply_sent 履歴(成功)→ status_changed 履歴(detailがNULで失敗)の順に作るため、
+  // 履歴が tx 外で作られていると reply_sent が残り、tx 内ならすべてロールバックされる。
+  // （claim・状態変更は履歴createが tx 内の最後の書き込みなので、この方法では tx 外化を検出できない。
+  //  それらはユニットテスト inquiry-service.tx.test.ts で検証する。）
+  it("返信の2件目の履歴作成が失敗したら、返信履歴と自動遷移もロールバックされる", async () => {
+    await expect(
+      appendReplyWithAutoTransition(inquiryId, {
+        actorName: "A",
+        body: "b",
+        autoTransitionDetail: "bad\u0000detail",
+      })
+    ).rejects.toThrow();
+    const row = await testPrisma!.inquiry.findUniqueOrThrow({ where: { id: inquiryId } });
+    expect(row.status).toBe("new");
+    expect(await historyOf("reply_sent")).toHaveLength(0);
+    expect(await historyOf("status_changed")).toHaveLength(0);
   });
 });
