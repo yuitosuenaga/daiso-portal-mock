@@ -1,12 +1,18 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FaqForm } from "@/components/features/helpdesk-faq/FaqForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createFaqActionMock = vi.fn();
 const updateFaqActionMock = vi.fn();
 const retranslateFaqActionMock = vi.fn();
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/faqs", () => ({
   createFaqAction: (...args: unknown[]) => createFaqActionMock(...args),
@@ -73,6 +79,35 @@ describe("FaqForm", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/faq");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    render(<FaqForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("質問"), {
+      target: { value: "新規質問" },
+    });
+    fireEvent.change(screen.getByLabelText("回答"), {
+      target: { value: "新規回答" },
+    });
+    fireEvent.change(screen.getByLabelText("カテゴリ"), {
+      target: { value: "other" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(createFaqActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("保存操作が失敗したとき送信エラーメッセージを表示し、入力内容を保持する", async () => {

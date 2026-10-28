@@ -262,7 +262,7 @@ export function LinkForm({
             type="button"
             variant="outline"
             size="sm"
-            disabled={isRetranslating}
+            disabled={isRetranslating || isNavigating}
             onClick={handleRetranslate}
           >
             {retranslateButtonLabel}

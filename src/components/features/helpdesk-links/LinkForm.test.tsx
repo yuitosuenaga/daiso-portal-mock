@@ -1,12 +1,18 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LinkForm } from "@/components/features/helpdesk-links/LinkForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createLinkActionMock = vi.fn().mockResolvedValue({ link: { id: "new-id" }, failedLocales: [] });
 const updateLinkActionMock = vi.fn().mockResolvedValue({ link: { id: "existing-id" }, failedLocales: [] });
 const retranslateLinkActionMock = vi.fn();
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/links", () => ({
   createLinkAction: (...args: unknown[]) => createLinkActionMock(...args),
@@ -102,6 +108,35 @@ describe("LinkForm", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/links");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    render(<LinkForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("タイトル"), {
+      target: { value: "新規リンク" },
+    });
+    fireEvent.change(screen.getByLabelText("URL"), {
+      target: { value: "https://example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("大分類"), {
+      target: { value: "category-other" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(createLinkActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("保存操作が失敗したとき送信エラーメッセージを表示し、入力内容を保持する", async () => {

@@ -1,11 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApplicantUserForm } from "@/components/features/helpdesk-companies/ApplicantUserForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createApplicantUserActionMock = vi.fn();
 const updateApplicantUserActionMock = vi.fn();
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/applicant-users", () => ({
   createApplicantUserAction: (...args: unknown[]) =>
@@ -115,6 +121,36 @@ describe("ApplicantUserForm（新規作成モード）", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/companies/company-1");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    createApplicantUserActionMock.mockResolvedValue({ ok: true, user: { id: "applicant-1" } });
+    render(<ApplicantUserForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "tanaka@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("表示名"), {
+      target: { value: "田中太郎" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(createApplicantUserActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("通知言語プルダウンが定数から生成した選択肢とともに表示される", () => {

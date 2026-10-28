@@ -1,12 +1,18 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CompanyForm } from "@/components/features/helpdesk-companies/CompanyForm";
+import { createPendingNavigation } from "@/lib/test/pending-navigation";
 
 const createCompanyActionMock = vi.fn();
 const updateCompanyActionMock = vi.fn();
 const checkCompanyCodeAvailabilityActionMock = vi.fn();
 const pushMock = vi.fn();
+const pendingNavigation = createPendingNavigation();
+
+afterEach(async () => {
+  await pendingNavigation.settle();
+});
 
 vi.mock("@/lib/actions/companies", () => ({
   createCompanyAction: (...args: unknown[]) => createCompanyActionMock(...args),
@@ -84,6 +90,36 @@ describe("CompanyForm", () => {
       });
     });
     expect(pushMock).toHaveBeenCalledWith("/helpdesk/companies/company-1");
+  });
+
+  it("作成成功後は遷移が終わるまで送信ボタンが無効のままで、再送信してもactionは1回しか呼ばれない", async () => {
+    pushMock.mockImplementationOnce(pendingNavigation.push);
+    createCompanyActionMock.mockResolvedValue({ ok: true, company: { id: "company-1" } });
+    render(<CompanyForm mode="create" {...labels} />);
+
+    fireEvent.change(screen.getByLabelText("会社名"), {
+      target: { value: "Daiso Thailand" },
+    });
+    fireEvent.change(screen.getByLabelText("国"), {
+      target: { value: "TH" },
+    });
+    fireEvent.change(screen.getByLabelText("販社コード"), {
+      target: { value: "th-daiso-thailand" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+    const submitButton = screen.getByRole("button", { name: "保存する" });
+    await waitFor(() => expect((submitButton as HTMLButtonElement).disabled).toBe(true));
+
+    // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(createCompanyActionMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("販社コード重複エラーはcompanyCodeフィールドに表示される", async () => {

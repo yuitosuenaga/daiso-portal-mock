@@ -590,7 +590,7 @@ export function ManualForm({
           <Button
             type="button"
             variant="outline"
-            disabled={isRetranslating}
+            disabled={isRetranslating || isNavigating}
             onClick={handleRetranslate}
           >
             {retranslateButtonLabel}
