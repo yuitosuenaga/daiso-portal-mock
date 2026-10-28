@@ -17,7 +17,7 @@
 | 項目 | 現行環境の状態 |
 |---|---|
 | 公開URL / `AUTH_URL` | `https://portal-mock-700069905019.asia-northeast1.run.app`(ログイン確認はこのホストで行う) |
-| Cloud Run | `portal-mock`。イメージは `--source` デプロイで Artifact Registry `cloud-run-source-deploy/portal-mock` に保存される |
+| Cloud Run | `portal-mock`。メモリは Terraform の設定値が 1Gi(§3.1.1。`terraform apply` するまで稼働中の revision は 512Mi のまま)。イメージは `--source` デプロイで Artifact Registry `cloud-run-source-deploy/portal-mock` に保存される |
 | Cloud SQL | `portal-mock-backend-db`(PostgreSQL 16、`db-f1-micro`、ZONAL)。自動バックアップ(PITR は無効)と削除保護は適用済み(段階4a)。TLS 必須化(`sslMode=ENCRYPTED_ONLY`)も適用済み(段階4b)で、適用後に Cloud Run の正常稼働を確認済み。確認コマンドと期待値は §5.6 |
 | Secret Manager | `portal-mock-database-url` / `portal-mock-auth-secret`(ローテーション対象)、`anthropic-api-key-suenaga-daiso-portal`(手動登録) |
 | Terraform state | GCS バケット `rvp-ai-proto-camp-portal-iac-tfstate`(prefix `dev`) |
@@ -307,6 +307,15 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 | DB が停止している | `state` が `RUNNABLE` でない、または `activationPolicy=NEVER` | `gcloud sql instances patch ... --activation-policy=ALWAYS`(`db-start`)。起動後、接続の確立に数十秒かかることがある。 |
 | コールドスタートで遅い | `min_instances=0` の場合、初回アクセスが遅い | 想定内。気になる場合は `min_instances` を 1 にする(Terraform 変更)。 |
 | 429 / 同時接続数不足 | `max_instances`(現行は 1)を超えるアクセス | `max_instances` の引き上げ(Terraform 変更)。 |
+
+### 3.1.1 ファイル配信のメモリ要件
+
+資料のファイル配信(`/api/*/file`)は、同時2件のセマフォで同時にデコードする。20MiB の PDF を GET 50並列にしたとき、サーバーの RSS は約 1.15GB になった(PR #201 のレビューでの実測。同時2件分の base64 文字列と Buffer が残るため)。このため `cloudrun_memory` は 1Gi にしている。**1GiB 未満には戻さない**(512Mi では OOM で revision が再起動し、502 / 503 になりうる)。ファイルを GCS に移行した後に再検討する。
+
+- 設定場所: `infra/envs/*/variables.tf` の既定値(`1Gi`)、現行環境は `infra/envs/dev/current.tfvars` で明示。`cloudrun_cpu`(1)は変更していない。
+- 反映は `terraform apply` で行う(§5.2)。plan の差分が Cloud Run のメモリ変更(新リビジョンの作成)のみであることを確認してから apply する。
+- ロールバックは `cloudrun_memory = "512Mi"` に戻して apply する。
+- コスト: Cloud Run のメモリ課金は使用時間に比例する。`min_instances=0` の現行環境では、リクエストを処理している間だけ課金されるため、大きな増加にはならない見込み。料金の数値は GCP の公式料金ページで確認する。
 
 ### 3.2 ログインできない
 
