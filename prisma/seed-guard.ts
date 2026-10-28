@@ -50,6 +50,8 @@ function looksLikeCloudSql(databaseUrl: string | undefined): boolean {
   return (host.match(/:/g) ?? []).length >= 2;
 }
 
+const DOTENV_PATHS = [".env", "prisma/.env"] as const;
+
 /**
  * ガード判定用に `.env` を process.env へ反映する。`tsx` は `.env` を読まず、Prisma は最初のクエリ時に
  * 読むため、そのままだと `.env` だけに書かれた DATABASE_URL をガードが見落とす。
@@ -57,13 +59,27 @@ function looksLikeCloudSql(databaseUrl: string | undefined): boolean {
  * ファイルが無い場合は無視し、それ以外のエラー（構文不正等）は再送出する。
  */
 export function loadDotEnvForGuard(
-  loader: (path: string) => void = (path) => process.loadEnvFile(path)
+  loader: (path: string) => void = (path) => process.loadEnvFile(path),
+  paths: readonly string[] = DOTENV_PATHS
 ): void {
-  for (const path of [".env", "prisma/.env"]) {
+  for (const path of paths) {
     try {
       loader(path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   }
+}
+
+/**
+ * seed 起動時のガード一式: `.env` を process.env へ反映してから `assertSeedAllowed` で判定する。
+ * `.env` の読込結果は process.env に入るため、`env` は process.env を渡す前提（既定）。
+ */
+export function assertSeedAllowedWithEnvFiles(
+  env: NodeJS.ProcessEnv = process.env,
+  loader?: (path: string) => void,
+  paths?: readonly string[]
+): void {
+  loadDotEnvForGuard(loader, paths);
+  assertSeedAllowed(env);
 }

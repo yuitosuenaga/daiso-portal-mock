@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { assertSeedAllowed, loadDotEnvForGuard } from "./seed-guard";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { assertSeedAllowed, assertSeedAllowedWithEnvFiles, loadDotEnvForGuard } from "./seed-guard";
 
 const LOCAL_URL = "postgresql://portal_mock:portal_mock@localhost:5432/portal_mock";
 
@@ -103,5 +107,58 @@ describe("loadDotEnvForGuard", () => {
       for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
       Object.assign(process.env, saved);
     }
+  });
+});
+
+describe("assertSeedAllowedWithEnvFiles", () => {
+  const CLOUD_URL = "postgresql://u:p@localhost/x?host=/cloudsql/p:r:i";
+
+  it(".env 読込を経由して、.env にだけある Cloud SQL 形式URLを拒否する（注入ローダー）", () => {
+    vi.stubEnv("ALLOW_SEED", "1");
+    vi.stubEnv("DATABASE_URL", "");
+    delete process.env.DATABASE_URL;
+    const loader = (path: string) => {
+      if (path === ".env") process.env.DATABASE_URL = CLOUD_URL;
+    };
+    expect(() => assertSeedAllowedWithEnvFiles(process.env, loader)).toThrow(/Cloud SQL/);
+  });
+
+  it(".env に問題が無ければ通過する", () => {
+    vi.stubEnv("ALLOW_SEED", "1");
+    expect(() => assertSeedAllowedWithEnvFiles(process.env, () => {})).not.toThrow();
+  });
+});
+
+describe("実際の process.loadEnvFile との組み合わせ", () => {
+  let dir: string | undefined;
+
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+    dir = undefined;
+  });
+
+  function writeTmpEnv(content: string): string {
+    dir = mkdtempSync(join(tmpdir(), "seed-guard-"));
+    const file = join(dir, ".env");
+    writeFileSync(file, content);
+    return file;
+  }
+
+  const realLoader = (path: string) => process.loadEnvFile(path);
+
+  it("シェルの DATABASE_URL（ローカル）は .env の Cloud SQL 形式URLに上書きされず、通過する", () => {
+    const file = writeTmpEnv('DATABASE_URL="postgresql://u:p@localhost/x?host=/cloudsql/p:r:i"\n');
+    vi.stubEnv("ALLOW_SEED", "1");
+    vi.stubEnv("DATABASE_URL", "postgresql://portal_mock:portal_mock@localhost:5432/portal_mock");
+    expect(() => assertSeedAllowedWithEnvFiles(process.env, realLoader, [file])).not.toThrow();
+    expect(process.env.DATABASE_URL).toContain("localhost:5432");
+  });
+
+  it("シェル側に DATABASE_URL が無ければ .env の値が使われ、拒否される", () => {
+    const file = writeTmpEnv('DATABASE_URL="postgresql://u:p@localhost/x?host=/cloudsql/p:r:i"\n');
+    vi.stubEnv("ALLOW_SEED", "1");
+    vi.stubEnv("DATABASE_URL", "");
+    delete process.env.DATABASE_URL;
+    expect(() => assertSeedAllowedWithEnvFiles(process.env, realLoader, [file])).toThrow(/Cloud SQL/);
   });
 });

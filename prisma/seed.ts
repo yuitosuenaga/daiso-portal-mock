@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { assertSeedAllowed, loadDotEnvForGuard } from "./seed-guard";
+import { assertSeedAllowedWithEnvFiles } from "./seed-guard";
 
 const prisma = new PrismaClient();
 
@@ -1262,8 +1262,7 @@ async function seedAdditionalInquiries(
 
 async function main() {
   // 最初のDBアクセスより前に、本番・Cloud SQL・フラグ無しの実行を拒否する
-  loadDotEnvForGuard();
-  assertSeedAllowed(process.env);
+  assertSeedAllowedWithEnvFiles();
 
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
