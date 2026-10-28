@@ -1,8 +1,11 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { LinkForm } from "@/components/features/helpdesk-links/LinkForm";
 import { getAllLinkCategories } from "@/lib/api/link-categories";
 import { toLinkCategoryFormOptions } from "@/lib/link-category-utils";
+
+export const generateMetadata = createPageMetadata("helpdeskLinks", "form.createTitle");
 
 export default async function HelpdeskLinkNewPage() {
   const t = await getTranslations("helpdeskLinks.form");

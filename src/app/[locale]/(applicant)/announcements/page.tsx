@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 import {
   AnnouncementList,
@@ -7,6 +8,8 @@ import {
   AnnouncementSelfSummaryPanel,
   AnnouncementSelfSummaryPanelSkeleton,
 } from "@/components/features/dashboard/AnnouncementSelfSummaryPanel";
+
+export const generateMetadata = createPageMetadata("announcements", "list.title");
 
 export default function AnnouncementsPage() {
   return (

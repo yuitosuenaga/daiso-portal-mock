@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 
@@ -30,6 +31,8 @@ function buildCsvTemplateDataUrl(): string {
  * 販社CSV一括登録画面（要件19.1〜19.3）。見出し・説明・CSVテンプレートDL導線・
  * アップロードフォーム（`CompanyCsvImportForm`）を組み立てるServer Component。
  */
+export const generateMetadata = createPageMetadata("helpdeskCompanies", "import.title");
+
 export default async function HelpdeskCompanyImportPage() {
   await requireHelpdeskAdminPage();
   const [tImport, tForm] = await Promise.all([

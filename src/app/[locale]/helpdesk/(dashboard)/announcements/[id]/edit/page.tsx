@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
@@ -20,6 +21,8 @@ type HelpdeskAnnouncementEditPageProps = {
     translationFailed?: string;
   }>;
 };
+
+export const generateMetadata = createPageMetadata("helpdeskAnnouncements", "form.editTitle");
 
 export default async function HelpdeskAnnouncementEditPage(props: HelpdeskAnnouncementEditPageProps) {
   const searchParams = await props.searchParams;

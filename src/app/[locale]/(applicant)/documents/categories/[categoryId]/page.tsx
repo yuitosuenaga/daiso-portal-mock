@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 import {
   DocumentList,
@@ -9,6 +10,8 @@ interface DocumentCategoryPageProps {
     categoryId: string;
   }>;
 }
+
+export const generateMetadata = createPageMetadata("documents", "list.title");
 
 export default async function DocumentCategoryPage(props: DocumentCategoryPageProps) {
   const params = await props.params;

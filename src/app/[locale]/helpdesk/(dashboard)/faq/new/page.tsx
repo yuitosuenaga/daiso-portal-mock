@@ -1,7 +1,10 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { FaqForm } from "@/components/features/helpdesk-faq/FaqForm";
 import { FAQ_CATEGORY_CODES } from "@/lib/constants/faq-options";
+
+export const generateMetadata = createPageMetadata("helpdeskFaq", "form.createTitle");
 
 export default async function HelpdeskFaqNewPage() {
   const [t, tCategories] = await Promise.all([

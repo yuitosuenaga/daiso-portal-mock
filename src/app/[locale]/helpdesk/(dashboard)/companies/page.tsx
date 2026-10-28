@@ -1,8 +1,11 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 import {
   CompanyManagementList,
   CompanyManagementListSkeleton,
 } from "@/components/features/helpdesk-companies/CompanyManagementList";
+
+export const generateMetadata = createPageMetadata("helpdeskCompanies", "list.title");
 
 export default function HelpdeskCompaniesPage() {
   return (

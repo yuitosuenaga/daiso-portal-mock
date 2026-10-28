@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +15,8 @@ type HelpdeskApplicantUserEditPageProps = {
     userId: string;
   }>;
 };
+
+export const generateMetadata = createPageMetadata("helpdeskCompanies", "applicantUserForm.editTitle");
 
 export default async function HelpdeskApplicantUserEditPage(props: HelpdeskApplicantUserEditPageProps) {
   await requireHelpdeskAdminPage();

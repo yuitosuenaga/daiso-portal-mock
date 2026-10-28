@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
@@ -10,6 +11,8 @@ type HelpdeskTemplateEditPageProps = {
     id: string;
   }>;
 };
+
+export const generateMetadata = createPageMetadata("helpdeskTemplates", "form.editTitle");
 
 export default async function HelpdeskTemplateEditPage(props: HelpdeskTemplateEditPageProps) {
   const params = await props.params;

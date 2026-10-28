@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations, getLocale } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { ManualForm } from "@/components/features/helpdesk-manuals/ManualForm";
@@ -5,6 +6,8 @@ import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
 import { MANUAL_CATEGORIES } from "@/lib/constants/manual";
 import { buildMonthOptions } from "@/lib/category-year-month-filter";
+
+export const generateMetadata = createPageMetadata("helpdeskManuals", "form.createTitle");
 
 export default async function HelpdeskManualNewPage() {
   const [t, tCategories, tCountries, tInquiryForm, locale] = await Promise.all([
