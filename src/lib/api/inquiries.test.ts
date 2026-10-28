@@ -208,9 +208,16 @@ describe("createInquiry", () => {
   it("ヘルプデスクセッションでも対象会社IDが渡されないとき例外を送出する", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
 
-    await expect(
-      createInquiry({} as CreateInquiryInput)
-    ).rejects.toThrow();
+    const input: CreateInquiryInput = {
+      title: "対象会社なし代理登録テスト",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+    };
+
+    await expect(createInquiry(input)).rejects.toThrow(UnauthorizedSessionError);
     expect(createInquiryRecord).not.toHaveBeenCalled();
   });
 
