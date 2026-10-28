@@ -4,12 +4,12 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { Input } from "@/components/ui/input";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { companyFormSchema, type CompanyFormValues } from "@/lib/validation/company";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 import {
   checkCompanyCodeAvailabilityAction,
   createCompanyAction,
@@ -66,7 +66,7 @@ export function CompanyForm({
   companyCodeDuplicateMessage,
   submitErrorMessage,
 }: CompanyFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const {
     register,
@@ -128,6 +128,7 @@ export function CompanyForm({
   }
 
   async function onSubmit(values: CompanyFormValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     try {
       const result =
@@ -143,7 +144,7 @@ export function CompanyForm({
         }
         return;
       }
-      router.push(`/helpdesk/companies/${result.company.id}`);
+      navigate(`/helpdesk/companies/${result.company.id}`);
     } catch {
       setHasSubmitError(true);
     }
@@ -210,7 +211,7 @@ export function CompanyForm({
       </FormField>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isNavigating}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (

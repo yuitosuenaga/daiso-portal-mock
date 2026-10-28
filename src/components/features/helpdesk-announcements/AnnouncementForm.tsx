@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useRouter } from "@/i18n/navigation";
 import { FormField } from "@/components/features/inquiry-form/FormField";
 import { AttachmentField } from "@/components/features/inquiry-form/AttachmentField";
 import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
@@ -32,6 +31,7 @@ import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
 import { documentFileUrl } from "@/lib/file-urls";
 import type { DocumentSummary } from "@/types/document";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
+import { useNavigateAfterSubmit } from "@/lib/hooks/use-navigate-after-submit";
 
 export interface AnnouncementFormProps {
   mode: "create" | "edit";
@@ -197,7 +197,7 @@ export function AnnouncementForm({
   linkedDocumentsTargetingCountriesPrefixLabel,
   linkedDocumentsTargetingCompaniesPrefixLabel,
 }: AnnouncementFormProps) {
-  const router = useRouter();
+  const { navigate, isNavigating, isNavigationLocked } = useNavigateAfterSubmit();
   const [hasSubmitError, setHasSubmitError] = useState(false);
   const [hasUnavailableUsers, setHasUnavailableUsers] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
@@ -259,6 +259,7 @@ export function AnnouncementForm({
   const status = watch("status");
 
   async function onSubmit(values: AnnouncementSubmitValues) {
+    if (isNavigationLocked()) return;
     setHasSubmitError(false);
     setHasUnavailableUsers(false);
     setTranslationFailedNotice(false);
@@ -283,7 +284,7 @@ export function AnnouncementForm({
         }
         // いずれも翻訳の再実行ボタンがある編集画面に留まる（作成時は編集画面へ遷移）。
         if (mode === "create") {
-          router.push(
+          navigate(
             `/helpdesk/announcements/${result.announcement.id}/edit?translationFailed=${
               result.forcedDraft ? "1" : "published"
             }`
@@ -291,7 +292,7 @@ export function AnnouncementForm({
         }
         return;
       }
-      router.push("/helpdesk/announcements");
+      navigate("/helpdesk/announcements");
     } catch {
       setHasSubmitError(true);
     }
@@ -713,7 +714,7 @@ export function AnnouncementForm({
       />
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isNavigating}>
           {submitButtonLabel}
         </Button>
         {hasSubmitError && (
