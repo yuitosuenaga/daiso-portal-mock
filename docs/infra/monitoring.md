@@ -42,4 +42,4 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 
 - 通知先・当番体制、SLO/稼働率目標（目標が決まれば uptime・5xx 閾値を逆算）
 - 営業時間外の通知可否
-- ログベースのアラート（認証失敗の急増など）の要否
+- ログベースのアラート（認証失敗の急増など）の要否。候補条件: `jsonPayload.message="[request-error] Unhandled request error"`(捕捉されなかったリクエストエラー。runbook §3.5)の件数
