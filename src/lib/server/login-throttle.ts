@@ -8,6 +8,7 @@ import {
   MAX_FAILED_ATTEMPTS,
   type ThrottleState,
 } from "@/lib/auth/login-throttle-policy";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   hashIdentifier,
@@ -53,50 +54,57 @@ async function loadState(key: string): Promise<ThrottleState | null> {
 }
 
 /**
- * 認証失敗を1文のSQLで原子的に反映する（`applyFailure`と同じ遷移をSQLで表現したもの）。
- * 行の読み取り→計算→書き込みを分けると並列試行で件数を取りこぼしロックをすり抜けるため、
- * `INSERT ... ON CONFLICT DO UPDATE`の行ロックで直列化する。
- * - ロック中の行は更新しない（WHERE句。行ロック待ち後の最新行で再評価される）
+ * 照合の前に、試行の枠を1文のSQLで原子的に予約する（`applyFailure`と同じ遷移をSQLで表現したもの）。
+ * 「ロック判定→照合→失敗記録」を分けると、同じメールへの並列試行が全てロック前の状態を読んで
+ * 全件照合されてしまうため、照合の前に`INSERT ... ON CONFLICT DO UPDATE`の行ロックで直列化して数える。
+ * - ロック中の行は更新しない（WHERE句。行ロック待ち後の最新行で再評価される）= 行が返らない = 照合させない
  * - 失敗窓超過・ロック期限切れ後は1回目として数え直す
- * - 閾値到達でfailedCountを0に戻しlockedUntilを設定する
- * @returns becameLocked: この失敗でロックが成立したか
+ * - 閾値到達（5回目の予約）でfailedCountを0に戻しlockedUntilを設定する。以降の並列試行は照合されない
+ * 窓の基準`lastFailedAt`は「最後の試行を予約した時刻」（照合時間の約100ms分、従来の失敗時刻より早い）。
+ * 日時はISO文字列をtimestamptz経由でUTCのtimestampにして使う。Prismaは生クエリのDate引数を
+ * timestamptzとして渡すため、`${now}::timestamp`ではセッションのTimeZoneにより+9h等ずれる。
+ * @returns allowed: 照合に進んでよいか / locksOnFailure: この予約で閾値に達しロックが成立したか
  */
-async function recordFailureAtomically(
+async function reserveAttempt(
   key: string,
   now: Date
-): Promise<{ becameLocked: boolean }> {
+): Promise<{ allowed: boolean; locksOnFailure: boolean }> {
   const first = applyFailure(null, now).next;
+  const nowUtc = Prisma.sql`(${now.toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
+  const firstLockedUntil = first.lockedUntil
+    ? Prisma.sql`(${first.lockedUntil.toISOString()}::timestamptz AT TIME ZONE 'UTC')`
+    : Prisma.sql`NULL`;
   const rows = await prisma.$queryRaw<{ lockedUntil: Date | null }[]>`
     INSERT INTO "LoginThrottle" ("key", "failedCount", "lastFailedAt", "lockedUntil", "updatedAt")
-    VALUES (${key}, ${first.failedCount}, ${now}, ${first.lockedUntil}, ${now})
+    VALUES (${key}, ${first.failedCount}, ${nowUtc}, ${firstLockedUntil}, ${nowUtc})
     ON CONFLICT ("key") DO UPDATE SET
       "failedCount" = CASE
         WHEN (CASE
           WHEN "LoginThrottle"."lastFailedAt" IS NULL
             OR "LoginThrottle"."lockedUntil" IS NOT NULL
-            OR "LoginThrottle"."lastFailedAt" < ${now}::timestamp - make_interval(mins => ${FAILURE_WINDOW_MINUTES}::int)
+            OR "LoginThrottle"."lastFailedAt" < ${nowUtc} - make_interval(mins => ${FAILURE_WINDOW_MINUTES}::int)
           THEN 1 ELSE "LoginThrottle"."failedCount" + 1 END) >= ${MAX_FAILED_ATTEMPTS}::int
         THEN 0
         WHEN "LoginThrottle"."lastFailedAt" IS NULL
           OR "LoginThrottle"."lockedUntil" IS NOT NULL
-          OR "LoginThrottle"."lastFailedAt" < ${now}::timestamp - make_interval(mins => ${FAILURE_WINDOW_MINUTES}::int)
+          OR "LoginThrottle"."lastFailedAt" < ${nowUtc} - make_interval(mins => ${FAILURE_WINDOW_MINUTES}::int)
         THEN 1
         ELSE "LoginThrottle"."failedCount" + 1 END,
-      "lastFailedAt" = ${now},
+      "lastFailedAt" = ${nowUtc},
       "lockedUntil" = CASE
         WHEN (CASE
           WHEN "LoginThrottle"."lastFailedAt" IS NULL
             OR "LoginThrottle"."lockedUntil" IS NOT NULL
-            OR "LoginThrottle"."lastFailedAt" < ${now}::timestamp - make_interval(mins => ${FAILURE_WINDOW_MINUTES}::int)
+            OR "LoginThrottle"."lastFailedAt" < ${nowUtc} - make_interval(mins => ${FAILURE_WINDOW_MINUTES}::int)
           THEN 1 ELSE "LoginThrottle"."failedCount" + 1 END) >= ${MAX_FAILED_ATTEMPTS}::int
-        THEN ${now}::timestamp + make_interval(mins => ${LOCKOUT_MINUTES}::int)
+        THEN ${nowUtc} + make_interval(mins => ${LOCKOUT_MINUTES}::int)
         ELSE NULL END,
-      "updatedAt" = ${now}
-    WHERE "LoginThrottle"."lockedUntil" IS NULL OR "LoginThrottle"."lockedUntil" <= ${now}::timestamp
+      "updatedAt" = ${nowUtc}
+    WHERE "LoginThrottle"."lockedUntil" IS NULL OR "LoginThrottle"."lockedUntil" <= ${nowUtc}
     RETURNING "lockedUntil"
   `;
-  // 行が返らない = 既にロック中（更新なし）。返ったlockedUntilが非nullなら今回ロック成立。
-  return { becameLocked: rows.length > 0 && rows[0].lockedUntil !== null };
+  // 行が返らない = 既にロック中（更新なし）。返ったlockedUntilが非nullなら今回の予約でロック成立。
+  return { allowed: rows.length > 0, locksOnFailure: rows[0]?.lockedUntil != null };
 }
 
 /** 指定メールアドレスが現在ロック中か。 */
@@ -110,9 +118,11 @@ export async function isLoginLocked(
 
 /**
  * パスワード認証付きのログイン処理を、試行制限と監査ログで包む。
- * - ロック中は認証処理自体を実行せずnullを返す（パスワードの正誤を探らせない）
- * - 失敗はカウントし、閾値到達でロック（login_locked）
- * - 成功時はカウンタをリセットし、login_successを記録
+ * - 照合の前に試行枠を原子的に予約する。ロック中（予約不可）は認証処理自体を実行せずnullを返す
+ *   （パスワードの正誤を探らせない。並列に送っても照合は閾値回までしか実行されない）
+ * - 予約した試行は失敗として数える（認証処理が例外になった場合も戻さない）。閾値到達でロック（login_locked）
+ * - 成功時はカウンタ（5回目の予約でかかったロックを含む）を削除してリセットし、login_successを記録
+ * - 予約のSQLが失敗したら認証処理を実行せず再送出する（fail closed）
  * ロックの有無・アカウントの存否に関わらず、呼び出し側へはnull/ユーザーのみ返す。
  */
 export async function runProtectedCredentialsLogin<T extends { id: string }>(
@@ -123,9 +133,11 @@ export async function runProtectedCredentialsLogin<T extends { id: string }>(
   const identifierHash = hashIdentifier(email);
   const key = throttleKey(portal, identifierHash);
   const now = new Date();
-  const state = await withDbErrorLog("load", () => loadState(key));
+  const { allowed, locksOnFailure } = await withDbErrorLog("reserve", () =>
+    reserveAttempt(key, now)
+  );
 
-  if (isLocked(state, now)) {
+  if (!allowed) {
     await recordAuthEvent({
       type: "login_blocked",
       method: "credentials",
@@ -139,13 +151,11 @@ export async function runProtectedCredentialsLogin<T extends { id: string }>(
   const user = await authorize();
 
   if (user) {
-    if (state && (state.failedCount > 0 || state.lockedUntil)) {
-      try {
-        await prisma.loginThrottle.deleteMany({ where: { key } });
-      } catch (error) {
-        // 認証は成功している。カウンタ掃除の失敗でログインを失敗にしない
-        logger.error("login throttle reset failed", { errorKind: errorKind(error) });
-      }
+    try {
+      await prisma.loginThrottle.deleteMany({ where: { key } });
+    } catch (error) {
+      // 認証は成功している。カウンタ掃除の失敗でログインを失敗にしない
+      logger.error("login throttle reset failed", { errorKind: errorKind(error) });
     }
     await recordAuthEvent({
       type: "login_success",
@@ -157,9 +167,6 @@ export async function runProtectedCredentialsLogin<T extends { id: string }>(
     return user;
   }
 
-  const { becameLocked } = await withDbErrorLog("record_failure", () =>
-    recordFailureAtomically(key, now)
-  );
   await recordAuthEvent({
     type: "login_failure",
     method: "credentials",
@@ -167,7 +174,7 @@ export async function runProtectedCredentialsLogin<T extends { id: string }>(
     identifierHash,
     reason: "invalid_credentials",
   });
-  if (becameLocked) {
+  if (locksOnFailure) {
     await recordAuthEvent({
       type: "login_locked",
       method: "credentials",
