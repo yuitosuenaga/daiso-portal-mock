@@ -305,6 +305,12 @@ export async function createMonthlyMaterialRecord(
  * クライアントから来た`fileName`/`fileType`/`fileSize`は信用せず無視する。対象が既存のアップロード方式
  * （本体あり）でなければ（Google方式からファイル無しでアップロード方式へ切り替える操作など）
  * 更新件数が0になり、`MonthlyMaterialNotFoundError`を送出する。
+ *
+ * 注意: ここでの`MonthlyMaterialNotFoundError`は「`id`・`sourceType`・`dataUrl`の条件に合う行が無い」を
+ * 意味する。つまり、行が存在しない場合のほか、Google方式の行からファイル無しでアップロード方式へ
+ * 切り替えようとした場合も含む。後者は`dataUrl`がnullのアップロード方式の行を作らないための保護
+ * （`monthlyMaterialUpdateSchema`はこの入力を通すため、保護はこの`updateMany`の条件だけが担う）。
+ * エラー名と意味がずれるが、API側のエラー対応を広げないため専用のエラー型は設けない。
  */
 export async function updateMonthlyMaterialRecord(
   id: string,
