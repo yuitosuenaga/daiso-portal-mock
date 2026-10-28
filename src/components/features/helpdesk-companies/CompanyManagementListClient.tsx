@@ -172,10 +172,11 @@ export function CompanyManagementListClient({
           <p className="text-sm text-muted-foreground">
             {formatTemplate(selectedCountTemplate, { count: selectedIds.size })}
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
             <ConfirmDialog
               triggerLabel={bulkDeactivateButtonLabel}
               triggerVariant="destructive"
+              triggerClassName="h-auto min-h-10 whitespace-normal text-left"
               triggerDisabled={selectedIds.size === 0 || isPending}
               title={confirmTitle}
               description={formatTemplate(confirmMessageTemplate, {
