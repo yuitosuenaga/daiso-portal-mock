@@ -173,6 +173,23 @@ describe("createApplicantUser", () => {
     expect(result).not.toHaveProperty("passwordHash");
   });
 
+  it("メールアドレスは保存直前にも小文字へ正規化する", async () => {
+    vi.mocked(prisma.applicantUser.create).mockResolvedValue(
+      baseApplicantUserRecord({ id: "1" }) as never
+    );
+
+    await createApplicantUser("company-1", {
+      email: " Tanaka@Example.com ",
+      displayName: "田中太郎",
+      password: "password123",
+      preferredLocale: "en",
+    });
+
+    expect(prisma.applicantUser.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: "tanaka@example.com" }),
+    });
+  });
+
   it("preferredLocaleを指定した場合はそのまま保存され、mapApplicantUserで返却される", async () => {
     vi.mocked(prisma.applicantUser.create).mockResolvedValue(
       baseApplicantUserRecord({ id: "1", preferredLocale: "th" }) as never
@@ -193,6 +210,24 @@ describe("createApplicantUser", () => {
 });
 
 describe("updateApplicantUser", () => {
+  it("メールアドレスは保存直前にも小文字へ正規化する", async () => {
+    vi.mocked(prisma.applicantUser.update).mockResolvedValue(
+      baseApplicantUserRecord({ id: "1" }) as never
+    );
+
+    await updateApplicantUser("1", {
+      email: " Tanaka@Example.com ",
+      displayName: "田中太郎",
+      preferredLocale: "en",
+    });
+
+    expect(prisma.applicantUser.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ email: "tanaka@example.com" }),
+      })
+    );
+  });
+
   it("passwordが指定されている場合はハッシュ化してpasswordHashを更新する", async () => {
     vi.mocked(prisma.applicantUser.update).mockResolvedValue(
       baseApplicantUserRecord({ id: "1" }) as never
@@ -346,8 +381,37 @@ describe("isApplicantUserEmailTaken", () => {
     await isApplicantUserEmailTaken("tanaka@example.com", "applicant-1");
 
     expect(prisma.applicantUser.findFirst).toHaveBeenCalledWith({
-      where: { email: "tanaka@example.com", id: { not: "applicant-1" } },
+      where: {
+        email: { equals: "tanaka@example.com", mode: "insensitive" },
+        id: { not: "applicant-1" },
+      },
     });
+  });
+
+  it("両テーブルとも大文字小文字を無視し、正規化済みの値で重複確認する", async () => {
+    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+
+    await isApplicantUserEmailTaken("  Tanaka@Example.COM ");
+
+    const where = { email: { equals: "tanaka@example.com", mode: "insensitive" } };
+    expect(prisma.applicantUser.findFirst).toHaveBeenCalledWith({ where });
+    expect(prisma.helpdeskStaff.findFirst).toHaveBeenCalledWith({ where });
+  });
+
+  it("大文字小文字だけが違う既存の申請者・スタッフがいれば重複とみなす", async () => {
+    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(
+      baseApplicantUserRecord({ email: "Tanaka@example.com" }) as never
+    );
+    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    expect(await isApplicantUserEmailTaken("tanaka@example.com")).toBe(true);
+
+    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue({
+      id: "staff-1",
+      email: "Staff@example.com",
+    } as never);
+    expect(await isApplicantUserEmailTaken("staff@example.com")).toBe(true);
   });
 });
 

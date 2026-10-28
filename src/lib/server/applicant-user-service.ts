@@ -3,6 +3,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 
+import { normalizeEmail } from "@/lib/auth/google-login-policy";
 import { prisma } from "@/lib/db/prisma";
 import {
   requireHelpdeskAdminSession,
@@ -106,7 +107,8 @@ export async function createApplicantUser(
 
   const record = await prisma.applicantUser.create({
     data: {
-      email: input.email,
+      // 呼び出し元（スキーマ）で正規化済みだが、多層防御として保存直前にも正規化する
+      email: normalizeEmail(input.email),
       displayName: input.displayName,
       passwordHash,
       companyId,
@@ -137,7 +139,7 @@ export async function updateApplicantUser(
     const record = await prisma.applicantUser.update({
       where: { id },
       data: {
-        email: input.email,
+        email: normalizeEmail(input.email),
         displayName: input.displayName,
         preferredLocale: input.preferredLocale,
         ...(passwordHash ? { passwordHash } : {}),
@@ -196,14 +198,16 @@ export async function isApplicantUserEmailTaken(
 ): Promise<boolean> {
   await requireHelpdeskAdminSession();
 
+  // 大文字小文字を区別せず比較する（保存値は小文字だが、既存データに大文字入りが残りうるため）
+  const emailMatch = { equals: normalizeEmail(email), mode: "insensitive" as const };
   const [applicantUser, helpdeskStaff] = await Promise.all([
     prisma.applicantUser.findFirst({
       where: {
-        email,
+        email: emailMatch,
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     }),
-    prisma.helpdeskStaff.findFirst({ where: { email } }),
+    prisma.helpdeskStaff.findFirst({ where: { email: emailMatch } }),
   ]);
 
   return applicantUser !== null || helpdeskStaff !== null;
