@@ -244,7 +244,7 @@ export async function findDocumentFileMetaById(id: string): Promise<DocumentFile
  * HEAD用。認可確認済みのIDについて、本体をNodeへ転送せずDB側で長さ・先頭・末尾だけ集計する。
  * dataUrlがnullまたは存在しない場合はnull。
  * 改行・空白（CR/LF/タブ/スペース）だけを`replace`で除去する（`regexp_replace`や`translate`より軽い。20MiB資料で約半分）。
- * 呼び出し側で同時数も制限する）。それ以外の不正文字はGET（Nodeのデコード）では無視されるが
+ * 同時数は呼び出し側で制限する。それ以外の不正文字はGET（Nodeのデコード）では無視されるが
  * ここでは数えるため、不正なdataUrlではHEADとGETのサイズが食い違い得る。
  * なお先頭プレフィックスの判定は先頭300文字だけで行う（GETは全体に対して判定）ため、
  * `;[^,]*`が300文字を超える異常なdataUrlではHEADが404・GETが200になり得る（DBに異常データがある場合のみ）。

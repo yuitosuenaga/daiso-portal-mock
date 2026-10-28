@@ -46,7 +46,10 @@ export function buildContentDisposition(type: "inline" | "attachment", fileName:
 
 /**
  * 同時にメモリへ保持するPDF本体の数を制限する小さなin-processセマフォ。
- * 1件最大約20MiBのBufferを多数同時に保持してCloud Run（512Mi）がOOMになるのを避ける。
+ * 1件最大約20MiBのBufferを多数同時に保持してCloud RunがOOMになるのを避ける。
+ * 当初は512Mi想定で同時2件に制限したが、実測（GET 50並列でRSS約0.6GB→約1.15GB）では512Miを超える。
+ * そのためTerraformのcloudrun_memoryを1Giにする対応（#205、applyはユーザー操作）を行った。
+ * GCS移行までメモリを1GiB未満に戻さない。
  * 許可が何らかの理由（ボディが読まれない・cancelされない等）で戻らなくても配信全体が止まらないよう、
  * 待ち時間のタイムアウト（503）と最大保持時間での強制解放を保険として持つ。
  */
@@ -199,7 +202,7 @@ export function base64DecodedSize(cleanLength: number, cleanTail: string): numbe
 
 /**
  * HEAD用。本体を読み込まず、DB側で集計した統計からGETと同じヘッダーだけを返す
- * （そのためセマフォも使わない）。dataUrlがPDFのプレフィックスでない場合は404。
+ * （GET本体用のセマフォは使わない。サイズ集計はroute側でHEAD専用の別セマフォ`withHeadStatsPermit`を使う）。dataUrlがPDFのプレフィックスでない場合は404。
  * 注意: 末尾以外に`=`を含む不正なbase64では、HEADのContent-LengthとGETの実バイト数が
  * 食い違い得る（GETは実際にデコードした長さを返すので自己整合）。検出時は警告ログを残す。
  */
