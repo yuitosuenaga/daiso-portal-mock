@@ -4,10 +4,34 @@
 
 ## 適用順(重要)
 
-1. **段階1(アプリ側。PR #217)を本番にデプロイ済みであること**(登録時の小文字化、`lower(email) = $1` による照合)。
-2. 次に本書の手順で段階2のマイグレーションを適用する。
+**推奨: 段階1(#217)を先に単独でデプロイし、本番で反映を確認してから、本 PR(段階2)をマージして適用する。**
 
-段階1より前に段階2を適用すると、旧コードが大文字入りのメールを保存しようとして CHECK 違反(500)になる。段階2のマイグレーションは追加のみ(新カラムなし)で、段階1のコードとは互換。`schema.prisma` は変更しないため、Prisma Client の再生成は不要。
+1. #217(アプリ側。登録時の小文字化、大文字小文字を無視する照合)は既にマージ済みで、次の通常デプロイで本番に出る。これを先にデプロイする(本 PR は含めない)。
+2. 本番に #217 が反映されたことを確認する(下記「#217 が本番に反映済みかの確認」)。
+3. 本 PR をマージし、本書の手順で段階2のマイグレーションを適用する。
+
+### 同一デプロイで両方を出す場合の窓
+
+`.claude/commands/deploy-main.md` の手順3は「`migrate deploy` → Cloud Run デプロイ」を1回の流れで行う。#217 が本番に出る前に本 PR がマージされ、main をそのままデプロイすると、migrate が先に走り、Cloud Run のデプロイが完了するまでの数分間は旧コードが動く。この間は次の影響が出る。
+
+- 旧コードの申請者作成は email を小文字化せずに保存するため、大文字入りのメールでの登録は CHECK 違反になり 500 になる。
+- 既存行は migrate で小文字化済みのため、旧コードのログイン照合(大文字小文字を区別)は、大文字を含む入力だと失敗する。
+
+この窓を許容するか、メンテナンス窓で行うかを事前に決める。許容して同一デプロイで出す場合は、窓を最短にするため、migrate の直後に Cloud Run デプロイまで続ける(間に確認作業などを挟まない)。migrate Job か Proxy かの手順は `deploy-main.md` と `runbook.md` §1.3 に従う。
+
+段階2のマイグレーションは追加のみ(新カラムなし)で、段階1のコードとは互換。`schema.prisma` は変更しないため、Prisma Client の再生成は不要。
+
+### #217 が本番に反映済みかの確認(読み取りのみ)
+
+Cloud Run のソースデプロイはイメージにコミットハッシュを持たないため、時刻で照合する。本番への書き込みや機密値の参照は伴わない。
+
+1. 稼働中のリビジョンの作成日時を確認する(`gcloud run revisions list` の DEPLOYED 列、または `runbook.md` §1.6 のリリース記録にあるコミット)。
+
+   ```bash
+   gcloud run revisions list --service portal-mock --region asia-northeast1 --project rvp-ai-proto-camp --limit 3
+   ```
+2. リリース記録にコミットがあれば、`git merge-base --is-ancestor f2428c5 <記録のコミット> && echo 含まれる` で #217 のマージコミット(f2428c5)が含まれるか照合する。
+3. 記録が無い場合は、f2428c5 のコミット日時(`git log -1 --format=%cI f2428c5`)より、稼働中リビジョンの作成日時が後であることを確認する(後なら、そのデプロイは #217 取り込み後の `origin/main` から作られている)。迷う場合は、次のデプロイで #217 を単独で出す。
 
 ## 1. デプロイ前の確認(読み取り専用)
 
@@ -37,9 +61,16 @@ ORDER BY 3, 1;
 SELECT 'ApplicantUser' AS t, count(*) FROM "ApplicantUser" WHERE email <> lower(btrim(email))
 UNION ALL
 SELECT 'HelpdeskStaff', count(*) FROM "HelpdeskStaff" WHERE email <> lower(btrim(email));
+
+-- 4) スペース以外の空白類(タブ・改行・NBSP など)を含むメールの件数(メールは出ない)
+SELECT 'ApplicantUser' AS t, count(*) FROM "ApplicantUser" WHERE email ~ '[[:space:]]'
+UNION ALL
+SELECT 'HelpdeskStaff', count(*) FROM "HelpdeskStaff" WHERE email ~ '[[:space:]]';
 ```
 
 1 と 2 が 0 行であることを確認する。1 件でもあれば、マイグレーションの事前検査(`DO` ブロック)が中止する。
+
+4 は 0 件であることを確認する。JavaScript の `trim()` は改行・タブ・NBSP も除去するが、PostgreSQL の `btrim` は半角スペースしか除去しない。前後にスペース以外の空白類を含むメールは、マイグレーションと CHECK は通るが、アプリ側の `normalizeEmail`(`trim` 済み)の結果と一致せず、ログインできなくなる。0 件でなければ、管理画面(販社のアカウント管理・スタッフ管理)でそのメールを修正する。
 
 ### 重複が見つかった場合
 
