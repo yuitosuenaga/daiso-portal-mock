@@ -81,6 +81,7 @@ jobs:
           INQUIRY_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           MONTHLY_MATERIAL_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           EMAIL_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          COMPANY_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
   audit:
     # 必須チェックにはしない。新規脆弱性の公開で突然赤くなり得るため情報提供扱い。

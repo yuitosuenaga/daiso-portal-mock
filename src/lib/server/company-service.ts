@@ -41,6 +41,13 @@ export class CompanyCodeTakenError extends Error {
   }
 }
 
+/** Prismaの一意制約違反（P2002）かどうか。 */
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+  );
+}
+
 function mapCompany(record: {
   id: string;
   name: string;
@@ -130,26 +137,34 @@ export async function getCompanyById(id: string): Promise<Company | null> {
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
   await requireHelpdeskAdminSession();
 
-  const record = await prisma.$transaction(async (tx) => {
-    const company = await tx.company.create({
-      data: {
-        name: input.name,
-        country: input.country,
-        companyCode: input.companyCode,
-      },
+  try {
+    const record = await prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data: {
+          name: input.name,
+          country: input.country,
+          companyCode: input.companyCode,
+        },
+      });
+
+      await tx.announcementRecipient.create({
+        data: {
+          companyId: company.id,
+          contactName: input.name,
+        },
+      });
+
+      return company;
     });
 
-    await tx.announcementRecipient.create({
-      data: {
-        companyId: company.id,
-        contactName: input.name,
-      },
-    });
-
-    return company;
-  });
-
-  return mapCompany(record);
+    return mapCompany(record);
+  } catch (error) {
+    // 事前の重複確認（isCompanyCodeTaken）と作成の間に同じコードが登録された場合の競合。
+    if (isUniqueViolation(error)) {
+      throw new CompanyCodeTakenError(input.companyCode);
+    }
+    throw error;
+  }
 }
 
 /** 既存の会社情報を更新する。存在しない場合は`CompanyNotFoundError`を送出する。 */
@@ -176,6 +191,9 @@ export async function updateCompany(
       error.code === "P2025"
     ) {
       throw new CompanyNotFoundError(id);
+    }
+    if (isUniqueViolation(error)) {
+      throw new CompanyCodeTakenError(input.companyCode);
     }
     throw error;
   }
@@ -227,6 +245,11 @@ export async function findExistingCompanyCodes(codes: string[]): Promise<string[
  * 対応する`AnnouncementRecipient`（`contactName` = 会社名）を同時に作成する。
  * いずれか1件でも失敗した場合は全件がロールバックされる（all-or-nothing）。
  * 呼び出し元（`importCompaniesAction`）が事前に全行の検証を完了させていることを前提とする。
+ *
+ * 対話型トランザクションの既定タイムアウト（5秒）に行数が比例しないよう、
+ * `createManyAndReturn`と`createMany`の2クエリに固定する。RETURNINGの返り順には
+ * 依存せず、一意な`companyCode`で`Company`と入力を対応付ける。
+ * 販社コードの競合（P2002）は`CompanyCodeTakenError`に変換して送出する。
  */
 export async function createCompaniesBulk(
   inputs: CreateCompanyInput[]
@@ -237,32 +260,41 @@ export async function createCompaniesBulk(
     return [];
   }
 
-  const records = await prisma.$transaction(async (tx) => {
-    const created: Awaited<ReturnType<typeof tx.company.create>>[] = [];
-
-    for (const input of inputs) {
-      const company = await tx.company.create({
-        data: {
+  try {
+    const records = await prisma.$transaction(async (tx) => {
+      const created = await tx.company.createManyAndReturn({
+        data: inputs.map((input) => ({
           name: input.name,
           country: input.country,
           companyCode: input.companyCode,
-        },
+        })),
       });
 
-      await tx.announcementRecipient.create({
-        data: {
-          companyId: company.id,
-          contactName: input.name,
-        },
+      const idByCompanyCode = new Map(
+        created.map((company) => [company.companyCode, company.id])
+      );
+
+      await tx.announcementRecipient.createMany({
+        data: inputs.map((input) => {
+          const companyId = idByCompanyCode.get(input.companyCode);
+          if (!companyId) {
+            throw new Error(`Created company not found for code: ${input.companyCode}`);
+          }
+          return { companyId, contactName: input.name };
+        }),
       });
 
-      created.push(company);
+      return created;
+    });
+
+    return records.map(mapCompany);
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      const codes = inputs.map((input) => input.companyCode);
+      throw new CompanyCodeTakenError(codes.length === 1 ? codes[0] : "");
     }
-
-    return created;
-  });
-
-  return records.map(mapCompany);
+    throw error;
+  }
 }
 
 /**

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  CompanyCodeTakenError,
   createCompaniesBulk,
   createCompany,
   deactivateApplicantUsersByCompanies,
@@ -54,7 +55,15 @@ export async function createCompanyAction(
     return { ok: false, reason: "companyCodeTaken" };
   }
 
-  const created = await createCompany(parsed);
+  let created: Company;
+  try {
+    created = await createCompany(parsed);
+  } catch (error) {
+    if (error instanceof CompanyCodeTakenError) {
+      return { ok: false, reason: "companyCodeTaken" };
+    }
+    throw error;
+  }
   revalidateCompanyRoutes();
 
   return { ok: true, company: created };
@@ -76,7 +85,15 @@ export async function updateCompanyAction(
     return { ok: false, reason: "companyCodeTaken" };
   }
 
-  const updated = await updateCompany(id, parsed);
+  let updated: Company;
+  try {
+    updated = await updateCompany(id, parsed);
+  } catch (error) {
+    if (error instanceof CompanyCodeTakenError) {
+      return { ok: false, reason: "companyCodeTaken" };
+    }
+    throw error;
+  }
   revalidateCompanyRoutes();
 
   return { ok: true, company: updated };
@@ -159,7 +176,30 @@ export async function importCompaniesAction(
     };
   }
 
-  const created = await createCompaniesBulk(toCreateCompanyInputs(revalidated.rows));
+  let created: Company[];
+  try {
+    created = await createCompaniesBulk(toCreateCompanyInputs(revalidated.rows));
+  } catch (error) {
+    if (!(error instanceof CompanyCodeTakenError)) {
+      throw error;
+    }
+
+    // 照会から登録までの間に別経路で同じ販社コードが登録された競合。登録は全件
+    // ロールバック済みなので、再照会して該当行に重複エラーを付けて返す。
+    const latestExistingCodes = await findExistingCompanyCodes(candidateCodes);
+    const retried = parseAndValidateCompanyCsv(csvText, latestExistingCodes);
+
+    if (retried.fileError || isFullyValidCompanyCsv(retried)) {
+      // 重複行が特定できない場合は原因不明の失敗として元の例外を伝える。
+      throw error;
+    }
+
+    return {
+      committed: false,
+      createdCount: 0,
+      rows: retried.rows,
+    };
+  }
 
   if (created.length > 0) {
     revalidateCompanyRoutes();

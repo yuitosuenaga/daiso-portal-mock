@@ -6,6 +6,13 @@ import type { CreateCompanyInput } from "@/types/company";
 const EXPECTED_HEADER = ["name", "country", "companyCode"] as const;
 
 /**
+ * 1ファイルで受け付けるデータ行数の上限。`createCompaniesBulk`は対話型トランザクション
+ * （既定タイムアウト5秒）内で一括INSERTする。行ごとに往復する旧方式は数百〜数千行で
+ * タイムアウトし得たが、現在はクエリ2本に固定のため、500行は余裕を持った運用上の上限。
+ */
+export const MAX_COMPANY_CSV_ROWS = 500;
+
+/**
  * データ行1件の検証エラーを表す機械可読コード。表示文言への解決は呼び出し側
  * （UI・next-intl）の責務とする（要件19.14の方針。tasks.md 36.1）。
  */
@@ -14,10 +21,16 @@ export type CompanyCsvRowErrorCode =
   | "companyCodeFormat"
   | "invalidCountry"
   | "companyCodeDuplicate"
-  | "duplicateInFile";
+  | "duplicateInFile"
+  | "columnCount";
 
 /** ファイル全体のエラー（要件19.12）。 */
-export type CompanyCsvFileErrorCode = "empty" | "headerMismatch" | "noDataRows";
+export type CompanyCsvFileErrorCode =
+  | "empty"
+  | "headerMismatch"
+  | "noDataRows"
+  | "invalidEncoding"
+  | "tooManyRows";
 
 export interface CompanyCsvRowResult {
   /** データ行の番号（1始まり、ヘッダー行を除く）。 */
@@ -76,7 +89,90 @@ function splitCsvLine(line: string): string[] {
 
   cells.push(current);
 
-  return cells.map((cell) => cell.trim());
+  const trimmed = cells.map((cell) => cell.trim());
+
+  // Excelが出力する末尾の空セル（`a,b,c,,`）は列として扱わない。
+  while (trimmed.length > 0 && trimmed[trimmed.length - 1] === "") {
+    trimmed.pop();
+  }
+
+  return trimmed;
+}
+
+/** BOMを除去し前後空白を除いた本文を、物理行に分割する。 */
+function splitLines(csvText: string): string[] {
+  return csvText.replace(/^\uFEFF/, "").trim().split(/\r\n|\r|\n/);
+}
+
+/** BOMを除去し前後空白を除いた本文の先頭の物理行（全行は展開しない）。 */
+function firstLine(csvText: string): string {
+  const body = csvText.replace(/^\uFEFF/, "").trim();
+  const match = /\r\n|\r|\n/.exec(body);
+  return match ? body.slice(0, match.index) : body;
+}
+
+/** 空・文字コード（U+FFFD混入＝UTF-8以外で保存された）の判定。 */
+function checkEmptyAndEncoding(csvText: string): CompanyCsvFileErrorCode | null {
+  if (!csvText.replace(/^\uFEFF/, "").trim()) {
+    return "empty";
+  }
+  if (csvText.includes("\uFFFD")) {
+    return "invalidEncoding";
+  }
+  return null;
+}
+
+/**
+ * ヘッダー行を除く空でない物理行の数を、`limit`を超えた時点で打ち切って返す
+ * （戻り値は最大`limit + 1`）。巨大な入力でも行配列を作らず文字列を走査するだけで、
+ * 空行を除いた件数で判定するため空行の多いファイルを誤って超過扱いにしない。
+ */
+function countDataLines(csvText: string, limit: number): number {
+  const body = csvText.replace(/^\uFEFF/, "").trim();
+  let i = 0;
+  // ヘッダー行（最初の物理行）を読み飛ばす。
+  while (i < body.length && body[i] !== "\n" && body[i] !== "\r") {
+    i += 1;
+  }
+
+  let count = 0;
+  let lineHasContent = false;
+  for (; i < body.length; i += 1) {
+    const char = body[i];
+    if (char === "\n" || char === "\r") {
+      if (lineHasContent) {
+        count += 1;
+        if (count > limit) {
+          return count;
+        }
+        lineHasContent = false;
+      }
+    } else if (!lineHasContent && NON_WHITESPACE.test(char)) {
+      lineHasContent = true;
+    }
+  }
+  // 本文はtrim済みのため、末尾の行は内容を持つ（空でない）ときのみ数える。
+  if (lineHasContent) {
+    count += 1;
+  }
+  return count;
+}
+
+const NON_WHITESPACE = /\S/;
+
+/**
+ * ファイル全体に対する事前判定（空・文字コード・件数）。クライアントで読み込み直後に
+ * 呼び出してServer Actionの往復を省くほか、`parseAndValidateCompanyCsv`でも使う。
+ * 問題がなければnullを返す。ヘッダー・データ行の中身は見ない。
+ */
+export function precheckCompanyCsvText(text: string): CompanyCsvFileErrorCode | null {
+  const encodingError = checkEmptyAndEncoding(text);
+  if (encodingError) {
+    return encodingError;
+  }
+  return countDataLines(text, MAX_COMPANY_CSV_ROWS) > MAX_COMPANY_CSV_ROWS
+    ? "tooManyRows"
+    : null;
 }
 
 function isKnownCountryCode(code: string): boolean {
@@ -99,15 +195,13 @@ export function parseAndValidateCompanyCsv(
   csvText: string,
   existingCodes: readonly string[] = []
 ): ParsedCompanyCsv {
-  const withoutBom = csvText.replace(/^﻿/, "");
-  const trimmedText = withoutBom.trim();
-
-  if (!trimmedText) {
-    return { fileError: "empty", rows: [] };
+  const earlyError = checkEmptyAndEncoding(csvText);
+  if (earlyError) {
+    return { fileError: earlyError, rows: [] };
   }
 
-  const lines = trimmedText.split(/\r\n|\r|\n/);
-  const headerCells = splitCsvLine(lines[0]);
+  // ヘッダーの判定（先頭の物理行のみ）。巨大な入力でも全行は展開しない。
+  const headerCells = splitCsvLine(firstLine(csvText));
   const headerMatches =
     headerCells.length === EXPECTED_HEADER.length &&
     headerCells.every((cell, index) => cell === EXPECTED_HEADER[index]);
@@ -116,21 +210,32 @@ export function parseAndValidateCompanyCsv(
     return { fileError: "headerMismatch", rows: [] };
   }
 
-  const dataLines = lines.slice(1).filter((line) => line.trim() !== "");
-
-  if (dataLines.length === 0) {
+  // 件数は行配列を作る前に数え、上限を超えた時点で打ち切る（行ごとの検証より前）。
+  const dataLineCount = countDataLines(csvText, MAX_COMPANY_CSV_ROWS);
+  if (dataLineCount === 0) {
     return { fileError: "noDataRows", rows: [] };
   }
+  if (dataLineCount > MAX_COMPANY_CSV_ROWS) {
+    return { fileError: "tooManyRows", rows: [] };
+  }
+
+  // 行番号は物理行から振る（空行を飛ばしても「データ行1＝ヘッダーの次の行」がずれない）。
+  const dataLines = splitLines(csvText)
+    .slice(1)
+    .map((line, index) => ({ line, rowNumber: index + 1 }))
+    .filter(({ line }) => line.trim() !== "");
 
   const existingCodeSet = new Set(
     existingCodes.map((code) => code.trim()).filter((code) => code !== "")
   );
 
-  const parsedRows = dataLines.map((line, index) => {
-    const [rawName = "", rawCountry = "", rawCompanyCode = ""] = splitCsvLine(line);
+  const parsedRows = dataLines.map(({ line, rowNumber }) => {
+    const cells = splitCsvLine(line);
+    const [rawName = "", rawCountry = "", rawCompanyCode = ""] = cells;
 
     return {
-      rowNumber: index + 1,
+      rowNumber,
+      hasExtraColumns: cells.length > EXPECTED_HEADER.length,
       name: rawName.trim(),
       country: rawCountry.trim().toUpperCase(),
       companyCode: rawCompanyCode.trim(),
@@ -139,7 +244,7 @@ export function parseAndValidateCompanyCsv(
 
   const codeOccurrences = new Map<string, number>();
   for (const row of parsedRows) {
-    if (row.companyCode) {
+    if (row.companyCode && !row.hasExtraColumns) {
       codeOccurrences.set(
         row.companyCode,
         (codeOccurrences.get(row.companyCode) ?? 0) + 1
@@ -149,6 +254,18 @@ export function parseAndValidateCompanyCsv(
 
   const rows: CompanyCsvRowResult[] = parsedRows.map((row) => {
     const errors: CompanyCsvRowErrorCode[] = [];
+
+    // 列数超過（引用符なしでカンマを含む値など）は列がずれているため、他の検証は意味を持たない。
+    if (row.hasExtraColumns) {
+      return {
+        rowNumber: row.rowNumber,
+        name: row.name,
+        country: row.country,
+        companyCode: row.companyCode,
+        status: "error" as const,
+        errors: ["columnCount" as const],
+      };
+    }
 
     const parsed = companyFormSchema.safeParse({
       name: row.name,

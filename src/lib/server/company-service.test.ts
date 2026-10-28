@@ -1,6 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
 
+function uniqueViolationPrismaError() {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+    code: "P2002",
+    clientVersion: "test",
+  });
+}
+
 function notFoundPrismaError() {
   return new Prisma.PrismaClientKnownRequestError("Record to update not found.", {
     code: "P2025",
@@ -10,6 +17,8 @@ function notFoundPrismaError() {
 
 const {
   companyCreateMock,
+  companyCreateManyAndReturnMock,
+  announcementRecipientCreateManyMock,
   companyFindManyMock,
   companyFindUniqueMock,
   companyFindFirstMock,
@@ -19,6 +28,8 @@ const {
   transactionMock,
 } = vi.hoisted(() => {
   const companyCreateMock = vi.fn();
+  const companyCreateManyAndReturnMock = vi.fn();
+  const announcementRecipientCreateManyMock = vi.fn();
   const companyFindManyMock = vi.fn();
   const companyFindUniqueMock = vi.fn();
   const companyFindFirstMock = vi.fn();
@@ -31,15 +42,23 @@ const {
   // `company`/`announcementRecipient`をそのまま渡す。呼び出し検証はトップレベルの
   // `prisma.company.create`等と同じモック関数に対して行える。
   const transactionMock = vi.fn(
-    async (callback: (tx: { company: { create: typeof companyCreateMock }; announcementRecipient: { create: typeof announcementRecipientCreateMock } }) => unknown) =>
+    async (callback: (tx: unknown) => unknown) =>
       callback({
-        company: { create: companyCreateMock },
-        announcementRecipient: { create: announcementRecipientCreateMock },
+        company: {
+          create: companyCreateMock,
+          createManyAndReturn: companyCreateManyAndReturnMock,
+        },
+        announcementRecipient: {
+          create: announcementRecipientCreateMock,
+          createMany: announcementRecipientCreateManyMock,
+        },
       })
   );
 
   return {
     companyCreateMock,
+    companyCreateManyAndReturnMock,
+    announcementRecipientCreateManyMock,
     companyFindManyMock,
     companyFindUniqueMock,
     companyFindFirstMock,
@@ -58,10 +77,12 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: companyFindUniqueMock,
       findFirst: companyFindFirstMock,
       create: companyCreateMock,
+      createManyAndReturn: companyCreateManyAndReturnMock,
       update: companyUpdateMock,
     },
     announcementRecipient: {
       create: announcementRecipientCreateMock,
+      createMany: announcementRecipientCreateManyMock,
     },
     applicantUser: {
       updateMany: applicantUserUpdateManyMock,
@@ -77,6 +98,7 @@ import { ForbiddenSessionError } from "@/lib/server/auth-session";
 import { getSession } from "@/lib/server/get-session";
 import { prisma } from "@/lib/db/prisma";
 import {
+  CompanyCodeTakenError,
   CompanyNotFoundError,
   createCompaniesBulk,
   createCompany,
@@ -325,6 +347,24 @@ describe("createCompany / updateCompany", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
+  it("createCompanyのP2002（販社コード競合）はCompanyCodeTakenErrorに変換する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(prisma.company.create).mockRejectedValue(uniqueViolationPrismaError());
+
+    await expect(
+      createCompany({ name: "新規会社", country: "TH", companyCode: "TH-100" })
+    ).rejects.toThrow(CompanyCodeTakenError);
+  });
+
+  it("updateCompanyのP2002（販社コード競合）はCompanyCodeTakenErrorに変換する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(prisma.company.update).mockRejectedValue(uniqueViolationPrismaError());
+
+    await expect(
+      updateCompany("1", { name: "x", country: "JP", companyCode: "JP-001" })
+    ).rejects.toThrow(CompanyCodeTakenError);
+  });
+
   it("既存の会社情報を更新する", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
     vi.mocked(prisma.company.update).mockResolvedValue(
@@ -439,61 +479,83 @@ describe("findExistingCompanyCodes", () => {
 });
 
 describe("createCompaniesBulk", () => {
-  it("全社のCompanyとAnnouncementRecipientを1トランザクションで作成する（要件19.9, 19.10）", async () => {
-    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
-    vi.mocked(prisma.company.create)
-      .mockResolvedValueOnce(
-        baseCompanyRecord({ id: "1", name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" }) as never
-      )
-      .mockResolvedValueOnce(
-        baseCompanyRecord({ id: "2", name: "Daiso Vietnam", country: "VN", companyCode: "vn-daiso-vietnam" }) as never
-      );
-    // 別テスト（AnnouncementRecipientの作成が失敗した場合）が`mockRejectedValue`
-    // （persistent）を設定しているため、ここで明示的に成功へ上書きする。
-    vi.mocked(prisma.announcementRecipient.create).mockResolvedValue({
-      id: "recipient",
-      companyId: "1",
-      contactName: "Daiso Thailand",
-    } as never);
+  const inputs = [
+    { name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" },
+    { name: "Daiso Vietnam", country: "VN", companyCode: "vn-daiso-vietnam" },
+  ];
 
-    const result = await createCompaniesBulk([
-      { name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" },
-      { name: "Daiso Vietnam", country: "VN", companyCode: "vn-daiso-vietnam" },
+  it("全社のCompanyとAnnouncementRecipientを1トランザクション・各1クエリで作成する（要件19.9, 19.10）", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    companyCreateManyAndReturnMock.mockResolvedValue([
+      baseCompanyRecord({ id: "1", name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" }),
+      baseCompanyRecord({ id: "2", name: "Daiso Vietnam", country: "VN", companyCode: "vn-daiso-vietnam" }),
     ]);
+    announcementRecipientCreateManyMock.mockResolvedValue({ count: 2 });
+
+    const result = await createCompaniesBulk(inputs);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(prisma.company.create).toHaveBeenCalledTimes(2);
-    expect(prisma.announcementRecipient.create).toHaveBeenCalledTimes(2);
-    expect(prisma.announcementRecipient.create).toHaveBeenNthCalledWith(1, {
-      data: { companyId: "1", contactName: "Daiso Thailand" },
+    expect(companyCreateManyAndReturnMock).toHaveBeenCalledTimes(1);
+    expect(companyCreateManyAndReturnMock).toHaveBeenCalledWith({ data: inputs });
+    expect(announcementRecipientCreateManyMock).toHaveBeenCalledTimes(1);
+    expect(announcementRecipientCreateManyMock).toHaveBeenCalledWith({
+      data: [
+        { companyId: "1", contactName: "Daiso Thailand" },
+        { companyId: "2", contactName: "Daiso Vietnam" },
+      ],
     });
-    expect(prisma.announcementRecipient.create).toHaveBeenNthCalledWith(2, {
-      data: { companyId: "2", contactName: "Daiso Vietnam" },
-    });
-    expect(result).toHaveLength(2);
-    expect(result[0].id).toBe("1");
-    expect(result[1].id).toBe("2");
+    expect(prisma.company.create).not.toHaveBeenCalled();
+    expect(prisma.announcementRecipient.create).not.toHaveBeenCalled();
+    expect(result.map((company) => company.id)).toEqual(["1", "2"]);
   });
 
-  it("途中の1件が失敗した場合、全体がロールバックされる（例外がそのまま伝播する）", async () => {
+  it("RETURNINGの返り順が入力順と違っても、companyCodeでAnnouncementRecipientを正しく対応付ける", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
-    vi.mocked(prisma.company.create).mockResolvedValueOnce(
-      baseCompanyRecord({ id: "1" }) as never
-    );
-    vi.mocked(prisma.announcementRecipient.create).mockRejectedValueOnce(
-      new Error("db error")
-    );
+    companyCreateManyAndReturnMock.mockResolvedValue([
+      baseCompanyRecord({ id: "2", name: "Daiso Vietnam", country: "VN", companyCode: "vn-daiso-vietnam" }),
+      baseCompanyRecord({ id: "1", name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" }),
+    ]);
+    announcementRecipientCreateManyMock.mockResolvedValue({ count: 2 });
 
-    await expect(
-      createCompaniesBulk([
-        { name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" },
-        { name: "Daiso Vietnam", country: "VN", companyCode: "vn-daiso-vietnam" },
-      ])
-    ).rejects.toThrow("db error");
+    const result = await createCompaniesBulk(inputs);
+
+    const { data } = announcementRecipientCreateManyMock.mock.calls[0][0] as {
+      data: { companyId: string; contactName: string }[];
+    };
+    expect(data).toHaveLength(2);
+    expect(data).toContainEqual({ companyId: "1", contactName: "Daiso Thailand" });
+    expect(data).toContainEqual({ companyId: "2", contactName: "Daiso Vietnam" });
+    expect(result).toHaveLength(2);
+  });
+
+  it("AnnouncementRecipientの作成が失敗した場合、例外がそのまま伝播し全体がロールバックされる", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    companyCreateManyAndReturnMock.mockResolvedValue([
+      baseCompanyRecord({ id: "1", name: "Daiso Thailand", companyCode: "th-daiso-thailand" }),
+      baseCompanyRecord({ id: "2", name: "Daiso Vietnam", companyCode: "vn-daiso-vietnam" }),
+    ]);
+    announcementRecipientCreateManyMock.mockRejectedValue(new Error("db error"));
+
+    await expect(createCompaniesBulk(inputs)).rejects.toThrow("db error");
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    // 2件目のcompany.createは呼ばれない（1件目のAnnouncementRecipient作成失敗で中断）
-    expect(prisma.company.create).toHaveBeenCalledTimes(1);
+    expect(companyCreateManyAndReturnMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("販社コードの競合（P2002）はCompanyCodeTakenErrorに変換し、AnnouncementRecipientは作らない", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    companyCreateManyAndReturnMock.mockRejectedValue(uniqueViolationPrismaError());
+
+    await expect(createCompaniesBulk(inputs)).rejects.toThrow(CompanyCodeTakenError);
+
+    expect(announcementRecipientCreateManyMock).not.toHaveBeenCalled();
+  });
+
+  it("P2002以外のエラーはそのまま送出する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    companyCreateManyAndReturnMock.mockRejectedValue(new Error("connection lost"));
+
+    await expect(createCompaniesBulk(inputs)).rejects.toThrow("connection lost");
   });
 
   it("空配列のときPrisma/トランザクションを呼び出さず空配列を返す", async () => {

@@ -99,13 +99,35 @@ const store = vi.hoisted(() => {
     }
   );
 
-  const transaction = vi.fn(
-    async (
-      callback: (tx: {
-        company: { create: typeof companyCreate };
-        announcementRecipient: { create: typeof announcementRecipientCreate };
-      }) => unknown
-    ) => callback({ company: { create: companyCreate }, announcementRecipient: { create: announcementRecipientCreate } })
+  const companyCreateManyAndReturn = vi.fn(
+    async ({ data }: { data: Omit<FakeCompany, "id" | "createdAt">[] }) => {
+      // RETURNINGの返り順に依存しない実装であることを確かめるため、逆順で返す。
+      const records = data.map((row) => {
+        const record: FakeCompany = { id: nextId("company"), createdAt: new Date(), ...row };
+        state.companies.push(record);
+        return record;
+      });
+      return records.reverse();
+    }
+  );
+
+  const announcementRecipientCreateMany = vi.fn(
+    async ({ data }: { data: { companyId: string; contactName: string }[] }) => {
+      for (const row of data) {
+        state.recipients.push({ id: nextId("recipient"), ...row });
+      }
+      return { count: data.length };
+    }
+  );
+
+  const transaction = vi.fn(async (callback: (tx: unknown) => unknown) =>
+    callback({
+      company: { create: companyCreate, createManyAndReturn: companyCreateManyAndReturn },
+      announcementRecipient: {
+        create: announcementRecipientCreate,
+        createMany: announcementRecipientCreateMany,
+      },
+    })
   );
 
   const announcementRecipientFindMany = vi.fn(
@@ -194,7 +216,9 @@ const store = vi.hoisted(() => {
     state,
     FIXED_ANNOUNCEMENT_ID,
     companyCreate,
+    companyCreateManyAndReturn,
     announcementRecipientCreate,
+    announcementRecipientCreateMany,
     transaction,
     announcementRecipientFindMany,
     announcementRecipientStatusUpsert,
@@ -217,9 +241,11 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     company: {
       create: store.companyCreate,
+      createManyAndReturn: store.companyCreateManyAndReturn,
     },
     announcementRecipient: {
       create: store.announcementRecipientCreate,
+      createMany: store.announcementRecipientCreateMany,
       findMany: store.announcementRecipientFindMany,
     },
     announcementRecipientStatus: {
@@ -240,7 +266,7 @@ vi.mock("@/lib/server/announcement-notifications", () => ({
   notifyAnnouncementReminder: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { createCompany } from "@/lib/server/company-service";
+import { createCompaniesBulk, createCompany } from "@/lib/server/company-service";
 import {
   getAnnouncementRecipientStatuses,
   recordCompanyCompletion,
@@ -286,6 +312,24 @@ describe("Company作成直後のAnnouncementRecipient同期（結合テスト）
     const statuses = await getAnnouncementRecipientStatuses(store.FIXED_ANNOUNCEMENT_ID);
     expect(statuses).toHaveLength(1);
     expect(statuses[0].completedAt).not.toBeNull();
+  });
+
+  it("CSV一括登録（createCompaniesBulk）で作成した全社もトラッキング対象に含まれ、会社名と対応付く", async () => {
+    await createCompaniesBulk([
+      { name: "一括商事A", country: "PH", companyCode: "ph-bulk-a" },
+      { name: "一括商事B", country: "VN", companyCode: "vn-bulk-b" },
+    ]);
+
+    const statuses = await getAnnouncementRecipientStatuses(store.FIXED_ANNOUNCEMENT_ID);
+
+    expect(statuses).toHaveLength(2);
+    for (const status of statuses) {
+      expect(status.contactName).toBe(status.companyName);
+    }
+    expect(statuses.map((status) => status.companyCode as string).sort()).toEqual([
+      "ph-bulk-a",
+      "vn-bulk-b",
+    ]);
   });
 
   it("修正前の挙動（AnnouncementRecipient未作成）ならトラッキング対象0件になることを確認する（バグの再現）", async () => {

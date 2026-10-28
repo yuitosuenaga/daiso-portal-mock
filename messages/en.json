@@ -775,12 +775,15 @@
         "companyCodeFormat": "The company code format is invalid (only lowercase letters, digits, and hyphens are allowed; no leading, trailing, or consecutive hyphens)",
         "invalidCountry": "The country code is invalid",
         "companyCodeDuplicate": "This company code is already registered",
-        "duplicateInFile": "This company code is duplicated within this CSV file"
+        "duplicateInFile": "This company code is duplicated within this CSV file",
+        "columnCount": "Too many columns. If a company name contains a comma, enclose the value in double quotes"
       },
       "fileErrors": {
         "empty": "The CSV file is empty",
         "headerMismatch": "The header row does not match \"name,country,companyCode\"",
-        "noDataRows": "The file has no data rows"
+        "noDataRows": "The file has no data rows",
+        "invalidEncoding": "The CSV file is not encoded in UTF-8. Save it again as \"CSV UTF-8 (Comma delimited)\" in Excel",
+        "tooManyRows": "You can register up to '{max}' rows at a time. Please split the file"
       }
     },
     "bulkDeactivate": {

@@ -775,12 +775,15 @@
         "companyCodeFormat": "分销商代码格式不正确（仅限半角英文小写字母、数字和连字符，不能在开头、末尾或连续使用连字符）",
         "invalidCountry": "国家代码无效",
         "companyCodeDuplicate": "此分销商代码已被注册",
-        "duplicateInFile": "此CSV中的分销商代码重复"
+        "duplicateInFile": "此CSV中的分销商代码重复",
+        "columnCount": "列数过多。如果公司名称中含有逗号，请用双引号将该值括起来"
       },
       "fileErrors": {
         "empty": "CSV文件为空",
         "headerMismatch": "标题行与'name,country,companyCode'不匹配",
-        "noDataRows": "数据行数为0"
+        "noDataRows": "数据行数为0",
+        "invalidEncoding": "CSV文件的编码不是UTF-8。请在Excel中另存为“CSV UTF-8（逗号分隔）”",
+        "tooManyRows": "每次最多可注册'{max}'行。请拆分文件"
       }
     },
     "bulkDeactivate": {

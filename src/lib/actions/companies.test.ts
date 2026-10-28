@@ -4,6 +4,14 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 vi.mock("@/lib/server/company-service", () => ({
+  CompanyCodeTakenError: class CompanyCodeTakenError extends Error {
+    readonly companyCode: string;
+    constructor(companyCode: string) {
+      super("Company code already taken");
+      this.name = "CompanyCodeTakenError";
+      this.companyCode = companyCode;
+    }
+  },
   createCompany: vi.fn(),
   updateCompany: vi.fn(),
   isCompanyCodeTaken: vi.fn(),
@@ -20,6 +28,7 @@ vi.mock("@/lib/server/auth-session", () => ({
 
 import { revalidatePath } from "next/cache";
 import {
+  CompanyCodeTakenError,
   createCompaniesBulk,
   createCompany,
   deactivateApplicantUsersByCompanies,
@@ -34,6 +43,7 @@ import {
   importCompaniesAction,
   updateCompanyAction,
 } from "@/lib/actions/companies";
+import { MAX_COMPANY_CSV_ROWS } from "@/lib/company-csv";
 import type { Company, CreateCompanyInput } from "@/types/company";
 
 function buildInput(overrides: Partial<CreateCompanyInput> = {}): CreateCompanyInput {
@@ -90,6 +100,39 @@ describe("createCompanyAction", () => {
       reason: "companyCodeTaken",
     });
     expect(createCompany).not.toHaveBeenCalled();
+  });
+});
+
+describe("createCompanyAction: 競合", () => {
+  it("事前確認後にコードが取られた競合（CompanyCodeTakenError）はcompanyCodeTakenを返す", async () => {
+    vi.mocked(isCompanyCodeTaken).mockResolvedValue(false);
+    vi.mocked(createCompany).mockRejectedValue(new CompanyCodeTakenError("th-daiso-thailand"));
+
+    await expect(createCompanyAction(buildInput())).resolves.toEqual({
+      ok: false,
+      reason: "companyCodeTaken",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("CompanyCodeTakenError以外の例外はそのまま送出する", async () => {
+    vi.mocked(isCompanyCodeTaken).mockResolvedValue(false);
+    vi.mocked(createCompany).mockRejectedValue(new Error("db error"));
+
+    await expect(createCompanyAction(buildInput())).rejects.toThrow("db error");
+  });
+});
+
+describe("updateCompanyAction: 競合", () => {
+  it("事前確認後にコードが取られた競合はcompanyCodeTakenを返す", async () => {
+    vi.mocked(isCompanyCodeTaken).mockResolvedValue(false);
+    vi.mocked(updateCompany).mockRejectedValue(new CompanyCodeTakenError("th-daiso-thailand"));
+
+    await expect(updateCompanyAction("company-1", buildInput())).resolves.toEqual({
+      ok: false,
+      reason: "companyCodeTaken",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
 
@@ -263,6 +306,73 @@ describe("importCompaniesAction", () => {
     expect(createCompaniesBulk).not.toHaveBeenCalled();
     expect(result.committed).toBe(false);
     expect(result.fileError).toBe("empty");
+  });
+});
+
+describe("importCompaniesAction: 堅牢化", () => {
+  it("MAX+1行はtooManyRowsで打ち切り、既存コード照会も登録も呼ばない", async () => {
+    const lines = ["name,country,companyCode"];
+    for (let i = 1; i <= MAX_COMPANY_CSV_ROWS + 1; i += 1) {
+      lines.push(`Company ${i},TH,code-${i}`);
+    }
+
+    const result = await importCompaniesAction(lines.join("\n"));
+
+    expect(result).toMatchObject({ committed: false, rows: [], fileError: "tooManyRows" });
+    expect(findExistingCompanyCodes).not.toHaveBeenCalled();
+    expect(createCompaniesBulk).not.toHaveBeenCalled();
+  });
+
+  it("文字化け（U+FFFD）はinvalidEncodingで拒否する", async () => {
+    const result = await importCompaniesAction("name,country,companyCode\n\uFFFD,TH,th-a");
+
+    expect(result.fileError).toBe("invalidEncoding");
+    expect(createCompaniesBulk).not.toHaveBeenCalled();
+  });
+
+  it("登録時にCompanyCodeTakenError（競合）になったら再照会し、重複行にcompanyCodeDuplicateと正しい行番号を付けて返す", async () => {
+    vi.mocked(findExistingCompanyCodes)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(["vn-daiso-vietnam"]);
+    vi.mocked(createCompaniesBulk).mockRejectedValue(new CompanyCodeTakenError(""));
+
+    const csv = [
+      "name,country,companyCode",
+      "Daiso Thailand,TH,th-daiso-thailand",
+      "",
+      "Daiso Vietnam,VN,vn-daiso-vietnam",
+    ].join("\n");
+
+    const result = await importCompaniesAction(csv);
+
+    expect(findExistingCompanyCodes).toHaveBeenCalledTimes(2);
+    expect(result.committed).toBe(false);
+    expect(result.createdCount).toBe(0);
+    expect(result.rows.map((row) => [row.rowNumber, row.errors])).toEqual([
+      [1, []],
+      [3, ["companyCodeDuplicate"]],
+    ]);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("競合後に再照会しても重複行が無ければ元の例外を投げ直す", async () => {
+    vi.mocked(findExistingCompanyCodes).mockResolvedValue([]);
+    const conflict = new CompanyCodeTakenError("");
+    vi.mocked(createCompaniesBulk).mockRejectedValue(conflict);
+
+    const csv = ["name,country,companyCode", "Daiso Thailand,TH,th-daiso-thailand"].join("\n");
+
+    await expect(importCompaniesAction(csv)).rejects.toBe(conflict);
+  });
+
+  it("CompanyCodeTakenError以外の登録エラーはそのまま送出する", async () => {
+    vi.mocked(findExistingCompanyCodes).mockResolvedValue([]);
+    vi.mocked(createCompaniesBulk).mockRejectedValue(new Error("db error"));
+
+    const csv = ["name,country,companyCode", "Daiso Thailand,TH,th-daiso-thailand"].join("\n");
+
+    await expect(importCompaniesAction(csv)).rejects.toThrow("db error");
+    expect(findExistingCompanyCodes).toHaveBeenCalledTimes(1);
   });
 });
 

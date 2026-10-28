@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  MAX_COMPANY_CSV_ROWS,
   isFullyValidCompanyCsv,
   parseAndValidateCompanyCsv,
+  precheckCompanyCsvText,
   toCreateCompanyInputs,
 } from "@/lib/company-csv";
 
@@ -172,5 +174,145 @@ describe("toCreateCompanyInputs", () => {
     expect(toCreateCompanyInputs(parsed.rows)).toEqual([
       { name: "Daiso Thailand", country: "TH", companyCode: "th-daiso-thailand" },
     ]);
+  });
+});
+
+function buildCsv(rowCount: number): string {
+  const lines = ["name,country,companyCode"];
+  for (let i = 1; i <= rowCount; i += 1) {
+    lines.push(`Company ${i},TH,code-${i}`);
+  }
+  return lines.join("\n");
+}
+
+describe("parseAndValidateCompanyCsv: 堅牢化", () => {
+  it("Shift_JISのバイト列をUTF-8として読んだ文字列（U+FFFD含む）はinvalidEncodingで拒否する", () => {
+    const sjisBytes = new Uint8Array([
+      ...new TextEncoder().encode("name,country,companyCode\n"),
+      0x8a, 0x94, 0x8e, 0xae, 0x89, 0xef, 0x8e, 0xd0, // 「株式会社」(Shift_JIS)
+      ...new TextEncoder().encode(",JP,jp-001\n"),
+    ]);
+    const text = new TextDecoder("utf-8").decode(sjisBytes);
+    expect(text).toContain("\uFFFD");
+
+    expect(parseAndValidateCompanyCsv(text)).toEqual({
+      fileError: "invalidEncoding",
+      rows: [],
+    });
+  });
+
+  it("BOM付きUTF-8は正常に読める（回帰）", () => {
+    const result = parseAndValidateCompanyCsv(
+      "\uFEFFname,country,companyCode\nDaiso,TH,th-daiso"
+    );
+    expect(result.fileError).toBeUndefined();
+    expect(result.rows[0].status).toBe("ok");
+  });
+
+  it("MAX行ちょうどは受け付け、MAX+1行はtooManyRowsで拒否する", () => {
+    const ok = parseAndValidateCompanyCsv(buildCsv(MAX_COMPANY_CSV_ROWS));
+    expect(ok.fileError).toBeUndefined();
+    expect(ok.rows).toHaveLength(MAX_COMPANY_CSV_ROWS);
+
+    expect(parseAndValidateCompanyCsv(buildCsv(MAX_COMPANY_CSV_ROWS + 1))).toEqual({
+      fileError: "tooManyRows",
+      rows: [],
+    });
+  });
+
+  it("判定の順序は 空 → 文字コード → ヘッダー → データ0件 → 件数超過", () => {
+    expect(parseAndValidateCompanyCsv("   ").fileError).toBe("empty");
+    expect(parseAndValidateCompanyCsv("\uFFFD,a,b\nx").fileError).toBe("invalidEncoding");
+    expect(
+      parseAndValidateCompanyCsv(
+        ["bad,header,x", ...Array.from({ length: MAX_COMPANY_CSV_ROWS + 1 }, () => "a,b,c")].join("\n")
+      ).fileError
+    ).toBe("headerMismatch");
+    expect(parseAndValidateCompanyCsv("name,country,companyCode\n\n").fileError).toBe("noDataRows");
+  });
+
+  it("4列目以降に値があるとcolumnCount（他の検証エラーは付けない）", () => {
+    const result = parseAndValidateCompanyCsv(
+      "name,country,companyCode\nDaiso,TH,th-daiso,extra"
+    );
+    expect(result.rows[0].errors).toEqual(["columnCount"]);
+    expect(result.rows[0].status).toBe("error");
+  });
+
+  it("引用符なしでカンマを含む会社名はinvalidCountryではなくcolumnCountになる", () => {
+    const result = parseAndValidateCompanyCsv(
+      "name,country,companyCode\nDaiso, Inc.,TH,th-daiso"
+    );
+    expect(result.rows[0].errors).toEqual(["columnCount"]);
+  });
+
+  it("末尾の空セル（Excelが出す a,b,c,,）はヘッダー・データ行とも許容する", () => {
+    const result = parseAndValidateCompanyCsv(
+      "name,country,companyCode,,\nDaiso,TH,th-daiso,,\nDaiso2,VN,vn-daiso,"
+    );
+    expect(result.fileError).toBeUndefined();
+    expect(result.rows.map((r) => r.status)).toEqual(["ok", "ok"]);
+  });
+
+  it("ヘッダーに空でない余分な列があればheaderMismatch", () => {
+    expect(
+      parseAndValidateCompanyCsv("name,country,companyCode,memo\nDaiso,TH,th-daiso").fileError
+    ).toBe("headerMismatch");
+  });
+
+  it("データ行の間に空行があっても行番号は物理行（ヘッダーの次=1）に基づく", () => {
+    const result = parseAndValidateCompanyCsv(
+      "name,country,companyCode\nA,TH,code-a\n\n,TH,code-b\nC,TH,code-c"
+    );
+    expect(result.rows.map((r) => r.rowNumber)).toEqual([1, 3, 4]);
+    expect(result.rows[1].errors).toContain("required");
+  });
+});
+
+describe("precheckCompanyCsvText", () => {
+  it("正常なテキストはnull", () => {
+    expect(precheckCompanyCsvText(buildCsv(3))).toBeNull();
+  });
+  it("空はempty、U+FFFDはinvalidEncoding、MAX+1行はtooManyRows", () => {
+    expect(precheckCompanyCsvText("  \n")).toBe("empty");
+    expect(precheckCompanyCsvText("name\uFFFD")).toBe("invalidEncoding");
+    expect(precheckCompanyCsvText(buildCsv(MAX_COMPANY_CSV_ROWS + 1))).toBe("tooManyRows");
+    expect(precheckCompanyCsvText(buildCsv(MAX_COMPANY_CSV_ROWS))).toBeNull();
+  });
+});
+
+describe("巨大入力の早期打ち切り", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const HEADER = "name,country,companyCode\n";
+  const HUGE_ROWS = 400_000;
+  const hugeBody = "Daiso,TH,th-daiso\n".repeat(HUGE_ROWS);
+
+  it("数十万行でも全行を配列化せずtooManyRowsを返す（サーバー側parse）", () => {
+    const splitSpy = vi.spyOn(String.prototype, "split");
+    const started = performance.now();
+    const result = parseAndValidateCompanyCsv(HEADER + hugeBody);
+    const elapsed = performance.now() - started;
+
+    expect(result).toEqual({ fileError: "tooManyRows", rows: [] });
+    expect(splitSpy).not.toHaveBeenCalled();
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("数十万行でも全行を配列化せずtooManyRowsを返す（クライアントprecheck）", () => {
+    const splitSpy = vi.spyOn(String.prototype, "split");
+    expect(precheckCompanyCsvText(HEADER + hugeBody)).toBe("tooManyRows");
+    expect(splitSpy).not.toHaveBeenCalled();
+  });
+
+  it("空行を多数含むファイルは、データ行がMAX以下ならtooManyRowsにならない", () => {
+    const blanks = "\r\n \r\n\n".repeat(5000);
+    const text = `\n${HEADER}${blanks}${buildCsv(3).split("\n").slice(1).join("\r\n")}${blanks}`;
+    const result = parseAndValidateCompanyCsv(text);
+    expect(result.fileError).toBeUndefined();
+    expect(result.rows).toHaveLength(3);
+    expect(precheckCompanyCsvText(text)).toBeNull();
   });
 });
