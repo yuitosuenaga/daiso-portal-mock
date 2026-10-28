@@ -6,7 +6,7 @@ import {
   findDocumentFileById,
   findDocumentFileVisibleTo,
 } from "@/lib/server/document-service";
-import { pdfFileResponse } from "@/lib/server/file-response";
+import { pdfFileHeadResponse, pdfFileResponse, withNoStore } from "@/lib/server/file-response";
 import { getSession } from "@/lib/server/get-session";
 
 interface RouteParams {
@@ -18,7 +18,7 @@ interface RouteParams {
  * 申請者は自社に可視な公開済み資料のみ、ヘルプデスクは全件。他社向け・下書き・存在しない・
  * Google方式はいずれも404（区別させない）。
  */
-export async function GET(request: Request, props: RouteParams): Promise<Response> {
+async function handle(request: Request, props: RouteParams, head: boolean): Promise<Response> {
   const params = await props.params;
   try {
     const session = await getSession();
@@ -33,12 +33,26 @@ export async function GET(request: Request, props: RouteParams): Promise<Respons
         : await findDocumentFileById(params.id);
 
     if (!file) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+      return withNoStore(NextResponse.json({ error: "Not Found" }, { status: 404 }));
     }
 
     const download = new URL(request.url).searchParams.get("download") === "1";
-    return await pdfFileResponse(file, { download });
+    return head
+      ? pdfFileHeadResponse(file, { download })
+      : await pdfFileResponse(file, { download });
   } catch (error) {
-    return toErrorResponse(error);
+    return withNoStore(toErrorResponse(error));
   }
+}
+
+export async function GET(request: Request, props: RouteParams): Promise<Response> {
+  return handle(request, props, false);
+}
+
+/**
+ * HEADを明示的に処理する。Next.jsはHEADをGETで代行するが、その場合ボディを読まず
+ * cancelもしないため、本体保持用のセマフォ許可が戻らなくなる。ヘッダーだけを返す。
+ */
+export async function HEAD(request: Request, props: RouteParams): Promise<Response> {
+  return handle(request, props, true);
 }

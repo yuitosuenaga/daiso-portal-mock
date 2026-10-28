@@ -16,7 +16,7 @@ import {
   findDocumentFileById,
   findDocumentFileVisibleTo,
 } from "@/lib/server/document-service";
-import { GET } from "@/app/api/documents/[id]/file/route";
+import { GET, HEAD } from "@/app/api/documents/[id]/file/route";
 
 const applicantSession = {
   claims: {
@@ -54,7 +54,9 @@ async function callAndRelease(url?: string) {
 describe("GET /api/documents/[id]/file", () => {
   it("未ログインのとき401を返す", async () => {
     vi.mocked(getSession).mockResolvedValue(null);
-    expect((await call()).status).toBe(401);
+    const response = await call();
+    expect(response.status).toBe(401);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
 
   it("claimsがnull（無効化ユーザー）のとき401を返す", async () => {
@@ -73,6 +75,7 @@ describe("GET /api/documents/[id]/file", () => {
     expect(findDocumentFileVisibleTo).toHaveBeenCalledWith("doc-1", "JP", "test-co");
     expect(findDocumentFileById).not.toHaveBeenCalled();
     expect(response.status).toBe(404);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
 
   it("申請者で可視ならPDFを200で返す（inline・no-store・nosniff）", async () => {
@@ -115,5 +118,41 @@ describe("GET /api/documents/[id]/file", () => {
       dataUrl: "data:text/html;base64,PGI+PC9iPg==",
     });
     expect((await call()).status).toBe(404);
+  });
+});
+
+describe("HEAD /api/documents/[id]/file", () => {
+  const head = (url = "http://localhost/api/documents/doc-1/file") =>
+    HEAD(new Request(url, { method: "HEAD" }), { params: Promise.resolve({ id: "doc-1" }) });
+
+  it("可視ならボディなしでGETと同じヘッダーを返し、何度呼んでもGETが詰まらない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findDocumentFileVisibleTo).mockResolvedValue(file);
+
+    for (let i = 0; i < 6; i += 1) {
+      const response = await head();
+      expect(response.status).toBe(200);
+      expect(response.body).toBeNull();
+      expect(response.headers.get("Content-Type")).toBe("application/pdf");
+      expect(response.headers.get("Content-Length")).toBe(String(PDF_BYTES.length));
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    }
+    const get = await call();
+    expect(get.status).toBe(200);
+    await get.arrayBuffer();
+  });
+
+  it("未ログインは401、対象外は404（どちらもno-store）", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    const unauthorized = await head();
+    expect(unauthorized.status).toBe(401);
+    expect(unauthorized.headers.get("Cache-Control")).toBe("private, no-store");
+
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(findDocumentFileVisibleTo).mockResolvedValue(null);
+    const notFound = await head();
+    expect(notFound.status).toBe(404);
+    expect(notFound.headers.get("Cache-Control")).toBe("private, no-store");
   });
 });
