@@ -21,7 +21,7 @@
   - リージョン: `asia-northeast1`、`min-instances=0`（アイドル時ゼロスケール）でコストを最小化
   - IAM: `allUsers`にinvoker権限を付与し一般公開
 - **バージョン管理**: GitHub（PRベース開発、main直push禁止）
-- **CI**: GitHub Actions（lint / typecheck / build を将来的に整備。現フェーズでは lint・typecheck・build の確認を優先）
+- **CI**: GitHub Actions。`ci.yml`（`verify`: tsc / lint / test / build、`integration`: DB結合テスト、`audit`）、`docker-build.yml`、`terraform.yml`。必須チェックは `verify`（ブランチ保護はユーザーが設定。詳細は `docs/infra/app-ci.md`）
 
 ### バックエンド・DB版への統合（2026-07-13）
 
