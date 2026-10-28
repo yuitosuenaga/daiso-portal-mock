@@ -2890,4 +2890,90 @@ describe("更新時の例外変換と通知のbest-effort化", () => {
     expect(serialized).not.toContain("SECRET");
     expect(serialized).not.toMatch(/@/);
   });
+
+  // 通知を fire-and-forget にすると保存結果が通知完了前に返る。即時rejectのmockでは検出できないため、
+  // 遅延rejectさせて「通知完了まで戻り値が返らない」「ログは戻り値より前に出る」を検証する。
+  async function expectWaitsForNotificationThenLogs<T>(
+    notifyMock: { mockImplementationOnce: (fn: () => Promise<never>) => unknown; mock: { calls: unknown[] } },
+    run: () => Promise<T>,
+    expectedLog: Record<string, unknown>
+  ): Promise<T> {
+    let rejectNotify!: (e: Error) => void;
+    notifyMock.mockImplementationOnce(
+      () =>
+        new Promise<never>((_, reject) => {
+          rejectNotify = reject;
+        })
+    );
+    let settled = false;
+    const promise = run().then((v) => {
+      settled = true;
+      return v;
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(notifyMock.mock.calls).toHaveLength(1);
+    expect(settled).toBe(false);
+    expect(logger.error).not.toHaveBeenCalled();
+
+    rejectNotify(new Error("late failure"));
+    const result = await promise;
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[announcement-service] notification failed",
+      expect.objectContaining(expectedLog)
+    );
+    return result;
+  }
+
+  it("作成の公開通知: 通知完了まで戻り値を返さず、遅延rejectの後にログを出してから結果を返す", async () => {
+    vi.mocked(prisma.announcement.create).mockResolvedValue(
+      baseAnnouncementRecord({ id: "1", sendEmailNotification: true }) as never
+    );
+    const result = await expectWaitsForNotificationThenLogs(
+      vi.mocked(notifyAnnouncementPublished),
+      () => createAnnouncementRecord(PUBLISHED_NOTIFY_INPUT()),
+      { kind: "published", announcementId: "1" }
+    );
+    expect(result.id).toBe("1");
+  });
+
+  it("更新の公開通知: 通知完了まで戻り値を返さず、遅延rejectの後にログを出してから結果を返す", async () => {
+    mockDraftToPublished();
+    const result = await expectWaitsForNotificationThenLogs(
+      vi.mocked(notifyAnnouncementPublished),
+      () => updateAnnouncementRecord("1", PUBLISHED_NOTIFY_INPUT()),
+      { kind: "published", announcementId: "1" }
+    );
+    expect(result.id).toBe("1");
+  });
+
+  it("更新の配信対象拡大通知: 通知完了まで戻り値を返さず、遅延rejectの後にログを出してから結果を返す", async () => {
+    vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN"],
+      }) as never
+    );
+    vi.mocked(prisma.announcement.update).mockResolvedValue(
+      baseAnnouncementRecord({
+        id: "1",
+        sendEmailNotification: true,
+        status: "published",
+        targetingScope: "countries",
+        targetingCountries: ["VN", "TH"],
+      }) as never
+    );
+    const result = await expectWaitsForNotificationThenLogs(
+      vi.mocked(notifyAnnouncementTargetExpanded),
+      () =>
+        updateAnnouncementRecord(
+          "1",
+          PUBLISHED_NOTIFY_INPUT({ targeting: { scope: "countries", countries: ["VN", "TH"] } })
+        ),
+      { kind: "target_expanded", announcementId: "1" }
+    );
+    expect(result.id).toBe("1");
+  });
 });
