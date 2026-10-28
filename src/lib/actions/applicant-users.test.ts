@@ -85,6 +85,22 @@ describe("createApplicantUserAction", () => {
     expect(revalidatePath).toHaveBeenCalled();
   });
 
+  it("大文字入りのメールは小文字化して重複確認と作成に渡す", async () => {
+    vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
+    vi.mocked(createApplicantUser).mockResolvedValue(applicantUser());
+
+    await createApplicantUserAction(
+      "company-1",
+      buildInput({ email: "  Tanaka@Example.COM " })
+    );
+
+    expect(isApplicantUserEmailTaken).toHaveBeenCalledWith("tanaka@example.com");
+    expect(createApplicantUser).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({ email: "tanaka@example.com" })
+    );
+  });
+
   it("preferredLocaleを未指定で送信した場合は既定値'en'として作成する", async () => {
     vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
     vi.mocked(createApplicantUser).mockResolvedValue(applicantUser());
@@ -148,6 +164,27 @@ describe("createApplicantUserAction", () => {
 });
 
 describe("updateApplicantUserAction", () => {
+  it("大文字入りのメールは小文字化して重複確認と更新に渡す", async () => {
+    vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
+    vi.mocked(updateApplicantUser).mockResolvedValue(applicantUser());
+
+    await updateApplicantUserAction("applicant-1", {
+      email: " Tanaka@Example.COM",
+      displayName: "田中太郎",
+      password: "",
+      preferredLocale: "en",
+    });
+
+    expect(isApplicantUserEmailTaken).toHaveBeenCalledWith(
+      "tanaka@example.com",
+      "applicant-1"
+    );
+    expect(updateApplicantUser).toHaveBeenCalledWith(
+      "applicant-1",
+      expect.objectContaining({ email: "tanaka@example.com" })
+    );
+  });
+
   it("パスワード入力ありで更新し、ルートを再検証する", async () => {
     vi.mocked(isApplicantUserEmailTaken).mockResolvedValue(false);
     vi.mocked(updateApplicantUser).mockResolvedValue(applicantUser());

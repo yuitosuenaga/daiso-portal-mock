@@ -10,7 +10,7 @@
 | ファイル | ジョブ | 内容 | 必須チェック |
 |---|---|---|---|
 | `.github/workflows/ci.yml` | `verify` | `npm ci` → `prisma generate` → `tsc --noEmit` → `npm run lint` → `npm test`(TZ=Asia/Tokyo)→ `npm run build` | **はい** |
-| 同上 | `integration` | postgres:16 の使い捨てコンテナに `prisma migrate deploy` で全マイグレーションを適用し、`vitest run integration --no-file-parallelism`(`helpdesk-staff-service` / `login-throttle` / `inquiry-service` / `monthly-material-service` / `company-service` の DB 結合テスト。staff テストが `deleteMany({})` で claim を消すためファイル並列は無効)を実行 | いいえ(安定後に追加を検討) |
+| 同上 | `integration` | postgres:16 の使い捨てコンテナに `prisma migrate deploy` で全マイグレーションを適用し、`vitest run integration --no-file-parallelism`(`helpdesk-staff-service` / `login-throttle` / `inquiry-service` / `monthly-material-service` / `email-normalization` / `company-service` の DB 結合テスト。staff テストが `deleteMany({})` で claim を消すためファイル並列は無効)を実行 | いいえ(安定後に追加を検討) |
 | 同上 | `audit` | `npm audit --omit=dev --audit-level=high` | いいえ(新規脆弱性の公開で突然赤くなり得るため情報提供扱い) |
 | `.github/workflows/docker-build.yml` | `docker-build` | `docker build --target runner .` と `--target migrate .`(push・ログイン・デプロイなし)。Dockerfile / package.json / prisma 等の変更時のみ | いいえ |
 | `.github/workflows/terraform.yml` | `fmt` / `validate` / `plan` | `ci-and-budget.md` §2 を参照 | いいえ |

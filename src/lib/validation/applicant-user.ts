@@ -5,6 +5,7 @@ import {
   APPLICANT_USER_PASSWORD_MIN_LENGTH,
   APPLICANT_USER_PREFERRED_LOCALE_CODES,
 } from "@/lib/constants/applicant-user";
+import { emailSchema } from "@/lib/validation/email";
 
 /**
  * 申請者アカウント（ApplicantUser）新規作成フォームの入力値を検証する zod スキーマ。
@@ -14,7 +15,7 @@ import {
  * 含まれる値のみを許容し、未指定時は既定値`APPLICANT_USER_DEFAULT_LOCALE`とする。
  */
 export const applicantUserCreateFormSchema = z.object({
-  email: z.string().trim().min(1).email(),
+  email: emailSchema,
   displayName: z.string().trim().min(1),
   password: z.string().min(APPLICANT_USER_PASSWORD_MIN_LENGTH),
   preferredLocale: z
@@ -45,7 +46,7 @@ export type ApplicantUserCreateFormInput = z.input<
  * 入力がある場合のみ最小文字数要件を検証する。
  */
 export const applicantUserUpdateFormSchema = z.object({
-  email: z.string().trim().min(1).email(),
+  email: emailSchema,
   displayName: z.string().trim().min(1),
   password: z
     .string()

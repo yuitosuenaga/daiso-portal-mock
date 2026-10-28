@@ -14,6 +14,14 @@ vi.mock("bcryptjs", () => ({
     hash: vi.fn(async (value: string) => `hashed:${value}`),
   },
 }));
+const { findApplicantIdsMock, findStaffIdsMock } = vi.hoisted(() => ({
+  findApplicantIdsMock: vi.fn(),
+  findStaffIdsMock: vi.fn(),
+}));
+vi.mock("@/lib/server/email-lookup", () => ({
+  findApplicantUserIdsByEmail: findApplicantIdsMock,
+  findHelpdeskStaffIdsByEmail: findStaffIdsMock,
+}));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     applicantUser: {
@@ -173,6 +181,23 @@ describe("createApplicantUser", () => {
     expect(result).not.toHaveProperty("passwordHash");
   });
 
+  it("メールアドレスは保存直前にも小文字へ正規化する", async () => {
+    vi.mocked(prisma.applicantUser.create).mockResolvedValue(
+      baseApplicantUserRecord({ id: "1" }) as never
+    );
+
+    await createApplicantUser("company-1", {
+      email: " Tanaka@Example.com ",
+      displayName: "田中太郎",
+      password: "password123",
+      preferredLocale: "en",
+    });
+
+    expect(prisma.applicantUser.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: "tanaka@example.com" }),
+    });
+  });
+
   it("preferredLocaleを指定した場合はそのまま保存され、mapApplicantUserで返却される", async () => {
     vi.mocked(prisma.applicantUser.create).mockResolvedValue(
       baseApplicantUserRecord({ id: "1", preferredLocale: "th" }) as never
@@ -193,6 +218,24 @@ describe("createApplicantUser", () => {
 });
 
 describe("updateApplicantUser", () => {
+  it("メールアドレスは保存直前にも小文字へ正規化する", async () => {
+    vi.mocked(prisma.applicantUser.update).mockResolvedValue(
+      baseApplicantUserRecord({ id: "1" }) as never
+    );
+
+    await updateApplicantUser("1", {
+      email: " Tanaka@Example.com ",
+      displayName: "田中太郎",
+      preferredLocale: "en",
+    });
+
+    expect(prisma.applicantUser.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ email: "tanaka@example.com" }),
+      })
+    );
+  });
+
   it("passwordが指定されている場合はハッシュ化してpasswordHashを更新する", async () => {
     vi.mocked(prisma.applicantUser.update).mockResolvedValue(
       baseApplicantUserRecord({ id: "1" }) as never
@@ -307,47 +350,55 @@ describe("setApplicantUserActive", () => {
 });
 
 describe("isApplicantUserEmailTaken", () => {
+  beforeEach(() => {
+    findApplicantIdsMock.mockReset();
+    findStaffIdsMock.mockReset();
+  });
+
   it("ApplicantUserテーブルに同じメールアドレスが存在するときtrueを返す", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(
-      baseApplicantUserRecord() as never
-    );
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    findApplicantIdsMock.mockResolvedValue(["applicant-9"]);
+    findStaffIdsMock.mockResolvedValue([]);
 
-    const result = await isApplicantUserEmailTaken("tanaka@example.com");
-
-    expect(result).toBe(true);
+    expect(await isApplicantUserEmailTaken("tanaka@example.com")).toBe(true);
   });
 
   it("HelpdeskStaffテーブルに同じメールアドレスが存在するときtrueを返す", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue({
-      id: "staff-1",
-      email: "staff@helpdesk.example.com",
-    } as never);
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue(["staff-1"]);
 
-    const result = await isApplicantUserEmailTaken("staff@helpdesk.example.com");
-
-    expect(result).toBe(true);
+    expect(await isApplicantUserEmailTaken("staff@helpdesk.example.com")).toBe(true);
   });
 
   it("いずれのテーブルにも存在しないときfalseを返す", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue([]);
 
-    const result = await isApplicantUserEmailTaken("new@example.com");
-
-    expect(result).toBe(false);
+    expect(await isApplicantUserEmailTaken("new@example.com")).toBe(false);
   });
 
   it("excludeId指定時はApplicantUser側で自分自身を除外して重複確認する", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue([]);
 
     await isApplicantUserEmailTaken("tanaka@example.com", "applicant-1");
 
-    expect(prisma.applicantUser.findFirst).toHaveBeenCalledWith({
-      where: { email: "tanaka@example.com", id: { not: "applicant-1" } },
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("tanaka@example.com", {
+      excludeId: "applicant-1",
     });
+    // スタッフ側には除外を適用しない
+    expect(findStaffIdsMock).toHaveBeenCalledWith("tanaka@example.com");
+  });
+
+  it("両テーブルを同じ入力で照会する（大文字小文字の正規化・ワイルドカード対策は照会ヘルパー側）", async () => {
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue([]);
+
+    await isApplicantUserEmailTaken("Tanaka@Example.COM");
+
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("Tanaka@Example.COM", {
+      excludeId: undefined,
+    });
+    expect(findStaffIdsMock).toHaveBeenCalledWith("Tanaka@Example.COM");
   });
 });
 
