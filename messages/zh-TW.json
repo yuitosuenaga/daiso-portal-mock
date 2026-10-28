@@ -734,8 +734,8 @@
       "submitError": "保存失敗。請稍候後重試。",
       "validation": {
         "required": "此項目為必填項",
-        "emailInvalid": "請輸入有效的電郵地址",
-        "emailDuplicate": "此電郵地址已被使用",
+        "emailInvalid": "請輸入有效的電子郵件地址",
+        "emailDuplicate": "此電子郵件地址已被使用",
         "passwordTooShort": "密碼必須為8個字元或以上"
       }
     },
