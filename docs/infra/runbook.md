@@ -113,6 +113,8 @@ gcloud run jobs execute portal-mock-migrate --project $PROJECT --region $REGION 
 
 実行結果は Cloud Run Job の実行履歴とログで確認する(§3.5)。失敗した場合は、サービスのデプロイに進まない。マイグレーションが失敗状態で止まった場合は、原因を解消したうえで `prisma migrate resolve`(`--applied` / `--rolled-back`)で状態を解決してから再実行する。
 
+メール正規化(`20261029000001_normalize_email_lowercase`)のように、適用前に本番データの確認が必要なマイグレーションは `docs/infra/email-normalization.md` を参照する(段階1のデプロイが先)。
+
 ### 1.4 Cloud Run へのデプロイ
 
 `deploy-main` スキルを使う場合(現行環境):
