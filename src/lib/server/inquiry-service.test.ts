@@ -13,7 +13,9 @@ vi.mock("@/lib/db/prisma", () => ({
       findFirst: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
     },
+    $transaction: vi.fn(),
     inquiryHistoryEntry: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -25,19 +27,20 @@ import { prisma } from "@/lib/db/prisma";
 import { CompanyNotFoundError } from "@/lib/server/company-service";
 import {
   appendHistoryEntry,
+  appendReplyWithAutoTransition,
+  changeStatusWithHistory,
   ClaimOwnershipError,
   createInquiryRecord,
   DoubleClaimError,
   findInquiryById,
   findInquiryForCompany,
+  InquiryNotFoundError,
   listAllInquiries,
   listHistory,
   listInquiriesForCompany,
   listUnreadReplyInquiryIds,
   markInquiryRead,
   setClaim,
-  updateStatus,
-  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 
 const baseInquiryRecord = {
@@ -64,6 +67,8 @@ const baseInquiryRecord = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.$transaction).mockImplementation(((fn: (tx: unknown) => unknown) =>
+    fn(prisma)) as never);
   vi.mocked(prisma.company.findUnique).mockResolvedValue({
     name: "Daiso Japan",
     country: "JP",
@@ -292,160 +297,280 @@ describe("findInquiryForCompany", () => {
   });
 });
 
+const DETAIL_INCLUDE = { claimedByStaff: true, attachments: true, translations: true };
+
 describe("setClaim", () => {
-  it("未claimの問い合わせにclaimを設定する", async () => {
-    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(baseInquiryRecord as never);
-    vi.mocked(prisma.inquiry.update).mockResolvedValue({
+  const staff1 = { staffId: "staff-1", displayName: "田中 太郎" };
+
+  it("claimは claimedByStaffId: null を条件にした条件付き更新で行い、詳細用includeで読み直した結果を返す", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue({
       ...baseInquiryRecord,
       claimedByStaffId: "staff-1",
       claimedByStaff: { displayName: "田中 太郎" },
       claimedAt: new Date("2026-07-01T00:00:00.000Z"),
     } as never);
 
-    const result = await setClaim(
-      "inquiry-1",
-      { staffId: "staff-1", displayName: "田中 太郎" },
-      "staff-1"
-    );
+    const result = await setClaim("inquiry-1", staff1, "staff-1");
 
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
+      where: { id: "inquiry-1", claimedByStaffId: null },
+      data: { claimedByStaffId: "staff-1", claimedAt: expect.any(Date) },
+    });
+    expect(prisma.inquiry.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: "inquiry-1" },
+      include: DETAIL_INCLUDE,
+    });
     expect(result.claim).toEqual({
       staffName: "田中 太郎",
       claimedAt: "2026-07-01T00:00:00.000Z",
     });
   });
 
-  it("既にclaim済みの問い合わせへの再claimはDoubleClaimErrorを送出する", async () => {
-    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
-      ...baseInquiryRecord,
-      claimedByStaffId: "staff-1",
-      claimedAt: new Date("2026-07-01T00:00:00.000Z"),
-    } as never);
+  it("claim: 更新0件で問い合わせが存在しなければInquiryNotFoundError", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(null);
 
-    await expect(
-      setClaim(
-        "inquiry-1",
-        { staffId: "staff-2", displayName: "鈴木 花子" },
-        "staff-2"
-      )
-    ).rejects.toThrow(DoubleClaimError);
-    expect(prisma.inquiry.update).not.toHaveBeenCalled();
+    await expect(setClaim("inquiry-1", staff1, "staff-1")).rejects.toThrow(
+      InquiryNotFoundError
+    );
   });
 
-  it("所有者本人が解除するとclaimを解除する", async () => {
-    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
-      ...baseInquiryRecord,
-      claimedByStaffId: "staff-1",
-      claimedAt: new Date("2026-07-01T00:00:00.000Z"),
-    } as never);
-    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
+  it("claim: 更新0件で問い合わせが存在すればDoubleClaimError", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({ id: "inquiry-1" } as never);
+
+    await expect(setClaim("inquiry-1", staff1, "staff-1")).rejects.toThrow(
+      DoubleClaimError
+    );
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+
+  it("解除は claimedByStaffId: 実行者 を条件にした条件付き更新で行う", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+      baseInquiryRecord as never
+    );
 
     const result = await setClaim("inquiry-1", null, "staff-1");
 
-    expect(prisma.inquiry.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { claimedByStaffId: null, claimedAt: null },
-      })
-    );
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
+      where: { id: "inquiry-1", claimedByStaffId: "staff-1" },
+      data: { claimedByStaffId: null, claimedAt: null },
+    });
     expect(result.claim).toBeNull();
   });
 
-  it("所有者以外が解除しようとするとClaimOwnershipErrorを送出し、更新しない", async () => {
+  it("解除: 更新0件で問い合わせが存在しなければInquiryNotFoundError", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(null);
+
+    await expect(setClaim("inquiry-1", null, "staff-1")).rejects.toThrow(
+      InquiryNotFoundError
+    );
+  });
+
+  it("解除: 更新0件で未claimなら冪等な無操作として成功する（履歴は残さない）", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
     vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
-      ...baseInquiryRecord,
+      claimedByStaffId: null,
+    } as never);
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+      baseInquiryRecord as never
+    );
+
+    const result = await setClaim("inquiry-1", null, "staff-2", {
+      historyActorName: "鈴木 花子",
+    });
+
+    expect(result.claim).toBeNull();
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+
+  it("解除: 更新0件で他人がclaim中ならClaimOwnershipError", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({
       claimedByStaffId: "staff-1",
-      claimedAt: new Date("2026-07-01T00:00:00.000Z"),
     } as never);
 
     await expect(setClaim("inquiry-1", null, "staff-2")).rejects.toThrow(
       ClaimOwnershipError
     );
-    expect(prisma.inquiry.update).not.toHaveBeenCalled();
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
   });
 
-  it("未claimの問い合わせを解除しようとしても冪等な無操作としてエラーを送出しない", async () => {
-    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(baseInquiryRecord as never);
-    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
-
-    const result = await setClaim("inquiry-1", null, "staff-2");
-
-    expect(prisma.inquiry.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { claimedByStaffId: null, claimedAt: null },
-      })
+  it("historyActorName指定かつ更新1件のとき、同じtx内でclaimed履歴を作る", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+      baseInquiryRecord as never
     );
-    expect(result.claim).toBeNull();
+
+    await setClaim("inquiry-1", staff1, "staff-1", { historyActorName: "田中 太郎" });
+
+    expect(prisma.inquiryHistoryEntry.create).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls[0]?.[0]?.data).toMatchObject({
+      inquiryId: "inquiry-1",
+      type: "claimed",
+      actorName: "田中 太郎",
+    });
   });
 
-  it("詳細用include（添付あり）でupdateする", async () => {
-    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(baseInquiryRecord as never);
-    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
-
-    await setClaim(
-      "inquiry-1",
-      { staffId: "staff-1", displayName: "田中 太郎" },
-      "staff-1"
+  it("historyActorName指定かつ解除1件のとき、released履歴を作る", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+      baseInquiryRecord as never
     );
 
-    expect(prisma.inquiry.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true, translations: true },
-      })
+    await setClaim("inquiry-1", null, "staff-1", { historyActorName: "田中 太郎" });
+
+    expect(vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls[0]?.[0]?.data).toMatchObject({
+      type: "released",
+      actorName: "田中 太郎",
+    });
+  });
+
+  it("historyActorName未指定なら更新1件でも履歴を作らない", async () => {
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.inquiry.findUniqueOrThrow).mockResolvedValue(
+      baseInquiryRecord as never
     );
+
+    await setClaim("inquiry-1", staff1, "staff-1");
+
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
   });
 });
 
-describe("updateStatus", () => {
-  it("ステータスを更新する", async () => {
-    vi.mocked(prisma.inquiry.update).mockResolvedValue({
-      ...baseInquiryRecord,
-      status: "resolved",
-    } as never);
+describe("changeStatusWithHistory", () => {
+  const options = {
+    actorName: "田中 太郎",
+    formatDetail: (prev: string, next: string) => `${prev} => ${next}`,
+  };
 
-    const result = await updateStatus("inquiry-1", "resolved");
-
-    expect(result.status).toBe("resolved");
-  });
-
-  it("詳細用include（添付あり）でupdateする", async () => {
-    vi.mocked(prisma.inquiry.update).mockResolvedValue(baseInquiryRecord as never);
-
-    await updateStatus("inquiry-1", "resolved");
-
-    expect(prisma.inquiry.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        include: { claimedByStaff: true, attachments: true, translations: true },
-      })
-    );
-  });
-});
-
-describe("updateStatusIfCurrent", () => {
-  it("条件に合致し更新できたときtrueを返す", async () => {
+  it("現在値を条件に更新し、同じtx内でformatDetailの結果を詳細にした履歴を作る", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({ status: "new" } as never);
     vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
 
-    const result = await updateStatusIfCurrent(
-      "inquiry-1",
-      "new",
-      "in_progress"
-    );
+    const result = await changeStatusWithHistory("inquiry-1", "resolved", options);
 
+    expect(result).toEqual({ changed: true });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
+      where: { id: "inquiry-1", status: "new" },
+      data: { status: "resolved" },
+    });
+    expect(vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls[0]?.[0]?.data).toMatchObject({
+      inquiryId: "inquiry-1",
+      type: "status_changed",
+      actorName: "田中 太郎",
+      detail: "new => resolved",
+    });
+  });
+
+  it("同じ状態への変更は更新も履歴も行わず changed: false を返す", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({ status: "resolved" } as never);
+
+    const result = await changeStatusWithHistory("inquiry-1", "resolved", options);
+
+    expect(result).toEqual({ changed: false });
+    expect(prisma.inquiry.updateMany).not.toHaveBeenCalled();
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+
+  it("存在しないIDはInquiryNotFoundError", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(null);
+
+    await expect(
+      changeStatusWithHistory("missing", "resolved", options)
+    ).rejects.toThrow(InquiryNotFoundError);
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+
+  it("更新0件（競合）のときは読み直し、新しい前の値で再試行して成功する", async () => {
+    vi.mocked(prisma.inquiry.findUnique)
+      .mockResolvedValueOnce({ status: "new" } as never)
+      .mockResolvedValueOnce({ status: "in_progress" } as never);
+    vi.mocked(prisma.inquiry.updateMany)
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    const result = await changeStatusWithHistory("inquiry-1", "resolved", options);
+
+    expect(result).toEqual({ changed: true });
+    expect(vi.mocked(prisma.inquiry.updateMany).mock.calls[1]?.[0]).toEqual({
+      where: { id: "inquiry-1", status: "in_progress" },
+      data: { status: "resolved" },
+    });
+    expect(prisma.inquiryHistoryEntry.create).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls[0]?.[0]?.data).toMatchObject({
+      detail: "in_progress => resolved",
+    });
+  });
+
+  it("競合で3回続けて更新できなければ例外を投げ、履歴を作らない", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({ status: "new" } as never);
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
+
+    await expect(
+      changeStatusWithHistory("inquiry-1", "resolved", options)
+    ).rejects.toThrow();
+    expect(prisma.inquiry.updateMany).toHaveBeenCalledTimes(3);
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("appendReplyWithAutoTransition", () => {
+  const input = {
+    actorName: "田中 太郎",
+    body: "ご連絡ありがとうございます",
+    attachments: undefined,
+    autoTransitionDetail: "新規 → 対応中",
+  };
+
+  it("存在すれば reply_sent を作り、statusがnewなら同じtx内で in_progress へ遷移し status_changed を作る", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({ id: "inquiry-1" } as never);
+    vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 1 });
+
+    await appendReplyWithAutoTransition("inquiry-1", input);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(prisma.inquiry.updateMany).toHaveBeenCalledWith({
       where: { id: "inquiry-1", status: "new" },
       data: { status: "in_progress" },
     });
-    expect(result).toBe(true);
+    const calls = vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]?.[0]?.data).toMatchObject({
+      type: "reply_sent",
+      detail: "ご連絡ありがとうございます",
+      actorName: "田中 太郎",
+    });
+    expect(calls[1]?.[0]?.data).toMatchObject({
+      type: "status_changed",
+      detail: "新規 → 対応中",
+    });
   });
 
-  it("現在のstatusが期待値と異なり更新されなかったときfalseを返す", async () => {
+  it("statusがnew以外（更新0件）なら status_changed を作らない", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue({ id: "inquiry-1" } as never);
     vi.mocked(prisma.inquiry.updateMany).mockResolvedValue({ count: 0 });
 
-    const result = await updateStatusIfCurrent(
-      "inquiry-1",
-      "new",
-      "in_progress"
-    );
+    await appendReplyWithAutoTransition("inquiry-1", input);
 
-    expect(result).toBe(false);
+    const calls = vi.mocked(prisma.inquiryHistoryEntry.create).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.[0]?.data).toMatchObject({ type: "reply_sent" });
+  });
+
+  it("存在しないIDはInquiryNotFoundErrorで、何も作らない", async () => {
+    vi.mocked(prisma.inquiry.findUnique).mockResolvedValue(null);
+
+    await expect(appendReplyWithAutoTransition("missing", input)).rejects.toThrow(
+      InquiryNotFoundError
+    );
+    expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+    expect(prisma.inquiry.updateMany).not.toHaveBeenCalled();
   });
 });
 

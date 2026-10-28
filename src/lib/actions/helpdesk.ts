@@ -4,12 +4,10 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
-import { appendInquiryHistoryEntry } from "@/lib/api/inquiry-history";
 import {
-  getInquiryById,
+  changeInquiryStatusWithHistory,
+  sendInquiryReplyWithAutoTransition,
   setInquiryClaim,
-  updateInquiryStatus,
-  updateInquiryStatusIfCurrent,
 } from "@/lib/api/inquiries";
 import {
   createReplyTemplate,
@@ -67,17 +65,15 @@ export async function retryInquiryTranslationAction(inquiryId: string): Promise<
 
 /**
  * 対応中フラグをONにし、対応履歴に記録したうえで一覧・詳細ルートを再検証する。
+ * claimと履歴は`setClaim`が同一トランザクションで記録する。既にclaim済みなら
+ * `DoubleClaimError`を送出し、履歴は残らない。
  */
 export async function claimInquiryAction(inquiryId: string): Promise<void> {
   const id = inquiryIdSchema.parse(inquiryId);
   const { claims } = await requireHelpdeskStaffSession();
 
-  await setInquiryClaim(id, claims.displayName);
-  await appendInquiryHistoryEntry({
-    inquiryId: id,
-    type: "claimed",
-    actorName: claims.displayName,
-    occurredAt: new Date().toISOString(),
+  await setInquiryClaim(id, claims.displayName, {
+    historyActorName: claims.displayName,
   });
   revalidateInquiryRoutes();
 }
@@ -86,6 +82,7 @@ export type ReleaseClaimResult = { ok: true } | { ok: false; reason: "notOwner" 
 
 /**
  * 対応中フラグを解除し、対応履歴に記録したうえで一覧・詳細ルートを再検証する。
+ * 解除と履歴は`setClaim`が同一トランザクションで記録する（既に未claimだった場合は履歴を残さない）。
  * 解除操作を行う担当者が対象の所有者でない場合（`ClaimOwnershipError`）は、
  * 解除を実行せず・履歴も記録せず、`{ ok: false, reason: "notOwner" }`を返す。
  * 想定外の例外は再throwし、呼び出し元の汎用エラー処理にフォールバックさせる。
@@ -97,7 +94,7 @@ export async function releaseInquiryClaimAction(
   const { claims } = await requireHelpdeskStaffSession();
 
   try {
-    await setInquiryClaim(id, null);
+    await setInquiryClaim(id, null, { historyActorName: claims.displayName });
   } catch (error) {
     if (error instanceof ClaimOwnershipError) {
       return { ok: false, reason: "notOwner" };
@@ -105,12 +102,6 @@ export async function releaseInquiryClaimAction(
     throw error;
   }
 
-  await appendInquiryHistoryEntry({
-    inquiryId: id,
-    type: "released",
-    actorName: claims.displayName,
-    occurredAt: new Date().toISOString(),
-  });
   revalidateInquiryRoutes();
   return { ok: true };
 }
@@ -118,6 +109,10 @@ export async function releaseInquiryClaimAction(
 /**
  * 対応状況を変更し、変更前後の値を対応履歴に記録したうえで一覧・詳細ルートを再検証する。
  * 変更後の`status`は申請者側が参照する同一データにも反映される。
+ *
+ * 状態の更新と履歴は`changeStatusWithHistory`が同一トランザクションで記録し、履歴の
+ * 「変更前」は実際に上書きした値と一致する。現在と同じ状態への変更は履歴を残さない。
+ * 翻訳はトランザクション外で取得し、整形関数として渡す。
  */
 export async function changeInquiryStatusAction(
   inquiryId: string,
@@ -127,22 +122,10 @@ export async function changeInquiryStatusAction(
   const validatedStatus = statusSchema.parse(status);
   const { claims } = await requireHelpdeskStaffSession();
 
-  const previous = await getInquiryById(id);
-  const previousStatus = previous?.status;
-
-  await updateInquiryStatus(id, validatedStatus);
-
   const t = await getTranslations("inquiryList.status");
-  const detail = previousStatus
-    ? `${t(previousStatus)} → ${t(validatedStatus)}`
-    : t(validatedStatus);
-
-  await appendInquiryHistoryEntry({
-    inquiryId: id,
-    type: "status_changed",
+  await changeInquiryStatusWithHistory(id, validatedStatus, {
     actorName: claims.displayName,
-    occurredAt: new Date().toISOString(),
-    detail,
+    formatDetail: (previous, next) => `${t(previous)} → ${t(next)}`,
   });
   revalidateInquiryRoutes();
 }
@@ -156,10 +139,9 @@ export async function changeInquiryStatusAction(
  * 既に`in_progress`・`resolved`の問い合わせに返信しても`status`は変更しない
  * （`resolved`案件への返信で自動的に再オープンはしない）。
  *
- * `status`が`new`かどうかの判定と変更は、`updateInquiryStatusIfCurrent`による
- * `WHERE status = 'new'`条件付きの単一更新で原子的に行う。読み取ってから条件なしで
- * 書き込む方式だと、読み取り後・書き込み前に他の担当者が`changeInquiryStatusAction`で
- * 状態を変えた場合（例: 先に`resolved`にした直後）に上書きしてしまう競合が起こり得るため。
+ * 返信履歴・`WHERE status = 'new'`条件付きの自動遷移・遷移履歴は
+ * `appendReplyWithAutoTransition`が同一トランザクションで行う。読み取ってから条件なしで
+ * 書き込む方式だと、他の担当者が先に状態を変えた場合に上書きしてしまうため。
  */
 export async function sendInquiryReplyAction(
   inquiryId: string,
@@ -171,32 +153,14 @@ export async function sendInquiryReplyAction(
   const validatedAttachments = inquiryAttachmentsStrictSchema.parse(attachments);
   const { claims } = await requireHelpdeskStaffSession();
 
-  await appendInquiryHistoryEntry({
-    inquiryId: id,
-    type: "reply_sent",
+  const t = await getTranslations("inquiryList.status");
+  await sendInquiryReplyWithAutoTransition(id, {
     actorName: claims.displayName,
-    occurredAt: new Date().toISOString(),
-    detail: body,
+    body,
     attachments:
       validatedAttachments.length > 0 ? validatedAttachments : undefined,
+    autoTransitionDetail: `${t("new")} → ${t("in_progress")}`,
   });
-
-  const didAutoTransition = await updateInquiryStatusIfCurrent(
-    id,
-    "new",
-    "in_progress"
-  );
-
-  if (didAutoTransition) {
-    const t = await getTranslations("inquiryList.status");
-    await appendInquiryHistoryEntry({
-      inquiryId: id,
-      type: "status_changed",
-      actorName: claims.displayName,
-      occurredAt: new Date().toISOString(),
-      detail: `${t("new")} → ${t("in_progress")}`,
-    });
-  }
 
   revalidateInquiryRoutes();
 }
