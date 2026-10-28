@@ -820,7 +820,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("配信対象国を拡大（VN→VN,TH）して公開のまま更新すると、新規追加分（TH）のwhereで追加通知が1回呼ばれ、公開通知は呼ばれない（要件35.1, 35.2）", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({ sendEmailNotification: true,
+      baseAnnouncementRecord({
+        sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -828,7 +829,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       }) as never
     );
     vi.mocked(prisma.announcement.update).mockResolvedValue(
-      baseAnnouncementRecord({ sendEmailNotification: true,
+      baseAnnouncementRecord({
+        sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -921,7 +923,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("配信対象がcountries=[VN]からallへ変更されたとき、notIn:[VN]のwhereで追加通知が呼ばれる（要件35.4）", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({ sendEmailNotification: true,
+      baseAnnouncementRecord({
+        sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
@@ -953,7 +956,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
 
   it("下書き→公開への更新ではnotifyAnnouncementPublishedのみが呼ばれ、追加通知は呼ばれない（要件35.6、二重送信防止）", async () => {
     vi.mocked(prisma.announcement.findUnique).mockResolvedValue(
-      baseAnnouncementRecord({ sendEmailNotification: true,
+      baseAnnouncementRecord({
+        sendEmailNotification: true,
         id: "1",
         status: "draft",
         publishedAt: null,
@@ -962,7 +966,8 @@ describe("createAnnouncementRecord / updateAnnouncementRecord / deleteAnnounceme
       }) as never
     );
     vi.mocked(prisma.announcement.update).mockResolvedValue(
-      baseAnnouncementRecord({ sendEmailNotification: true,
+      baseAnnouncementRecord({
+        sendEmailNotification: true,
         id: "1",
         status: "published",
         targetingScope: "countries",
