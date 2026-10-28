@@ -25,8 +25,8 @@ function revalidateAnnouncementTrackingRoutes(): void {
 }
 
 /**
- * 未対応の担当者へリマインドを送信したことをモックデータ上に記録する。
- * 実際のメール・プッシュ通知配信は行わない。空配列を渡した場合は何もせず正常終了する。
+ * 未対応の担当者へリマインドを送信したことを記録し、会社宛にメール通知する。
+ * 空配列、または送信対象外のお知らせ（下書き・公開期間外・対応要否が偽）では何もせず正常終了する。
  */
 export async function sendAnnouncementRemindersAction(
   announcementId: string,

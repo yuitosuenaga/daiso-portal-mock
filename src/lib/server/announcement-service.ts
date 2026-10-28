@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
+import { isWithinPublishPeriod } from "@/lib/announcement-publish-period";
 import { prisma } from "@/lib/db/prisma";
 import {
   addedTargetApplicantUsersWhere,
@@ -84,37 +85,6 @@ function visibleToCountryWhere(
         : []),
     ],
   };
-}
-
-/** 公開開始日（＋任意の時刻 HH:mm、未設定は9:00）を日本時間として解釈した時刻を返す。 */
-function parsePublishStart(isoDate: string, time: string | null | undefined): Date {
-  return new Date(`${isoDate}T${time || "09:00"}:00.000+09:00`);
-}
-
-/** 公開終了日（＋任意の時刻 HH:mm、未設定は23:59）を日本時間として解釈した時刻を返す（その分の終わりまで公開）。 */
-function parsePublishEnd(isoDate: string, time: string | null | undefined): Date {
-  return new Date(`${isoDate}T${time || "23:59"}:59.999+09:00`);
-}
-
-/** 公開開始日・終了日を基準に、現在時刻が公開期間内かどうかを判定する。 */
-function isWithinPublishPeriod(
-  announcement: Pick<
-    Announcement,
-    "publishStartDate" | "publishStartTime" | "publishEndDate" | "publishEndTime"
-  >,
-  referenceDate: Date
-): boolean {
-  if (announcement.publishStartDate) {
-    if (referenceDate < parsePublishStart(announcement.publishStartDate, announcement.publishStartTime)) {
-      return false;
-    }
-  }
-  if (announcement.publishEndDate) {
-    if (referenceDate > parsePublishEnd(announcement.publishEndDate, announcement.publishEndTime)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 /** 配信対象（`targeting`）でスコープされた担当者を、所属会社込みで取得する。 */
@@ -252,6 +222,66 @@ async function findAnnouncementTargetingById(
 }
 
 /**
+ * 配信メール（公開通知・配信対象拡大の追加通知）を送るべきかを判定する。
+ * メール送信が有効で、かつ現在が公開期間内の場合のみ真（公開期間外は閲覧者にも見えないため送らない）。
+ */
+function shouldSendDistributionMail(
+  announcement: Pick<
+    Announcement,
+    | "sendEmailNotification"
+    | "publishStartDate"
+    | "publishStartTime"
+    | "publishEndDate"
+    | "publishEndTime"
+  >,
+  now: Date
+): boolean {
+  return announcement.sendEmailNotification && isWithinPublishPeriod(announcement, now);
+}
+
+const ANNOUNCEMENT_REMINDER_GUARD_SELECT = {
+  ...ANNOUNCEMENT_TARGETING_SELECT,
+  status: true,
+  publishStartDate: true,
+  publishEndDate: true,
+  publishStartTime: true,
+  publishEndTime: true,
+} as const satisfies Prisma.AnnouncementSelect;
+
+function dateToDateOnly(value: Date | null): string | null {
+  return value ? value.toISOString().slice(0, 10) : null;
+}
+
+/**
+ * リマインド送信の可否判定用に、お知らせの配信対象・公開状態・公開期間を取得する。
+ * 存在しない・下書き・公開期間外の場合はnullを返す（リマインドを送ってはならない）。
+ */
+async function findAnnouncementReminderGuard(
+  id: string
+): Promise<Pick<Announcement, "id" | "targeting" | "actionRequired"> | null> {
+  const record = await prisma.announcement.findUnique({
+    where: { id },
+    select: ANNOUNCEMENT_REMINDER_GUARD_SELECT,
+  });
+  if (!record || record.status !== "published") {
+    return null;
+  }
+  const withinPeriod = isWithinPublishPeriod(
+    {
+      publishStartDate: dateToDateOnly(record.publishStartDate),
+      publishStartTime: record.publishStartTime,
+      publishEndDate: dateToDateOnly(record.publishEndDate),
+      publishEndTime: record.publishEndTime,
+    },
+    new Date()
+  );
+  if (!withinPeriod) {
+    return null;
+  }
+  return { id: record.id, actionRequired: record.actionRequired, targeting: mapTargeting(record) };
+}
+
+/**
  * 指定したIDのうち、実在する`Document`のIDのみを返す。存在しない・削除済みのIDは
  * 無言で除外する（ドキュメント紐づけの保存時にFK違反を防ぐための事前確認）。
  */
@@ -357,7 +387,7 @@ export async function createAnnouncementRecord(
   });
 
   const announcement = mapAnnouncement(record);
-  if (announcement.status === "published") {
+  if (announcement.status === "published" && shouldSendDistributionMail(announcement, new Date())) {
     await notifyAnnouncementPublished(announcement.id);
   }
 
@@ -438,11 +468,15 @@ export async function updateAnnouncementRecord(
     });
 
     const announcement = mapAnnouncement(record);
+    // メール送信が無効、または公開期間外のお知らせでは、公開通知・追加通知のどちらも送らない。
+    const sendMail = shouldSendDistributionMail(announcement, new Date());
     if (shouldStampPublishedAt) {
       // 下書き→公開への遷移では、既存の公開通知が全対象者へ通知するため、
       // 配信対象拡大の追加通知は行わない（要件35.6、二重送信防止）。
-      await notifyAnnouncementPublished(announcement.id);
-    } else if (announcement.status === "published") {
+      if (sendMail) {
+        await notifyAnnouncementPublished(announcement.id);
+      }
+    } else if (announcement.status === "published" && sendMail) {
       // 公開のまま保存された場合のみ、配信対象の拡大差分を検出し、
       // 新規追加分の対象者にのみ追加通知を送る（要件35.1, 35.2, 35.7）。
       const addedWhere = addedTargetApplicantUsersWhere(
@@ -698,8 +732,14 @@ export async function sendUserReadReminders(
     return;
   }
 
+  const announcement = await findAnnouncementReminderGuard(announcementId);
+  if (!announcement) {
+    return;
+  }
+
+  // 呼び出し元から渡されたIDのうち、有効かつ配信対象のアカウントにのみ絞り込む。
   const applicantUsers = await prisma.applicantUser.findMany({
-    where: { id: { in: applicantUserIds } },
+    where: { AND: [{ id: { in: applicantUserIds } }, targetApplicantUsersWhere(announcement)] },
     include: { announcementReadReceipts: { where: { announcementId } } },
   });
 
@@ -805,23 +845,27 @@ export async function sendAnnouncementReminders(
     return;
   }
 
-  const sentAt = new Date();
+  const announcement = await findAnnouncementReminderGuard(announcementId);
+  if (!announcement?.actionRequired) {
+    return;
+  }
 
-  const [recipients] = await Promise.all([
-    prisma.announcementRecipient.findMany({
-      where: { id: { in: recipientIds } },
-      include: { company: true },
-    }),
-    Promise.all(
-      recipientIds.map((recipientId) =>
-        prisma.announcementRecipientStatus.upsert({
-          where: { announcementId_recipientId: { announcementId, recipientId } },
-          update: { reminderSentAt: sentAt },
-          create: { announcementId, recipientId, reminderSentAt: sentAt },
-        })
-      )
-    ),
-  ]);
+  // 存在しない・配信対象外のIDは除外し、見つかった担当者にのみ記録する（FK違反の防止）。
+  const recipients = await prisma.announcementRecipient.findMany({
+    where: { AND: [{ id: { in: recipientIds } }, targetRecipientsWhere(announcement)] },
+    include: { company: true },
+  });
+
+  const sentAt = new Date();
+  await Promise.all(
+    recipients.map((recipient) =>
+      prisma.announcementRecipientStatus.upsert({
+        where: { announcementId_recipientId: { announcementId, recipientId: recipient.id } },
+        update: { reminderSentAt: sentAt },
+        create: { announcementId, recipientId: recipient.id, reminderSentAt: sentAt },
+      })
+    )
+  );
 
   const companyCodes = Array.from(
     new Set(recipients.map((recipient) => recipient.company.companyCode))
