@@ -260,10 +260,7 @@ export async function setClaim(
         } else {
           const latest = await tx.inquiry.findUnique({
             where: { id },
-            select: {
-              claimedByStaffId: true,
-              claimedByStaff: { select: { isActive: true } },
-            },
+            select: { claimedByStaffId: true },
           });
           if (!latest) {
             throw new InquiryNotFoundError(id);

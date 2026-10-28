@@ -521,6 +521,20 @@ describe("setClaim", () => {
       ).rejects.toThrow(ClaimOwnershipError);
       expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
     });
+
+    it("2回目の更新が0件で読み直すと問い合わせが消えていたらInquiryNotFoundError", async () => {
+      vi.mocked(prisma.inquiry.updateMany)
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 0 });
+      vi.mocked(prisma.inquiry.findUnique)
+        .mockResolvedValueOnce(inactiveOwner as never)
+        .mockResolvedValueOnce(null as never);
+
+      await expect(
+        setClaim("inquiry-1", null, "staff-2", { historyActorName: "鈴木 花子" })
+      ).rejects.toThrow(InquiryNotFoundError);
+      expect(prisma.inquiryHistoryEntry.create).not.toHaveBeenCalled();
+    });
   });
 
   it("historyActorName指定かつ更新1件のとき、同じtx内でclaimed履歴を作る", async () => {
