@@ -6,12 +6,35 @@ import { CLIENT_NAMESPACES, pickClientMessages } from "./client-namespaces";
 
 const ROOT = process.cwd();
 
-/** 引数が文字列リテラルでない useTranslations 呼び出しを許可するファイルと、実際に渡される namespace */
+/**
+ * 引数が文字列リテラルでない useTranslations 呼び出しを許可するファイルと、実際に渡される namespace。
+ * MobileNav は現状本番の呼び出し元が無い(テストのみ)が、将来再利用された場合に
+ * helpdeskNav の欠落で実行時エラーにならないための安全網として残している。
+ */
 const DYNAMIC_NAMESPACE_FILES: Record<string, string[]> = {
   "src/components/layout/MobileNav.tsx": ["helpdeskNav"],
 };
 
 const FORBIDDEN_HOOKS = ["useMessages(", "useFormatter(", "useNow(", "useTimeZone("];
+
+// use-intl 直 import は next-intl の絞り込み済み messages を迂回しうるため禁止。
+// useLocale は messages に依存しないので禁止しない。
+const USE_INTL_IMPORT = /["']use-intl(?:\/[^"']*)?["']/;
+
+/** import 文(複数行含む)とコメントを除去する。useTranslations の識別子参照を数える前処理 */
+function stripImports(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/^\s*import\b[^;]*?\bfrom\s*["'][^"']+["'];?/gm, "");
+}
+
+/** `useTranslations(` 形式以外の識別子参照(ジェネリクス・別名代入・引数渡し等)の数 */
+function countUnextractableRefs(source: string): number {
+  const code = stripImports(source);
+  const refs = code.match(/\buseTranslations\b/g)?.length ?? 0;
+  return refs - extractUseTranslations(code).length;
+}
 
 type Usage =
   | { kind: "literal"; namespace: string; topLevel: string }
@@ -65,6 +88,21 @@ describe("extractUseTranslations(自己検証)", () => {
     ]);
     expect(extractUseTranslations(`useTranslations()`)).toEqual([{ kind: "none" }]);
   });
+
+  it("抽出できない参照(ジェネリクス・別名)を検出し、import 行は無視する", () => {
+    const imp = `import { useTranslations } from "next-intl";\n`;
+    expect(countUnextractableRefs(`${imp}const t = useTranslations("a");`)).toBe(0);
+    expect(countUnextractableRefs(`import {\n  useTranslations,\n} from "next-intl";`)).toBe(0);
+    expect(countUnextractableRefs(`/** useTranslations */\n// useTranslations\n${imp}`)).toBe(0);
+    expect(countUnextractableRefs(`${imp}useTranslations<X>("a")`)).toBe(1);
+    expect(countUnextractableRefs(`${imp}const useT = useTranslations;`)).toBe(1);
+  });
+
+  it("use-intl の import を検出する", () => {
+    expect(USE_INTL_IMPORT.test(`import { x } from "use-intl";`)).toBe(true);
+    expect(USE_INTL_IMPORT.test(`from 'use-intl/core'`)).toBe(true);
+    expect(USE_INTL_IMPORT.test(`from "next-intl"`)).toBe(false);
+  });
 });
 
 describe("pickClientMessages", () => {
@@ -108,6 +146,18 @@ describe("CLIENT_NAMESPACES の網羅性", () => {
         for (const ns of DYNAMIC_NAMESPACE_FILES[file] ?? []) used.add(ns.split(".")[0]!);
     }
     expect(CLIENT_NAMESPACES.filter((n) => !used.has(n))).toEqual([]);
+  });
+
+  it("useTranslations( 形式で抽出できない参照(ジェネリクス・別名等)が src に無い", () => {
+    const hits = files
+      .map((f) => ({ path: f.path, n: countUnextractableRefs(f.source) }))
+      .filter((x) => x.n !== 0)
+      .map((x) => `${x.path}: ${x.n}`);
+    expect(hits).toEqual([]);
+  });
+
+  it("use-intl を直接 import していない", () => {
+    expect(files.filter((f) => USE_INTL_IMPORT.test(f.source)).map((f) => f.path)).toEqual([]);
   });
 
   it("全メッセージ全体を要求するフックが src に無い", () => {
