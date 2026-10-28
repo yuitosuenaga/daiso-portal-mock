@@ -13,11 +13,10 @@ vi.mock("@/lib/actions/monthly-materials", () => ({
 
 import { MonthlyMaterialGalleryClient } from "@/components/features/monthly-materials/MonthlyMaterialGalleryClient";
 import type { MonthlyMaterialFormLabels } from "@/components/features/monthly-materials/MonthlyMaterialSection";
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 
-const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
 
-function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
+function material(overrides: Partial<MonthlyMaterialSummary> = {}): MonthlyMaterialSummary {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting",
@@ -28,12 +27,11 @@ function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
     ...overrides,
-  } as MonthlyMaterial;
+  } as MonthlyMaterialSummary;
 }
 
 const departmentOptions = [
@@ -128,7 +126,7 @@ const DEFAULT_PROPS = {
   formLabels,
 };
 
-const SAMPLE_MATERIALS: MonthlyMaterial[] = [
+const SAMPLE_MATERIALS: MonthlyMaterialSummary[] = [
   material({ id: "1", department: "kitchen", year: 2026, month: 9, fileName: "kitchen.pdf" }),
   material({ id: "2", department: "food", year: 2026, month: 8, fileName: "food.pdf" }),
 ];
@@ -138,6 +136,20 @@ beforeEach(() => {
 });
 
 describe("MonthlyMaterialGalleryClient", () => {
+  it("dataUrlを持たない資料を描画し、各iframeは資料ごとの配信URLを指す", () => {
+    const { container } = render(
+      <MonthlyMaterialGalleryClient
+        {...DEFAULT_PROPS}
+        materials={SAMPLE_MATERIALS}
+        editable={false}
+      />
+    );
+
+    const srcs = Array.from(container.querySelectorAll("iframe")).map((el) => el.getAttribute("src"));
+    expect(srcs).toEqual(["/api/monthly-materials/1/file", "/api/monthly-materials/2/file"]);
+    expect(container.innerHTML).not.toContain("data:application/pdf");
+  });
+
   it("カテゴリで絞り込むと、一致する資料のみ表示する", () => {
     render(
       <MonthlyMaterialGalleryClient

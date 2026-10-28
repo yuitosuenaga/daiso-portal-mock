@@ -2,10 +2,50 @@ import "server-only";
 
 import type { MonthlyMaterialTargetingScope, Prisma } from "@prisma/client";
 
-import type { MonthlyMaterial, MonthlyMaterialTargeting } from "@/types/monthly-material";
+import type {
+  MonthlyMaterial,
+  MonthlyMaterialSummary,
+  MonthlyMaterialTargeting,
+} from "@/types/monthly-material";
 
 /** 翻訳を持たないため、`Document`と異なりincludeは不要。読み取り時の型を明示するために定義する。 */
 export type PrismaMonthlyMaterial = Prisma.MonthlyMaterialGetPayload<Record<string, never>>;
+
+/**
+ * 一覧・保存結果用のselect句。ファイル本体（`dataUrl`、Base64で最大約27MB/件）を読み込まず、
+ * メタデータだけをホワイトリストで取得する。本体は`MONTHLY_MATERIAL_FILE_SELECT`で
+ * 配信ルートが1件ずつ読む。
+ */
+export const MONTHLY_MATERIAL_SUMMARY_SELECT = {
+  id: true,
+  category: true,
+  department: true,
+  year: true,
+  month: true,
+  sourceType: true,
+  fileName: true,
+  fileType: true,
+  fileSize: true,
+  googleUrl: true,
+  googleEmbedUrl: true,
+  targetingScope: true,
+  targetingCountries: true,
+  targetingCompanyCodes: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.MonthlyMaterialSelect;
+
+export type PrismaMonthlyMaterialSummary = Prisma.MonthlyMaterialGetPayload<{
+  select: typeof MONTHLY_MATERIAL_SUMMARY_SELECT;
+}>;
+
+/** ファイル配信ルート用のselect句（1件分のファイル本体を読む）。 */
+export const MONTHLY_MATERIAL_FILE_SELECT = {
+  sourceType: true,
+  fileName: true,
+  fileType: true,
+  dataUrl: true,
+} as const satisfies Prisma.MonthlyMaterialSelect;
 
 /**
  * 公開範囲3列（`targetingScope`/`targetingCountries`/`targetingCompanyCodes`）を持つ
@@ -66,7 +106,10 @@ export class MonthlyMaterialDataIntegrityError extends Error {
   }
 }
 
-export function mapMonthlyMaterial(record: PrismaMonthlyMaterial): MonthlyMaterial {
+/** 一覧用。`dataUrl`を読み込まず、出力にも含めない。 */
+export function mapMonthlyMaterialSummary(
+  record: PrismaMonthlyMaterialSummary
+): MonthlyMaterialSummary {
   const base = {
     id: record.id,
     category: record.category,
@@ -90,7 +133,7 @@ export function mapMonthlyMaterial(record: PrismaMonthlyMaterial): MonthlyMateri
     };
   }
 
-  if (!record.fileName || !record.fileType || record.fileSize == null || !record.dataUrl) {
+  if (!record.fileName || !record.fileType || record.fileSize == null) {
     throw new MonthlyMaterialDataIntegrityError(record.id, record.sourceType);
   }
   return {
@@ -99,6 +142,17 @@ export function mapMonthlyMaterial(record: PrismaMonthlyMaterial): MonthlyMateri
     fileName: record.fileName,
     fileType: "application/pdf",
     fileSize: record.fileSize,
-    dataUrl: record.dataUrl,
   };
+}
+
+/** 詳細用（`dataUrl`を含む）。 */
+export function mapMonthlyMaterial(record: PrismaMonthlyMaterial): MonthlyMaterial {
+  const summary = mapMonthlyMaterialSummary(record);
+  if (summary.sourceType === "google") {
+    return summary;
+  }
+  if (!record.dataUrl) {
+    throw new MonthlyMaterialDataIntegrityError(record.id, record.sourceType);
+  }
+  return { ...summary, dataUrl: record.dataUrl };
 }

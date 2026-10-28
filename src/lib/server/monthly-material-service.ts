@@ -3,16 +3,20 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
+import type { PdfFileStats } from "@/lib/server/file-response";
 import {
+  MONTHLY_MATERIAL_FILE_SELECT,
+  MONTHLY_MATERIAL_SUMMARY_SELECT,
   MonthlyMaterialDataIntegrityError,
-  mapMonthlyMaterial,
+  mapMonthlyMaterialSummary,
   targetingToColumns,
-  type PrismaMonthlyMaterial,
+  type PrismaMonthlyMaterialSummary,
 } from "@/lib/server/monthly-material-mapper";
 import type {
   CreateMonthlyMaterialInput,
-  MonthlyMaterial,
   MonthlyMaterialCategory,
+  MonthlyMaterialSummary,
+  UpdateMonthlyMaterialInput,
 } from "@/types/monthly-material";
 import { errorFields, logger } from "./logger";
 
@@ -89,16 +93,16 @@ export function monthlyMaterialVisibleToWhere(
 }
 
 /**
- * `mapMonthlyMaterial`が`MonthlyMaterialDataIntegrityError`を送出したレコードのみを
+ * `mapMonthlyMaterialSummary`が`MonthlyMaterialDataIntegrityError`を送出したレコードのみを
  * スキップし、残りは正常に返す。1件のデータ不整合が原因でカテゴリ全体の一覧取得が
  * 丸ごと失敗しないようにするための措置。
  */
 function mapMonthlyMaterialsSkippingCorrupted(
-  records: PrismaMonthlyMaterial[]
-): MonthlyMaterial[] {
+  records: PrismaMonthlyMaterialSummary[]
+): MonthlyMaterialSummary[] {
   return records.flatMap((record) => {
     try {
-      return [mapMonthlyMaterial(record)];
+      return [mapMonthlyMaterialSummary(record)];
     } catch (error) {
       if (error instanceof MonthlyMaterialDataIntegrityError) {
         logger.error("[monthly-material-service] Skipping corrupted record", errorFields(error));
@@ -117,10 +121,11 @@ export async function listMonthlyMaterialsVisibleTo(
   category: MonthlyMaterialCategory,
   country: string,
   companyCode: string
-): Promise<MonthlyMaterial[]> {
+): Promise<MonthlyMaterialSummary[]> {
   const records = await prisma.monthlyMaterial.findMany({
     where: { category, ...monthlyMaterialVisibleToWhere(country, companyCode) },
     orderBy: ORDER_BY_YEAR_MONTH_DESC,
+    select: MONTHLY_MATERIAL_SUMMARY_SELECT,
   });
 
   return mapMonthlyMaterialsSkippingCorrupted(records);
@@ -132,19 +137,151 @@ export async function listMonthlyMaterialsVisibleTo(
  */
 export async function listAllMonthlyMaterials(
   category: MonthlyMaterialCategory
-): Promise<MonthlyMaterial[]> {
+): Promise<MonthlyMaterialSummary[]> {
   const records = await prisma.monthlyMaterial.findMany({
     where: { category },
     orderBy: ORDER_BY_YEAR_MONTH_DESC,
+    select: MONTHLY_MATERIAL_SUMMARY_SELECT,
   });
 
   return mapMonthlyMaterialsSkippingCorrupted(records);
 }
 
+/** 配信ルートが返すファイル本体（アップロード方式のPDFのみ）。 */
+export interface MonthlyMaterialFile {
+  fileName: string;
+  dataUrl: string;
+}
+
+/** 認可確認用の軽量な情報（本体は含まない）。 */
+export interface MonthlyMaterialFileMeta {
+  id: string;
+  fileName: string;
+}
+
+function toMonthlyMaterialFile(
+  record: { sourceType: string; fileName: string | null; dataUrl: string | null } | null
+): MonthlyMaterialFile | null {
+  if (!record || record.sourceType !== "upload" || !record.dataUrl) {
+    return null;
+  }
+  return { fileName: record.fileName ?? "material.pdf", dataUrl: record.dataUrl };
+}
+
+function toMonthlyMaterialFileMeta(
+  record: { id: string; sourceType: string; fileName: string | null } | null
+): MonthlyMaterialFileMeta | null {
+  if (!record || record.sourceType !== "upload") {
+    return null;
+  }
+  return { id: record.id, fileName: record.fileName ?? "material.pdf" };
+}
+
+const MONTHLY_MATERIAL_FILE_META_SELECT = {
+  id: true,
+  sourceType: true,
+  fileName: true,
+} as const;
+
+/**
+ * 自社に可視なアップロード方式資料の認可確認（本体は読まない）。可視性は一覧と同じ述語
+ * （`monthlyMaterialVisibleToWhere`）を再利用する。他社向け・存在しない・Google方式はnull。
+ */
+export async function findMonthlyMaterialFileMetaVisibleTo(
+  id: string,
+  country: string,
+  companyCode: string
+): Promise<MonthlyMaterialFileMeta | null> {
+  const record = await prisma.monthlyMaterial.findFirst({
+    where: { id, ...monthlyMaterialVisibleToWhere(country, companyCode) },
+    select: MONTHLY_MATERIAL_FILE_META_SELECT,
+  });
+  return toMonthlyMaterialFileMeta(record);
+}
+
+/** 公開範囲によらずIDだけで認可確認する（ヘルプデスク用、本体は読まない）。 */
+export async function findMonthlyMaterialFileMetaById(
+  id: string
+): Promise<MonthlyMaterialFileMeta | null> {
+  const record = await prisma.monthlyMaterial.findUnique({
+    where: { id },
+    select: MONTHLY_MATERIAL_FILE_META_SELECT,
+  });
+  return toMonthlyMaterialFileMeta(record);
+}
+
+/**
+ * HEAD用。認可確認済みのIDについて、本体をNodeへ転送せずDB側で長さ・先頭・末尾だけ集計する。
+ * dataUrlがnullまたは存在しない場合はnull。設計・注意点は`getDocumentFileStats`と同じ
+ * （改行・空白だけを`replace`で除去／先頭プレフィックスの判定は先頭300文字のみ／同時数は呼び出し側で制限）。
+ */
+export async function getMonthlyMaterialFileStats(id: string): Promise<PdfFileStats | null> {
+  const rows = await prisma.$queryRaw<
+    {
+      head: string;
+      clean_length: number | bigint;
+      clean_tail: string;
+      first_pad: number | bigint;
+    }[]
+  >(Prisma.sql`
+    WITH src AS MATERIALIZED (
+      SELECT substr("dataUrl", 1, 300) AS head,
+             replace(replace(replace(replace(
+               substr("dataUrl", strpos(substr("dataUrl", 1, 300), ',') + 1),
+               E'\\r', ''), E'\\n', ''), E'\\t', ''), ' ', ''
+             ) AS clean
+      FROM "MonthlyMaterial"
+      WHERE id = ${id} AND "sourceType" = 'upload' AND "dataUrl" IS NOT NULL
+    )
+    SELECT head,
+           length(clean) AS clean_length,
+           right(clean, 2) AS clean_tail,
+           strpos(clean, '=') AS first_pad
+    FROM src
+  `);
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+  return {
+    head: row.head,
+    cleanLength: Number(row.clean_length),
+    cleanTail: row.clean_tail,
+    firstPad: Number(row.first_pad),
+  };
+}
+
+/**
+ * 自社に可視な資料のファイル本体を1件取得する（セマフォ取得後に呼ぶ）。可視性は
+ * 認可確認と同じ述語を再適用する。他社向け・存在しない・Google方式・本体なしはnull。
+ */
+export async function findMonthlyMaterialFileVisibleTo(
+  id: string,
+  country: string,
+  companyCode: string
+): Promise<MonthlyMaterialFile | null> {
+  const record = await prisma.monthlyMaterial.findFirst({
+    where: { id, ...monthlyMaterialVisibleToWhere(country, companyCode) },
+    select: MONTHLY_MATERIAL_FILE_SELECT,
+  });
+  return toMonthlyMaterialFile(record);
+}
+
+/** 公開範囲によらずIDだけでファイル本体を取得する（ヘルプデスク用）。 */
+export async function findMonthlyMaterialFileById(
+  id: string
+): Promise<MonthlyMaterialFile | null> {
+  const record = await prisma.monthlyMaterial.findUnique({
+    where: { id },
+    select: MONTHLY_MATERIAL_FILE_SELECT,
+  });
+  return toMonthlyMaterialFile(record);
+}
+
 /** 資料を新規作成する。同一カテゴリ×年月に既に資料が存在していても、別レコードとして追加登録できる。 */
 export async function createMonthlyMaterialRecord(
   input: CreateMonthlyMaterialInput
-): Promise<MonthlyMaterial> {
+): Promise<MonthlyMaterialSummary> {
   const record = await prisma.monthlyMaterial.create({
     data: {
       category: input.category,
@@ -153,17 +290,57 @@ export async function createMonthlyMaterialRecord(
       month: input.month,
       ...toMonthlyMaterialData(input),
     },
+    select: MONTHLY_MATERIAL_SUMMARY_SELECT,
   });
 
-  return mapMonthlyMaterial(record);
+  return mapMonthlyMaterialSummary(record);
 }
 
-/** 既存の資料の内容を更新する。存在しない場合は`MonthlyMaterialNotFoundError`を送出する。 */
+/**
+ * 既存の資料の内容を更新する。存在しない場合は`MonthlyMaterialNotFoundError`を送出する。
+ *
+ * アップロード方式で`dataUrl`が無い入力は「ファイルを差し替えず年月・部門・公開範囲だけ直す」操作。
+ * 一覧が`dataUrl`を持たないため、既存ファイルをDBに残したまま、ファイル系の列
+ * （sourceType/fileName/fileType/fileSize/dataUrl/googleUrl/googleEmbedUrl）には触れずに更新する。
+ * クライアントから来た`fileName`/`fileType`/`fileSize`は信用せず無視する。対象が既存のアップロード方式
+ * （本体あり）でなければ（Google方式からファイル無しでアップロード方式へ切り替える操作など）
+ * 更新件数が0になり、`MonthlyMaterialNotFoundError`を送出する。
+ *
+ * 注意: ここでの`MonthlyMaterialNotFoundError`は「`id`・`sourceType`・`dataUrl`の条件に合う行が無い」を
+ * 意味する。つまり、行が存在しない場合のほか、Google方式の行からファイル無しでアップロード方式へ
+ * 切り替えようとした場合も含む。後者は`dataUrl`がnullのアップロード方式の行を作らないための保護
+ * （`monthlyMaterialUpdateSchema`はこの入力を通すため、保護はこの`updateMany`の条件だけが担う）。
+ * エラー名と意味がずれるが、API側のエラー対応を広げないため専用のエラー型は設けない。
+ */
 export async function updateMonthlyMaterialRecord(
   id: string,
-  input: CreateMonthlyMaterialInput
-): Promise<MonthlyMaterial> {
+  input: UpdateMonthlyMaterialInput
+): Promise<MonthlyMaterialSummary> {
   try {
+    if (input.sourceType === "upload" && !input.dataUrl) {
+      const { count } = await prisma.monthlyMaterial.updateMany({
+        where: { id, sourceType: "upload", dataUrl: { not: null } },
+        data: {
+          category: input.category,
+          department: input.department,
+          year: input.year,
+          month: input.month,
+          ...targetingToColumns(input.targeting),
+        },
+      });
+      if (count === 0) {
+        throw new MonthlyMaterialNotFoundError(id);
+      }
+      const updated = await prisma.monthlyMaterial.findUnique({
+        where: { id },
+        select: MONTHLY_MATERIAL_SUMMARY_SELECT,
+      });
+      if (!updated) {
+        throw new MonthlyMaterialNotFoundError(id);
+      }
+      return mapMonthlyMaterialSummary(updated);
+    }
+
     const record = await prisma.monthlyMaterial.update({
       where: { id },
       data: {
@@ -171,11 +348,12 @@ export async function updateMonthlyMaterialRecord(
         department: input.department,
         year: input.year,
         month: input.month,
-        ...toMonthlyMaterialData(input),
+        ...toMonthlyMaterialData(input as CreateMonthlyMaterialInput),
       },
+      select: MONTHLY_MATERIAL_SUMMARY_SELECT,
     });
 
-    return mapMonthlyMaterial(record);
+    return mapMonthlyMaterialSummary(record);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       throw new MonthlyMaterialNotFoundError(id);

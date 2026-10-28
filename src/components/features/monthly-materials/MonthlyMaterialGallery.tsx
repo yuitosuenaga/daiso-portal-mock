@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AddMonthlyMaterialButton } from "@/components/features/monthly-materials/AddMonthlyMaterialButton";
 import { MonthlyMaterialGalleryClient } from "@/components/features/monthly-materials/MonthlyMaterialGalleryClient";
 import type { SelectOption } from "@/components/ui/select";
-import type { MonthlyMaterial, MonthlyMaterialCategory } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary, MonthlyMaterialCategory } from "@/types/monthly-material";
 
 export interface MonthlyMaterialGalleryProps {
   category: MonthlyMaterialCategory;
@@ -42,7 +42,7 @@ export async function MonthlyMaterialGallery({
     getLocale(),
   ]);
 
-  let materials: MonthlyMaterial[];
+  let materials: MonthlyMaterialSummary[];
   try {
     materials = editable
       ? await getAllMonthlyMaterialsForHelpdesk(category)

@@ -16,11 +16,10 @@ import {
   type MonthlyMaterialFormLabels,
   type MonthlyMaterialViewerLabels,
 } from "@/components/features/monthly-materials/MonthlyMaterialSection";
-import type { MonthlyMaterial } from "@/types/monthly-material";
+import type { MonthlyMaterialSummary } from "@/types/monthly-material";
 
-const SAMPLE_PDF_DATA_URL = "data:application/pdf;base64,JVBERi0xLjQK";
 
-function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
+function material(overrides: Partial<MonthlyMaterialSummary> = {}): MonthlyMaterialSummary {
   return {
     id: "monthly-material-1",
     category: "salesFloorMeeting",
@@ -31,12 +30,11 @@ function material(overrides: Partial<MonthlyMaterial> = {}): MonthlyMaterial {
     fileName: "test.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: SAMPLE_PDF_DATA_URL,
     targeting: { scope: "all" },
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
     ...overrides,
-  } as MonthlyMaterial;
+  } as MonthlyMaterialSummary;
 }
 
 const viewerLabels: MonthlyMaterialViewerLabels = {
@@ -106,6 +104,52 @@ beforeEach(() => {
 });
 
 describe("MonthlyMaterialSection", () => {
+  it("dataUrlを持たないデータで、compactサムネイルのiframeは配信URLを指す", () => {
+    const { container } = render(
+      <MonthlyMaterialSection
+        {...DEFAULT_PROPS}
+        material={material({ id: "mm-1" })}
+        editable={false}
+      />
+    );
+
+    const iframe = container.querySelector("iframe");
+    expect(iframe?.getAttribute("src")).toBe("/api/monthly-materials/mm-1/file");
+    expect(container.innerHTML).not.toContain("data:application/pdf");
+  });
+
+  it("拡大表示のダイアログも配信URLを指し、dataURLを含まない", () => {
+    render(
+      <MonthlyMaterialSection
+        {...DEFAULT_PROPS}
+        material={material({ id: "mm-1" })}
+        editable={false}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /拡大|expand|zoom/i }));
+
+    const srcs = Array.from(document.querySelectorAll("iframe")).map((el) => el.getAttribute("src"));
+    expect(srcs.length).toBeGreaterThan(0);
+    for (const src of srcs) {
+      expect(src).toBe("/api/monthly-materials/mm-1/file");
+    }
+    expect(document.body.innerHTML).not.toContain("data:application/pdf");
+  });
+
+  it("IDに特殊文字があってもURLエンコードする", () => {
+    const { container } = render(
+      <MonthlyMaterialSection
+        {...DEFAULT_PROPS}
+        material={material({ id: "a/b c" })}
+        editable={false}
+      />
+    );
+    expect(container.querySelector("iframe")?.getAttribute("src")).toBe(
+      "/api/monthly-materials/a%2Fb%20c/file"
+    );
+  });
+
   it("アップロード方式の場合、ファイル名を画面上に表示する", () => {
     render(
       <MonthlyMaterialSection

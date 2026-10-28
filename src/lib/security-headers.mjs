@@ -74,7 +74,11 @@ export function buildSecurityHeaders({ isDev = false } = {}) {
  * 全ルートのX-Frame-Options: DENY / frame-ancestors 'none' のままだとiframeに表示できない。
  * 後続のPRで配信ルートを追加するときはここへ足す。
  */
-export const FILE_ROUTE_SOURCES = ["/api/documents/:id/file", "/api/manuals/:id/file"];
+export const FILE_ROUTE_SOURCES = [
+  "/api/documents/:id/file",
+  "/api/manuals/:id/file",
+  "/api/monthly-materials/:id/file",
+];
 
 /**
  * ファイル配信ルート用ヘッダ。全体用との差分はX-Frame-OptionsをSAMEORIGINに、

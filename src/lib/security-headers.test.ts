@@ -74,7 +74,11 @@ describe("buildHeadersConfig", () => {
   });
 
   it("ファイル配信ルートは資料とマニュアルの`:id`1セグメントに限定する", () => {
-    expect(FILE_ROUTE_SOURCES).toEqual(["/api/documents/:id/file", "/api/manuals/:id/file"]);
+    expect(FILE_ROUTE_SOURCES).toEqual([
+      "/api/documents/:id/file",
+      "/api/manuals/:id/file",
+      "/api/monthly-materials/:id/file",
+    ]);
   });
 
   it("マニュアル配信ルートはSAMEORIGIN・frame-ancestors 'self'、他のマニュアル配下は全体用（DENY）のまま", () => {
@@ -88,8 +92,33 @@ describe("buildHeadersConfig", () => {
     expect(h["Content-Security-Policy"]).toContain("frame-ancestors 'self'");
     // `/api/manuals/x/other`に一致するのは全体用（/:path*）のみ
     expect(config.filter((entry: { source: string }) => entry.source !== "/:path*")
-      .every((entry: { source: string }) => /^\/api\/(documents|manuals)\/:id\/file$/.test(entry.source))).toBe(true);
+      .every((entry: { source: string }) => /^\/api\/(documents|manuals|monthly-materials)\/:id\/file$/.test(entry.source))).toBe(true);
     expect(byKey(config[0].headers)["X-Frame-Options"]).toBe("DENY");
     expect(byKey(config[0].headers)["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
+  });
+
+  it("月次資料配信ルートはSAMEORIGIN・frame-ancestors 'self'、他の月次資料配下は全体用（DENY）のまま", () => {
+    const config = buildHeadersConfig({ isDev: false });
+    const entry = config.find(
+      (e: { source: string }) => e.source === "/api/monthly-materials/:id/file"
+    );
+    expect(entry).toBeDefined();
+    const h = byKey(entry!.headers);
+    expect(h["X-Frame-Options"]).toBe("SAMEORIGIN");
+    expect(h["Content-Security-Policy"]).toContain("frame-ancestors 'self'");
+    // `/api/monthly-materials/x/other`・`/api/monthly-materials/a/b/file`に一致するのは全体用のみ
+    const matches = (path: string) =>
+      config.filter((e: { source: string }) => {
+        const re = new RegExp(
+          "^" + e.source.replace(/:path\*/g, ".*").replace(/:id/g, "[^/]+") + "$"
+        );
+        return re.test(path);
+      });
+    for (const path of ["/api/monthly-materials/x/other", "/api/monthly-materials/a/b/file"]) {
+      expect(matches(path).map((e: { source: string }) => e.source)).toEqual(["/:path*"]);
+    }
+    expect(matches("/api/monthly-materials/x/file").map((e: { source: string }) => e.source)).toContain(
+      "/api/monthly-materials/:id/file"
+    );
   });
 });

@@ -43,6 +43,18 @@ const monthlyMaterialUploadSchema = z.object({
   targeting: monthlyMaterialTargetingSchema,
 });
 
+/**
+ * 編集用のアップロード方式。`dataUrl`は省略可能で、省略（空文字を含む）はファイルを差し替えず
+ * 既存ファイルを保持することを表す（一覧がファイル本体を持たないため）。指定する場合は
+ * 新規登録と同じ検証を行う。
+ */
+const monthlyMaterialUpdateUploadSchema = monthlyMaterialUploadSchema.extend({
+  dataUrl: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().trim().min(1).startsWith("data:application/pdf").optional()
+  ),
+});
+
 const monthlyMaterialGoogleSchema = z.object({
   category: z.enum(MONTHLY_MATERIAL_CATEGORIES),
   department: z.enum(MONTHLY_MATERIAL_DEPARTMENTS),
@@ -61,6 +73,25 @@ const monthlyMaterialGoogleSchema = z.object({
  */
 export const monthlyMaterialFormSchema = z
   .discriminatedUnion("sourceType", [monthlyMaterialUploadSchema, monthlyMaterialGoogleSchema])
+  .superRefine((data, ctx) => {
+    if (data.sourceType === "google" && toGoogleEmbedUrl(data.googleUrl) === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid Google document URL",
+        path: ["googleUrl"],
+      });
+    }
+  });
+
+/**
+ * 月次資料の編集フォーム・更新アクション用スキーマ。`monthlyMaterialFormSchema`との違いは、
+ * アップロード方式の`dataUrl`が省略可能な点のみ（新規登録用スキーマは`dataUrl`必須のまま）。
+ */
+export const monthlyMaterialUpdateSchema = z
+  .discriminatedUnion("sourceType", [
+    monthlyMaterialUpdateUploadSchema,
+    monthlyMaterialGoogleSchema,
+  ])
   .superRefine((data, ctx) => {
     if (data.sourceType === "google" && toGoogleEmbedUrl(data.googleUrl) === null) {
       ctx.addIssue({

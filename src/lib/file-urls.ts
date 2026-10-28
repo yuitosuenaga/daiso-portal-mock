@@ -11,3 +11,8 @@ export function manualFileUrl(id: string, options: { download?: boolean } = {}):
   const base = `/api/manuals/${encodeURIComponent(id)}/file`;
   return options.download ? `${base}?download=1` : base;
 }
+
+export function monthlyMaterialFileUrl(id: string, options: { download?: boolean } = {}): string {
+  const base = `/api/monthly-materials/${encodeURIComponent(id)}/file`;
+  return options.download ? `${base}?download=1` : base;
+}
