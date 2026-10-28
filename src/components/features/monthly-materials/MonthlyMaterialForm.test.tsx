@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -184,3 +184,42 @@ describe("MonthlyMaterialForm（新規登録）", () => {
     expect(createMonthlyMaterialAction).not.toHaveBeenCalled();
   });
 });
+
+describe.each(["UTC", "America/Los_Angeles"])(
+  "MonthlyMaterialForm（新規）の年月の既定値（TZ=%s）",
+  (tz) => {
+    let originalTz: string | undefined;
+
+    beforeEach(() => {
+      originalTz = process.env.TZ;
+      process.env.TZ = tz;
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-31T16:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
+    });
+
+    it("JST 11/1 01:00 の時点ではJSTの2026年11月が初期値になる", () => {
+      const { container } = render(
+        <MonthlyMaterialForm
+          {...PROPS}
+          mode="create"
+          monthOptions={Array.from({ length: 12 }, (_, i) => ({
+            value: String(i + 1),
+            label: `${i + 1}月`,
+          }))}
+        />
+      );
+      expect((container.querySelector("#monthly-material-year") as HTMLInputElement).value).toBe(
+        "2026"
+      );
+      expect((container.querySelector("#monthly-material-month") as HTMLSelectElement).value).toBe(
+        "11"
+      );
+    });
+  }
+);

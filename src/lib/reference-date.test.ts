@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { startOfReferenceDay, toReferenceDateKey, toReferenceYearMonth } from "@/lib/reference-date";
 
@@ -23,7 +23,27 @@ describe("startOfReferenceDay（TZ=UTCでもJST 0:00を返す）", () => {
   });
 });
 
-describe("toReferenceYearMonth", () => {
+const TIME_ZONES = [
+  "Asia/Tokyo",
+  "UTC",
+  "America/Los_Angeles",
+  "America/Sao_Paulo",
+  "Pacific/Kiritimati",
+];
+
+describe.each(TIME_ZONES)("toReferenceYearMonth（TZ=%s）", (tz) => {
+  let originalTz: string | undefined;
+
+  beforeEach(() => {
+    originalTz = process.env.TZ;
+    process.env.TZ = tz;
+  });
+
+  afterEach(() => {
+    if (originalTz === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTz;
+  });
+
   it("UTC 2026-10-31T16:00ZはJSTの2026年11月", () => {
     expect(toReferenceYearMonth(new Date("2026-10-31T16:00:00Z"))).toEqual({
       year: 2026,
@@ -35,6 +55,13 @@ describe("toReferenceYearMonth", () => {
     expect(toReferenceYearMonth(new Date("2026-10-31T14:59:00Z"))).toEqual({
       year: 2026,
       month: 10,
+    });
+  });
+
+  it("年またぎ: UTC 2026-12-31T15:00ZはJSTの2027年1月", () => {
+    expect(toReferenceYearMonth(new Date("2026-12-31T15:00:00Z"))).toEqual({
+      year: 2027,
+      month: 1,
     });
   });
 });
