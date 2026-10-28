@@ -84,3 +84,31 @@ describe("StaffManagementList の確認文言", () => {
     expect(props.toggleActiveLabels.deactivateConfirm).toMatch(/assigned|assignment/i);
   });
 });
+
+type TreeNode = { type?: unknown; props?: Record<string, unknown> } | null | undefined | string;
+
+function findAnchors(node: unknown, found: { href: string; text: string }[] = []) {
+  if (Array.isArray(node)) {
+    node.forEach((n) => findAnchors(n, found));
+    return found;
+  }
+  const el = node as TreeNode;
+  if (el && typeof el === "object") {
+    const props = el.props ?? {};
+    if (el.type === "a") {
+      found.push({ href: String(props.href), text: String(props.children) });
+    }
+    findAnchors(props.children, found);
+  }
+  return found;
+}
+
+describe("StaffManagementList のCSVエクスポート導線", () => {
+  it.each(["ja", "en"] as const)("%s: エクスポートAPIへの素のリンクを表示する", async (locale) => {
+    state.locale = locale;
+    const element = await StaffManagementList();
+    const anchors = findAnchors(element);
+    const expected = catalogs[locale].helpdeskStaff.list.exportButton;
+    expect(anchors).toContainEqual({ href: "/api/helpdesk/staff/export", text: expected });
+  });
+});

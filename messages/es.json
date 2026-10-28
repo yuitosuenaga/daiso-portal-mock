@@ -803,6 +803,7 @@
       "empty": "No hay personal registrado",
       "error": "No se pudo obtener el personal",
       "addButton": "Añadir miembro",
+      "exportButton": "Exportar CSV",
       "emailHeader": "Correo electrónico",
       "displayNameHeader": "Nombre para mostrar",
       "roleHeader": "Rol",

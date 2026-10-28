@@ -803,6 +803,7 @@
       "empty": "No staff members are registered",
       "error": "Failed to load staff members",
       "addButton": "Add staff",
+      "exportButton": "Export CSV",
       "emailHeader": "Email address",
       "displayNameHeader": "Display name",
       "roleHeader": "Role",

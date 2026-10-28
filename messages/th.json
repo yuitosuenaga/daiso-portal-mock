@@ -803,6 +803,7 @@
       "empty": "ยังไม่มีเจ้าหน้าที่ที่ลงทะเบียน",
       "error": "ไม่สามารถดึงข้อมูลเจ้าหน้าที่ได้",
       "addButton": "เพิ่มเจ้าหน้าที่",
+      "exportButton": "ส่งออก CSV",
       "emailHeader": "อีเมล",
       "displayNameHeader": "ชื่อที่แสดง",
       "roleHeader": "บทบาท",
