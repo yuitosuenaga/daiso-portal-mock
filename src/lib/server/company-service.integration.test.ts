@@ -133,4 +133,45 @@ describe.skipIf(!url)("販社の一括登録（実DB）", () => {
       })
     ).toBe(0);
   });
+
+  it("AnnouncementRecipientの作成だけがDB制約で失敗しても、作成済みのCompanyもロールバックされる（P2002以外）", async () => {
+    // Companyと同じ値（会社名）がcontactNameに入るため、値だけではrecipient側だけを失敗させられない。
+    // 使い捨てDBに本テスト専用のCHECK制約をAnnouncementRecipientにだけ一時的に付与して失敗させる。
+    const failName = "Bulk IT recipient constraint violation";
+    const constraint = "bulk_it_recipient_contact_name_check";
+    await testPrisma!.$executeRawUnsafe(
+      `ALTER TABLE "AnnouncementRecipient" ADD CONSTRAINT ${constraint} CHECK ("contactName" <> '${failName}')`
+    );
+
+    try {
+      const inputs = [
+        ...buildInputs(3),
+        { name: failName, country: "TH", companyCode: `${CODE_PREFIX}violation` },
+      ];
+
+      const error = await createCompaniesBulk(inputs).then(
+        () => null,
+        (e: unknown) => e
+      );
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(CompanyCodeTakenError);
+      expect(String((error as Error).message)).toContain(constraint);
+
+      expect(
+        await testPrisma!.company.count({
+          where: { companyCode: { startsWith: CODE_PREFIX } },
+        })
+      ).toBe(0);
+      expect(
+        await testPrisma!.announcementRecipient.count({
+          where: { contactName: { startsWith: "Bulk IT" } },
+        })
+      ).toBe(0);
+    } finally {
+      await testPrisma!.$executeRawUnsafe(
+        `ALTER TABLE "AnnouncementRecipient" DROP CONSTRAINT IF EXISTS ${constraint}`
+      );
+    }
+  });
 });
