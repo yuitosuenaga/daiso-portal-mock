@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,7 +43,8 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
   let inquiry: Inquiry | null;
   try {
     inquiry = await getInquiryById(id);
-  } catch {
+  } catch (error) {
+    logLoadFailure("HelpdeskInquiryDetail", error);
     return (
       <div className="space-y-4">
         {backToListLink}

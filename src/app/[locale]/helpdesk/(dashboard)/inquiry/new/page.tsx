@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { InquiryForm } from "@/components/features/inquiry-form/InquiryForm";
@@ -9,7 +10,8 @@ export default async function HelpdeskInquiryNewPage() {
   let companies;
   try {
     companies = await listCompaniesForHelpdesk();
-  } catch {
+  } catch (error) {
+    logLoadFailure("HelpdeskInquiryNewPage", error);
     return (
       <Card>
         <CardContent className="pt-6">

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HelpdeskInquiryList } from "@/components/features/helpdesk-inquiries/HelpdeskInquiryList";
 import type { Inquiry } from "@/types/inquiry";
@@ -30,8 +30,11 @@ vi.mock("@/lib/api/inquiries", () => ({
   getAllInquiries: (...args: unknown[]) => getAllInquiriesMock(...args),
 }));
 
+const getCurrentHelpdeskStaffNameMock = vi.fn();
+
 vi.mock("@/lib/api/current-staff", () => ({
-  getCurrentHelpdeskStaffName: async () => null,
+  getCurrentHelpdeskStaffName: (...args: unknown[]) =>
+    getCurrentHelpdeskStaffNameMock(...args),
 }));
 
 function resolveMessage(namespace: string, key: string): string {
@@ -68,7 +71,27 @@ function buildInquiry(overrides: Partial<Inquiry>): Inquiry {
   };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("HelpdeskInquiryList", () => {
+  beforeEach(() => {
+    getCurrentHelpdeskStaffNameMock.mockReset().mockResolvedValue(null);
+  });
+
+  it("担当者名の取得が失敗してもoptionalでログを残し、一覧は表示する", async () => {
+    const error = new Error("session lookup failed");
+    getCurrentHelpdeskStaffNameMock.mockRejectedValueOnce(error);
+    getAllInquiriesMock.mockResolvedValueOnce([buildInquiry({ title: "一覧に残る件名" })]);
+
+    const jsx = await HelpdeskInquiryList();
+    renderWithProvider(jsx);
+
+    expect(logLoadFailure).toHaveBeenCalledWith("HelpdeskInquiryList", error, { optional: true });
+    expect(screen.getByText("一覧に残る件名")).toBeTruthy();
+  });
+
   it("問い合わせが0件のとき空状態メッセージを表示する", async () => {
     getAllInquiriesMock.mockResolvedValueOnce([]);
 
@@ -89,6 +112,8 @@ describe("HelpdeskInquiryList", () => {
     expect(
       screen.getByText(messages.helpdeskInquiries.list.error)
     ).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("HelpdeskInquiryList", expect.any(Error));
   });
 
   it("緊急度優先で並び替えた一覧を表示する", async () => {

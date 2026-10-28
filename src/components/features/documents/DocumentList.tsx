@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getDocumentsByCategory } from "@/lib/api/documents";
 import { getVisibleDocumentCategory } from "@/lib/api/document-categories";
@@ -40,7 +41,8 @@ export async function DocumentList({ categoryId }: DocumentListProps) {
       getVisibleDocumentCategory(categoryId, { locale }),
       getDocumentsByCategory(categoryId, { locale }),
     ]);
-  } catch {
+  } catch (error) {
+    logLoadFailure("DocumentList", error);
     return (
       <div>
         <div className="mb-6">{backLink}</div>

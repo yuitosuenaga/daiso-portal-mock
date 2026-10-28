@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { Bell } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
@@ -41,7 +42,8 @@ export async function AnnouncementsCard({
     if (recentCount > 0) {
       badge = { count: recentCount, variant: "default" };
     }
-  } catch {
+  } catch (error) {
+    logLoadFailure("AnnouncementsCard", error);
     badge = undefined;
   }
 

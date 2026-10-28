@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getAnnouncementById } from "@/lib/api/announcements";
 import {
@@ -38,7 +39,8 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     const { claims } = await requireApplicantSession();
     companyCode = claims.companyCode;
     announcement = await getAnnouncementById(id, { locale });
-  } catch {
+  } catch (error) {
+    logLoadFailure("AnnouncementDetail", error);
     return (
       <div className="space-y-4">
         {backToListLink}

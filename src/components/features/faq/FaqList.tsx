@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getFaqs } from "@/lib/api/faqs";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -19,7 +20,8 @@ export async function FaqList() {
   let faqs: Faq[];
   try {
     faqs = await getFaqs({ locale });
-  } catch {
+  } catch (error) {
+    logLoadFailure("FaqList", error);
     return (
       <div>
         {heading}

@@ -61,6 +61,10 @@ function makeAnnouncement(
   };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("AnnouncementsPreviewPanel", () => {
   afterEach(() => {
     getRecentAnnouncementsMock.mockReset();
@@ -131,6 +135,8 @@ describe("AnnouncementsPreviewPanel", () => {
     expect(
       screen.getByText("dashboard.announcementsPreview.error")
     ).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("AnnouncementsPreviewPanel", expect.any(Error));
   });
 
   it("「一覧を見る」リンクがviewAllHrefを指す", async () => {

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations } from "next-intl/server";
 
 import { getLinkCategoriesForApplicant } from "@/lib/api/link-categories";
@@ -53,7 +54,8 @@ export async function LinkPreviewPanel() {
         emptyLabel: result.emptyLabel,
       };
     }
-  } catch {
+  } catch (error) {
+    logLoadFailure("LinkPreviewPanel", error);
     hasError = true;
     for (const locale of PREVIEW_LOCALES) {
       dataByLocale[locale] = {

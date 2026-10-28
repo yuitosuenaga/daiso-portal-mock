@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getVisibleDocumentCategories } from "@/lib/api/document-categories";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -26,7 +27,8 @@ export async function DocumentCategoryList() {
   let categories: DocumentCategorySummary[];
   try {
     categories = await getVisibleDocumentCategories({ locale });
-  } catch {
+  } catch (error) {
+    logLoadFailure("DocumentCategoryList", error);
     return (
       <div>
         {heading}

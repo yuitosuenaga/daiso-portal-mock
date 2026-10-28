@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getInquiryById } from "@/lib/api/inquiries";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -28,7 +29,8 @@ export async function InquiryDetail({ id }: { id: string }) {
   let inquiry;
   try {
     inquiry = await getInquiryById(id);
-  } catch {
+  } catch (error) {
+    logLoadFailure("InquiryDetail", error);
     return (
       <div className="space-y-4">
         {backToListLink}

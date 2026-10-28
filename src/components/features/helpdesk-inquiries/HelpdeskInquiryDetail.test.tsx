@@ -62,6 +62,10 @@ function renderWithProvider(jsx: React.ReactElement) {
   );
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("HelpdeskInquiryDetail", () => {
   it("存在しないIDの場合は見つからないメッセージを表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce(null);
@@ -83,6 +87,8 @@ describe("HelpdeskInquiryDetail", () => {
     expect(
       screen.getByText(messages.helpdeskInquiries.detail.error)
     ).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("HelpdeskInquiryDetail", expect.any(Error));
   });
 
   it("存在するIDの場合は詳細情報と各セクションを表示する", async () => {

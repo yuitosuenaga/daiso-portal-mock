@@ -80,6 +80,10 @@ const OLD_LINK: LinkWithTimestamp = {
   createdAt: new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("LinkList", () => {
   it("リンクが0件のとき空状態メッセージを表示する", async () => {
     getLinksMock.mockResolvedValueOnce([]);
@@ -97,6 +101,8 @@ describe("LinkList", () => {
     render(jsx);
 
     expect(screen.getByText("リンクの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("LinkList", expect.any(Error));
   });
 
   it("特定カテゴリ（internal）のリンクのみ返される場合、そのカテゴリのグループのみ表示される", async () => {

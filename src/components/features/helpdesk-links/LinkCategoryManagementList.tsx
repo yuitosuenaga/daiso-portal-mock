@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { getAllLinkCategories } from "@/lib/api/link-categories";
@@ -33,7 +34,8 @@ export async function LinkCategoryManagementList() {
   let categories: LinkCategoryAdminView[];
   try {
     categories = await getAllLinkCategories();
-  } catch {
+  } catch (error) {
+    logLoadFailure("LinkCategoryManagementList", error);
     return (
       <div>
         {heading}

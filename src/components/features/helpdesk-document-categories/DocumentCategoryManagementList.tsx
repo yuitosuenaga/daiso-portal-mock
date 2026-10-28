@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { getAllDocumentCategories } from "@/lib/api/document-categories";
@@ -30,7 +31,8 @@ export async function DocumentCategoryManagementList() {
   let categories: DocumentCategoryAdminView[];
   try {
     categories = await getAllDocumentCategories();
-  } catch {
+  } catch (error) {
+    logLoadFailure("DocumentCategoryManagementList", error);
     return (
       <div>
         {heading}

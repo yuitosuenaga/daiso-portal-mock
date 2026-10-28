@@ -60,6 +60,10 @@ function makeInquiry(overrides: Partial<Inquiry> & { id: string }): Inquiry {
   };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("HelpdeskInquiryKpiPanel", () => {
   afterEach(() => {
     getAllInquiriesMock.mockReset();
@@ -146,6 +150,20 @@ describe("HelpdeskInquiryKpiPanel", () => {
     render(jsx);
 
     expect(screen.getByRole("alert")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("HelpdeskInquiryKpiPanel", expect.any(Error));
+  });
+
+  it("担当者名の取得が失敗してもoptionalでログを残し、KPIは表示する", async () => {
+    const error = new Error("session lookup failed");
+    getAllInquiriesMock.mockResolvedValueOnce([makeInquiry({ id: "1" })]);
+    getCurrentHelpdeskStaffNameMock.mockRejectedValueOnce(error);
+
+    const jsx = await HelpdeskInquiryKpiPanel({ listHref: "/helpdesk/inquiries" });
+    render(jsx);
+
+    expect(logLoadFailure).toHaveBeenCalledWith("HelpdeskInquiryKpiPanel", error, { optional: true });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("「一覧を見る」リンクがlistHrefを指す", async () => {

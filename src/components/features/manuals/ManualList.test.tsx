@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ManualList } from "@/components/features/manuals/ManualList";
@@ -32,6 +32,10 @@ vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) => resolveMessage(namespace, key),
 }));
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 const MANUAL: ManualSummary = {
   id: "1",
   title: "テストマニュアル",
@@ -64,5 +68,16 @@ describe("ManualList", () => {
     const { container } = render(jsx);
     expect(container.innerHTML).not.toContain("data:application/pdf");
     expect(container.querySelector("iframe")?.getAttribute("src")).toBe("/api/manuals/1/file");
+  });
+
+  it("getManualsが例外をthrowしたときエラーメッセージを表示し、logLoadFailureで記録する", async () => {
+    const error = new Error("network error");
+    getManualsMock.mockRejectedValueOnce(error);
+
+    const jsx = await ManualList();
+    render(jsx);
+
+    expect(screen.getByText(resolveMessage("manuals", "list.error"))).toBeTruthy();
+    expect(logLoadFailure).toHaveBeenCalledWith("ManualList", error);
   });
 });

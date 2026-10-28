@@ -78,6 +78,10 @@ const DOCUMENT: DocumentSummary = {
   subCategoryId: null,
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("DocumentList", () => {
   it("getVisibleDocumentCategory・getDocumentsByCategoryへcategoryIdと選択中のロケールを渡す", async () => {
     getVisibleDocumentCategoryMock.mockResolvedValueOnce(CATEGORY);
@@ -135,6 +139,8 @@ describe("DocumentList", () => {
     render(jsx);
 
     expect(screen.getByText("ドキュメントの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("DocumentList", expect.any(Error));
   });
 
   it("取得成功時にドキュメント一覧をクリック操作なしでプレビュー付きで表示する", async () => {

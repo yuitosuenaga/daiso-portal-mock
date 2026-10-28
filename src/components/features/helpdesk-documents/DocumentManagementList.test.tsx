@@ -97,6 +97,10 @@ const GOOGLE_DOCUMENT: DocumentSummary = {
   subCategoryId: null,
 };
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("DocumentManagementList", () => {
   it("ドキュメントが0件のとき空状態メッセージを表示する", async () => {
     getAllDocumentsMock.mockResolvedValueOnce([]);
@@ -114,6 +118,8 @@ describe("DocumentManagementList", () => {
     render(jsx);
 
     expect(screen.getByText("ドキュメントの取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("DocumentManagementList", expect.any(Error));
   });
 
   it("取得成功時にドキュメント一覧を表示する", async () => {

@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getFaqsForHelpdesk } from "@/lib/api/faqs";
 import { FaqManagementListClient } from "@/components/features/helpdesk-faq/FaqManagementListClient";
@@ -26,7 +27,8 @@ export async function FaqManagementList() {
   let faqs: FaqWithTimestamp[];
   try {
     faqs = await getFaqsForHelpdesk();
-  } catch {
+  } catch (error) {
+    logLoadFailure("FaqManagementList", error);
     return (
       <div>
         {heading}

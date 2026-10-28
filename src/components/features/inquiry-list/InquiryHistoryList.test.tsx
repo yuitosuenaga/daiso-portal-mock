@@ -28,6 +28,10 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "ja",
 }));
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("InquiryHistoryList", () => {
   it("対応履歴が0件のとき空状態メッセージを表示する", async () => {
     getInquiryHistoryMock.mockResolvedValueOnce([]);
@@ -45,6 +49,8 @@ describe("InquiryHistoryList", () => {
     render(jsx);
 
     expect(screen.getByText("対応履歴の取得に失敗しました")).toBeTruthy();
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryHistoryList", expect.any(Error));
   });
 
   it("返信の履歴を返信ラベルと本文とともに表示し、担当者名は表示しない", async () => {

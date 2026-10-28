@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { List } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
@@ -50,7 +51,8 @@ export async function InquiryListCard({
     if (unresolvedCount > 0) {
       badge = { count: unresolvedCount, variant: "urgency-high" };
     }
-  } catch {
+  } catch (error) {
+    logLoadFailure("InquiryListCard", error);
     badge = undefined;
   }
 

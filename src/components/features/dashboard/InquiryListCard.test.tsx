@@ -39,6 +39,10 @@ function buildSummary(
   return { new: 0, in_progress: 0, resolved: 0, ...overrides };
 }
 
+import { logLoadFailure } from "@/lib/server/load-failure";
+
+vi.mock("@/lib/server/load-failure", () => ({ logLoadFailure: vi.fn() }));
+
 describe("InquiryListCard", () => {
   beforeEach(() => {
     getInquiryStatusSummaryMock.mockReset();
@@ -120,6 +124,8 @@ describe("InquiryListCard", () => {
 
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toBe("/inquiry");
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryListCard", expect.any(Error));
   });
 
   it("データ取得に失敗した場合(scope=all)も、例外をthrowせずバッジなしで表示する", async () => {
@@ -137,5 +143,7 @@ describe("InquiryListCard", () => {
     expect(() => render(jsx)).not.toThrow();
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toBe("/helpdesk/inquiries");
+
+    expect(logLoadFailure).toHaveBeenCalledWith("InquiryListCard", expect.any(Error));
   });
 });

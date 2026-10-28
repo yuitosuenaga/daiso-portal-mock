@@ -1,3 +1,4 @@
+import { logLoadFailure } from "@/lib/server/load-failure";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getAllDocuments } from "@/lib/api/documents";
@@ -43,7 +44,8 @@ export async function DocumentManagementList() {
   let documents: DocumentSummary[];
   try {
     documents = await getAllDocuments();
-  } catch {
+  } catch (error) {
+    logLoadFailure("DocumentManagementList", error);
     return (
       <div>
         {heading}
