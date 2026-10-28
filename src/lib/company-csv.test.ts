@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   MAX_COMPANY_CSV_ROWS,
@@ -278,5 +278,41 @@ describe("precheckCompanyCsvText", () => {
     expect(precheckCompanyCsvText("name\uFFFD")).toBe("invalidEncoding");
     expect(precheckCompanyCsvText(buildCsv(MAX_COMPANY_CSV_ROWS + 1))).toBe("tooManyRows");
     expect(precheckCompanyCsvText(buildCsv(MAX_COMPANY_CSV_ROWS))).toBeNull();
+  });
+});
+
+describe("巨大入力の早期打ち切り", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const HEADER = "name,country,companyCode\n";
+  const HUGE_ROWS = 400_000;
+  const hugeBody = "Daiso,TH,th-daiso\n".repeat(HUGE_ROWS);
+
+  it("数十万行でも全行を配列化せずtooManyRowsを返す（サーバー側parse）", () => {
+    const splitSpy = vi.spyOn(String.prototype, "split");
+    const started = performance.now();
+    const result = parseAndValidateCompanyCsv(HEADER + hugeBody);
+    const elapsed = performance.now() - started;
+
+    expect(result).toEqual({ fileError: "tooManyRows", rows: [] });
+    expect(splitSpy).not.toHaveBeenCalled();
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("数十万行でも全行を配列化せずtooManyRowsを返す（クライアントprecheck）", () => {
+    const splitSpy = vi.spyOn(String.prototype, "split");
+    expect(precheckCompanyCsvText(HEADER + hugeBody)).toBe("tooManyRows");
+    expect(splitSpy).not.toHaveBeenCalled();
+  });
+
+  it("空行を多数含むファイルは、データ行がMAX以下ならtooManyRowsにならない", () => {
+    const blanks = "\r\n \r\n\n".repeat(5000);
+    const text = `\n${HEADER}${blanks}${buildCsv(3).split("\n").slice(1).join("\r\n")}${blanks}`;
+    const result = parseAndValidateCompanyCsv(text);
+    expect(result.fileError).toBeUndefined();
+    expect(result.rows).toHaveLength(3);
+    expect(precheckCompanyCsvText(text)).toBeNull();
   });
 });
