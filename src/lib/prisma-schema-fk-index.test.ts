@@ -13,9 +13,11 @@ const ALLOWED_UNINDEXED_FKS: Record<string, string> = {};
 type ModelInfo = { name: string; fks: string[][]; indexes: string[][] };
 
 function splitCols(s: string): string[] {
+  // sort: Desc, length: 10 等の引数内のカンマで分割しないよう、括弧部分を先に除去する
   return s
+    .replace(/\([^)]*\)/g, "")
     .split(",")
-    .map((c) => c.trim().replace(/\(.*$/, "").trim())
+    .map((c) => c.trim())
     .filter(Boolean);
 }
 
@@ -31,7 +33,7 @@ function parseSchema(schema: string): ModelInfo[] {
     const relRe = /@relation\([^)]*fields:\s*\[([^\]]+)\]/g;
     let r: RegExpExecArray | null;
     while ((r = relRe.exec(body))) fks.push(splitCols(r[1]));
-    const idxRe = /@@(?:index|unique|id)\(\s*\[([^\]]+)\]/g;
+    const idxRe = /@@(?:index|unique|id)\(\s*(?:fields:\s*)?\[([^\]]+)\]/g;
     while ((r = idxRe.exec(body))) indexes.push(splitCols(r[1]));
     for (const line of body.split("\n")) {
       const fm = /^\s*(\w+)\s+\S+.*@(?:id|unique)\b/.exec(line);
@@ -63,6 +65,22 @@ describe("FK index parser", () => {
   it("複合indexの先頭列・単一列@uniqueはカバー済み", () => {
     const s = `model T {\n  id String @id\n  a String @unique\n  b String\n  r R @relation(fields: [a], references: [id])\n  q R @relation(fields: [b], references: [id])\n  @@index([b, a])\n}`;
     expect(findUncoveredFks(parseSchema(s))).toEqual([]);
+  });
+  it("@@index(fields: [x], map: ..) の名前付き引数形式もカバー判定される", () => {
+    const s = `model T {\n  id String @id\n  a String\n  r R @relation(fields: [a], references: [id])\n  @@index(fields: [a], map: "n")\n}`;
+    expect(findUncoveredFks(parseSchema(s))).toEqual([]);
+  });
+  it("@@unique(fields: [a, b]) の先頭列aはカバー、bは未カバー", () => {
+    const s = `model T {\n  id String @id\n  a String\n  b String\n  r R @relation(fields: [a], references: [id])\n  q R @relation(fields: [b], references: [id])\n  @@unique(fields: [a, b], map: "u")\n}`;
+    expect(findUncoveredFks(parseSchema(s))).toEqual(["T.b"]);
+  });
+  it("@@id(fields: [..]) の先頭列はカバー判定される", () => {
+    const s = `model T {\n  a String\n  b String\n  r R @relation(fields: [a], references: [id])\n  @@id(fields: [a, b])\n}`;
+    expect(findUncoveredFks(parseSchema(s))).toEqual([]);
+  });
+  it("列のsort指定があっても列名を正しく取り出す", () => {
+    const s = `model T {\n  id String @id\n  a String\n  b String\n  c String\n  r R @relation(fields: [a, b], references: [x, y])\n  q R @relation(fields: [c], references: [id])\n  @@index([a(sort: Desc, length: 10), b], type: BTree)\n}`;
+    expect(findUncoveredFks(parseSchema(s))).toEqual(["T.c"]);
   });
   it("コメント内の記述は無視する", () => {
     const s = `model T {\n  id String @id\n  a String\n  r R @relation(fields: [a], references: [id])\n  // @@index([a])\n}`;
