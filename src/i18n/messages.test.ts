@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 
 import { SUPPORTED_LOCALES } from "@/lib/constants/locales";
@@ -34,6 +35,19 @@ function variables(message: string): string[] {
 /** `'{name}'`はICUでは「`{name}`という文字そのもの」を意味し、変数が展開されない。 */
 const QUOTED_PLACEHOLDER = /(?<!')'\{\w+\}'(?!')/;
 
+/** `''{name}''`は「アポストロフィ＋変数＋アポストロフィ」と解釈され、`'{name}'`（リテラル）との取り違えの元になる。 */
+const DOUBLE_QUOTED_PLACEHOLDER = /''\{\w+\}''/;
+
+/** メッセージ中の変数ごとに「`'{x}'`で囲んでいるか」を返す（formatTemplate方式かnext-intl変数方式かの区別）。 */
+function quotingStyles(message: string): Record<string, "quoted" | "bare"> {
+  const styles: Record<string, "quoted" | "bare"> = {};
+  for (const match of message.matchAll(/(?<!')'\{(\w+)\}'(?!')/g)) styles[match[1]] = "quoted";
+  for (const match of message.matchAll(/(?<!')\{\s*(\w+)\s*[,}]/g)) {
+    if (!(match[1] in styles)) styles[match[1]] = "bare";
+  }
+  return styles;
+}
+
 const ja = flatten(load("ja"));
 const otherLocales = SUPPORTED_LOCALES.filter((locale) => locale !== "ja");
 
@@ -57,5 +71,32 @@ describe.each(otherLocales)("messages/%s.json", (locale) => {
       (key) => QUOTED_PLACEHOLDER.test(messages[key]) && !QUOTED_PLACEHOLDER.test(ja[key] ?? "")
     );
     expect(broken).toEqual([]);
+  });
+
+  it("jaと各変数の書き方（'{x}'で囲む/囲まない）が一致する", () => {
+    const mismatched = Object.keys(ja).filter((key) => {
+      if (!(key in messages)) return false;
+      const expected = quotingStyles(ja[key]);
+      const actual = quotingStyles(messages[key]);
+      return Object.keys(expected).some((name) => expected[name] !== actual[name]);
+    });
+    expect(mismatched).toEqual([]);
+  });
+
+  it("変数をアポストロフィ2個（''{x}''）で囲んでいない", () => {
+    const broken = Object.keys(messages).filter((key) => DOUBLE_QUOTED_PLACEHOLDER.test(messages[key]));
+    expect(broken).toEqual([]);
+  });
+
+  it("全メッセージがICU構文として解析できる", () => {
+    const failed = Object.keys(messages).filter((key) => {
+      try {
+        new IntlMessageFormat(messages[key], locale);
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    expect(failed).toEqual([]);
   });
 });
