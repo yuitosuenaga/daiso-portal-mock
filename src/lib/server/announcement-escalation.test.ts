@@ -46,6 +46,10 @@ function announcementRecord(
     dueDate: Date | null;
     targetingScope: "all" | "countries";
     targetingCountries: string[];
+    publishStartDate: Date | null;
+    publishEndDate: Date | null;
+    publishStartTime: string | null;
+    publishEndTime: string | null;
   }> = {}
 ) {
   return {
@@ -60,6 +64,8 @@ function announcementRecord(
     targetingCountries: [] as string[],
     publishStartDate: null,
     publishEndDate: null,
+    publishStartTime: null,
+    publishEndTime: null,
     dueDate: new Date("2026-07-20T00:00:00.000Z"),
     createdAt: new Date("2026-07-01T00:00:00.000Z"),
     updatedAt: new Date("2026-07-01T00:00:00.000Z"),
@@ -128,6 +134,47 @@ describe("runAnnouncementAutoEscalation", () => {
 
     expect(result.overdueAnnouncements).toBe(0);
     expect(getAnnouncementRecipientStatuses).not.toHaveBeenCalled();
+  });
+
+  it("公開終了日を過ぎたお知らせは対象外（件数にも含めず、送信しない）", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      announcementRecord({ publishEndDate: new Date("2026-07-22") }),
+    ] as never);
+
+    const result = await runAnnouncementAutoEscalation(NOW);
+
+    expect(result.overdueAnnouncements).toBe(0);
+    expect(getAnnouncementRecipientStatuses).not.toHaveBeenCalled();
+    expect(notifyAnnouncementEscalation).not.toHaveBeenCalled();
+  });
+
+  it("公開開始日がまだ来ていないお知らせは対象外", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      announcementRecord({ publishStartDate: new Date("2026-07-25") }),
+    ] as never);
+
+    const result = await runAnnouncementAutoEscalation(NOW);
+
+    expect(result.overdueAnnouncements).toBe(0);
+    expect(getAnnouncementRecipientStatuses).not.toHaveBeenCalled();
+    expect(notifyAnnouncementEscalation).not.toHaveBeenCalled();
+  });
+
+  it("公開期間内（07-01〜07-31）なら従来どおり送信する", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([
+      announcementRecord({
+        publishStartDate: new Date("2026-07-01"),
+        publishEndDate: new Date("2026-07-31"),
+      }),
+    ] as never);
+    vi.mocked(getAnnouncementRecipientStatuses).mockResolvedValue([
+      recipientStatus({ recipientId: "r-1", completedAt: null }),
+    ] as never);
+
+    const result = await runAnnouncementAutoEscalation(NOW);
+
+    expect(result.overdueAnnouncements).toBe(1);
+    expect(notifyAnnouncementEscalation).toHaveBeenCalled();
   });
 
   it("期限超過・公開・actionRequired真でcompletedAtがnullの会社にのみ送信し、完了済み会社は送らない", async () => {

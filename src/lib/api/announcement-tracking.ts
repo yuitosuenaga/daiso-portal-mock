@@ -78,8 +78,9 @@ export async function isReminderPendingForCompany(
 }
 
 /**
- * 対象担当者へリマインドを送信したことを記録する。
- * 実際の通知配信は行わない。既存のステータスレコードがない担当者については新規作成する。
+ * 対象担当者へリマインドを送信したことを記録し、会社宛にメール通知する。
+ * 存在しない・下書き・公開期間外・対応要否が偽のお知らせでは何もしない。
+ * 既存のステータスレコードがない担当者については新規作成する。
  */
 export async function sendAnnouncementReminders(
   announcementId: string,

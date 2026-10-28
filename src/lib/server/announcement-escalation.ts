@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
+import { isWithinPublishPeriod } from "@/lib/announcement-publish-period";
 import { startOfReferenceDay, toReferenceDateKey } from "@/lib/reference-date";
 import {
   ANNOUNCEMENT_INCLUDE,
@@ -225,7 +226,8 @@ async function runEscalation(
 
   const overdueAnnouncements = records
     .map(mapAnnouncement)
-    .filter((announcement) => isAnnouncementDueDateOverdue(announcement.dueDate, now));
+    .filter((announcement) => isAnnouncementDueDateOverdue(announcement.dueDate, now))
+    .filter((announcement) => isWithinPublishPeriod(announcement, now));
 
   result.overdueAnnouncements = overdueAnnouncements.length;
 
