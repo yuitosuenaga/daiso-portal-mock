@@ -142,47 +142,62 @@ describe.skipIf(!url)("メール正規化（実DB）", () => {
     expect((await authorizeHelpdeskCredentials(em("s_t"), PASSWORD))?.role).toBe("helpdesk");
   });
 
-  it("大文字で保存された既存行に、小文字・大文字違いの入力でログインできる", async () => {
-    const a = await addApplicant(em("Legacy1"));
-    const s = await addStaff(em("Legacy2"));
+  it("正規化済みの行に、大文字小文字・前後空白違いの入力でログインできる", async () => {
+    const a = await addApplicant(em("legacy1"));
+    const s = await addStaff(em("legacy2"));
 
     expect((await authorizeApplicantCredentials(em("legacy1"), PASSWORD))?.id).toBe(a.id);
     expect((await authorizeApplicantCredentials(`  ${em("LEGACY1")}`, PASSWORD))?.id).toBe(a.id);
-    expect((await authorizeHelpdeskCredentials(em("legacy2"), PASSWORD))?.id).toBe(s.id);
+    expect((await authorizeHelpdeskCredentials(em("LEGACY2"), PASSWORD))?.id).toBe(s.id);
     const g = await authorizeGoogleLogin({ ...googleBase, email: em("LEGACY1"), portal: "applicant" });
     expect(g.ok && g.user.id).toBe(a.id);
   });
 
-  it("重複データ: 小文字と一致する行があればその行、無ければ拒否する（パスワード・Google・スタッフ）", async () => {
-    const old = new Date("2020-01-01T00:00:00Z");
-    const upper = await addApplicant(em("Both1"), old);
-    const lower = await addApplicant(em("both1"));
-    expect((await authorizeApplicantCredentials(em("both1"), PASSWORD))?.id).toBe(lower.id);
-    expect((await authorizeApplicantCredentials(em("Both1"), PASSWORD))?.id).toBe(upper.id);
-    // 入力が、どちらとも完全一致しない
-    expect(await authorizeApplicantCredentials(em("BOTH1"), PASSWORD)).toBeNull();
-    // Googleは小文字化した値と完全一致する行（lower）を、createdAtが古い大文字行より優先する
-    const g = await authorizeGoogleLogin({ ...googleBase, email: em("Both1"), portal: "applicant" });
-    expect(g.ok && g.user.id).toBe(lower.id);
+  // 段階2（CHECK制約）以後は、大文字・前後空白入りの行も、大文字小文字違いの重複行も DB に存在しえない。
+  // 重複データの曖昧さ拒否（pickAccountByEmail）はアプリ側の防御として
+  // google-authorize.test.ts / email-match のユニットテストで担保する。
+  async function expectCheckViolation(run: Promise<unknown>) {
+    await expect(run).rejects.toMatchObject({ meta: { code: "23514" } });
+  }
 
-    // 小文字行が無い重複（Both2 / BOTH2）は、パスワードもGoogleも拒否
-    await addApplicant(em("Both2"), old);
-    await addApplicant(em("BOTH2"));
-    expect(await authorizeApplicantCredentials(em("both2"), PASSWORD)).toBeNull();
-    expect(
-      await authorizeGoogleLogin({ ...googleBase, email: em("both2"), portal: "applicant" })
-    ).toEqual({ ok: false, error: "not_registered" });
+  it("DBは大文字・前後空白入りのメールのINSERTをCHECK違反(23514)で拒否する（申請者・スタッフ）", async () => {
+    const id = `chk-${sfx}`;
+    await expectCheckViolation(
+      testPrisma!.$executeRaw`INSERT INTO "ApplicantUser" (id, email, "passwordHash", "displayName", "companyId")
+        VALUES (${id + "-a1"}, ${em("Upper")}, ${hash}, 'IT', ${companyId})`
+    );
+    await expectCheckViolation(
+      testPrisma!.$executeRaw`INSERT INTO "ApplicantUser" (id, email, "passwordHash", "displayName", "companyId")
+        VALUES (${id + "-a2"}, ${" " + em("space") + " "}, ${hash}, 'IT', ${companyId})`
+    );
+    await expectCheckViolation(
+      testPrisma!.$executeRaw`INSERT INTO "HelpdeskStaff" (id, email, "passwordHash", "displayName")
+        VALUES (${id + "-s1"}, ${em("Upper2")}, ${hash}, 'IT')`
+    );
+    await expectCheckViolation(
+      testPrisma!.$executeRaw`INSERT INTO "HelpdeskStaff" (id, email, "passwordHash", "displayName")
+        VALUES (${id + "-s2"}, ${em("space2") + " "}, ${hash}, 'IT')`
+    );
+  });
 
-    // スタッフ側
-    const sUpper = await addStaff(em("Both3"), old);
-    const sLower = await addStaff(em("both3"));
-    expect((await authorizeHelpdeskCredentials(em("both3"), PASSWORD))?.id).toBe(sLower.id);
-    expect((await authorizeHelpdeskCredentials(em("Both3"), PASSWORD))?.id).toBe(sUpper.id);
-    await addStaff(em("Both4"), old);
-    await addStaff(em("BOTH4"));
-    expect(await authorizeHelpdeskCredentials(em("both4"), PASSWORD)).toBeNull();
-    expect(
-      await authorizeGoogleLogin({ ...googleBase, email: em("both4"), portal: "helpdesk" })
-    ).toEqual({ ok: false, error: "not_registered" });
+  it("DBは既存行を大文字入りメールに更新するUPDATEもCHECK違反で拒否し、小文字のままの更新は通る", async () => {
+    const a = await addApplicant(em("upd1"));
+    const s = await addStaff(em("upd2"));
+    await expectCheckViolation(
+      testPrisma!.$executeRaw`UPDATE "ApplicantUser" SET email = ${em("UPD1")} WHERE id = ${a.id}`
+    );
+    await expectCheckViolation(
+      testPrisma!.$executeRaw`UPDATE "HelpdeskStaff" SET email = ${em("UPD2")} WHERE id = ${s.id}`
+    );
+    await testPrisma!.$executeRaw`UPDATE "ApplicantUser" SET email = ${em("upd1b")} WHERE id = ${a.id}`;
+    expect((await testPrisma!.applicantUser.findUniqueOrThrow({ where: { id: a.id } })).email).toBe(
+      em("upd1b")
+    );
+  });
+
+  it("大文字小文字違いの重複は、小文字側が既存なら一意制約、大文字側ならCHECKで保存できない", async () => {
+    await addApplicant(em("dupdb"));
+    await expect(addApplicant(em("dupdb"))).rejects.toMatchObject({ code: "P2002" });
+    await expect(addApplicant(em("DupDb"))).rejects.toBeTruthy();
   });
 });
