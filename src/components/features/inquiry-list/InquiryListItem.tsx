@@ -2,6 +2,7 @@ import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { resolveInquiryContent } from "@/lib/inquiry-content";
 import type { Inquiry } from "@/types/inquiry";
+import { formatDate } from "@/lib/format-date";
 
 export interface InquiryListItemProps {
   /** 表示対象の問い合わせ1件分のデータ */
@@ -85,11 +86,7 @@ export function InquiryListItem({
             dateTime={inquiry.createdAt}
             className="text-xs text-muted-foreground"
           >
-            {new Date(inquiry.createdAt).toLocaleDateString(locale, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
+            {formatDate(inquiry.createdAt, locale)}
           </time>
         </div>
       </div>

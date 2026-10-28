@@ -25,6 +25,7 @@ import {
   type MonthlyMaterialSubmitValues,
 } from "@/lib/validation/monthly-material";
 import { toGoogleEmbedUrl } from "@/lib/google-document-url";
+import { toReferenceYearMonth } from "@/lib/reference-date";
 import type {
   CreateMonthlyMaterialInput,
   MonthlyMaterialSummary,
@@ -212,8 +213,7 @@ export function MonthlyMaterialForm({
         : {
             category,
             department: "other",
-            year: new Date().getFullYear(),
-            month: new Date().getMonth() + 1,
+            ...toReferenceYearMonth(new Date()),
             sourceType: "upload",
             targeting: { scope: "all" },
             ...EMPTY_UPLOAD_VALUES,

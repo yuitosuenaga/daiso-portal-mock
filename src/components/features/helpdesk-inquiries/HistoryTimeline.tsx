@@ -5,6 +5,7 @@ import type {
   InquiryHistoryEntry,
   InquiryHistoryEntryType,
 } from "@/types/inquiry-history";
+import { formatDateTime } from "@/lib/format-date";
 
 export interface HistoryTimelineProps {
   /** `getInquiryHistory` が返す発生時刻降順のエントリ一覧 */
@@ -58,13 +59,7 @@ export function HistoryTimeline({
                 dateTime={entry.occurredAt}
                 className="font-mono text-xs tabular-nums text-muted-foreground"
               >
-                {new Date(entry.occurredAt).toLocaleString(locale, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateTime(entry.occurredAt, locale)}
               </time>
             </div>
             {entry.detail && (

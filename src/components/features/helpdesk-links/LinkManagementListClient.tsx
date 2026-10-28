@@ -18,6 +18,7 @@ import {
 } from "@/components/features/helpdesk-shared/ManagementList";
 import type { LinkWithTimestamp } from "@/types/link";
 import type { LinkCategoryAdminView } from "@/types/link-category";
+import { formatDate } from "@/lib/format-date";
 
 export interface LinkManagementListClientProps {
   /** 登録日降順で整列済みの全リンク */
@@ -121,11 +122,7 @@ export function LinkManagementListClient({
                         <span>{categoryLabels[link.subCategoryId]}</span>
                       )}
                       <time dateTime={link.createdAt}>
-                        {new Date(link.createdAt).toLocaleDateString(locale, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {formatDate(link.createdAt, locale)}
                       </time>
                     </div>
                   </div>

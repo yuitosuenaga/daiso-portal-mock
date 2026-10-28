@@ -317,3 +317,38 @@ describe("ManualForm", () => {
     expect((screen.getByLabelText(/^月/) as HTMLSelectElement).value).toBe("1");
   });
 });
+
+describe.each(["UTC", "America/Los_Angeles"])(
+  "ManualForm（新規）の年月の既定値（TZ=%s）",
+  (tz) => {
+    let originalTz: string | undefined;
+
+    beforeEach(() => {
+      originalTz = process.env.TZ;
+      process.env.TZ = tz;
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-31T16:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
+    });
+
+    it("JST 11/1 01:00 の時点ではJSTの2026年11月が初期値になる", () => {
+      render(
+        <ManualForm
+          mode="create"
+          {...labels}
+          monthOptions={[
+            { value: "10", label: "10月" },
+            { value: "11", label: "11月" },
+          ]}
+        />
+      );
+      expect((screen.getByLabelText(/^年/) as HTMLInputElement).value).toBe("2026");
+      expect((screen.getByLabelText(/^月/) as HTMLSelectElement).value).toBe("11");
+    });
+  }
+);

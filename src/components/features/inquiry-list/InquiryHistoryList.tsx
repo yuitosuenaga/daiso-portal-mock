@@ -5,6 +5,7 @@ import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/
 import { getInquiryHistoryStyle } from "@/lib/inquiry-history-style";
 import { cn } from "@/lib/utils";
 import type { InquiryHistoryEntry } from "@/types/inquiry-history";
+import { formatDateTime } from "@/lib/format-date";
 
 export interface InquiryHistoryListProps {
   inquiryId: string;
@@ -122,13 +123,7 @@ export async function InquiryHistoryList({
                     dateTime={entry.occurredAt}
                     className="font-mono text-xs tabular-nums text-muted-foreground"
                   >
-                    {new Date(entry.occurredAt).toLocaleString(locale, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatDateTime(entry.occurredAt, locale)}
                   </time>
                 </div>
                 {renderEntryBody(entry, t)}

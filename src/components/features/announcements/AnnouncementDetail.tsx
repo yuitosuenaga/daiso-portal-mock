@@ -21,6 +21,7 @@ import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
 import { documentFileUrl } from "@/lib/file-urls";
 import type { DocumentSummary } from "@/types/document";
+import { formatDate, formatDateOnly } from "@/lib/format-date";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
   const [t, tCategories, tAnnouncements, tDocuments, locale] = await Promise.all([
@@ -102,11 +103,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
             <span>
               {t("publishedAtLabel")}:{" "}
               <time dateTime={announcement.publishedAt!}>
-                {new Date(announcement.publishedAt!).toLocaleDateString(locale, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
+                {formatDate(announcement.publishedAt!, locale)}
               </time>
             </span>
             <span className="flex items-center gap-2">
@@ -126,11 +123,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
               >
                 {tAnnouncements("dueDateLabel")}:{" "}
                 <time dateTime={announcement.dueDate}>
-                  {new Date(announcement.dueDate).toLocaleDateString(locale, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {formatDateOnly(announcement.dueDate, locale)}
                 </time>
               </span>
             )}

@@ -8,6 +8,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { AnnouncementUserReadStatusView } from "@/types/announcement-recipient";
+import { formatDateTime } from "@/lib/format-date";
+
+/** 従来の`toLocaleString(locale)`既定の表記（数値・秒あり）を保つ。 */
+const CONFIRMED_AT_FORMAT_OPTIONS = {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+} as const;
 
 export interface AnnouncementConfirmersDialogProps {
   open: boolean;
@@ -67,7 +78,7 @@ export function AnnouncementConfirmersDialog({
                     <td className="py-2 pr-2 text-muted-foreground">{row.companyName}</td>
                     <td className="py-2 pr-2 text-muted-foreground">{row.country}</td>
                     <td className="py-2 text-muted-foreground">
-                      {new Date(row.confirmedAt).toLocaleString(locale)}
+                      {formatDateTime(row.confirmedAt, locale, CONFIRMED_AT_FORMAT_OPTIONS)}
                     </td>
                   </tr>
                 ))}
