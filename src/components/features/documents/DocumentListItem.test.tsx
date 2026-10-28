@@ -2,10 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { DocumentListItem } from "@/components/features/documents/DocumentListItem";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 
-const DOCUMENT: Document = {
-  id: "1",
+const DOCUMENT: DocumentSummary = {
+  id: "doc-1",
   title: "テストドキュメント",
   description: "テスト用の説明文",
   sourceType: "upload",
@@ -13,7 +13,6 @@ const DOCUMENT: Document = {
   fileName: "test.pdf",
   fileType: "application/pdf",
   fileSize: 1024,
-  dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
   targeting: { scope: "all" },
   uploadedAt: "2026-07-01T09:00:00Z",
   translations: [],
@@ -21,7 +20,7 @@ const DOCUMENT: Document = {
   subCategoryId: null,
 };
 
-const GOOGLE_DOCUMENT: Document = {
+const GOOGLE_DOCUMENT: DocumentSummary = {
   id: "2",
   title: "Googleドキュメント",
   description: "Google経由の説明文",
@@ -53,10 +52,10 @@ describe("DocumentListItem", () => {
     expect(screen.getByText("テスト用の説明文")).toBeTruthy();
 
     const iframe = screen.getByTitle("テストドキュメント");
-    expect(iframe.getAttribute("src")).toBe(DOCUMENT.dataUrl);
+    expect(iframe.getAttribute("src")).toBe("/api/documents/doc-1/file");
 
     const downloadLink = screen.getByText("ダウンロード");
-    expect(downloadLink.getAttribute("href")).toBe(DOCUMENT.dataUrl);
+    expect(downloadLink.getAttribute("href")).toBe("/api/documents/doc-1/file?download=1");
     expect(downloadLink.getAttribute("download")).toBe(DOCUMENT.fileName);
   });
 
@@ -105,7 +104,7 @@ describe("DocumentListItem", () => {
   });
 
   it("アップロード日が基準期間（7日）以内のとき新着バッジを表示する", () => {
-    const recentDocument: Document = {
+    const recentDocument: DocumentSummary = {
       ...DOCUMENT,
       uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     };
@@ -115,7 +114,7 @@ describe("DocumentListItem", () => {
   });
 
   it("アップロード日が基準期間（7日）より前のとき新着バッジを表示しない", () => {
-    const oldDocument: Document = {
+    const oldDocument: DocumentSummary = {
       ...DOCUMENT,
       uploadedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     };

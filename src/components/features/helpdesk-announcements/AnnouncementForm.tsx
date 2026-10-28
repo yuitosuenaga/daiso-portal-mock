@@ -29,7 +29,8 @@ import {
   type AnnouncementSubmitValues,
 } from "@/lib/validation/announcement";
 import { ATTACHMENT_MAX_COUNT } from "@/lib/constants/attachment";
-import type { Document } from "@/types/document";
+import { documentFileUrl } from "@/lib/file-urls";
+import type { DocumentSummary } from "@/types/document";
 import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 
 export interface AnnouncementFormProps {
@@ -39,7 +40,7 @@ export interface AnnouncementFormProps {
   categoryOptions: SelectOption[];
   countryOptions: SelectOption[];
   /** ドキュメント紐づけダイアログの選択候補となる、登録済みドキュメント全件（絞り込みなし）。 */
-  documentOptions: Document[];
+  documentOptions: DocumentSummary[];
   titleLabel: string;
   titlePlaceholder: string;
   bodyLabel: string;
@@ -607,7 +608,7 @@ export function AnnouncementForm({
                 <PdfViewer
                   key={attachment.id}
                   variant="upload"
-                  dataUrl={attachment.dataUrl}
+                  fileUrl={attachment.dataUrl}
                   title={attachment.fileName}
                   downloadFileName={attachment.fileName}
                   downloadLinkLabel={downloadLinkLabel}
@@ -625,7 +626,7 @@ export function AnnouncementForm({
           const selectedIds = field.value ?? [];
           const selectedDocuments = selectedIds
             .map((id) => documentOptions.find((document) => document.id === id))
-            .filter((document): document is Document => document !== undefined);
+            .filter((document): document is DocumentSummary => document !== undefined);
 
           return (
             <FormField label={linkedDocumentsLabel} htmlFor="announcement-linked-documents-button">
@@ -683,7 +684,7 @@ export function AnnouncementForm({
                     <PdfViewer
                       key={document.id}
                       variant="upload"
-                      dataUrl={document.dataUrl}
+                      fileUrl={documentFileUrl(document.id)}
                       title={document.title}
                       downloadFileName={document.fileName}
                       downloadLinkLabel={downloadLinkLabel}

@@ -5,7 +5,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BackLink } from "@/components/ui/back-link";
 import { DocumentListClient } from "@/components/features/documents/DocumentListClient";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 import type { DocumentCategoryDetail } from "@/types/document-category";
 
 export interface DocumentListProps {
@@ -34,7 +34,7 @@ export async function DocumentList({ categoryId }: DocumentListProps) {
   );
 
   let category: DocumentCategoryDetail | null;
-  let documents: Document[];
+  let documents: DocumentSummary[];
   try {
     [category, documents] = await Promise.all([
       getVisibleDocumentCategory(categoryId, { locale }),

@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AnnouncementDocumentLinkDialog } from "@/components/features/helpdesk-announcements/AnnouncementDocumentLinkDialog";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 
-function makeDocument(overrides: Partial<Document> = {}): Document {
+function makeDocument(overrides: Partial<DocumentSummary> = {}): DocumentSummary {
   return {
     id: "doc-1",
     title: "業務マニュアル",
@@ -13,11 +13,10 @@ function makeDocument(overrides: Partial<Document> = {}): Document {
     fileName: "manual.pdf",
     fileType: "application/pdf",
     fileSize: 1024,
-    dataUrl: "data:application/pdf;base64,AAAA",
     targeting: { scope: "all" },
     uploadedAt: "2026-07-01T00:00:00Z",
     ...overrides,
-  } as Document;
+  } as DocumentSummary;
 }
 
 const labels = {

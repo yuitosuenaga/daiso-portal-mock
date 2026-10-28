@@ -506,7 +506,6 @@ describe("AnnouncementForm", () => {
             fileName: "linked.pdf",
             fileType: "application/pdf",
             fileSize: 4096,
-            dataUrl: "data:application/pdf;base64,CCCC",
             targeting: { scope: "all" },
             uploadedAt: "2026-07-01T00:00:00.000Z",
             translations: [],
@@ -518,7 +517,7 @@ describe("AnnouncementForm", () => {
     );
 
     const iframe = screen.getByTitle("紐づけドキュメント");
-    expect(iframe.getAttribute("src")).toBe("data:application/pdf;base64,CCCC");
+    expect(iframe.getAttribute("src")).toBe("/api/documents/document-1/file");
   });
 
   it("createAnnouncementActionが失敗した場合、エラーメッセージを表示し遷移しない", async () => {

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma, DocumentTargetingScope } from "@prisma/client";
 
-import type { Document, DocumentTargeting } from "@/types/document";
+import type { Document, DocumentSummary, DocumentTargeting } from "@/types/document";
 
 /** 翻訳行を含むDocumentレコードの読み取り時のinclude句。 */
 export const DOCUMENT_INCLUDE = {
@@ -12,6 +12,42 @@ export const DOCUMENT_INCLUDE = {
 export type PrismaDocumentWithTranslations = Prisma.DocumentGetPayload<{
   include: typeof DOCUMENT_INCLUDE;
 }>;
+
+/**
+ * 一覧・フォーム選択肢・保存結果用のselect句。ファイル本体（`dataUrl`、Base64で最大約27MB/件）
+ * を読み込まず、メタデータだけを取得する。本体は`DOCUMENT_FILE_SELECT`で配信ルートが1件ずつ読む。
+ */
+export const DOCUMENT_SUMMARY_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  status: true,
+  sourceType: true,
+  fileName: true,
+  fileType: true,
+  fileSize: true,
+  googleUrl: true,
+  googleEmbedUrl: true,
+  uploadedAt: true,
+  targetingScope: true,
+  targetingCountries: true,
+  targetingCompanyCodes: true,
+  categoryId: true,
+  subCategoryId: true,
+  translations: true,
+} as const satisfies Prisma.DocumentSelect;
+
+export type PrismaDocumentSummary = Prisma.DocumentGetPayload<{
+  select: typeof DOCUMENT_SUMMARY_SELECT;
+}>;
+
+/** ファイル配信ルート用のselect句（1件分のファイル本体を読む）。 */
+export const DOCUMENT_FILE_SELECT = {
+  sourceType: true,
+  fileName: true,
+  fileType: true,
+  dataUrl: true,
+} as const satisfies Prisma.DocumentSelect;
 
 /**
  * 公開範囲3列（`targetingScope`/`targetingCountries`/`targetingCompanyCodes`）を持つ
@@ -71,8 +107,8 @@ export class DocumentDataIntegrityError extends Error {
   }
 }
 
-export function mapDocument(record: PrismaDocumentWithTranslations): Document {
-  const base = {
+function mapDocumentBase(record: PrismaDocumentSummary) {
+  return {
     id: record.id,
     title: record.title,
     description: record.description ?? undefined,
@@ -87,6 +123,11 @@ export function mapDocument(record: PrismaDocumentWithTranslations): Document {
     categoryId: record.categoryId,
     subCategoryId: record.subCategoryId,
   };
+}
+
+/** 一覧用。`dataUrl`を読み込まず、出力にも含めない。 */
+export function mapDocumentSummary(record: PrismaDocumentSummary): DocumentSummary {
+  const base = mapDocumentBase(record);
 
   if (record.sourceType === "google") {
     if (!record.googleUrl || !record.googleEmbedUrl) {
@@ -100,7 +141,7 @@ export function mapDocument(record: PrismaDocumentWithTranslations): Document {
     };
   }
 
-  if (!record.fileName || !record.fileType || record.fileSize == null || !record.dataUrl) {
+  if (!record.fileName || !record.fileType || record.fileSize == null) {
     throw new DocumentDataIntegrityError(record.id, record.sourceType);
   }
   return {
@@ -109,8 +150,19 @@ export function mapDocument(record: PrismaDocumentWithTranslations): Document {
     fileName: record.fileName,
     fileType: "application/pdf",
     fileSize: record.fileSize,
-    dataUrl: record.dataUrl,
   };
+}
+
+/** 詳細用（`dataUrl`を含む）。ヘルプデスクの編集フォーム初期値と再翻訳で使う。 */
+export function mapDocument(record: PrismaDocumentWithTranslations): Document {
+  const summary = mapDocumentSummary(record);
+  if (summary.sourceType === "google") {
+    return summary;
+  }
+  if (!record.dataUrl) {
+    throw new DocumentDataIntegrityError(record.id, record.sourceType);
+  }
+  return { ...summary, dataUrl: record.dataUrl };
 }
 
 /**

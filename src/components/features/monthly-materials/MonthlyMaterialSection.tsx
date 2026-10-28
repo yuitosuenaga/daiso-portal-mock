@@ -131,7 +131,7 @@ export function MonthlyMaterialSection({
         <p className="text-sm font-medium text-foreground">{material.fileName}</p>
         <PdfViewer
           variant="upload"
-          dataUrl={material.dataUrl}
+          fileUrl={material.dataUrl}
           title={heading}
           downloadFileName={material.fileName}
           downloadLinkLabel={viewerLabels.downloadLinkLabel}
@@ -156,7 +156,7 @@ export function MonthlyMaterialSection({
       <PdfViewer
         variant="upload"
         size="compact"
-        dataUrl={material.dataUrl}
+        fileUrl={material.dataUrl}
         title={heading}
         downloadFileName={material.fileName}
         downloadLinkLabel={viewerLabels.downloadLinkLabel}

@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { formatFileSize } from "@/lib/attachment-utils";
 import { isRecentlyUploaded } from "@/lib/document-utils";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
-import type { Document } from "@/types/document";
+import { documentFileUrl } from "@/lib/file-urls";
+import type { DocumentSummary } from "@/types/document";
 
 export interface DocumentListItemProps {
-  document: Document;
+  document: DocumentSummary;
   locale: string;
   downloadLinkLabel: string;
   openOriginalLinkLabel: string;
@@ -63,7 +64,8 @@ export function DocumentListItem({
         ) : (
           <PdfViewer
             variant="upload"
-            dataUrl={document.dataUrl}
+            fileUrl={documentFileUrl(document.id)}
+            downloadUrl={documentFileUrl(document.id, { download: true })}
             title={document.title}
             downloadFileName={document.fileName}
             downloadLinkLabel={downloadLinkLabel}

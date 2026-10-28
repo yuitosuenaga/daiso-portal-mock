@@ -24,12 +24,12 @@ import {
   ManagementListRow,
   ManagementListRows,
 } from "@/components/features/helpdesk-shared/ManagementList";
-import type { Document } from "@/types/document";
+import type { DocumentSummary } from "@/types/document";
 import type { DocumentCategoryFormOption } from "@/components/features/helpdesk-documents/DocumentForm";
 
 export interface DocumentManagementListClientProps {
   /** アップロード日降順で整列済みの全ドキュメント */
-  documents: Document[];
+  documents: DocumentSummary[];
   locale: string;
   listTitle: string;
   editLinkLabel: string;

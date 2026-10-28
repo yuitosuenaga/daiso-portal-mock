@@ -68,3 +68,49 @@ export function buildSecurityHeaders({ isDev = false } = {}) {
     },
   ];
 }
+
+/**
+ * 同一オリジンのiframeでPDFを表示するルート（ファイル配信Route Handler）。
+ * 全ルートのX-Frame-Options: DENY / frame-ancestors 'none' のままだとiframeに表示できない。
+ * 後続のPRで配信ルートを追加するときはここへ足す。
+ */
+export const FILE_ROUTE_SOURCES = ["/api/documents/:id/file"];
+
+/**
+ * ファイル配信ルート用ヘッダ。全体用との差分はX-Frame-OptionsをSAMEORIGINに、
+ * CSPのframe-ancestorsを'self'にする点のみ（同一オリジンの埋め込みだけ許可）。
+ *
+ * @param {{ isDev?: boolean }} [options]
+ * @returns {{ key: string; value: string }[]}
+ */
+export function buildFileRouteSecurityHeaders({ isDev = false } = {}) {
+  return buildSecurityHeaders({ isDev }).map((header) => {
+    if (header.key === "X-Frame-Options") {
+      return { key: header.key, value: "SAMEORIGIN" };
+    }
+    if (header.key === "Content-Security-Policy") {
+      return {
+        key: header.key,
+        value: header.value.replace("frame-ancestors 'none'", "frame-ancestors 'self'"),
+      };
+    }
+    return header;
+  });
+}
+
+/**
+ * next.configのheaders()へ渡すエントリ配列。同じキーは後に書いたエントリが上書きするため、
+ * 全体用の後ろにファイルルート用を並べる。
+ *
+ * @param {{ isDev?: boolean }} [options]
+ * @returns {{ source: string; headers: { key: string; value: string }[] }[]}
+ */
+export function buildHeadersConfig({ isDev = false } = {}) {
+  return [
+    { source: "/:path*", headers: buildSecurityHeaders({ isDev }) },
+    ...FILE_ROUTE_SOURCES.map((source) => ({
+      source,
+      headers: buildFileRouteSecurityHeaders({ isDev }),
+    })),
+  ];
+}

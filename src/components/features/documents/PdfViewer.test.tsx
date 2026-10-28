@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 
 describe("PdfViewer", () => {
-  it("variant: uploadのときdataUrlをiframeのsrcに設定し、ダウンロードリンクを表示する", () => {
+  it("variant: uploadのときfileUrlをiframeのsrcに設定し、ダウンロードリンクを表示する", () => {
     render(
       <PdfViewer
         variant="upload"
-        dataUrl="data:application/pdf;base64,AAAA"
+        fileUrl="data:application/pdf;base64,AAAA"
         title="サンプルPDF"
         downloadFileName="sample.pdf"
         downloadLinkLabel="ダウンロード"
@@ -94,7 +94,7 @@ describe("PdfViewer", () => {
     render(
       <PdfViewer
         variant="upload"
-        dataUrl="data:application/pdf;base64,AAAA"
+        fileUrl="data:application/pdf;base64,AAAA"
         title="サンプルPDF"
         downloadFileName="sample.pdf"
         downloadLinkLabel="ダウンロード"
@@ -110,7 +110,7 @@ describe("PdfViewer", () => {
     render(
       <PdfViewer
         variant="upload"
-        dataUrl="data:application/pdf;base64,AAAA"
+        fileUrl="data:application/pdf;base64,AAAA"
         title="サンプルPDF"
         downloadFileName="sample.pdf"
         downloadLinkLabel="ダウンロード"
@@ -119,5 +119,25 @@ describe("PdfViewer", () => {
 
     expect(screen.getByTitle("サンプルPDF")).toBeTruthy();
     expect(screen.queryByText("プレビューを表示できませんでした")).toBeNull();
+  });
+
+  it("variant: uploadのときdownloadUrlを指定するとダウンロードリンクのhrefに使い、iframeはfileUrlのまま", () => {
+    render(
+      <PdfViewer
+        variant="upload"
+        fileUrl="/api/documents/doc-1/file"
+        downloadUrl="/api/documents/doc-1/file?download=1"
+        title="サンプルPDF"
+        downloadFileName="sample.pdf"
+        downloadLinkLabel="ダウンロード"
+      />
+    );
+
+    expect(screen.getByTitle("サンプルPDF").getAttribute("src")).toBe(
+      "/api/documents/doc-1/file"
+    );
+    const link = screen.getByText("ダウンロード");
+    expect(link.getAttribute("href")).toBe("/api/documents/doc-1/file?download=1");
+    expect(link.getAttribute("download")).toBe("sample.pdf");
   });
 });

@@ -18,7 +18,8 @@ import { AnnouncementSelfReportPanel } from "@/components/features/announcements
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import { PdfViewer } from "@/components/features/documents/PdfViewer";
 import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
-import type { Document } from "@/types/document";
+import { documentFileUrl } from "@/lib/file-urls";
+import type { DocumentSummary } from "@/types/document";
 
 export async function AnnouncementDetail({ id }: { id: string }) {
   const [t, tCategories, tAnnouncements, tDocuments, locale] = await Promise.all([
@@ -74,7 +75,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
     ),
   ]);
   const visibleLinkedDocuments = linkedDocumentResults.filter(
-    (document): document is Document => document !== null
+    (document): document is DocumentSummary => document !== null
   );
   const imageAttachments = announcement.attachments.filter((attachment) =>
     attachment.fileType.startsWith("image/")
@@ -155,7 +156,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
                 <PdfViewer
                   key={attachment.id}
                   variant="upload"
-                  dataUrl={attachment.dataUrl}
+                  fileUrl={attachment.dataUrl}
                   title={attachment.fileName}
                   downloadFileName={attachment.fileName}
                   downloadLinkLabel={tDocuments("downloadLink")}
@@ -175,7 +176,7 @@ export async function AnnouncementDetail({ id }: { id: string }) {
                   <PdfViewer
                     key={document.id}
                     variant="upload"
-                    dataUrl={document.dataUrl}
+                    fileUrl={documentFileUrl(document.id)}
                     title={document.title}
                     downloadFileName={document.fileName}
                     downloadLinkLabel={tDocuments("downloadLink")}

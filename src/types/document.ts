@@ -3,6 +3,8 @@
 // 本体を保持する。Google方式はGoogleドキュメント/スプレッドシート/スライドの共有リンクを
 // 保持し、実体のコピーは持たない（Google側が都度最新のコンテンツを配信する）。
 
+import type { DistributiveOmit } from "@/types/utility";
+
 /**
  * ドキュメントの公開範囲。全社共通公開、特定の国（ISO 3166-1 alpha-2）を1件以上指定、
  * または特定の販社を1件以上指定するかを判別可能なユニオン型で表す。
@@ -57,6 +59,13 @@ export type Document =
     });
 
 /**
+ * 一覧・フォームの選択肢・保存結果など、ファイル本体（`dataUrl`、最大約27MB/件）を
+ * 載せない表示用の型。プレビュー・ダウンロードは認可付きの配信ルート
+ * （`/api/documents/[id]/file`、`documentFileUrl`）から取得する。
+ */
+export type DocumentSummary = DistributiveOmit<Document, "dataUrl">;
+
+/**
  * ドキュメント新規作成・編集時のAPI入力契約。
  * `Document`から`id`（API側で生成）と`uploadedAt`（保存時刻を採番）を除いたサブセット。
  */
@@ -74,7 +83,7 @@ export type DocumentFormInput =
 
 /** 保存系Server Actionの戻り値。`failedLocales`が空でなければ一部言語の自動翻訳に失敗している。 */
 export interface DocumentSaveResult {
-  document: Document;
+  document: DocumentSummary;
   failedLocales: string[];
 }
 

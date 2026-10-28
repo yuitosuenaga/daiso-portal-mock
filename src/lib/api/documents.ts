@@ -1,4 +1,4 @@
-import { Document, CreateDocumentInput } from "@/types/document";
+import { Document, DocumentSummary, CreateDocumentInput } from "@/types/document";
 import {
   requireApplicantSession,
   requireHelpdeskStaffSession,
@@ -21,7 +21,7 @@ import {
  */
 export async function getDocuments(
   options?: { locale?: string }
-): Promise<Document[]> {
+): Promise<DocumentSummary[]> {
   const { claims } = await requireApplicantSession();
 
   return options?.locale
@@ -37,7 +37,7 @@ export async function getDocuments(
 export async function getDocumentById(
   id: string,
   options?: { locale?: string }
-): Promise<Document | null> {
+): Promise<DocumentSummary | null> {
   const { claims } = await requireApplicantSession();
 
   return options?.locale
@@ -52,7 +52,7 @@ export async function getDocumentById(
 export async function getDocumentsByCategory(
   categoryId: string,
   options?: { locale?: string }
-): Promise<Document[]> {
+): Promise<DocumentSummary[]> {
   const { claims } = await requireApplicantSession();
 
   return listVisibleDocumentsInCategory(
@@ -67,7 +67,7 @@ export async function getDocumentsByCategory(
  * 公開範囲による絞り込みを行わず、ドキュメント全件をアップロード日の降順で返す。
  * ヘルプデスク側のドキュメント管理画面が利用する。
  */
-export async function getAllDocuments(): Promise<Document[]> {
+export async function getAllDocuments(): Promise<DocumentSummary[]> {
   await requireHelpdeskStaffSession();
 
   return listAllDocumentsService();
@@ -90,7 +90,7 @@ export async function getDocumentByIdForHelpdesk(
  */
 export async function createDocument(
   input: CreateDocumentInput
-): Promise<Document> {
+): Promise<DocumentSummary> {
   await requireHelpdeskStaffSession();
 
   return createDocumentRecord(input);
@@ -102,7 +102,7 @@ export async function createDocument(
 export async function updateDocument(
   id: string,
   input: CreateDocumentInput
-): Promise<Document> {
+): Promise<DocumentSummary> {
   await requireHelpdeskStaffSession();
 
   return updateDocumentRecord(id, input);

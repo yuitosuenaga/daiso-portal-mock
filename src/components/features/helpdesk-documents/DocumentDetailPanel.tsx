@@ -12,6 +12,7 @@ import {
   type DocumentFormProps,
 } from "@/components/features/helpdesk-documents/DocumentForm";
 import { DeleteDocumentButton } from "@/components/features/helpdesk-documents/DeleteDocumentButton";
+import { documentFileUrl } from "@/lib/file-urls";
 import type { Document } from "@/types/document";
 import type { DocumentFormValues } from "@/lib/validation/document";
 
@@ -140,7 +141,8 @@ export function DocumentDetailPanel({
     ) : (
       <PdfViewer
         variant="upload"
-        dataUrl={document.dataUrl}
+        fileUrl={documentFileUrl(document.id)}
+        downloadUrl={documentFileUrl(document.id, { download: true })}
         title={document.title}
         downloadFileName={document.fileName}
         downloadLinkLabel={downloadLinkLabel}
