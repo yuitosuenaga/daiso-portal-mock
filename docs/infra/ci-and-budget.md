@@ -37,6 +37,8 @@
 
 ## 2. CI(`.github/workflows/terraform.yml`)
 
+アプリコード(lint / 型チェック / テスト / ビルド)の CI は `docs/infra/app-ci.md` を参照。
+
 `infra/**` を変更する PR と main への push で動く。
 
 | ジョブ | 内容 | 認証 | 状態 |
@@ -90,5 +92,6 @@ fork からの PR では `id-token` が得られないため、plan は同一リ
 
 ## 4. 補足
 
+- アプリコードの CI(`ci.yml` / `docker-build.yml`)、ブランチ保護の手順、Dependabot は `docs/infra/app-ci.md` を参照
 - workflow の actions(`checkout` / `setup-terraform` / `google-github-actions/auth`)はコミット SHA 固定(コメントに元タグ)。更新時は SHA を取り直す
 - `pull-requests: write` は未使用のため付与していない
