@@ -5,14 +5,14 @@ import { isAnnouncementDueDateOverdue } from "@/lib/announcement-overdue";
 import { isWithinPublishPeriod } from "@/lib/announcement-publish-period";
 import { startOfReferenceDay, toReferenceDateKey } from "@/lib/reference-date";
 import {
-  ANNOUNCEMENT_INCLUDE,
-  mapAnnouncement,
+  ANNOUNCEMENT_LIST_INCLUDE,
+  mapAnnouncementSummary,
   targetApplicantUsersWhere,
 } from "@/lib/server/announcement-mapper";
 import { errorFields, logger } from "@/lib/server/logger";
 import { notifyAnnouncementEscalation } from "@/lib/server/announcement-notifications";
 import { getAnnouncementRecipientStatuses } from "@/lib/server/announcement-service";
-import type { Announcement } from "@/types/announcement";
+import type { AnnouncementSummary } from "@/types/announcement";
 
 /**
  * 当日重複判定（要件38.5・38.7）の対象とする通知種別。自動督促（`escalation`）と
@@ -101,7 +101,7 @@ function newResult(dryRun: boolean): EscalationRunResult {
  * 例外を捕捉する（ベストエフォート）。
  */
 async function processOverdueAnnouncement(
-  announcement: Announcement,
+  announcement: AnnouncementSummary,
   now: Date,
   result: EscalationRunResult,
   dryRun: boolean,
@@ -221,11 +221,11 @@ async function runEscalation(
   const deadlineAt = Date.now() + deadlineMs;
   const records = await prisma.announcement.findMany({
     where: { status: "published", actionRequired: true, dueDate: { not: null } },
-    include: ANNOUNCEMENT_INCLUDE,
+    include: ANNOUNCEMENT_LIST_INCLUDE,
   });
 
   const overdueAnnouncements = records
-    .map(mapAnnouncement)
+    .map(mapAnnouncementSummary)
     .filter((announcement) => isAnnouncementDueDateOverdue(announcement.dueDate, now))
     .filter((announcement) => isWithinPublishPeriod(announcement, now));
 

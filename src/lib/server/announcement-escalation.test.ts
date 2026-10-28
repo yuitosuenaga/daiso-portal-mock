@@ -35,6 +35,7 @@ import { getAnnouncementRecipientStatuses } from "@/lib/server/announcement-serv
 import { notifyAnnouncementEscalation } from "@/lib/server/announcement-notifications";
 import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalation";
 import { logger } from "@/lib/server/logger";
+import { ANNOUNCEMENT_LIST_INCLUDE } from "@/lib/server/announcement-mapper";
 
 const NOW = new Date("2026-07-24T03:00:00.000Z"); // JST 2026-07-24 12:00
 
@@ -109,6 +110,21 @@ beforeEach(() => {
 });
 
 describe("runAnnouncementAutoEscalation", () => {
+  it("お知らせ取得は添付本体（dataUrl）を読み込まない一覧用includeで行う", async () => {
+    vi.mocked(prisma.announcement.findMany).mockResolvedValue([] as never);
+
+    await runAnnouncementAutoEscalation(NOW);
+
+    const args = vi.mocked(prisma.announcement.findMany).mock.calls[0][0] as {
+      include: typeof ANNOUNCEMENT_LIST_INCLUDE;
+    };
+    expect(args.include).toEqual(ANNOUNCEMENT_LIST_INCLUDE);
+    expect(args.include.attachments).toEqual({
+      select: { id: true, fileName: true, fileType: true, fileSize: true },
+    });
+    expect(JSON.stringify(args.include)).not.toContain("dataUrl");
+  });
+
   it("actionRequiredが偽・draft・dueDate未設定・期限内のいずれもクエリ条件またはフィルタで対象外になる", async () => {
     // status/actionRequired/dueDateの絞り込みはprisma.announcement.findManyのwhere句で
     // 行われるため、対象外の条件に一致するレコードはそもそも返されない想定でモックする。
