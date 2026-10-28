@@ -45,6 +45,7 @@ import {
   updateInquiryStatusIfCurrent,
 } from "@/lib/api/inquiries";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
+import { UnauthorizedSessionError } from "@/lib/server/auth-session";
 
 const applicantSession = {
   claims: {
@@ -162,6 +163,46 @@ describe("createInquiry", () => {
       companyId: "target-company-1",
     });
     expect(result.id).toBe("inquiry-1");
+  });
+
+  it("申請者セッションが proxyCompanyId を渡しても、セッション会社のcompanyIdを使い他社として登録しない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.mocked(createInquiryRecord).mockResolvedValue(inquiry());
+
+    const input: CreateInquiryInput = {
+      title: "他社なりすましテスト",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+    };
+
+    await createInquiry(input, "other-company-9");
+
+    expect(createInquiryRecord).toHaveBeenCalledTimes(1);
+    expect(createInquiryRecord).toHaveBeenCalledWith({
+      data: input,
+      companyId: "company-1",
+    });
+  });
+
+  it("未ログインで proxyCompanyId を渡しても例外を送出しInquiryServiceへ委譲しない", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+
+    const input: CreateInquiryInput = {
+      title: "未ログイン代理登録テスト",
+      category: "order",
+      urgency: "medium",
+      storeRegion: "関東",
+      originalText: "テスト",
+      originalLanguage: "ja",
+    };
+
+    await expect(createInquiry(input, "target-company-1")).rejects.toThrow(
+      UnauthorizedSessionError
+    );
+    expect(createInquiryRecord).not.toHaveBeenCalled();
   });
 
   it("ヘルプデスクセッションでも対象会社IDが渡されないとき例外を送出する", async () => {

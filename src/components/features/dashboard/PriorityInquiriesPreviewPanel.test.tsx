@@ -66,6 +66,22 @@ describe("PriorityInquiriesPreviewPanel", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
+  it("対象国コードが未知のときコードをそのまま表示する", async () => {
+    getAllInquiriesMock.mockResolvedValueOnce([
+      makeInquiry({
+        id: "1",
+        submittedBy: { companyName: "Unknown Country Co.", country: "ZZ" },
+      }),
+    ]);
+
+    const jsx = await PriorityInquiriesPreviewPanel({
+      viewAllHref: "/helpdesk/inquiries",
+    });
+    render(jsx);
+
+    expect(screen.getByText("ZZ")).toBeTruthy();
+  });
+
   it("解決済みの問い合わせは対象外にする", async () => {
     getAllInquiriesMock.mockResolvedValueOnce([
       makeInquiry({ id: "1", status: "resolved" }),

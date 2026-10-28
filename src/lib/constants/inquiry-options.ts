@@ -51,6 +51,20 @@ export const INQUIRY_COUNTRY_CODES = [
   "AE",
 ] as const;
 
+/**
+ * 対象国コードの表示ラベルを返す。`Company.country`は任意の文字列を保存できるため、
+ * `INQUIRY_COUNTRY_CODES`に無いコードは翻訳キーが存在せず、そのままコードを返す
+ * （next-intlのmissing messageを避ける）。
+ */
+export function inquiryCountryLabel(
+  code: string,
+  translate: (code: string) => string
+): string {
+  return (INQUIRY_COUNTRY_CODES as readonly string[]).includes(code)
+    ? translate(code)
+    : code;
+}
+
 /** 原文言語（originalLanguage）のコード一覧（ISO 639-1）。 */
 export const INQUIRY_ORIGINAL_LANGUAGE_CODES = [
   "ja",

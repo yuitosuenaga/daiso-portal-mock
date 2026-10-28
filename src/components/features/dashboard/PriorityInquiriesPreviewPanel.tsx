@@ -101,7 +101,10 @@ export async function PriorityInquiriesPreviewPanel({
                 categoryLabel={categoryLabels[inquiry.category]}
                 urgencyLabel={urgencyLabels[inquiry.urgency]}
                 statusLabel={tStatus(inquiry.status)}
-                countryLabel={countryLabels[inquiry.submittedBy.country]}
+                countryLabel={
+                  countryLabels[inquiry.submittedBy.country] ??
+                  inquiry.submittedBy.country
+                }
                 claimBadgeLabel={tClaim("inProgressBadge")}
                 claimedByLabel={tClaim("claimedByLabel")}
                 locale={locale}

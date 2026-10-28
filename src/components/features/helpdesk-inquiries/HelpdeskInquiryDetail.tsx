@@ -13,7 +13,10 @@ import { ReplyForm } from "@/components/features/helpdesk-inquiries/ReplyForm";
 import { HistoryTimeline } from "@/components/features/helpdesk-inquiries/HistoryTimeline";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
 import { RetryTranslationButton } from "@/components/features/helpdesk-inquiries/RetryTranslationButton";
-import { INQUIRY_STATUS_CODES } from "@/lib/constants/inquiry-options";
+import {
+  INQUIRY_STATUS_CODES,
+  inquiryCountryLabel,
+} from "@/lib/constants/inquiry-options";
 import { resolveInquiryContent } from "@/lib/inquiry-content";
 import type { Inquiry } from "@/types/inquiry";
 
@@ -109,7 +112,7 @@ export async function HelpdeskInquiryDetail({ id }: { id: string }) {
                 {tStatuses(inquiry.status)}
               </Badge>
             </span>
-            <span>{tCountries(inquiry.submittedBy.country)}</span>
+            <span>{inquiryCountryLabel(inquiry.submittedBy.country, tCountries)}</span>
             <span>{inquiry.storeRegion}</span>
             <time dateTime={inquiry.createdAt}>
               {new Date(inquiry.createdAt).toLocaleString(locale, {
