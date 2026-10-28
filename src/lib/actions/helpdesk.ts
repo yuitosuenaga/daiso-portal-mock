@@ -83,8 +83,10 @@ export type ReleaseClaimResult = { ok: true } | { ok: false; reason: "notOwner" 
 /**
  * 対応中フラグを解除し、対応履歴に記録したうえで一覧・詳細ルートを再検証する。
  * 解除と履歴は`setClaim`が同一トランザクションで記録する（既に未claimだった場合は履歴を残さない）。
- * 解除操作を行う担当者が対象の所有者でない場合（`ClaimOwnershipError`）は、
+ * 解除操作を行う担当者が対象の所有者でなく、かつ現担当者が有効な場合（`ClaimOwnershipError`）は、
  * 解除を実行せず・履歴も記録せず、`{ ok: false, reason: "notOwner" }`を返す。
+ * notOwner は担当者が有効な場合のみ。担当者が無効化（isActive=false）されているときは
+ * 他の有効スタッフが解除でき、履歴には操作した担当者名を記録する。
  * 想定外の例外は再throwし、呼び出し元の汎用エラー処理にフォールバックさせる。
  */
 export async function releaseInquiryClaimAction(

@@ -199,8 +199,11 @@ async function createHistoryInTx(tx: DbClient, entry: HistoryCreateInput) {
  * `ClaimOwnershipError`に振り分ける。未claimの解除は冪等な無操作として成功する。
  *
  * `actingStaffId`は操作を行う担当者の`staffId`。解除パス（`staff`が`null`）で
- * 対象が既にclaim済みかつ`actingStaffId`が所有者と一致しない場合は
- * `ClaimOwnershipError`を送出し、解除を拒否する（他担当者による無断解除の防止）。
+ * 対象が既にclaim済みかつ`actingStaffId`が所有者と一致しない場合は、原則として
+ * `ClaimOwnershipError`を送出し解除を拒否する（他担当者による無断解除の防止）。
+ * ただし現担当者が無効化（`isActive = false`）されている場合に限り、他の有効スタッフによる
+ * 解除を許可する（読み取った担当者IDを条件にした条件付き更新で原子的に行う。
+ * 担当者の有効状態が不明な場合は拒否側に倒す）。
  *
  * `options.historyActorName`を渡すと、実際に状態が変わったときだけ
  * 同一トランザクション内で`claimed`/`released`履歴を記録する。
@@ -222,6 +225,8 @@ export async function setClaim(
           data: { claimedByStaffId: null, claimedAt: null },
         });
 
+    let changed = result.count === 1;
+
     if (result.count === 0) {
       if (staff) {
         const exists = await tx.inquiry.findUnique({
@@ -232,15 +237,42 @@ export async function setClaim(
       }
       const current = await tx.inquiry.findUnique({
         where: { id },
-        select: { claimedByStaffId: true },
+        select: {
+          claimedByStaffId: true,
+          claimedByStaff: { select: { isActive: true } },
+        },
       });
       if (!current) {
         throw new InquiryNotFoundError(id);
       }
       if (current.claimedByStaffId) {
-        throw new ClaimOwnershipError(id);
+        // 担当者が無効化されている場合のみ、他スタッフによる解除を許可する。
+        if (current.claimedByStaff?.isActive !== false) {
+          throw new ClaimOwnershipError(id);
+        }
+        // 読み取った担当者IDそのものを条件にして原子的に解除する。
+        const released = await tx.inquiry.updateMany({
+          where: { id, claimedByStaffId: current.claimedByStaffId },
+          data: { claimedByStaffId: null, claimedAt: null },
+        });
+        if (released.count === 1) {
+          changed = true;
+        } else {
+          const latest = await tx.inquiry.findUnique({
+            where: { id },
+            select: { claimedByStaffId: true },
+          });
+          if (!latest) {
+            throw new InquiryNotFoundError(id);
+          }
+          if (latest.claimedByStaffId) {
+            throw new ClaimOwnershipError(id);
+          }
+        }
       }
-    } else if (options?.historyActorName) {
+    }
+
+    if (changed && options?.historyActorName) {
       await createHistoryInTx(tx, {
         inquiryId: id,
         type: staff ? "claimed" : "released",

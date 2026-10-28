@@ -12,6 +12,9 @@ db_backup_enabled              = true             # 段階4a適用済み
 db_deletion_protection_enabled = true             # 段階4a適用済み
 manage_db_password             = false
 
+# ファイル配信(/api/*/file)の同時デコードで 512Mi を超えるため。GCS 化まで
+cloudrun_memory = "1Gi"
+
 min_instances = 0
 max_instances = 1
 

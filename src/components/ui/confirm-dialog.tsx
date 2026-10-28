@@ -21,6 +21,8 @@ export interface ConfirmDialogProps {
   triggerVariant?: ButtonVariant;
   /** トリガーボタンを無効化するかどうか */
   triggerDisabled?: boolean;
+  /** トリガーボタンに追加する`className`（長い文言の折り返し調整など） */
+  triggerClassName?: string;
   /** 確認ダイアログの見出し */
   title: string;
   /** 確認ダイアログの本文（対象名を含む文字列またはReactNode） */
@@ -46,6 +48,7 @@ export function ConfirmDialog({
   triggerLabel,
   triggerVariant,
   triggerDisabled,
+  triggerClassName,
   title,
   description,
   confirmLabel,
@@ -74,6 +77,7 @@ export function ConfirmDialog({
           type="button"
           variant={triggerVariant}
           disabled={triggerDisabled}
+          className={triggerClassName}
         >
           {triggerLabel}
         </Button>
