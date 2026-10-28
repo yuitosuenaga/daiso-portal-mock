@@ -402,6 +402,12 @@ resource.labels.service_name="portal-mock"
 jsonPayload.message="auth"
 jsonPayload.type="<種別>"
 
+# 捕捉されなかったリクエストエラー(onRequestError。message は固定)
+resource.type="cloud_run_revision"
+resource.labels.service_name="portal-mock"
+severity>=ERROR
+jsonPayload.message="[request-error] Unhandled request error"
+
 # 特定 revision の起動失敗
 resource.type="cloud_run_revision"
 resource.labels.service_name="portal-mock"
@@ -415,6 +421,20 @@ resource.labels.job_name="portal-mock-migrate"
 ```bash
 gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-mock" AND severity>=ERROR' \
   --project rvp-ai-proto-camp --limit 30 --freshness=1h --format="value(timestamp,severity,jsonPayload.message,jsonPayload.errorName,jsonPayload.errorCode)"
+```
+
+捕捉されなかったリクエストエラー(`src/instrumentation.ts` の `onRequestError`):
+
+- 画面描画・Route Handler・Server Action・middleware で捕捉されなかったエラーを、`jsonPayload.message="[request-error] Unhandled request error"`、severity ERROR の JSON 1行で出す。既存の `severity>=ERROR` クエリにも含まれる。redirect・notFound などの制御フローは出さない。
+- 出す項目: `errorName` / `errorMessage` / `stack_trace` / `digest` / `requestPath`(クエリ・ハッシュを除いたパス) / `requestMethod` / `routerKind` / `routePath` / `routeType` / `renderSource` / `revalidateReason` / `runtime`。資格情報(接続文字列のパスワード、Bearer など)は既存ロガーの伏字処理で伏せる。
+- 出さない項目: クエリ文字列、リクエストヘッダ、Cookie、Authorization、リクエスト本文。
+- Edge ランタイム(middleware)では伏字処理を使えないため、`errorMessage` と `stack_trace` は出さず、`errorName` と上記のリクエスト情報のみを出す。
+- `digest` は、画面に表示されるエラーの Digest や Next 標準のエラーログとの突き合わせに使える。Next 標準の `⨯ Error...` 複数行ログも従来どおり残り、本ログはそれを補完する。
+- 例(直近 1 時間の件数と内容):
+
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-mock" AND jsonPayload.message="[request-error] Unhandled request error"' \
+  --project rvp-ai-proto-camp --limit 30 --freshness=1h --format="value(timestamp,jsonPayload.requestPath,jsonPayload.routeType,jsonPayload.digest,jsonPayload.errorName)"
 ```
 
 機密値が出ないようにするための注意:
