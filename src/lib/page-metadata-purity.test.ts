@@ -16,6 +16,7 @@ const TARGETS: Record<string, string[]> = {
     "next-intl/server",
   ],
   "src/app/[locale]/layout.tsx": [
+    "@/i18n/client-namespaces",
     "@/i18n/routing",
     "@/lib/constants/locales",
     "next",
