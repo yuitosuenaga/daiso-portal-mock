@@ -803,6 +803,7 @@
       "empty": "尚未注册员工",
       "error": "获取员工失败",
       "addButton": "添加员工",
+      "exportButton": "导出 CSV",
       "emailHeader": "电子邮件地址",
       "displayNameHeader": "显示名称",
       "roleHeader": "角色",

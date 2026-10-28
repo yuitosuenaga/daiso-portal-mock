@@ -26,12 +26,24 @@ export async function StaffManagementList() {
     ]);
 
   const heading = (
-    <ManagementListHeading
-      title={t("title")}
-      description={t("description")}
-      addHref="/helpdesk/staff/new"
-      addLabel={t("addButton")}
-    />
+    <div className="mb-2 space-y-2">
+      <ManagementListHeading
+        title={t("title")}
+        description={t("description")}
+        addHref="/helpdesk/staff/new"
+        addLabel={t("addButton")}
+      />
+      <div className="flex justify-end">
+        {/* /apiはロケールなしのRoute Handlerなので、i18nのLinkでなく素のaを使う */}
+        <a
+          href="/api/helpdesk/staff/export"
+          download
+          className="text-sm text-primary underline-offset-4 hover:underline"
+        >
+          {t("exportButton")}
+        </a>
+      </div>
+    </div>
   );
 
   let staff: HelpdeskStaffSummary[];

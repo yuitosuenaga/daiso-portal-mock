@@ -803,6 +803,7 @@
       "empty": "Chưa có nhân viên nào được đăng ký",
       "error": "Không thể lấy danh sách nhân viên",
       "addButton": "Thêm nhân viên",
+      "exportButton": "Xuất CSV",
       "emailHeader": "Địa chỉ email",
       "displayNameHeader": "Tên hiển thị",
       "roleHeader": "Vai trò",
