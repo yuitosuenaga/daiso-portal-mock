@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/db/prisma";
 import { CompanyNotFoundError } from "@/lib/server/company-service";
 import { mapHistoryEntry, mapInquiry } from "@/lib/server/inquiry-mapper";
@@ -168,74 +170,193 @@ export async function findInquiryForCompany(
   return record ? mapInquiry(record) : null;
 }
 
+type DbClient = Prisma.TransactionClient;
+
+type HistoryCreateInput = Omit<InquiryHistoryEntry, "id">;
+
+function historyCreateData(entry: HistoryCreateInput) {
+  return {
+    inquiryId: entry.inquiryId,
+    type: entry.type,
+    actorName: entry.actorName,
+    occurredAt: new Date(entry.occurredAt),
+    detail: entry.detail,
+    attachments: attachmentCreateInput(entry.attachments),
+  };
+}
+
+async function createHistoryInTx(tx: DbClient, entry: HistoryCreateInput) {
+  await tx.inquiryHistoryEntry.create({ data: historyCreateData(entry) });
+}
+
 /**
  * 対応中フラグを設定・解除する。既にclaim済みの問い合わせへ新たなclaimを
  * 設定しようとした場合は`DoubleClaimError`を送出する（二重対応防止）。
  *
+ * 判定と更新は`WHERE`条件付きの単一`updateMany`（claimは`claimedByStaffId IS NULL`、
+ * 解除は`claimedByStaffId = actingStaffId`）で原子的に行い、同時実行でも勝つのは1件のみ。
+ * 件数0のときだけ原因を読み取って`InquiryNotFoundError`/`DoubleClaimError`/
+ * `ClaimOwnershipError`に振り分ける。未claimの解除は冪等な無操作として成功する。
+ *
  * `actingStaffId`は操作を行う担当者の`staffId`。解除パス（`staff`が`null`）で
  * 対象が既にclaim済みかつ`actingStaffId`が所有者と一致しない場合は
  * `ClaimOwnershipError`を送出し、解除を拒否する（他担当者による無断解除の防止）。
+ *
+ * `options.historyActorName`を渡すと、実際に状態が変わったときだけ
+ * 同一トランザクション内で`claimed`/`released`履歴を記録する。
  */
 export async function setClaim(
   id: string,
   staff: { staffId: string; displayName: string } | null,
-  actingStaffId: string
+  actingStaffId: string,
+  options?: { historyActorName?: string }
 ): Promise<Inquiry> {
-  const current = await prisma.inquiry.findUnique({ where: { id } });
-  if (!current) {
-    throw new InquiryNotFoundError(id);
-  }
+  return prisma.$transaction(async (tx) => {
+    const result = staff
+      ? await tx.inquiry.updateMany({
+          where: { id, claimedByStaffId: null },
+          data: { claimedByStaffId: staff.staffId, claimedAt: new Date() },
+        })
+      : await tx.inquiry.updateMany({
+          where: { id, claimedByStaffId: actingStaffId },
+          data: { claimedByStaffId: null, claimedAt: null },
+        });
 
-  if (staff && current.claimedByStaffId) {
-    throw new DoubleClaimError(id);
-  }
+    if (result.count === 0) {
+      if (staff) {
+        const exists = await tx.inquiry.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+        throw exists ? new DoubleClaimError(id) : new InquiryNotFoundError(id);
+      }
+      const current = await tx.inquiry.findUnique({
+        where: { id },
+        select: { claimedByStaffId: true },
+      });
+      if (!current) {
+        throw new InquiryNotFoundError(id);
+      }
+      if (current.claimedByStaffId) {
+        throw new ClaimOwnershipError(id);
+      }
+    } else if (options?.historyActorName) {
+      await createHistoryInTx(tx, {
+        inquiryId: id,
+        type: staff ? "claimed" : "released",
+        actorName: options.historyActorName,
+        occurredAt: new Date().toISOString(),
+      });
+    }
 
-  if (!staff && current.claimedByStaffId && current.claimedByStaffId !== actingStaffId) {
-    throw new ClaimOwnershipError(id);
-  }
-
-  const record = await prisma.inquiry.update({
-    where: { id },
-    data: staff
-      ? { claimedByStaffId: staff.staffId, claimedAt: new Date() }
-      : { claimedByStaffId: null, claimedAt: null },
-    include: INQUIRY_DETAIL_INCLUDE,
+    const record = await tx.inquiry.findUniqueOrThrow({
+      where: { id },
+      include: INQUIRY_DETAIL_INCLUDE,
+    });
+    return mapInquiry(record);
   });
-
-  return mapInquiry(record);
 }
 
-/** 問い合わせの対応状況（status）を変更する。 */
-export async function updateStatus(
-  id: string,
-  status: Inquiry["status"]
-): Promise<Inquiry> {
-  const record = await prisma.inquiry.update({
-    where: { id },
-    data: { status },
-    include: INQUIRY_DETAIL_INCLUDE,
-  });
+const STATUS_CHANGE_MAX_ATTEMPTS = 3;
 
-  return mapInquiry(record);
+/**
+ * 対応状況を変更し、変更前後の値を示す`status_changed`履歴を同一トランザクションで記録する。
+ * 現在値を読み取り、`WHERE status = 現在値`の条件付き更新で書き込む。他の担当者の変更が
+ * 割り込んで更新0件になった場合は読み直して再試行する（最大3回。超えたら例外）。
+ * これにより履歴の「変更前」は常に実際に上書きした値と一致する。
+ * 現在値と同じ状態への変更は何もせず`{ changed: false }`を返す（履歴も残さない）。
+ * 存在しないIDは`InquiryNotFoundError`。
+ *
+ * 翻訳など外部I/Oはトランザクション外で済ませ、`formatDetail`は純粋関数として渡すこと。
+ */
+export async function changeStatusWithHistory(
+  id: string,
+  next: Inquiry["status"],
+  options: {
+    actorName: string;
+    formatDetail: (previous: Inquiry["status"], next: Inquiry["status"]) => string;
+  }
+): Promise<{ changed: boolean }> {
+  return prisma.$transaction(async (tx) => {
+    for (let attempt = 0; attempt < STATUS_CHANGE_MAX_ATTEMPTS; attempt += 1) {
+      const current = await tx.inquiry.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (!current) {
+        throw new InquiryNotFoundError(id);
+      }
+      const previous = current.status as Inquiry["status"];
+      if (previous === next) {
+        return { changed: false };
+      }
+
+      const result = await tx.inquiry.updateMany({
+        where: { id, status: previous },
+        data: { status: next },
+      });
+      if (result.count === 1) {
+        await createHistoryInTx(tx, {
+          inquiryId: id,
+          type: "status_changed",
+          actorName: options.actorName,
+          occurredAt: new Date().toISOString(),
+          detail: options.formatDetail(previous, next),
+        });
+        return { changed: true };
+      }
+    }
+    throw new Error(`Failed to change inquiry status due to concurrent updates: ${id}`);
+  });
 }
 
 /**
- * 現在の`status`が`expectedStatus`である場合にのみ`nextStatus`へ原子的に更新する。
- * 返信送信時の自動遷移（新規→対応中）のように、状態を読み取ってから書き込むまでの
- * 間に他の担当者による変更が入り込む競合を避けるため、読み取り＋条件なし書き込みではなく
- * DB側の`WHERE`条件で単一クエリとして完結させる。マッチした場合は`true`を返す。
+ * 返信（`reply_sent`履歴）を記録し、statusが`new`なら`in_progress`へ自動遷移して
+ * `status_changed`履歴を残す。すべて同一トランザクション。遷移は
+ * `WHERE status = 'new'`の条件付き更新で、他の担当者が先に状態を変えていれば上書きしない。
+ * 存在しないIDは`InquiryNotFoundError`（履歴は作らない）。
  */
-export async function updateStatusIfCurrent(
+export async function appendReplyWithAutoTransition(
   id: string,
-  expectedStatus: Inquiry["status"],
-  nextStatus: Inquiry["status"]
-): Promise<boolean> {
-  const result = await prisma.inquiry.updateMany({
-    where: { id, status: expectedStatus },
-    data: { status: nextStatus },
-  });
+  input: {
+    actorName: string;
+    body: string;
+    attachments?: InquiryAttachment[];
+    autoTransitionDetail: string;
+  }
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const exists = await tx.inquiry.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!exists) {
+      throw new InquiryNotFoundError(id);
+    }
 
-  return result.count > 0;
+    await createHistoryInTx(tx, {
+      inquiryId: id,
+      type: "reply_sent",
+      actorName: input.actorName,
+      occurredAt: new Date().toISOString(),
+      detail: input.body,
+      attachments: input.attachments,
+    });
+
+    const transitioned = await tx.inquiry.updateMany({
+      where: { id, status: "new" },
+      data: { status: "in_progress" },
+    });
+    if (transitioned.count === 1) {
+      await createHistoryInTx(tx, {
+        inquiryId: id,
+        type: "status_changed",
+        actorName: input.actorName,
+        occurredAt: new Date().toISOString(),
+        detail: input.autoTransitionDetail,
+      });
+    }
+  });
 }
 
 /** 対応履歴を1件追記する。追記のみで更新・削除は行わない。 */
@@ -243,14 +364,7 @@ export async function appendHistoryEntry(
   entry: Omit<InquiryHistoryEntry, "id">
 ): Promise<InquiryHistoryEntry> {
   const record = await prisma.inquiryHistoryEntry.create({
-    data: {
-      inquiryId: entry.inquiryId,
-      type: entry.type,
-      actorName: entry.actorName,
-      occurredAt: new Date(entry.occurredAt),
-      detail: entry.detail,
-      attachments: attachmentCreateInput(entry.attachments),
-    },
+    data: historyCreateData(entry),
     include: { attachments: true },
   });
 

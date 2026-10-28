@@ -11,8 +11,8 @@ vi.mock("@/lib/server/inquiry-service", () => ({
   listUnreadReplyInquiryIds: vi.fn(),
   markInquiryRead: vi.fn(),
   setClaim: vi.fn(),
-  updateStatus: vi.fn(),
-  updateStatusIfCurrent: vi.fn(),
+  changeStatusWithHistory: vi.fn(),
+  appendReplyWithAutoTransition: vi.fn(),
 }));
 vi.mock("@/lib/server/inquiry-translation-service", () => ({
   translateInquiryAndStore: vi.fn(),
@@ -28,8 +28,8 @@ import {
   listUnreadReplyInquiryIds as listUnreadReplyInquiryIdsService,
   markInquiryRead as markInquiryReadService,
   setClaim,
-  updateStatus,
-  updateStatusIfCurrent,
+  changeStatusWithHistory,
+  appendReplyWithAutoTransition,
 } from "@/lib/server/inquiry-service";
 import {
   createInquiry,
@@ -41,8 +41,8 @@ import {
   getUnreadReplyInquiryIds,
   markInquiryRead,
   setInquiryClaim,
-  updateInquiryStatus,
-  updateInquiryStatusIfCurrent,
+  changeInquiryStatusWithHistory,
+  sendInquiryReplyWithAutoTransition,
 } from "@/lib/api/inquiries";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
 import { UnauthorizedSessionError } from "@/lib/server/auth-session";
@@ -341,7 +341,8 @@ describe("setInquiryClaim", () => {
     expect(setClaim).toHaveBeenCalledWith(
       "inquiry-1",
       { staffId: "staff-1", displayName: "田中 太郎" },
-      "staff-1"
+      "staff-1",
+      undefined
     );
     expect(result.claim?.staffName).toBe("田中 太郎");
   });
@@ -352,7 +353,18 @@ describe("setInquiryClaim", () => {
 
     await setInquiryClaim("inquiry-1", null);
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null, "staff-1");
+    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null, "staff-1", undefined);
+  });
+
+  it("optionsをそのままsetClaimへ渡す（履歴を同一トランザクションで記録させる）", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+    vi.mocked(setClaim).mockResolvedValue(inquiry());
+
+    await setInquiryClaim("inquiry-1", null, { historyActorName: "田中 太郎" });
+
+    expect(setClaim).toHaveBeenCalledWith("inquiry-1", null, "staff-1", {
+      historyActorName: "田中 太郎",
+    });
   });
 
   it("申請者セッションでは例外を送出する", async () => {
@@ -362,49 +374,51 @@ describe("setInquiryClaim", () => {
   });
 });
 
-describe("updateInquiryStatus", () => {
-  it("ヘルプデスクセッションでupdateStatusに委譲する", async () => {
+describe("changeInquiryStatusWithHistory", () => {
+  const options = { actorName: "田中 太郎", formatDetail: () => "d" };
+
+  it("ヘルプデスクセッションでchangeStatusWithHistoryに委譲する", async () => {
     vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
-    vi.mocked(updateStatus).mockResolvedValue(inquiry({ status: "resolved" }));
+    vi.mocked(changeStatusWithHistory).mockResolvedValue({ changed: true });
 
-    const result = await updateInquiryStatus("inquiry-1", "resolved");
+    const result = await changeInquiryStatusWithHistory("inquiry-1", "resolved", options);
 
-    expect(updateStatus).toHaveBeenCalledWith("inquiry-1", "resolved");
-    expect(result.status).toBe("resolved");
+    expect(changeStatusWithHistory).toHaveBeenCalledWith("inquiry-1", "resolved", options);
+    expect(result).toEqual({ changed: true });
   });
 
-  it("申請者セッションでは例外を送出する", async () => {
-    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
-
-    await expect(updateInquiryStatus("inquiry-1", "resolved")).rejects.toThrow();
-  });
-});
-
-describe("updateInquiryStatusIfCurrent", () => {
-  it("ヘルプデスクセッションでupdateStatusIfCurrentに委譲する", async () => {
-    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
-    vi.mocked(updateStatusIfCurrent).mockResolvedValue(true);
-
-    const result = await updateInquiryStatusIfCurrent(
-      "inquiry-1",
-      "new",
-      "in_progress"
-    );
-
-    expect(updateStatusIfCurrent).toHaveBeenCalledWith(
-      "inquiry-1",
-      "new",
-      "in_progress"
-    );
-    expect(result).toBe(true);
-  });
-
-  it("申請者セッションでは例外を送出する", async () => {
+  it("申請者セッションでは例外を送出し、委譲しない", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
 
     await expect(
-      updateInquiryStatusIfCurrent("inquiry-1", "new", "in_progress")
+      changeInquiryStatusWithHistory("inquiry-1", "resolved", options)
     ).rejects.toThrow();
+    expect(changeStatusWithHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendInquiryReplyWithAutoTransition", () => {
+  const input = {
+    actorName: "田中 太郎",
+    body: "本文",
+    autoTransitionDetail: "新規 → 対応中",
+  };
+
+  it("ヘルプデスクセッションでappendReplyWithAutoTransitionに委譲する", async () => {
+    vi.mocked(getSession).mockResolvedValue(helpdeskSession as never);
+
+    await sendInquiryReplyWithAutoTransition("inquiry-1", input);
+
+    expect(appendReplyWithAutoTransition).toHaveBeenCalledWith("inquiry-1", input);
+  });
+
+  it("申請者セッションでは例外を送出し、委譲しない", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+
+    await expect(
+      sendInquiryReplyWithAutoTransition("inquiry-1", input)
+    ).rejects.toThrow();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 });
 
