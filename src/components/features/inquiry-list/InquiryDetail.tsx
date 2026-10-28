@@ -8,6 +8,7 @@ import { InquiryHistoryList } from "@/components/features/inquiry-list/InquiryHi
 import { ApplicantMessageForm } from "@/components/features/inquiry-list/ApplicantMessageForm";
 import { MarkInquiryRead } from "@/components/features/inquiry-list/MarkInquiryRead";
 import { AttachmentPreviewList } from "@/components/features/helpdesk-inquiries/AttachmentPreviewList";
+import { inquiryCountryLabel } from "@/lib/constants/inquiry-options";
 import { resolveInquiryContent } from "@/lib/inquiry-content";
 
 export async function InquiryDetail({ id }: { id: string }) {
@@ -157,7 +158,7 @@ export async function InquiryDetail({ id }: { id: string }) {
             </p>
             <p className="mt-1 text-sm leading-relaxed">
               {inquiry.submittedBy.companyName} /{" "}
-              {tCountries(inquiry.submittedBy.country)}
+              {inquiryCountryLabel(inquiry.submittedBy.country, tCountries)}
             </p>
           </div>
         </CardContent>

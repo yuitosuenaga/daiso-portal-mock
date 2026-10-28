@@ -2,9 +2,7 @@ import { z } from "zod";
 
 import {
   INQUIRY_CATEGORY_CODES,
-  INQUIRY_COUNTRY_CODES,
   INQUIRY_ORIGINAL_LANGUAGE_CODES,
-  INQUIRY_STATUS_CODES,
   INQUIRY_URGENCY_CODES,
 } from "@/lib/constants/inquiry-options";
 import {
@@ -12,10 +10,20 @@ import {
   ATTACHMENT_MAX_COUNT,
   ATTACHMENT_MAX_FILE_SIZE_BYTES,
 } from "@/lib/constants/attachment";
+import { TEXT_LIMITS } from "@/lib/constants/text-limits";
 import { findAttachmentsIntegrityIssue } from "@/lib/validation/attachment-integrity";
 
 /** 自由記述欄（originalText）の最大文字数。 */
 export const ORIGINAL_TEXT_MAX_LENGTH = 2000;
+
+/** 店舗・地域（storeRegion）の最大文字数。 */
+export const STORE_REGION_MAX_LENGTH = 100;
+
+/**
+ * 申請者メッセージ・ヘルプデスク返信の本文の最大文字数。
+ * 返信テンプレート本文の上限（`TEXT_LIMITS.body`）と揃え、テンプレートをそのまま返信に使えるようにする。
+ */
+export const MESSAGE_BODY_MAX_LENGTH = TEXT_LIMITS.body;
 
 /** タイトル（title）の最大文字数。 */
 export const TITLE_MAX_LENGTH = 100;
@@ -77,14 +85,13 @@ export const inquiryFormSchema = z
     storeRegion: z
       .string()
       .trim()
-      .min(1),
+      .min(1)
+      .max(STORE_REGION_MAX_LENGTH),
     originalText: z
       .string()
       .min(1)
       .max(ORIGINAL_TEXT_MAX_LENGTH),
     originalLanguage: z.enum(INQUIRY_ORIGINAL_LANGUAGE_CODES),
-    companyName: z.string().trim().min(1),
-    country: z.enum(INQUIRY_COUNTRY_CODES),
     attachments: inquiryAttachmentsArraySchema.optional(),
     /**
      * ヘルプデスク代理登録モードかどうか（要件12）。フォームの表示切り替えにのみ使い、
@@ -112,20 +119,15 @@ export type InquiryFormValues = z.infer<typeof inquiryFormSchema>;
 /**
  * 問い合わせ・申請作成のサーバー側入力契約（`CreateInquiryInput`）を検証する zod スキーマ。
  * `POST /api/inquiries`・`createInquiryAction`（Server Action）の両方の入口で共有し、
- * クライアント検証のバイパスに備える。
+ * クライアント検証のバイパスに備える。`status`・`createdAt`・`submittedBy`は信頼境界の外の
+ * 値のため定義せず、送られてきても（zod objectの既定動作で）読み捨てる。
  */
 export const createInquirySchema = z.object({
   title: z.string().trim().min(1).max(TITLE_MAX_LENGTH),
   category: z.enum(INQUIRY_CATEGORY_CODES),
   urgency: z.enum(INQUIRY_URGENCY_CODES),
-  storeRegion: z.string().trim().min(1),
-  originalText: z.string().min(1),
-  originalLanguage: z.string().min(1),
-  status: z.enum(INQUIRY_STATUS_CODES),
-  createdAt: z.string(),
-  submittedBy: z.object({
-    companyName: z.string().trim().min(1),
-    country: z.string().min(1),
-  }),
+  storeRegion: z.string().trim().min(1).max(STORE_REGION_MAX_LENGTH),
+  originalText: z.string().min(1).max(ORIGINAL_TEXT_MAX_LENGTH),
+  originalLanguage: z.enum(INQUIRY_ORIGINAL_LANGUAGE_CODES),
   attachments: inquiryAttachmentsStrictSchema.optional(),
 });

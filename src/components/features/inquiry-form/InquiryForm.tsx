@@ -62,7 +62,6 @@ export function InquiryForm({
       category: "" as unknown as InquiryFormValues["category"],
       urgency: "" as unknown as InquiryFormValues["urgency"],
       originalLanguage: "" as unknown as InquiryFormValues["originalLanguage"],
-      country: "" as unknown as InquiryFormValues["country"],
       attachments: [],
       mode,
       // "self"モードでは対象会社選択欄自体を表示しないため未設定（undefined）のままとする。

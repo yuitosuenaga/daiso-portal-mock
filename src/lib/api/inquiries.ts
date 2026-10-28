@@ -34,10 +34,12 @@ function summarize(inquiries: Inquiry[]): InquiryStatusSummary {
 
 /**
  * 問い合わせ・申請を送信する。ログイン中の申請者セッションが所属する`Company`の
- * IDを永続化し、`submittedBy`はフォーム入力値のまま表示用フィールドとして保存する。
+ * IDを永続化し、会社名・国（`submittedBy`）は`companyId`の`Company`から導出する
+ * （クライアント入力の`status`・`submittedBy`・`createdAt`は受け付けない）。
  *
  * ヘルプデスク担当者が申請者に代わって代理登録する場合は`proxyCompanyId`を渡す。
  * この場合はヘルプデスクセッションを要求し、渡された会社IDへ紐付けて登録する
+ * （会社名・国も渡された会社IDのCompanyから導出する）
  * （`claims.companyId`のような自社スコープを持たないため、呼び出し元が対象会社を明示する）。
  *
  * `input`は`createInquirySchema`で検証してから永続化する。Server Action経由（クライアント

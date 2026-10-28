@@ -30,7 +30,10 @@ import {
   replyTemplateFormSchema,
   type ReplyTemplateFormValues,
 } from "@/lib/validation/reply-template";
-import { inquiryAttachmentsStrictSchema } from "@/lib/validation/inquiry";
+import {
+  inquiryAttachmentsStrictSchema,
+  MESSAGE_BODY_MAX_LENGTH,
+} from "@/lib/validation/inquiry";
 import type { Inquiry } from "@/types/inquiry";
 import type { InquiryAttachment } from "@/types/attachment";
 import type {
@@ -44,7 +47,7 @@ const TEMPLATE_LIST_PATH = "/[locale]/helpdesk/templates";
 
 const inquiryIdSchema = z.string().trim().min(1);
 const statusSchema = z.enum(INQUIRY_STATUS_CODES);
-const replyBodySchema = z.string().trim().min(1);
+const replyBodySchema = z.string().trim().min(1).max(MESSAGE_BODY_MAX_LENGTH);
 
 function revalidateInquiryRoutes() {
   revalidatePath(INQUIRY_LIST_PATH, "page");

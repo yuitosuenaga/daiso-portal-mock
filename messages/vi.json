@@ -1189,14 +1189,6 @@
         "label": "Ngôn ngữ gốc",
         "placeholder": "Vui lòng chọn ngôn ngữ gốc"
       },
-      "companyName": {
-        "label": "Tên công ty",
-        "placeholder": "Vui lòng nhập tên công ty"
-      },
-      "country": {
-        "label": "Quốc gia",
-        "placeholder": "Vui lòng chọn quốc gia"
-      },
       "targetCompany": {
         "label": "Công ty đích",
         "placeholder": "Vui lòng chọn công ty để đăng ký truy vấn",

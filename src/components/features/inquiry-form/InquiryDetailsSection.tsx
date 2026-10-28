@@ -10,7 +10,10 @@ import {
   INQUIRY_CATEGORY_CODES,
   INQUIRY_URGENCY_CODES,
 } from "@/lib/constants/inquiry-options";
-import type { InquiryFormValues } from "@/lib/validation/inquiry";
+import {
+  STORE_REGION_MAX_LENGTH,
+  type InquiryFormValues,
+} from "@/lib/validation/inquiry";
 
 /**
  * 分類（category）・緊急度（urgency）・地域（storeRegion）の入力セクション。
@@ -78,13 +81,18 @@ export function InquiryDetailsSection() {
         requiredIndicator={t("requiredMark")}
         htmlFor="storeRegion"
         error={
-          errors.storeRegion ? t("validation.required") : undefined
+          errors.storeRegion
+            ? errors.storeRegion.type === "too_big"
+              ? t("validation.maxLength")
+              : t("validation.required")
+            : undefined
         }
       >
         <Input
           id="storeRegion"
           type="text"
           placeholder={t("fields.storeRegion.placeholder")}
+          maxLength={STORE_REGION_MAX_LENGTH}
           aria-invalid={errors.storeRegion ? true : undefined}
           {...register("storeRegion")}
         />

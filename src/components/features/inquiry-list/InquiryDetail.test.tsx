@@ -162,6 +162,30 @@ describe("InquiryDetail", () => {
     expect(markInquiryReadAction).not.toHaveBeenCalled();
   });
 
+  it("対象国コードが未知のとき翻訳キー欠落にならずコードをそのまま表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      title: "未知の国",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "関東",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Test Company", country: "ZZ" },
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await InquiryDetail({ id: "inquiry-001" });
+    render(jsx);
+
+    expect(screen.getByText("Test Company / ZZ")).toBeTruthy();
+    expect(
+      screen.queryByText(/inquiryForm\.options\.country\.ZZ/)
+    ).toBeNull();
+  });
+
   it("取得成功時にタイトルを見出しとして表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",

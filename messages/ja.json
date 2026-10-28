@@ -1189,14 +1189,6 @@
         "label": "原文言語",
         "placeholder": "原文の言語を選択してください"
       },
-      "companyName": {
-        "label": "会社名",
-        "placeholder": "会社名を入力してください"
-      },
-      "country": {
-        "label": "国",
-        "placeholder": "国を選択してください"
-      },
       "targetCompany": {
         "label": "対象会社",
         "placeholder": "問合せを登録する会社を選択してください",

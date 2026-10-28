@@ -14,6 +14,7 @@ import {
   DoubleClaimError,
   InquiryNotFoundError,
 } from "@/lib/server/inquiry-service";
+import { CompanyNotFoundError } from "@/lib/server/company-service";
 import { toErrorResponse } from "@/lib/server/api-errors";
 import { logger } from "@/lib/server/logger";
 
@@ -56,6 +57,12 @@ describe("toErrorResponse", () => {
   it("InquiryNotFoundErrorを404に変換する", () => {
     const response = toErrorResponse(new InquiryNotFoundError("missing"));
     expect(response.status).toBe(404);
+  });
+
+  it("CompanyNotFoundErrorを404に変換する", async () => {
+    const response = toErrorResponse(new CompanyNotFoundError("missing-company"));
+    expect(response.status).toBe(404);
+    expect(JSON.stringify(await response.json())).not.toContain("missing-company");
   });
 
   it("DoubleClaimErrorを409に変換する", () => {

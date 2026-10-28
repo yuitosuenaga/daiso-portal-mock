@@ -112,6 +112,32 @@ describe("HelpdeskInquiryDetail", () => {
     expect(screen.getByText(messages.helpdeskInquiries.history.empty)).toBeTruthy();
   });
 
+  it("対象国コードが未知のとき翻訳キー欠落にならずコードをそのまま表示する", async () => {
+    getInquiryByIdMock.mockResolvedValueOnce({
+      id: "inquiry-001",
+      title: "未知の国",
+      category: "defect",
+      urgency: "high",
+      storeRegion: "Kanto",
+      originalText: "テスト本文",
+      originalLanguage: "ja",
+      status: "new",
+      createdAt: "2026-06-28T09:15:00.000Z",
+      submittedBy: { companyName: "Unknown Country Co.", country: "ZZ" },
+      claim: null,
+    });
+    getInquiryHistoryMock.mockResolvedValueOnce([]);
+    getReplyTemplatesByCategoryMock.mockResolvedValueOnce([]);
+
+    const jsx = await HelpdeskInquiryDetail({ id: "inquiry-001" });
+    renderWithProvider(jsx);
+
+    expect(screen.getByText("ZZ")).toBeTruthy();
+    expect(
+      screen.queryByText(/inquiryForm\.options\.country\.ZZ/)
+    ).toBeNull();
+  });
+
   it("見出しにtitleを表示し、会社名・カテゴリを補足テキストとして表示する", async () => {
     getInquiryByIdMock.mockResolvedValueOnce({
       id: "inquiry-001",

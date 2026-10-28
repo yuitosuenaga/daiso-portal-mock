@@ -1189,14 +1189,6 @@
         "label": "原文语言",
         "placeholder": "请选择原文的语言"
       },
-      "companyName": {
-        "label": "公司名称",
-        "placeholder": "请输入公司名称"
-      },
-      "country": {
-        "label": "国家",
-        "placeholder": "请选择国家"
-      },
       "targetCompany": {
         "label": "目标公司",
         "placeholder": "请选择要注册咨询的公司",

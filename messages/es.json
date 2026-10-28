@@ -1189,14 +1189,6 @@
         "label": "Idioma original",
         "placeholder": "Seleccione el idioma del texto original"
       },
-      "companyName": {
-        "label": "Nombre de la empresa",
-        "placeholder": "Ingrese el nombre de la empresa"
-      },
-      "country": {
-        "label": "País",
-        "placeholder": "Seleccione un país"
-      },
       "targetCompany": {
         "label": "Empresa destinataria",
         "placeholder": "Seleccione la empresa para la que se registrará la consulta",

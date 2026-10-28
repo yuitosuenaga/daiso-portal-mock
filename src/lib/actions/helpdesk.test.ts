@@ -243,6 +243,14 @@ describe("sendInquiryReplyAction", () => {
     expect(appendHistoryEntry).not.toHaveBeenCalled();
   });
 
+  it("返信本文が上限（10000文字）を超えると例外になり、履歴に記録されない", async () => {
+    await expect(
+      sendInquiryReplyAction("inquiry-002", "a".repeat(10001))
+    ).rejects.toThrow();
+
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+  });
+
   it("添付ファイル付きで返信すると、対応履歴に添付ファイルが記録される", async () => {
     vi.mocked(appendHistoryEntry).mockResolvedValue({
       id: "history-1",
@@ -357,6 +365,27 @@ describe("sendInquiryReplyAction", () => {
           dataUrl: `data:image/png;base64,${bytes.toString("base64")}`,
         },
       ])
+    ).rejects.toThrow();
+
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+  });
+
+  it("合計サイズ上限を超える添付ファイルを渡すと例外になり、履歴に記録されない", async () => {
+    const size = 5 * 1024 * 1024;
+    const bytes = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(size - 8),
+    ]);
+    const five = Array.from({ length: 5 }, (_, i) => ({
+      id: `att-${i}`,
+      fileName: "photo.png",
+      fileType: "image/png",
+      fileSize: size,
+      dataUrl: `data:image/png;base64,${bytes.toString("base64")}`,
+    }));
+
+    await expect(
+      sendInquiryReplyAction("inquiry-002", "返信本文", five)
     ).rejects.toThrow();
 
     expect(appendHistoryEntry).not.toHaveBeenCalled();

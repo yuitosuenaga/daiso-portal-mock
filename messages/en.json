@@ -1189,14 +1189,6 @@
         "label": "Original Language",
         "placeholder": "Select the language of your text"
       },
-      "companyName": {
-        "label": "Company Name",
-        "placeholder": "Enter your company name"
-      },
-      "country": {
-        "label": "Country",
-        "placeholder": "Select a country"
-      },
       "targetCompany": {
         "label": "Target Company",
         "placeholder": "Select the company to register this inquiry for",

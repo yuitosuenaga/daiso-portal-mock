@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
+import { CompanyNotFoundError } from "@/lib/server/company-service";
 import { mapHistoryEntry, mapInquiry } from "@/lib/server/inquiry-mapper";
 import type { InquiryAttachment } from "@/types/attachment";
 import type { CreateInquiryInput, Inquiry } from "@/types/inquiry";
@@ -76,8 +77,10 @@ function attachmentCreateInput(attachments: InquiryAttachment[] | undefined) {
 }
 
 /**
- * セッションから解決した会社IDを永続化し、フォーム入力値（会社名・国）は
- * 表示用フィールドとしてそのまま保存する。
+ * セッション（または代理登録の対象）から解決した会社IDを永続化し、会社名・国は
+ * その`Company`から導出して表示用フィールドに保存する（クライアント入力は信用しない）。
+ * `status`は`new`固定、`createdAt`はDB既定（`now()`）に任せる。
+ * 会社が存在しない場合は`CompanyNotFoundError`を送出する。
  *
  * 翻訳（`InquiryTranslation`）はここでは書き込まない。呼び出し元
  * （`src/lib/api/inquiries.ts`の`createInquiry`）が保存後に
@@ -87,6 +90,14 @@ function attachmentCreateInput(attachments: InquiryAttachment[] | undefined) {
 export async function createInquiryRecord(
   input: CreateInquiryServiceInput
 ): Promise<Inquiry> {
+  const company = await prisma.company.findUnique({
+    where: { id: input.companyId },
+    select: { name: true, country: true },
+  });
+  if (!company) {
+    throw new CompanyNotFoundError(input.companyId);
+  }
+
   const record = await prisma.inquiry.create({
     data: {
       title: input.data.title,
@@ -95,11 +106,10 @@ export async function createInquiryRecord(
       storeRegion: input.data.storeRegion,
       originalText: input.data.originalText,
       originalLanguage: input.data.originalLanguage,
-      status: input.data.status,
-      createdAt: new Date(input.data.createdAt),
+      status: "new",
       companyId: input.companyId,
-      submittedByCompanyName: input.data.submittedBy.companyName,
-      submittedByCountry: input.data.submittedBy.country,
+      submittedByCompanyName: company.name,
+      submittedByCountry: company.country,
       attachments: attachmentCreateInput(input.data.attachments),
     },
     include: INQUIRY_DETAIL_INCLUDE,

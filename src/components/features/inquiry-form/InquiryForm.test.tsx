@@ -44,8 +44,6 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
     "テストの問い合わせ内容です。"
   );
   await user.selectOptions(screen.getByLabelText(/原文言語/), "ja");
-  await user.type(screen.getByLabelText(/会社名/), "Daiso");
-  await user.selectOptions(screen.getByLabelText(/^国/), "JP");
 }
 
 describe("InquiryForm", () => {
@@ -182,6 +180,30 @@ describe("InquiryForm", () => {
     expect(
       (screen.getByLabelText(/店舗・地域/) as HTMLInputElement).value
     ).toBe("Tokyo");
+  });
+
+  it("self モードでは会社名・国の入力欄が表示されない", () => {
+    renderInquiryForm();
+
+    expect(screen.queryByLabelText(/会社名/)).toBeNull();
+    expect(screen.queryByLabelText(/^国/)).toBeNull();
+  });
+
+  it("送信時の createInquiryAction 第1引数に status・createdAt・submittedBy・mode・targetCompanyId を含めない", async () => {
+    createInquiryMock.mockResolvedValueOnce({ id: "test-id" });
+    const user = userEvent.setup();
+    renderInquiryForm();
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: "送信する" }));
+
+    await waitFor(() => {
+      expect(createInquiryMock).toHaveBeenCalledTimes(1);
+    });
+    const input = createInquiryMock.mock.calls[0][0];
+    for (const key of ["status", "createdAt", "submittedBy", "mode", "targetCompanyId", "companyName", "country"]) {
+      expect(input).not.toHaveProperty(key);
+    }
   });
 
   it("mode指定なし（既定）では対象会社選択欄が表示されない", () => {

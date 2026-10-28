@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { ForbiddenSessionError, UnauthorizedSessionError } from "@/lib/server/auth-session";
+import { CompanyNotFoundError } from "@/lib/server/company-service";
 import {
   ClaimOwnershipError,
   DoubleClaimError,
@@ -39,6 +40,10 @@ export function toErrorResponse(error: unknown): NextResponse {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
   if (error instanceof InquiryNotFoundError) {
+    logger.warn("[api-errors] Not Found", errorFields(error, EXPECTED));
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  }
+  if (error instanceof CompanyNotFoundError) {
     logger.warn("[api-errors] Not Found", errorFields(error, EXPECTED));
     return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
