@@ -114,6 +114,7 @@ describe("GET /api/helpdesk/staff/export", () => {
     const res = await GET();
     expect(res.status).toBe(404);
     expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await res.json()).toEqual({ error: "Not Found" });
     expect(listHelpdeskStaff).not.toHaveBeenCalled();
   });
 
@@ -122,6 +123,20 @@ describe("GET /api/helpdesk/staff/export", () => {
     const res = await GET();
     expect(res.status).toBe(401);
     expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
+  });
+
+  it("Content-Disposition の日付はJST(UTC 16:00 は翌日)", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-01-01T16:00:00Z"));
+      const res = await GET();
+      expect(res.headers.get("Content-Disposition")).toBe(
+        'attachment; filename="helpdesk-staff-20260102.csv"'
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("想定外の例外は500(no-store)", async () => {
