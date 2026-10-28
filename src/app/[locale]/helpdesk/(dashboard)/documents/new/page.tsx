@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { DocumentForm } from "@/components/features/helpdesk-documents/DocumentForm";
@@ -5,6 +6,8 @@ import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
 import { DOCUMENT_COMPANY_OPTIONS } from "@/lib/constants/document-company-options";
 import { getAllDocumentCategories } from "@/lib/api/document-categories";
 import { toDocumentCategoryFormOptions } from "@/lib/document-category-utils";
+
+export const generateMetadata = createPageMetadata("helpdeskDocuments", "form.createTitle");
 
 export default async function HelpdeskDocumentNewPage() {
   const [t, tCountries, tInquiryForm, categories] = await Promise.all([

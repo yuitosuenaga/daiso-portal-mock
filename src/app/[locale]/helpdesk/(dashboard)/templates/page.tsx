@@ -1,8 +1,11 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 import {
   TemplateList,
   TemplateListSkeleton,
 } from "@/components/features/helpdesk-templates/TemplateList";
+
+export const generateMetadata = createPageMetadata("helpdeskTemplates", "list.title");
 
 export default function HelpdeskTemplateListPage() {
   return (

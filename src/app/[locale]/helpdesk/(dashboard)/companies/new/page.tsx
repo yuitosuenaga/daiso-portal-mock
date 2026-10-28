@@ -1,8 +1,11 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 import { BackLink } from "@/components/ui/back-link";
 import { CompanyForm } from "@/components/features/helpdesk-companies/CompanyForm";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
+
+export const generateMetadata = createPageMetadata("helpdeskCompanies", "form.createTitle");
 
 export default async function HelpdeskCompanyNewPage() {
   await requireHelpdeskAdminPage();

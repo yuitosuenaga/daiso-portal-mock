@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,8 @@ type HelpdeskApplicantUserNewPageProps = {
     id: string;
   }>;
 };
+
+export const generateMetadata = createPageMetadata("helpdeskCompanies", "applicantUserForm.createTitle");
 
 export default async function HelpdeskApplicantUserNewPage(props: HelpdeskApplicantUserNewPageProps) {
   await requireHelpdeskAdminPage();

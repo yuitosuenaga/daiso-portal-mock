@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 
 import {
@@ -7,6 +8,8 @@ import {
 import { requireHelpdeskAdminPage } from "@/lib/server/require-helpdesk-admin-page";
 
 /** スタッフ管理一覧。admin以外には存在自体を見せない（404）。 */
+export const generateMetadata = createPageMetadata("helpdeskStaff", "list.title");
+
 export default async function HelpdeskStaffPage() {
   await requireHelpdeskAdminPage();
 

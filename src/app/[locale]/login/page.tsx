@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/features/auth/LoginForm";
 import { LoginSwitchLink } from "@/components/features/auth/LoginSwitchLink";
@@ -9,6 +10,8 @@ interface LoginPageProps {
   params: Promise<{ locale: string }>;
   searchParams?: Promise<{ googleError?: string | string[] }>;
 }
+
+export const generateMetadata = createPageMetadata("login", "applicantTitle");
 
 export default async function ApplicantLoginPage(props: LoginPageProps) {
   const searchParams = await props.searchParams;

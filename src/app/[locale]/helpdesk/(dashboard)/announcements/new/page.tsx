@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { BackLink } from "@/components/ui/back-link";
 import { AnnouncementForm } from "@/components/features/helpdesk-announcements/AnnouncementForm";
@@ -6,6 +7,8 @@ import {
   ANNOUNCEMENT_CATEGORY_CODES,
 } from "@/lib/constants/announcement-options";
 import { INQUIRY_COUNTRY_CODES } from "@/lib/constants/inquiry-options";
+
+export const generateMetadata = createPageMetadata("helpdeskAnnouncements", "form.createTitle");
 
 export default async function HelpdeskAnnouncementNewPage() {
   const [t, tCategories, tCountries, tInquiryForm, tDocuments] = await Promise.all([

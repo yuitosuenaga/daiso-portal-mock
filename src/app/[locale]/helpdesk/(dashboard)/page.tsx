@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 import {
   Bell,
@@ -24,6 +25,8 @@ import {
   HelpdeskInquiryKpiPanel,
   HelpdeskInquiryKpiPanelSkeleton,
 } from "@/components/features/dashboard/HelpdeskInquiryKpiPanel";
+
+export const generateMetadata = createPageMetadata("helpdeskNav", "home");
 
 export default async function HelpdeskHomePage() {
   const t = await getTranslations("helpdeskDashboard");

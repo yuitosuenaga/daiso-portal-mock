@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/lib/page-metadata";
 import { Suspense } from "react";
 import {
   HelpdeskInquiryDetail,
@@ -9,6 +10,8 @@ type HelpdeskInquiryDetailPageProps = {
     id: string;
   }>;
 };
+
+export const generateMetadata = createPageMetadata("helpdeskInquiries", "list.title");
 
 export default async function HelpdeskInquiryDetailPage(props: HelpdeskInquiryDetailPageProps) {
   const params = await props.params;
