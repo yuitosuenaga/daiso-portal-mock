@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 
+const { findStaffIdsMock, findApplicantIdsMock } = vi.hoisted(() => ({
+  findStaffIdsMock: vi.fn(),
+  findApplicantIdsMock: vi.fn(),
+}));
+vi.mock("@/lib/server/email-lookup", () => ({
+  findHelpdeskStaffIdsByEmail: findStaffIdsMock,
+  findApplicantUserIdsByEmail: findApplicantIdsMock,
+}));
+
 const {
   staffFindManyMock,
   staffFindUniqueMock,
@@ -154,22 +163,20 @@ describe("listHelpdeskStaff", () => {
 });
 
 describe("isStaffEmailTaken / createHelpdeskStaff", () => {
-  it("HelpdeskStaff・ApplicantUserの両方を大文字小文字区別なしで検査する", async () => {
-    staffFindFirstMock.mockResolvedValue(null);
-    applicantFindFirstMock.mockResolvedValue(null);
+  it("HelpdeskStaff・ApplicantUserの両方を、ワイルドカードの効かない大文字小文字非区別の照会で検査する", async () => {
+    findStaffIdsMock.mockResolvedValue([]);
+    findApplicantIdsMock.mockResolvedValue([]);
     await expect(isStaffEmailTaken("A@Example.com")).resolves.toBe(false);
-    const staffWhere = staffFindFirstMock.mock.calls[0][0].where;
-    const applicantWhere = applicantFindFirstMock.mock.calls[0][0].where;
-    expect(staffWhere.email).toEqual({ equals: "A@Example.com", mode: "insensitive" });
-    expect(applicantWhere.email).toEqual({ equals: "A@Example.com", mode: "insensitive" });
+    expect(findStaffIdsMock).toHaveBeenCalledWith("A@Example.com");
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("A@Example.com");
   });
 
   it("どちらかに存在すれば重複(true)", async () => {
-    staffFindFirstMock.mockResolvedValue(null);
-    applicantFindFirstMock.mockResolvedValue({ id: "a" });
+    findStaffIdsMock.mockResolvedValue([]);
+    findApplicantIdsMock.mockResolvedValue(["a"]);
     await expect(isStaffEmailTaken("a@example.com")).resolves.toBe(true);
-    staffFindFirstMock.mockResolvedValue({ id: "s" });
-    applicantFindFirstMock.mockResolvedValue(null);
+    findStaffIdsMock.mockResolvedValue(["s"]);
+    findApplicantIdsMock.mockResolvedValue([]);
     await expect(isStaffEmailTaken("a@example.com")).resolves.toBe(true);
   });
 

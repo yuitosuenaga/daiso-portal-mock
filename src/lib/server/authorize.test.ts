@@ -1,8 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import bcrypt from "bcryptjs";
 
 vi.mock("@/lib/server/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+const { findApplicantIdsMock, findStaffIdsMock } = vi.hoisted(() => ({
+  findApplicantIdsMock: vi.fn(),
+  findStaffIdsMock: vi.fn(),
+}));
+vi.mock("@/lib/server/email-lookup", () => ({
+  findApplicantUserIdsByEmail: findApplicantIdsMock,
+  findHelpdeskStaffIdsByEmail: findStaffIdsMock,
 }));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -17,6 +25,12 @@ import {
   authorizeApplicantCredentials,
   authorizeHelpdeskCredentials,
 } from "@/lib/server/authorize";
+
+// 照会ヘルパーは既定で1件ヒット扱い（行の中身は各テストのfindManyモックが決める）
+beforeEach(() => {
+  findApplicantIdsMock.mockReset().mockResolvedValue(["row-id"]);
+  findStaffIdsMock.mockReset().mockResolvedValue(["row-id"]);
+});
 
 describe("authorizeApplicantCredentials", () => {
   it("正しいメールアドレス・パスワードのとき、申請者セッションクレームを返す", async () => {
@@ -301,16 +315,27 @@ describe("メールアドレスの大文字小文字の扱い（申請者）", (
     expect(result?.applicantUserId).toBe("applicant-1");
   });
 
-  it("whereは正規化済みの値とmode: insensitiveで検索し、最大2件に絞る", async () => {
+  it("ヘルパーが返したidだけをfindManyで読み、ILIKE（mode: insensitive）は使わない", async () => {
+    findApplicantIdsMock.mockResolvedValue(["id-1", "id-2"]);
     vi.mocked(prisma.applicantUser.findMany).mockResolvedValue([]);
 
     await authorizeApplicantCredentials("  Tanaka@X.com ", "x");
 
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("  Tanaka@X.com ");
     const arg = vi.mocked(prisma.applicantUser.findMany).mock.calls.at(-1)?.[0];
-    expect(arg?.where).toEqual({
-      email: { equals: "tanaka@x.com", mode: "insensitive" },
-    });
-    expect(arg?.take).toBe(2);
+    expect(arg?.where).toEqual({ id: { in: ["id-1", "id-2"] } });
+  });
+
+  it("ヘルパーが0件ならfindManyを呼ばずnull（ダミーbcryptは実行する）", async () => {
+    findApplicantIdsMock.mockResolvedValue([]);
+    vi.mocked(prisma.applicantUser.findMany).mockClear();
+    const spy = vi.spyOn(bcrypt, "compare");
+
+    expect(await authorizeApplicantCredentials("nobody@x.com", "x")).toBeNull();
+
+    expect(prisma.applicantUser.findMany).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
   });
 
   it("重複があり入力と完全一致する行があれば、その行で照合する", async () => {
@@ -373,16 +398,15 @@ describe("メールアドレスの大文字小文字の扱い（ヘルプデス�
     expect(result?.staffId).toBe("staff-1");
   });
 
-  it("whereは正規化済みの値とmode: insensitiveで検索し、最大2件に絞る", async () => {
+  it("ヘルパーが返したidだけをfindManyで読み、ILIKE（mode: insensitive）は使わない", async () => {
+    findStaffIdsMock.mockResolvedValue(["id-1"]);
     vi.mocked(prisma.helpdeskStaff.findMany).mockResolvedValue([]);
 
     await authorizeHelpdeskCredentials(" Staff@X.com", "x");
 
+    expect(findStaffIdsMock).toHaveBeenCalledWith(" Staff@X.com");
     const arg = vi.mocked(prisma.helpdeskStaff.findMany).mock.calls.at(-1)?.[0];
-    expect(arg?.where).toEqual({
-      email: { equals: "staff@x.com", mode: "insensitive" },
-    });
-    expect(arg?.take).toBe(2);
+    expect(arg?.where).toEqual({ id: { in: ["id-1"] } });
   });
 
   it("重複があり入力と完全一致する行があれば、その行で照合する", async () => {

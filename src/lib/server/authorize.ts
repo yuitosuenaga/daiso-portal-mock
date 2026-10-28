@@ -2,10 +2,13 @@ import "server-only";
 
 import bcrypt from "bcryptjs";
 
-import { normalizeEmail } from "@/lib/auth/google-login-policy";
 import { pickAccountByEmail } from "@/lib/auth/email-match";
 import { prisma } from "@/lib/db/prisma";
 import { hashIdentifier } from "@/lib/server/auth-audit";
+import {
+  findApplicantUserIdsByEmail,
+  findHelpdeskStaffIdsByEmail,
+} from "@/lib/server/email-lookup";
 import { logger } from "@/lib/server/logger";
 import type {
   ApplicantAuthorizedUser,
@@ -34,11 +37,15 @@ export async function authorizeApplicantCredentials(
 ): Promise<ApplicantAuthorizedUser | null> {
   // 大文字小文字を無視して候補を取り（保存値に大文字が残る既存データでもログインできる）、
   // 重複しているときは入力と完全一致する行だけを採用する。曖昧なら拒否する。
-  const candidates = await prisma.applicantUser.findMany({
-    where: { email: { equals: normalizeEmail(email), mode: "insensitive" } },
-    include: { company: true },
-    take: 2,
-  });
+  // 照会は`lower(email) = $1`で行う（ILIKEだと`_`・`%`がワイルドカードになり別アカウントに一致する）
+  const ids = await findApplicantUserIdsByEmail(email);
+  const candidates =
+    ids.length === 0
+      ? []
+      : await prisma.applicantUser.findMany({
+          where: { id: { in: ids } },
+          include: { company: true },
+        });
   const picked = pickAccountByEmail(candidates, email);
 
   if (picked === null || picked === "ambiguous") {
@@ -85,10 +92,11 @@ export async function authorizeHelpdeskCredentials(
   email: string,
   password: string
 ): Promise<HelpdeskAuthorizedUser | null> {
-  const candidates = await prisma.helpdeskStaff.findMany({
-    where: { email: { equals: normalizeEmail(email), mode: "insensitive" } },
-    take: 2,
-  });
+  const ids = await findHelpdeskStaffIdsByEmail(email);
+  const candidates =
+    ids.length === 0
+      ? []
+      : await prisma.helpdeskStaff.findMany({ where: { id: { in: ids } } });
   const picked = pickAccountByEmail(candidates, email);
   if (picked === "ambiguous") {
     logger.warn("login rejected: ambiguous email", {

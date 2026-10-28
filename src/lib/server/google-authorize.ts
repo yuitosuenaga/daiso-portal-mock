@@ -14,6 +14,10 @@ import {
 import { pickAccountByEmail } from "@/lib/auth/email-match";
 import { prisma } from "@/lib/db/prisma";
 import { hashIdentifier } from "@/lib/server/auth-audit";
+import {
+  findApplicantUserIdsByEmail,
+  findHelpdeskStaffIdsByEmail,
+} from "@/lib/server/email-lookup";
 import { logger } from "@/lib/server/logger";
 import type {
   ApplicantAuthorizedUser,
@@ -30,11 +34,20 @@ export type GoogleAuthorizeResult =
   | { ok: false; error: GoogleLoginErrorCode };
 
 /**
- * 大文字小文字を無視して候補を最大2件取り、複数あるときは小文字化済みメールと完全一致する行を採用する。
+ * 大文字小文字を無視して（`lower(email) = $1`。ILIKEは`_`・`%`がワイルドカードになるため使わない）候補を取り、複数あるときは小文字化済みメールと完全一致する行を採用する。
  * 一致が無い（曖昧な）場合はnullを返してwarnログ（識別子ハッシュのみ）を残す。
  * 並びを固定するためcreatedAt昇順で取得する。
  */
 const CANDIDATE_ORDER = { createdAt: "asc" } as const;
+
+async function findStaffCandidates(email: string) {
+  const ids = await findHelpdeskStaffIdsByEmail(email);
+  if (ids.length === 0) return [];
+  return prisma.helpdeskStaff.findMany({
+    where: { id: { in: ids } },
+    orderBy: CANDIDATE_ORDER,
+  });
+}
 
 function pickOrWarn<T extends { email: string }>(
   rows: T[],
@@ -78,11 +91,7 @@ export async function authorizeGoogleLogin(input: {
   const email = normalizeEmail(input.email as string);
 
   if (input.portal === "helpdesk") {
-    const staffCandidates = await prisma.helpdeskStaff.findMany({
-      where: { email: { equals: email, mode: "insensitive" } },
-      orderBy: CANDIDATE_ORDER,
-      take: 2,
-    });
+    const staffCandidates = await findStaffCandidates(email);
     // 曖昧（大文字小文字違いの重複で完全一致なし）は自動作成にも進まず拒否する
     const pickedStaff = pickOrWarn(staffCandidates, email, "helpdesk");
     if (pickedStaff === "ambiguous") return { ok: false, error: "not_registered" };
@@ -100,10 +109,8 @@ export async function authorizeGoogleLogin(input: {
         return { ok: false, error: "not_registered" };
       }
       // ApplicantUserとのメール重複は作成しない（isApplicantUserEmailTakenと同じ方針）
-      const applicantWithEmail = await prisma.applicantUser.findFirst({
-        where: { email: { equals: email, mode: "insensitive" } },
-      });
-      if (applicantWithEmail) return { ok: false, error: "not_registered" };
+      const applicantIdsWithEmail = await findApplicantUserIdsByEmail(email);
+      if (applicantIdsWithEmail.length > 0) return { ok: false, error: "not_registered" };
       try {
         staff = await prisma.helpdeskStaff.create({
           data: {
@@ -119,11 +126,7 @@ export async function authorizeGoogleLogin(input: {
         if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) {
           throw e;
         }
-        const retried = await prisma.helpdeskStaff.findMany({
-          where: { email: { equals: email, mode: "insensitive" } },
-          orderBy: CANDIDATE_ORDER,
-          take: 2,
-        });
+        const retried = await findStaffCandidates(email);
         const pickedRetry = pickOrWarn(retried, email, "helpdesk");
         if (pickedRetry === null || pickedRetry === "ambiguous") throw e;
         staff = pickedRetry;
@@ -143,12 +146,15 @@ export async function authorizeGoogleLogin(input: {
     };
   }
 
-  const applicantCandidates = await prisma.applicantUser.findMany({
-    where: { email: { equals: email, mode: "insensitive" } },
-    include: { company: true },
-    orderBy: CANDIDATE_ORDER,
-    take: 2,
-  });
+  const applicantIds = await findApplicantUserIdsByEmail(email);
+  const applicantCandidates =
+    applicantIds.length === 0
+      ? []
+      : await prisma.applicantUser.findMany({
+          where: { id: { in: applicantIds } },
+          include: { company: true },
+          orderBy: CANDIDATE_ORDER,
+        });
   const pickedApplicant = pickOrWarn(applicantCandidates, email, "applicant");
   if (pickedApplicant === "ambiguous") return { ok: false, error: "not_registered" };
   const applicantUser = pickedApplicant;

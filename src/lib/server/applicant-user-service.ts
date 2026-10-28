@@ -6,6 +6,10 @@ import { Prisma } from "@prisma/client";
 import { normalizeEmail } from "@/lib/auth/google-login-policy";
 import { prisma } from "@/lib/db/prisma";
 import {
+  findApplicantUserIdsByEmail,
+  findHelpdeskStaffIdsByEmail,
+} from "@/lib/server/email-lookup";
+import {
   requireHelpdeskAdminSession,
   requireHelpdeskStaffSession,
 } from "@/lib/server/auth-session";
@@ -198,19 +202,14 @@ export async function isApplicantUserEmailTaken(
 ): Promise<boolean> {
   await requireHelpdeskAdminSession();
 
-  // 大文字小文字を区別せず比較する（保存値は小文字だが、既存データに大文字入りが残りうるため）
-  const emailMatch = { equals: normalizeEmail(email), mode: "insensitive" as const };
-  const [applicantUser, helpdeskStaff] = await Promise.all([
-    prisma.applicantUser.findFirst({
-      where: {
-        email: emailMatch,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
-    }),
-    prisma.helpdeskStaff.findFirst({ where: { email: emailMatch } }),
+  // 大文字小文字を区別せず比較する（保存値は小文字だが、既存データに大文字入りが残りうるため）。
+  // ILIKEだと`_`・`%`がワイルドカードになるため、`lower(email) = $1`で照会する。
+  const [applicantIds, staffIds] = await Promise.all([
+    findApplicantUserIdsByEmail(email, { excludeId }),
+    findHelpdeskStaffIdsByEmail(email),
   ]);
 
-  return applicantUser !== null || helpdeskStaff !== null;
+  return applicantIds.length > 0 || staffIds.length > 0;
 }
 
 const TARGET_OPTION_SELECT = {

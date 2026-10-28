@@ -4,9 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/server/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
+const { findApplicantIdsMock, findStaffIdsMock } = vi.hoisted(() => ({
+  findApplicantIdsMock: vi.fn(),
+  findStaffIdsMock: vi.fn(),
+}));
+vi.mock("@/lib/server/email-lookup", () => ({
+  findApplicantUserIdsByEmail: findApplicantIdsMock,
+  findHelpdeskStaffIdsByEmail: findStaffIdsMock,
+}));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    applicantUser: { findFirst: vi.fn(), findMany: vi.fn() },
+    applicantUser: { findMany: vi.fn() },
     helpdeskStaff: { findMany: vi.fn(), create: vi.fn() },
   },
 }));
@@ -58,7 +66,8 @@ const applicant = {
 };
 
 beforeEach(() => {
-  vi.mocked(prisma.applicantUser.findFirst).mockReset();
+  findApplicantIdsMock.mockReset().mockResolvedValue(["row-id"]);
+  findStaffIdsMock.mockReset().mockResolvedValue(["row-id"]);
   vi.mocked(prisma.applicantUser.findMany).mockReset();
   vi.mocked(prisma.helpdeskStaff.findMany).mockReset();
   vi.mocked(prisma.helpdeskStaff.create).mockReset();
@@ -81,11 +90,12 @@ describe("authorizeGoogleLogin", () => {
       },
       provisioned: false,
     });
+    // 照会は`lower(email) = $1`のヘルパー経由（ILIKEのワイルドカード問題を避ける）。小文字化済みの値を渡す
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("taro@example.com");
     expect(prisma.applicantUser.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { email: { equals: "taro@example.com", mode: "insensitive" } },
+        where: { id: { in: ["row-id"] } },
         orderBy: { createdAt: "asc" },
-        take: 2,
       })
     );
   });
@@ -138,7 +148,7 @@ describe("authorizeGoogleLogin", () => {
       user: { id: "s1", role: "helpdesk", staffId: "s1", displayName: "担当者" },
       provisioned: false,
     });
-    expect(prisma.applicantUser.findFirst).not.toHaveBeenCalled();
+    expect(findApplicantIdsMock).not.toHaveBeenCalled();
   });
 
   it("ヘルプデスク画面で未登録なら拒否する（申請者アカウントへはフォールバックしない）", async () => {
@@ -147,7 +157,7 @@ describe("authorizeGoogleLogin", () => {
       ok: false,
       error: "not_registered",
     });
-    expect(prisma.applicantUser.findFirst).not.toHaveBeenCalled();
+    expect(findApplicantIdsMock).not.toHaveBeenCalled();
   });
 
   describe("ヘルプデスク自動作成", () => {
@@ -161,7 +171,7 @@ describe("authorizeGoogleLogin", () => {
 
     it("ON・未登録なら小文字メール・passwordHash null・google_autoで作成する", async () => {
       vi.mocked(prisma.helpdeskStaff.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+      findApplicantIdsMock.mockResolvedValue([]);
       vi.mocked(prisma.helpdeskStaff.create).mockResolvedValue(staffRow as never);
       const result = await authorizeGoogleLogin(hd);
       expect(prisma.helpdeskStaff.create).toHaveBeenCalledWith({
@@ -225,7 +235,7 @@ describe("authorizeGoogleLogin", () => {
 
     it("ApplicantUserに同メールがあればnot_registered・createしない", async () => {
       vi.mocked(prisma.helpdeskStaff.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(applicant as never);
+      findApplicantIdsMock.mockResolvedValue(["a1"]);
       expect(await authorizeGoogleLogin(hd)).toEqual({
         ok: false,
         error: "not_registered",
@@ -237,7 +247,7 @@ describe("authorizeGoogleLogin", () => {
       vi.mocked(prisma.helpdeskStaff.findMany)
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([staffRow] as never);
-      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+      findApplicantIdsMock.mockResolvedValue([]);
       vi.mocked(prisma.helpdeskStaff.create).mockRejectedValue(p2002());
       expect(await authorizeGoogleLogin(hd)).toEqual({
         ok: true,
@@ -248,7 +258,7 @@ describe("authorizeGoogleLogin", () => {
 
     it("P2002後の取り直しがnullなら例外", async () => {
       vi.mocked(prisma.helpdeskStaff.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+      findApplicantIdsMock.mockResolvedValue([]);
       const err = p2002();
       vi.mocked(prisma.helpdeskStaff.create).mockRejectedValue(err);
       await expect(authorizeGoogleLogin(hd)).rejects.toBe(err);
@@ -269,7 +279,7 @@ describe("authorizeGoogleLogin", () => {
       vi.mocked(prisma.helpdeskStaff.findMany)
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ ...staffRow, isActive: false }] as never);
-      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+      findApplicantIdsMock.mockResolvedValue([]);
       vi.mocked(prisma.helpdeskStaff.create).mockRejectedValue(p2002());
       expect(await authorizeGoogleLogin(hd)).toEqual({
         ok: false,
@@ -279,7 +289,7 @@ describe("authorizeGoogleLogin", () => {
 
     it("P2002以外のエラーは再送出する", async () => {
       vi.mocked(prisma.helpdeskStaff.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
+      findApplicantIdsMock.mockResolvedValue([]);
       const err = new Error("boom");
       vi.mocked(prisma.helpdeskStaff.create).mockRejectedValue(err);
       await expect(authorizeGoogleLogin(hd)).rejects.toBe(err);
@@ -345,7 +355,7 @@ describe("大文字小文字違いの重複があるとき", () => {
     vi.mocked(prisma.helpdeskStaff.findMany).mockResolvedValue([staffRow] as never);
     await authorizeGoogleLogin({ ...base, portal: "helpdesk" });
     expect(prisma.helpdeskStaff.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { createdAt: "asc" }, take: 2 })
+      expect.objectContaining({ where: { id: { in: ["row-id"] } }, orderBy: { createdAt: "asc" } })
     );
   });
 });

@@ -14,6 +14,14 @@ vi.mock("bcryptjs", () => ({
     hash: vi.fn(async (value: string) => `hashed:${value}`),
   },
 }));
+const { findApplicantIdsMock, findStaffIdsMock } = vi.hoisted(() => ({
+  findApplicantIdsMock: vi.fn(),
+  findStaffIdsMock: vi.fn(),
+}));
+vi.mock("@/lib/server/email-lookup", () => ({
+  findApplicantUserIdsByEmail: findApplicantIdsMock,
+  findHelpdeskStaffIdsByEmail: findStaffIdsMock,
+}));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     applicantUser: {
@@ -342,76 +350,55 @@ describe("setApplicantUserActive", () => {
 });
 
 describe("isApplicantUserEmailTaken", () => {
+  beforeEach(() => {
+    findApplicantIdsMock.mockReset();
+    findStaffIdsMock.mockReset();
+  });
+
   it("ApplicantUserテーブルに同じメールアドレスが存在するときtrueを返す", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(
-      baseApplicantUserRecord() as never
-    );
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    findApplicantIdsMock.mockResolvedValue(["applicant-9"]);
+    findStaffIdsMock.mockResolvedValue([]);
 
-    const result = await isApplicantUserEmailTaken("tanaka@example.com");
-
-    expect(result).toBe(true);
+    expect(await isApplicantUserEmailTaken("tanaka@example.com")).toBe(true);
   });
 
   it("HelpdeskStaffテーブルに同じメールアドレスが存在するときtrueを返す", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue({
-      id: "staff-1",
-      email: "staff@helpdesk.example.com",
-    } as never);
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue(["staff-1"]);
 
-    const result = await isApplicantUserEmailTaken("staff@helpdesk.example.com");
-
-    expect(result).toBe(true);
+    expect(await isApplicantUserEmailTaken("staff@helpdesk.example.com")).toBe(true);
   });
 
   it("いずれのテーブルにも存在しないときfalseを返す", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue([]);
 
-    const result = await isApplicantUserEmailTaken("new@example.com");
-
-    expect(result).toBe(false);
+    expect(await isApplicantUserEmailTaken("new@example.com")).toBe(false);
   });
 
   it("excludeId指定時はApplicantUser側で自分自身を除外して重複確認する", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue([]);
 
     await isApplicantUserEmailTaken("tanaka@example.com", "applicant-1");
 
-    expect(prisma.applicantUser.findFirst).toHaveBeenCalledWith({
-      where: {
-        email: { equals: "tanaka@example.com", mode: "insensitive" },
-        id: { not: "applicant-1" },
-      },
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("tanaka@example.com", {
+      excludeId: "applicant-1",
     });
+    // スタッフ側には除外を適用しない
+    expect(findStaffIdsMock).toHaveBeenCalledWith("tanaka@example.com");
   });
 
-  it("両テーブルとも大文字小文字を無視し、正規化済みの値で重複確認する", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
+  it("両テーブルを同じ入力で照会する（大文字小文字の正規化・ワイルドカード対策は照会ヘルパー側）", async () => {
+    findApplicantIdsMock.mockResolvedValue([]);
+    findStaffIdsMock.mockResolvedValue([]);
 
-    await isApplicantUserEmailTaken("  Tanaka@Example.COM ");
+    await isApplicantUserEmailTaken("Tanaka@Example.COM");
 
-    const where = { email: { equals: "tanaka@example.com", mode: "insensitive" } };
-    expect(prisma.applicantUser.findFirst).toHaveBeenCalledWith({ where });
-    expect(prisma.helpdeskStaff.findFirst).toHaveBeenCalledWith({ where });
-  });
-
-  it("大文字小文字だけが違う既存の申請者・スタッフがいれば重複とみなす", async () => {
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(
-      baseApplicantUserRecord({ email: "Tanaka@example.com" }) as never
-    );
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue(null);
-    expect(await isApplicantUserEmailTaken("tanaka@example.com")).toBe(true);
-
-    vi.mocked(prisma.applicantUser.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.helpdeskStaff.findFirst).mockResolvedValue({
-      id: "staff-1",
-      email: "Staff@example.com",
-    } as never);
-    expect(await isApplicantUserEmailTaken("staff@example.com")).toBe(true);
+    expect(findApplicantIdsMock).toHaveBeenCalledWith("Tanaka@Example.COM", {
+      excludeId: undefined,
+    });
+    expect(findStaffIdsMock).toHaveBeenCalledWith("Tanaka@Example.COM");
   });
 });
 
