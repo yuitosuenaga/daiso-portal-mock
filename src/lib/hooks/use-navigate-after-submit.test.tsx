@@ -81,7 +81,6 @@ describe("useNavigateAfterSubmit", () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 10));
     });
-    console.log("DBG", result.current.isNavigating);
     expect(result.current.isNavigating).toBe(false);
 
     pushMock.mockReturnValue(undefined);
