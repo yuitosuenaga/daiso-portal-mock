@@ -73,11 +73,12 @@ jobs:
       - run: npm ci
       # CI の使い捨てコンテナ向け（本番 DB ではない）
       - run: npx prisma migrate deploy
-      - run: npx vitest run integration
+      - run: npx vitest run integration --no-file-parallelism
         env:
           TZ: Asia/Tokyo
           STAFF_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           THROTTLE_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          INQUIRY_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
   audit:
     # 必須チェックにはしない。新規脆弱性の公開で突然赤くなり得るため情報提供扱い。

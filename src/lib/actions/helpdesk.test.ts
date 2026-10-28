@@ -6,10 +6,9 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
 vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
 vi.mock("@/lib/server/inquiry-service", () => ({
-  findInquiryById: vi.fn(),
   setClaim: vi.fn(),
-  updateStatus: vi.fn(),
-  updateStatusIfCurrent: vi.fn(),
+  changeStatusWithHistory: vi.fn(),
+  appendReplyWithAutoTransition: vi.fn(),
   appendHistoryEntry: vi.fn(),
   ClaimOwnershipError: class ClaimOwnershipError extends Error {
     constructor(inquiryId: string) {
@@ -50,11 +49,10 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/server/get-session";
 import {
   appendHistoryEntry,
+  appendReplyWithAutoTransition,
+  changeStatusWithHistory,
   ClaimOwnershipError,
-  findInquiryById as findInquiryByIdService,
   setClaim,
-  updateStatus,
-  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 import {
   claimInquiryAction,
@@ -113,49 +111,34 @@ beforeEach(() => {
 });
 
 describe("claimInquiryAction / releaseInquiryClaimAction", () => {
-  it("対応中にすると、ログイン中の担当者情報でclaimが設定され履歴に記録される", async () => {
+  it("対応中にすると、ログイン中の担当者情報でclaimが設定され、履歴は同一トランザクションでsetClaimに任せる", async () => {
     vi.mocked(setClaim).mockResolvedValue(inquiry());
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-004",
-      type: "claimed",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-    });
 
     await claimInquiryAction("inquiry-004");
 
     expect(setClaim).toHaveBeenCalledWith(
       "inquiry-004",
       { staffId: "staff-1", displayName: "鈴木 花子" },
-      "staff-1"
+      "staff-1",
+      { historyActorName: "鈴木 花子" }
     );
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "claimed", actorName: "鈴木 花子" })
-    );
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalled();
   });
 
-  it("対応を外すと、claimが解除され履歴に記録され、{ ok: true }を返す", async () => {
+  it("対応を外すと、claimが解除され、{ ok: true }を返す（履歴はsetClaimに任せる）", async () => {
     vi.mocked(setClaim).mockResolvedValue(inquiry());
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-2",
-      inquiryId: "inquiry-004",
-      type: "released",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-    });
 
     const result = await releaseInquiryClaimAction("inquiry-004");
 
-    expect(setClaim).toHaveBeenCalledWith("inquiry-004", null, "staff-1");
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "released", actorName: "鈴木 花子" })
-    );
+    expect(setClaim).toHaveBeenCalledWith("inquiry-004", null, "staff-1", {
+      historyActorName: "鈴木 花子",
+    });
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: true });
   });
 
-  it("所有者不一致（ClaimOwnershipError）のとき、{ ok: false, reason: \"notOwner\" }を返し履歴を記録しない", async () => {
+  it("所有者不一致（ClaimOwnershipError）のとき、{ ok: false, reason: \"notOwner\" }を返し再検証しない", async () => {
     vi.mocked(setClaim).mockRejectedValue(
       new ClaimOwnershipError("inquiry-004")
     );
@@ -177,30 +160,20 @@ describe("claimInquiryAction / releaseInquiryClaimAction", () => {
 });
 
 describe("changeInquiryStatusAction", () => {
-  it("ステータスを変更し、変更前後の値を翻訳済みラベルでログイン中担当者名の履歴に記録する", async () => {
-    vi.mocked(findInquiryByIdService).mockResolvedValue(
-      inquiry({ status: "resolved" })
-    );
-    vi.mocked(updateStatus).mockResolvedValue(inquiry({ status: "in_progress" }));
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-006",
-      type: "status_changed",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-      detail: "解決済み → 対応中",
-    });
+  it("ログイン中担当者名と、翻訳済みラベルで変更前後を整形するformatDetailを渡してステータス変更する", async () => {
+    vi.mocked(changeStatusWithHistory).mockResolvedValue({ changed: true });
 
     await changeInquiryStatusAction("inquiry-006", "in_progress");
 
-    expect(updateStatus).toHaveBeenCalledWith("inquiry-006", "in_progress");
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "status_changed",
-        actorName: "鈴木 花子",
-        detail: "解決済み → 対応中",
-      })
+    expect(changeStatusWithHistory).toHaveBeenCalledWith(
+      "inquiry-006",
+      "in_progress",
+      expect.objectContaining({ actorName: "鈴木 花子" })
     );
+    const options = vi.mocked(changeStatusWithHistory).mock.calls[0]?.[2];
+    expect(options?.formatDetail("resolved", "in_progress")).toBe("解決済み → 対応中");
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(revalidatePath).toHaveBeenCalled();
   });
 
   it("不正なステータス値を渡すと例外になり、更新処理を呼ばない", async () => {
@@ -211,36 +184,28 @@ describe("changeInquiryStatusAction", () => {
       )
     ).rejects.toThrow();
 
-    expect(updateStatus).not.toHaveBeenCalled();
+    expect(changeStatusWithHistory).not.toHaveBeenCalled();
   });
 });
 
 describe("sendInquiryReplyAction", () => {
-  it("ログイン中の担当者名で返信内容を履歴に記録する", async () => {
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-008",
-      type: "reply_sent",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-      detail: "ご返信ありがとうございます。",
-    });
-
+  it("ログイン中の担当者名で返信内容と自動遷移の詳細文言を渡して委譲する", async () => {
     await sendInquiryReplyAction("inquiry-008", "ご返信ありがとうございます。");
 
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "reply_sent",
-        actorName: "鈴木 花子",
-        detail: "ご返信ありがとうございます。",
-      })
-    );
+    expect(appendReplyWithAutoTransition).toHaveBeenCalledWith("inquiry-008", {
+      actorName: "鈴木 花子",
+      body: "ご返信ありがとうございます。",
+      attachments: undefined,
+      autoTransitionDetail: "新規 → 対応中",
+    });
+    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(revalidatePath).toHaveBeenCalled();
   });
 
   it("空文字・空白のみの返信内容は例外になり、履歴に記録されない", async () => {
     await expect(sendInquiryReplyAction("inquiry-002", "   ")).rejects.toThrow();
 
-    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 
   it("返信本文が上限（10000文字）を超えると例外になり、履歴に記録されない", async () => {
@@ -248,18 +213,10 @@ describe("sendInquiryReplyAction", () => {
       sendInquiryReplyAction("inquiry-002", "a".repeat(10001))
     ).rejects.toThrow();
 
-    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 
   it("添付ファイル付きで返信すると、対応履歴に添付ファイルが記録される", async () => {
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-009",
-      type: "reply_sent",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-    });
-
     const attachment = {
       id: "att-1",
       fileName: "photo.png",
@@ -275,23 +232,17 @@ describe("sendInquiryReplyAction", () => {
       attachment,
     ]);
 
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
+    expect(appendReplyWithAutoTransition).toHaveBeenCalledWith(
+      "inquiry-009",
       expect.objectContaining({ attachments: [attachment] })
     );
   });
 
   it("添付ファイルを指定しない場合、attachmentsは未設定になる", async () => {
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-010",
-      type: "reply_sent",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-    });
-
     await sendInquiryReplyAction("inquiry-010", "添付なしの返信です。");
 
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
+    expect(appendReplyWithAutoTransition).toHaveBeenCalledWith(
+      "inquiry-010",
       expect.objectContaining({ attachments: undefined })
     );
   });
@@ -303,7 +254,7 @@ describe("sendInquiryReplyAction", () => {
       ])
     ).rejects.toThrow();
 
-    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 
   it("上限を超えるサイズの添付ファイルを渡すと例外になり、履歴に記録されない", async () => {
@@ -319,7 +270,7 @@ describe("sendInquiryReplyAction", () => {
       ])
     ).rejects.toThrow();
 
-    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 
   it("許可されていないMIMEタイプの添付ファイルを渡すと例外になる", async () => {
@@ -367,7 +318,7 @@ describe("sendInquiryReplyAction", () => {
       ])
     ).rejects.toThrow();
 
-    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 
   it("合計サイズ上限を超える添付ファイルを渡すと例外になり、履歴に記録されない", async () => {
@@ -388,7 +339,7 @@ describe("sendInquiryReplyAction", () => {
       sendInquiryReplyAction("inquiry-002", "返信本文", five)
     ).rejects.toThrow();
 
-    expect(appendHistoryEntry).not.toHaveBeenCalled();
+    expect(appendReplyWithAutoTransition).not.toHaveBeenCalled();
   });
 
   it("件数上限を超える添付ファイルを渡すと例外になる", async () => {
@@ -403,54 +354,6 @@ describe("sendInquiryReplyAction", () => {
     await expect(
       sendInquiryReplyAction("inquiry-002", "返信本文", attachments)
     ).rejects.toThrow();
-  });
-
-  it("送信時点のstatusがnewのとき、in_progressへ原子的に変更し履歴に記録する", async () => {
-    vi.mocked(updateStatusIfCurrent).mockResolvedValue(true);
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-011",
-      type: "reply_sent",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-    });
-
-    await sendInquiryReplyAction("inquiry-011", "対応いたします。");
-
-    expect(updateStatusIfCurrent).toHaveBeenCalledWith(
-      "inquiry-011",
-      "new",
-      "in_progress"
-    );
-    expect(appendHistoryEntry).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "status_changed",
-        actorName: "鈴木 花子",
-        detail: "新規 → 対応中",
-      })
-    );
-  });
-
-  it("送信時点のstatusがnew以外のとき（updateStatusIfCurrentがfalseを返す）、status_changedを記録しない", async () => {
-    vi.mocked(updateStatusIfCurrent).mockResolvedValue(false);
-    vi.mocked(appendHistoryEntry).mockResolvedValue({
-      id: "history-1",
-      inquiryId: "inquiry-012",
-      type: "reply_sent",
-      actorName: "鈴木 花子",
-      occurredAt: "2026-07-01T00:00:00.000Z",
-    });
-
-    await sendInquiryReplyAction("inquiry-012", "追加のご連絡です。");
-
-    expect(updateStatusIfCurrent).toHaveBeenCalledWith(
-      "inquiry-012",
-      "new",
-      "in_progress"
-    );
-    expect(appendHistoryEntry).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: "status_changed" })
-    );
   });
 });
 

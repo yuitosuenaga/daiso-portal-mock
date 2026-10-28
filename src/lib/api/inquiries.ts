@@ -16,9 +16,9 @@ import {
   listInquiriesForCompany,
   listUnreadReplyInquiryIds as listUnreadReplyInquiryIdsService,
   markInquiryRead as markInquiryReadService,
+  appendReplyWithAutoTransition,
+  changeStatusWithHistory,
   setClaim,
-  updateStatus,
-  updateStatusIfCurrent,
 } from "@/lib/server/inquiry-service";
 import { translateInquiryAndStore } from "@/lib/server/inquiry-translation-service";
 
@@ -117,10 +117,12 @@ export async function getInquiryById(id: string): Promise<Inquiry | null> {
  * 対応中フラグを設定・解除する。`staffName`引数はシグネチャ互換のために残すが、
  * 実際の担当者情報はログイン中のヘルプデスクセッションから解決する
  * （クライアントが自称する氏名を信用しない）。
+ * `options.historyActorName`を渡すと、claim/解除と履歴記録を同一トランザクションで行う。
  */
 export async function setInquiryClaim(
   id: string,
-  staffName: string | null
+  staffName: string | null,
+  options?: { historyActorName?: string }
 ): Promise<Inquiry> {
   const { claims } = await requireHelpdeskStaffSession();
 
@@ -129,36 +131,36 @@ export async function setInquiryClaim(
     staffName
       ? { staffId: claims.staffId, displayName: claims.displayName }
       : null,
-    claims.staffId
+    claims.staffId,
+    options
   );
 }
 
 /**
- * 問い合わせの対応状況（status）を変更する。ヘルプデスク担当者のセッションを要求する。
+ * 問い合わせの対応状況（status）を変更し、`status_changed`履歴を同一トランザクションで記録する。
+ * ヘルプデスク担当者のセッションを要求する。同じ状態への変更は何もしない（`changed: false`）。
  */
-export async function updateInquiryStatus(
+export async function changeInquiryStatusWithHistory(
   id: string,
-  status: Inquiry["status"]
-): Promise<Inquiry> {
+  status: Inquiry["status"],
+  options: Parameters<typeof changeStatusWithHistory>[2]
+): Promise<{ changed: boolean }> {
   await requireHelpdeskStaffSession();
 
-  return updateStatus(id, status);
+  return changeStatusWithHistory(id, status, options);
 }
 
 /**
- * 現在の`status`が`expectedStatus`である場合にのみ`nextStatus`へ原子的に変更する。
- * ヘルプデスク担当者のセッションを要求する。返信送信時の自動遷移（新規→対応中）など、
- * 読み取り時点と書き込み時点の間に他の担当者による状態変更が入り込む競合を避ける
- * 用途で使用する。マッチして変更した場合は`true`を返す。
+ * 返信を履歴に記録し、statusが`new`なら`in_progress`へ自動遷移する（同一トランザクション）。
+ * ヘルプデスク担当者のセッションを要求する。
  */
-export async function updateInquiryStatusIfCurrent(
+export async function sendInquiryReplyWithAutoTransition(
   id: string,
-  expectedStatus: Inquiry["status"],
-  nextStatus: Inquiry["status"]
-): Promise<boolean> {
+  input: Parameters<typeof appendReplyWithAutoTransition>[1]
+): Promise<void> {
   await requireHelpdeskStaffSession();
 
-  return updateStatusIfCurrent(id, expectedStatus, nextStatus);
+  await appendReplyWithAutoTransition(id, input);
 }
 
 /**
