@@ -775,12 +775,15 @@
         "companyCodeFormat": "販社コードの形式が正しくありません（半角英小文字・数字・ハイフンのみ、先頭・末尾や連続したハイフンは使用できません）",
         "invalidCountry": "国コードが不正です",
         "companyCodeDuplicate": "この販社コードは既に登録されています",
-        "duplicateInFile": "このCSV内で販社コードが重複しています"
+        "duplicateInFile": "このCSV内で販社コードが重複しています",
+        "columnCount": "列の数が多すぎます。会社名にカンマが含まれる場合は、値をダブルクォートで囲んでください"
       },
       "fileErrors": {
         "empty": "CSVファイルが空です",
         "headerMismatch": "ヘッダー行が「name,country,companyCode」と一致しません",
-        "noDataRows": "データ行が0件です"
+        "noDataRows": "データ行が0件です",
+        "invalidEncoding": "CSVファイルの文字コードがUTF-8ではありません。Excelの「CSV UTF-8（コンマ区切り）」で保存し直してください",
+        "tooManyRows": "1回に登録できるのは'{max}'行までです。ファイルを分割してください"
       }
     },
     "bulkDeactivate": {
