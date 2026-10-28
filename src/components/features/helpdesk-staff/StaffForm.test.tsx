@@ -91,7 +91,8 @@ describe("StaffForm", () => {
     // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
     fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
     await act(async () => {
-      await Promise.resolve();
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
     expect(createActionMock).toHaveBeenCalledTimes(1);

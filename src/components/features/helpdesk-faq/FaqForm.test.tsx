@@ -103,10 +103,13 @@ describe("FaqForm", () => {
     // ボタンが無効でもEnterキー等でsubmitが発火し得るため、フォームのsubmitを直接発火して再入を確認する
     fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
     await act(async () => {
-      await Promise.resolve();
+      // バリデーション(非同期)が終わって onSubmit に到達する猶予を与える
+      await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
     expect(createFaqActionMock).toHaveBeenCalledTimes(1);
+    // 保存済みIDが設定されると2回目の送信は更新扱いになるため、更新側も呼ばれないことを確認する
+    expect(updateFaqActionMock).not.toHaveBeenCalled();
     expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
