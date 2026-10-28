@@ -21,7 +21,10 @@ export async function generateMetadata({
     : DEFAULT_LOCALE;
   const t = await getTranslations({ locale: resolved, namespace: "header" });
   const portalName = t("portalName");
-  return { title: { template: `%s | ${portalName}`, default: portalName } };
+  return {
+    title: { template: `%s | ${portalName}`, default: portalName },
+    description: portalName,
+  };
 }
 
 export default async function LocaleLayout({

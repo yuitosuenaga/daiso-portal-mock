@@ -30,4 +30,15 @@ describe("[locale]/layout generateMetadata", () => {
       default: "portalName@ja",
     });
   });
+
+  it("description は header.portalName のロケール別の値になる", async () => {
+    const meta = await generateMetadata({
+      params: Promise.resolve({ locale: "en" }),
+    });
+    expect(meta.description).toBe("portalName@en");
+    const fallback = await generateMetadata({
+      params: Promise.resolve({ locale: "xx" }),
+    });
+    expect(fallback.description).toBe("portalName@ja");
+  });
 });
