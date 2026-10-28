@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const reportRequestError = vi.fn();
@@ -53,5 +55,19 @@ describe("onRequestError", () => {
       throw new Error("boom");
     });
     await expect(onRequestError(new Error("x"), request, context)).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * request-error-context.ts はEdge/Node共用。server-only や logger をimportすると
+ * Edgeランタイムでビルド/実行が壊れるため、importが空であることを静的に固定する。
+ */
+describe("request-error-context.ts はEdge互換(importなし)", () => {
+  it("import/require/dynamic importを含まない", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/request-error-context.ts"), "utf8");
+    const re =
+      /(?:^|\n)\s*(?:import|export)\s+(?:type\s+)?(?:[^"'`;]*?\sfrom\s+)?["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']\s*\)|\brequire\(\s*["']([^"']+)["']\s*\)/g;
+    const specs = [...source.matchAll(re)].map((m) => m[1] ?? m[2] ?? m[3]);
+    expect(specs).toEqual([]);
   });
 });
