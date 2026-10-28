@@ -2,6 +2,9 @@ import "server-only";
 
 import { errorFields, logger } from "@/lib/server/logger";
 
+// HEAD（DB側で先頭300文字だけ取って判定）とGET（dataUrl全体に対して判定）でプレフィックス判定の
+// 範囲が異なる。`;[^,]*`が300文字を超える異常なdataUrlでは、HEADが404・GETが200になり得る
+// （DBに異常データがある場合のみ。挙動は変えない）。
 const PDF_DATA_URL_PREFIX = /^data:application\/pdf(;[^,]*)?;base64,/;
 const FALLBACK_FILE_NAME = "document.pdf";
 const CHUNK_SIZE = 256 * 1024;
@@ -48,7 +51,10 @@ export function buildContentDisposition(type: "inline" | "attachment", fileName:
  * 待ち時間のタイムアウト（503）と最大保持時間での強制解放を保険として持つ。
  */
 const MAX_CONCURRENT_FILES = 2;
+/** HEADのDB側集計（`replace`で全文を走査する）を同時に走らせる上限。DBのCPUとPrismaの接続を占有させない。 */
+const MAX_CONCURRENT_HEAD_STATS = 3;
 export const ACQUIRE_TIMEOUT_MS = 30_000;
+export const HEAD_ACQUIRE_TIMEOUT_MS = 15_000;
 export const MAX_HOLD_MS = 3 * 60_000;
 
 export class FileBusyError extends Error {
@@ -58,11 +64,21 @@ export class FileBusyError extends Error {
   }
 }
 
-let activeFiles = 0;
-const waiters: { grant: () => void }[] = [];
+/** 同時保持数を制限するin-processセマフォ。`acquire`は解放関数（何度呼んでも1回だけ有効）を返す。 */
+function createSemaphore(max: number, acquireTimeoutMs: number) {
+  let active = 0;
+  const waiters: { grant: () => void }[] = [];
 
-/** 許可を取得し、解放関数を返す。解放関数は何度呼んでも1回だけ有効（最大保持時間で自動解放も行う）。 */
-function acquire(): Promise<() => void> {
+  function release(): void {
+    const next = waiters.shift();
+    if (next) {
+      // 許可を待機中の呼び出しへ引き渡す（activeは変えない）
+      next.grant();
+      return;
+    }
+    active -= 1;
+  }
+
   const makeRelease = () => {
     let released = false;
     const timer = setTimeout(() => releaseOnce(), MAX_HOLD_MS);
@@ -78,37 +94,51 @@ function acquire(): Promise<() => void> {
     return releaseOnce;
   };
 
-  if (activeFiles < MAX_CONCURRENT_FILES) {
-    activeFiles += 1;
-    return Promise.resolve(makeRelease());
-  }
-  return new Promise((resolve, reject) => {
-    const waiter = {
-      grant: () => {
-        clearTimeout(waitTimer);
-        resolve(makeRelease());
-      },
-    };
-    const waitTimer = setTimeout(() => {
-      const index = waiters.indexOf(waiter);
-      if (index >= 0) {
-        waiters.splice(index, 1);
-      }
-      reject(new FileBusyError());
-    }, ACQUIRE_TIMEOUT_MS);
-    waitTimer.unref?.();
-    waiters.push(waiter);
-  });
+  return function acquire(): Promise<() => void> {
+    if (active < max) {
+      active += 1;
+      return Promise.resolve(makeRelease());
+    }
+    return new Promise((resolve, reject) => {
+      const waiter = {
+        grant: () => {
+          clearTimeout(waitTimer);
+          resolve(makeRelease());
+        },
+      };
+      const waitTimer = setTimeout(() => {
+        const index = waiters.indexOf(waiter);
+        if (index >= 0) {
+          waiters.splice(index, 1);
+        }
+        reject(new FileBusyError());
+      }, acquireTimeoutMs);
+      waitTimer.unref?.();
+      waiters.push(waiter);
+    });
+  };
 }
 
-function release(): void {
-  const next = waiters.shift();
-  if (next) {
-    // 許可を待機中の呼び出しへ引き渡す（activeFilesは変えない）
-    next.grant();
-    return;
+const acquire = createSemaphore(MAX_CONCURRENT_FILES, ACQUIRE_TIMEOUT_MS);
+// ファイル本体用とは別カウンタ（HEADの集計がGETの本体保持を待たせない）
+const acquireHeadStats = createSemaphore(MAX_CONCURRENT_HEAD_STATS, HEAD_ACQUIRE_TIMEOUT_MS);
+
+/**
+ * HEADのDB集計を同時数制限つきで実行する。許可待ちがタイムアウトしたら`FileBusyError`
+ * （呼び出し側で503）。解放は正常・例外のいずれでも必ず行う。
+ */
+export async function withHeadStatsPermit<T>(task: () => Promise<T>): Promise<T> {
+  const releaseOnce = await acquireHeadStats();
+  try {
+    return await task();
+  } finally {
+    releaseOnce();
   }
-  activeFiles -= 1;
+}
+
+/** 503（no-store）。 */
+export function busyResponse(): Response {
+  return withNoStore(Response.json({ error: "Service Unavailable" }, { status: 503 }));
 }
 
 const NO_STORE = "private, no-store";
@@ -138,7 +168,7 @@ function fileHeaders(
 
 /**
  * HEAD用にDB側で集計した本体の統計（本体そのものはNodeへ転送しない）。
- * `head`は先頭プレフィックス、`cleanLength`はプレフィックス以降からbase64の文字以外（改行・空白）を
+ * `head`は先頭プレフィックス、`cleanLength`はプレフィックス以降から改行・空白（CR/LF/タブ/スペース）を
  * 除いた長さ、`cleanTail`はその末尾2文字、`firstPad`は最初の`=`の位置（1始まり、無ければ0）。
  */
 export interface PdfFileStats {
@@ -148,7 +178,11 @@ export interface PdfFileStats {
   firstPad: number;
 }
 
-/** Node 20の`Buffer.byteLength(str, "base64")`と同じ計算（パディング`=`を考慮）。 */
+/**
+ * `Buffer.from(str, "base64").length`と同じ計算（パディング`=`を考慮。末尾が切れた
+ * 余り1文字は0バイト、余り2文字は1バイト、余り3文字は2バイト＝`floor(size*3/4)`）。
+ * 途中に`=`を含む等の不正なデータでは実際のデコード結果と食い違い得る。
+ */
 export function base64DecodedSize(cleanLength: number, cleanTail: string): number {
   let size = cleanLength;
   if (size > 0 && cleanTail.endsWith("=")) {
@@ -158,11 +192,9 @@ export function base64DecodedSize(cleanLength: number, cleanTail: string): numbe
     }
   }
   const remainder = size % 4;
-  let bytes = Math.floor(size / 4) * 3;
-  if (remainder) {
-    bytes = bytes === 0 && remainder === 1 ? 0 : bytes + 1 + (remainder === 3 ? 1 : 0);
-  }
-  return bytes;
+  return (
+    Math.floor(size / 4) * 3 + (remainder === 1 ? 0 : remainder === 2 ? 1 : remainder === 3 ? 2 : 0)
+  );
 }
 
 /**
@@ -188,7 +220,10 @@ export function pdfFileHeadResponse(
     });
   }
   const length = base64DecodedSize(stats.cleanLength, stats.cleanTail);
-  return new Response(null, { status: 200, headers: fileHeaders(length, file.fileName, options) });
+  return new Response(null, {
+    status: 200,
+    headers: fileHeaders(length, file.fileName, options),
+  });
 }
 
 function bufferToStream(buffer: Buffer, onDone: () => void): ReadableStream<Uint8Array> {
@@ -235,7 +270,7 @@ export async function pdfFileResponse(
   } catch (error) {
     if (error instanceof FileBusyError) {
       logger.warn("document file delivery busy: acquire timed out", {});
-      return withNoStore(Response.json({ error: "Service Unavailable" }, { status: 503 }));
+      return busyResponse();
     }
     throw error;
   }

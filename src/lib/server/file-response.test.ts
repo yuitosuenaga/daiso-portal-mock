@@ -8,6 +8,7 @@ vi.mock("@/lib/server/logger", () => ({
 import { logger } from "@/lib/server/logger";
 import {
   ACQUIRE_TIMEOUT_MS,
+  HEAD_ACQUIRE_TIMEOUT_MS,
   MAX_HOLD_MS,
   base64DecodedSize,
   buildContentDisposition,
@@ -160,7 +161,7 @@ describe("withNoStore", () => {
 /** テスト用: GET本体と同じ計算になるはずの統計をJS側で作る（SQLの集計の代用）。 */
 function statsOf(dataUrl: string) {
   const head = dataUrl.slice(0, 300);
-  const clean = dataUrl.slice(dataUrl.indexOf(",") + 1).replace(/[^A-Za-z0-9+/=_-]/g, "");
+  const clean = dataUrl.slice(dataUrl.indexOf(",") + 1).replace(/[\r\n\t ]/g, "");
   return {
     head,
     cleanLength: clean.length,
@@ -184,6 +185,64 @@ describe("base64DecodedSize", () => {
         expect(base64DecodedSize(stats.cleanLength, stats.cleanTail)).toBe(
           Buffer.from(text, "base64").length
         );
+      }
+    }
+  });
+});
+
+describe("base64DecodedSize: Buffer.from(..., base64).lengthとの一致", () => {
+  const sizeOf = (text: string) => {
+    const stats = statsOf(`data:application/pdf;base64,${text}`);
+    return base64DecodedSize(stats.cleanLength, stats.cleanTail);
+  };
+  const expected = (text: string) => Buffer.from(text, "base64").length;
+
+  it("切れたbase64（余り1文字）でも一致する", () => {
+    for (const text of ["ABCDE", "ABCDEFGHI", "QUJDREVGR", "", "A", "AB", "ABC", "ABCD"]) {
+      expect(sizeOf(text)).toBe(expected(text));
+    }
+    expect(sizeOf("ABCDE")).toBe(3);
+    expect(sizeOf("ABCDEFGHI")).toBe(6);
+  });
+
+  it("パディング0/1/2の境界・CRLF入りで一致する", () => {
+    for (const text of ["QQ==", "QUI=", "QUJD", "QQ", "QUI", "QQ==\r\n", "QU\r\nJD\r\nRA==", "="]) {
+      expect(sizeOf(text)).toBe(expected(text));
+    }
+  });
+
+  it("長さ0〜40の規則的・ランダムな文字列で一致する（途中に=を含まない）", () => {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/-_";
+    let seed = 12345;
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed;
+    };
+    for (let length = 0; length <= 40; length += 1) {
+      for (let trial = 0; trial < 20; trial += 1) {
+        let body = "";
+        for (let i = 0; i < length; i += 1) {
+          body += alphabet[rand() % alphabet.length];
+        }
+        for (const text of [
+          body,
+          `${body}=`,
+          `${body}==`,
+          body.replace(/(.{5})/g, "$1\r\n"),
+          body.replace(/(.{3})/g, "$1 \t\n"),
+        ]) {
+          // 末尾のパディングは「直前までの長さが4の倍数に対する余り2/3」のときだけ正しい形になる
+          // （それ以外の=付きは不正データ扱いで食い違い得るため対象外）
+          const unpadded = text.replace(/[\r\n\t ]/g, "").replace(/=+$/, "");
+          const pad = text.replace(/[\r\n\t ]/g, "").length - unpadded.length;
+          const valid =
+            pad === 0 ||
+            (pad === 1 && unpadded.length % 4 === 3) ||
+            (pad === 2 && unpadded.length % 4 === 2);
+          if (valid) {
+            expect(sizeOf(text), JSON.stringify(text)).toBe(expected(text));
+          }
+        }
       }
     }
   });
@@ -393,5 +452,92 @@ describe("セマフォの保険（許可が戻らない場合）", () => {
     await held[0].body?.cancel();
     expect((await third).status).toBe(200);
     await held[1].body?.cancel();
+  });
+});
+
+describe("withHeadStatsPermit: HEAD集計の同時数制限", () => {
+  type Fresh = typeof import("@/lib/server/file-response");
+  let fresh: Fresh;
+  beforeEach(async () => {
+    vi.resetModules();
+    fresh = await import("@/lib/server/file-response");
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("50並列でも同時に走る集計は上限（3件）を超えず、全て完了する", async () => {
+    let running = 0;
+    let maxRunning = 0;
+    const results = await Promise.all(
+      Array.from({ length: 50 }, () =>
+        fresh.withHeadStatsPermit(async () => {
+          running += 1;
+          maxRunning = Math.max(maxRunning, running);
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          running -= 1;
+          return "ok";
+        })
+      )
+    );
+    expect(results).toHaveLength(50);
+    expect(maxRunning).toBeLessThanOrEqual(3);
+    expect(maxRunning).toBeGreaterThan(1);
+  });
+
+  it("許可待ちがタイムアウトしたらFileBusyError、保持分が戻れば後続が通る", async () => {
+    vi.useFakeTimers();
+    const gates: (() => void)[] = [];
+    const hold = () =>
+      fresh.withHeadStatsPermit(() => new Promise<void>((resolve) => gates.push(resolve)));
+    const held = [hold(), hold(), hold()];
+    const waiting = fresh.withHeadStatsPermit(async () => "late");
+    const settled = waiting.then(
+      () => "resolved",
+      (error: unknown) => error
+    );
+    await vi.advanceTimersByTimeAsync(HEAD_ACQUIRE_TIMEOUT_MS);
+    expect(await settled).toBeInstanceOf(fresh.FileBusyError);
+    expect(fresh.busyResponse().status).toBe(503);
+    expect(fresh.busyResponse().headers.get("Cache-Control")).toBe("private, no-store");
+
+    gates.forEach((open) => open());
+    await Promise.all(held);
+    await expect(fresh.withHeadStatsPermit(async () => "after")).resolves.toBe("after");
+  });
+
+  it("タスクが例外でも許可が解放され、二重解放もされない", async () => {
+    // 3件が例外で終わっても、その後に許可が3件ちょうど使える（4件目は待たされる）
+    for (let i = 0; i < 10; i += 1) {
+      await expect(
+        fresh.withHeadStatsPermit(async () => {
+          throw new Error("db down");
+        })
+      ).rejects.toThrow("db down");
+    }
+    const gates: (() => void)[] = [];
+    const hold = () =>
+      fresh.withHeadStatsPermit(() => new Promise<void>((resolve) => gates.push(resolve)));
+    const held = [hold(), hold(), hold()];
+    let fourthStarted = false;
+    const fourth = fresh.withHeadStatsPermit(async () => {
+      fourthStarted = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(gates).toHaveLength(3);
+    expect(fourthStarted).toBe(false);
+    gates.forEach((open) => open());
+    await Promise.all([...held, fourth]);
+    expect(fourthStarted).toBe(true);
+  });
+
+  it("ファイル本体用の許可とは別カウンタ（GETが埋まっていてもHEAD集計は走る）", async () => {
+    await fresh.pdfFileResponse(async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }), {
+      download: false,
+    });
+    await fresh.pdfFileResponse(async () => ({ fileName: "a.pdf", dataUrl: PDF_DATA_URL }), {
+      download: false,
+    });
+    await expect(fresh.withHeadStatsPermit(async () => "ok")).resolves.toBe("ok");
   });
 });

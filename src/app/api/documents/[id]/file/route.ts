@@ -9,7 +9,14 @@ import {
   findDocumentFileVisibleTo,
   getDocumentFileStats,
 } from "@/lib/server/document-service";
-import { pdfFileHeadResponse, pdfFileResponse, withNoStore } from "@/lib/server/file-response";
+import {
+  FileBusyError,
+  busyResponse,
+  pdfFileHeadResponse,
+  pdfFileResponse,
+  withHeadStatsPermit,
+  withNoStore,
+} from "@/lib/server/file-response";
 import { getSession } from "@/lib/server/get-session";
 
 interface RouteParams {
@@ -44,7 +51,16 @@ async function handle(request: Request, props: RouteParams, head: boolean): Prom
 
     if (head) {
       // HEADは本体を読まず、DB側で集計した長さ・先頭・末尾だけでヘッダーを組み立てる
-      const stats = await getDocumentFileStats(meta.id);
+      // DB側の集計は同時数を制限する（待ちが長引いたら503）
+      let stats;
+      try {
+        stats = await withHeadStatsPermit(() => getDocumentFileStats(meta.id));
+      } catch (error) {
+        if (error instanceof FileBusyError) {
+          return busyResponse();
+        }
+        throw error;
+      }
       if (!stats) {
         return withNoStore(NextResponse.json({ error: "Not Found" }, { status: 404 }));
       }

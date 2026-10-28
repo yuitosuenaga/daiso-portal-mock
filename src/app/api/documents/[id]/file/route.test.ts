@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/server/get-session", () => ({ getSession: vi.fn() }));
 vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
@@ -36,7 +36,12 @@ const applicantSession = {
   },
 };
 const helpdeskSession = {
-  claims: { id: "staff-1", role: "helpdesk" as const, staffId: "staff-1", displayName: "田中" },
+  claims: {
+    id: "staff-1",
+    role: "helpdesk" as const,
+    staffId: "staff-1",
+    displayName: "田中",
+  },
 };
 
 const PDF_BYTES = Buffer.from("%PDF-1.4 route test");
@@ -147,7 +152,9 @@ describe("GET /api/documents/[id]/file", () => {
 
 describe("HEAD /api/documents/[id]/file", () => {
   const head = (url = "http://localhost/api/documents/doc-1/file") =>
-    HEAD(new Request(url, { method: "HEAD" }), { params: Promise.resolve({ id: "doc-1" }) });
+    HEAD(new Request(url, { method: "HEAD" }), {
+      params: Promise.resolve({ id: "doc-1" }),
+    });
 
   it("可視ならボディなしでGETと同じヘッダーを返し、何度呼んでもGETが詰まらない", async () => {
     vi.mocked(getSession).mockResolvedValue(applicantSession as never);
@@ -205,6 +212,67 @@ describe("HEAD /api/documents/[id]/file", () => {
     expect(response.status).toBe(200);
     expect(findDocumentFileMetaById).toHaveBeenCalledWith("doc-1");
     expect(findDocumentFileById).not.toHaveBeenCalled();
+  });
+});
+
+describe("HEAD /api/documents/[id]/file: DB集計の同時数制限", () => {
+  const head = () =>
+    HEAD(
+      new Request("http://localhost/api/documents/doc-1/file", {
+        method: "HEAD",
+      }),
+      {
+        params: Promise.resolve({ id: "doc-1" }),
+      }
+    );
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("50並列でも、同時にDB集計が走るのは最大3件で、全て200", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    let running = 0;
+    let maxRunning = 0;
+    vi.mocked(getDocumentFileStats).mockImplementation(async () => {
+      running += 1;
+      maxRunning = Math.max(maxRunning, running);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      running -= 1;
+      return stats;
+    });
+    const responses = await Promise.all(Array.from({ length: 50 }, () => head()));
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+    expect(maxRunning).toBeLessThanOrEqual(3);
+  });
+
+  it("許可待ちが長引いたら503（no-store）、集計が例外でも許可は戻る", async () => {
+    vi.mocked(getSession).mockResolvedValue(applicantSession as never);
+    vi.useFakeTimers();
+    const gates: (() => void)[] = [];
+    vi.mocked(getDocumentFileStats).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          gates.push(() => resolve(stats));
+        })
+    );
+    const held = [head(), head(), head()];
+    await vi.advanceTimersByTimeAsync(0);
+    const waiting = head();
+    await vi.advanceTimersByTimeAsync(15_000);
+    const busy = await waiting;
+    expect(busy.status).toBe(503);
+    expect(busy.headers.get("Cache-Control")).toBe("private, no-store");
+
+    gates.forEach((open) => open());
+    expect((await Promise.all(held)).every((response) => response.status === 200)).toBe(true);
+
+    vi.mocked(getDocumentFileStats).mockRejectedValue(new Error("db down"));
+    for (let i = 0; i < 10; i += 1) {
+      expect((await head()).status).toBe(500);
+    }
+    vi.mocked(getDocumentFileStats).mockResolvedValue(stats);
+    expect((await head()).status).toBe(200);
   });
 });
 
