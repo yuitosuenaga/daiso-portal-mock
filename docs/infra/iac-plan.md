@@ -20,7 +20,7 @@
 
 - **Cloud Run `portal-mock`**（asia-northeast1）
   - 実行SA: デフォルト compute SA（`700069905019-compute@developer.gserviceaccount.com`）
-  - cpu 1 / memory 512Mi / concurrency 80 / timeout 300s / startup-cpu-boost / **maxScale=1** / ingress=all
+  - cpu 1 / memory 512Mi(2026-10-28 に Terraform の設定値を 1Gi へ変更。適用状況は runbook.md §3.1.1) / concurrency 80 / timeout 300s / startup-cpu-boost / **maxScale=1** / ingress=all
   - Cloud SQL 接続: `rvp-ai-proto-camp:asia-northeast1:portal-mock-backend-db`
   - IAM: `allUsers` に `roles/run.invoker`
   - 環境変数: `DATABASE_URL` / `AUTH_SECRET` / `AUTH_TRUST_HOST` / `AUTH_URL` は**すべて平文**。`ANTHROPIC_API_KEY` のみ Secret 参照

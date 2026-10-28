@@ -185,7 +185,7 @@ variable "cloudrun_cpu" {
 
 variable "cloudrun_memory" {
   type    = string
-  default = "512Mi"
+  default = "1Gi"
 }
 
 variable "cloudrun_concurrency" {
