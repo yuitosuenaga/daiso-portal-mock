@@ -4,23 +4,23 @@ import { neutralizeFormulaCell, parseCsv, restoreFormulaCell, toCsv } from "@/li
 
 describe("toCsv", () => {
   it("BOM付き・CRLF・全セルをクォートする", () => {
-    expect(toCsv([["a", "b"], ["1", "2"]])).toBe('﻿"a","b"\r\n"1","2"\r\n');
+    expect(toCsv([["a", "b"], ["1", "2"]])).toBe('\uFEFF"a","b"\r\n"1","2"\r\n');
   });
 
   it("ダブルクォートは二重化する", () => {
-    expect(toCsv([['say "hi"']])).toBe('﻿"say ""hi"""\r\n');
+    expect(toCsv([['say "hi"']])).toBe('\uFEFF"say ""hi"""\r\n');
   });
 
   it("カンマ・改行を含むセルもそのまま保持する", () => {
-    expect(toCsv([["a,b", "x\ny"]])).toBe('﻿"a,b","x\ny"\r\n');
+    expect(toCsv([["a,b", "x\ny"]])).toBe('\uFEFF"a,b","x\ny"\r\n');
   });
 
   it("空セルは空クォートになる", () => {
-    expect(toCsv([["", "x"]])).toBe('﻿"","x"\r\n');
+    expect(toCsv([["", "x"]])).toBe('\uFEFF"","x"\r\n');
   });
 
   it("行が無ければBOMのみ", () => {
-    expect(toCsv([])).toBe("﻿");
+    expect(toCsv([])).toBe("\uFEFF");
   });
 });
 
@@ -50,7 +50,7 @@ describe("parseCsv", () => {
   });
 
   it("先頭BOMを除去する", () => {
-    expect(parseCsv('﻿"a","b"\r\n')).toEqual([["a", "b"]]);
+    expect(parseCsv('\uFEFF"a","b"\r\n')).toEqual([["a", "b"]]);
   });
 
   it("クォート内の改行・カンマ・二重クォートを扱う", () => {
@@ -67,7 +67,7 @@ describe("parseCsv", () => {
 
   it("空入力は空配列", () => {
     expect(parseCsv("")).toEqual([]);
-    expect(parseCsv("﻿")).toEqual([]);
+    expect(parseCsv("\uFEFF")).toEqual([]);
   });
 });
 

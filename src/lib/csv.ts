@@ -3,7 +3,7 @@
  * 出力はUTF-8 BOM付き・CRLF・全セルをダブルクォートで囲む形式（Excelでの文字化け・型推測を避ける）。
  */
 
-const BOM = "﻿";
+const BOM = "\uFEFF";
 const FORMULA_LEADS = new Set(["=", "+", "-", "@", "\t", "\r"]);
 
 /** 行列をCSV文字列にする。全セルを`"`で囲み、`"`は`""`にエスケープ。先頭にBOM、各行末はCRLF。 */
