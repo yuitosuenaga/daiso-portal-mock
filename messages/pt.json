@@ -803,6 +803,7 @@
       "empty": "Nenhum membro da equipe cadastrado",
       "error": "Falha ao obter os membros da equipe",
       "addButton": "Adicionar membro",
+      "exportButton": "Exportar CSV",
       "emailHeader": "Endereço de e-mail",
       "displayNameHeader": "Nome de exibição",
       "roleHeader": "Função",

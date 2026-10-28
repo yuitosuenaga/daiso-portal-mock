@@ -803,6 +803,7 @@
       "empty": "スタッフが登録されていません",
       "error": "スタッフの取得に失敗しました",
       "addButton": "スタッフを追加",
+      "exportButton": "CSVエクスポート",
       "emailHeader": "メールアドレス",
       "displayNameHeader": "表示名",
       "roleHeader": "ロール",
