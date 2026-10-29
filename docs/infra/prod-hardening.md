@@ -43,6 +43,13 @@
 - 設定変更はインスタンスの再起動を伴うことがある（PITR 有効化は通常再起動あり）。メンテナンス時間帯に実施する。
 - 自動バックアップはインスタンス削除と同時に消える。**インスタンス削除・プロジェクト障害への備えは次の GCS エクスポートが担う**。
 
+### メンテナンスウィンドウ
+- Cloud SQL は、Google による更新(再起動を伴う)を行う。時間帯を指定しない場合は API 既定のタイミングで実行される。
+- `db_maintenance_window_day`(1=月〜7=日、既定 null=指定しない)を指定すると、`db_maintenance_window_hour`(UTC の時。既定 18 = JST 03:00)から更新される。`db_maintenance_update_track` は `stable`(既定。更新が遅く届く)か `canary`。
+- 本番は業務時間外かつ、お知らせの公開・督促(JST 9:00)・ログ保持(既定 JST 4:00)の Scheduler を避ける。クライアントの業務カレンダーで曜日と時間を決めること。
+- 設定値の確認は `gcloud sql instances describe <名前> --format='value(settings.maintenanceWindow)'` で行う。
+- HA 無効(`db_high_availability=false`)では、更新中に数分の停止が起きる。
+
 ### 定期 SQL エクスポート
 - Scheduler が専用 SA（`<db名>-export`）で `sqladmin.googleapis.com/.../export` を POST し、固定ファイル名 `<db名>.sql.gz` を GCS に上書き出力する。
 - バケットはバージョニング有効 + ライフサイクルで非現行世代を `db_export_retention_days` 日後に削除し、日次世代を保持する。公開禁止・uniform access・`force_destroy=false`。
