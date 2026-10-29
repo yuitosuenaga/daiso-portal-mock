@@ -1,128 +1,216 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1160" font-family="system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif">
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#52514e"/>
-    </marker>
-  </defs>
-
-  <!-- page background -->
-  <rect x="0" y="0" width="1600" height="1160" fill="#f9f9f7"/>
-
-  <!-- title -->
-  <text x="800" y="42" text-anchor="middle" font-size="26" font-weight="700" fill="#0b0b0b">ヘルプデスクポータル システム構成図（インフラレビュー用）</text>
-  <text x="800" y="68" text-anchor="middle" font-size="14" fill="#52514e">作成日: 2026-09-07 ／ 実装状況（実装済み・一部実装・想定のみ）をステータスバッジで区別</text>
-
-  <!-- ==================== 利用者ゾーン ==================== -->
-  <rect x="60" y="96" width="640" height="180" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
-  <text x="80" y="122" font-size="15" font-weight="700" fill="#0b0b0b">利用者（daisojapan.com ドメインの Google アカウント保有）</text>
-
-  <rect x="90" y="140" width="270" height="110" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <text x="225" y="185" text-anchor="middle" font-size="16" font-weight="700" fill="#0b0b0b">日本大創</text>
-  <text x="225" y="208" text-anchor="middle" font-size="13" fill="#52514e">ヘルプデスク担当者</text>
-  <text x="225" y="226" text-anchor="middle" font-size="12" fill="#898781">問い合わせ対応／各種管理</text>
-
-  <rect x="390" y="140" width="270" height="110" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <text x="525" y="178" text-anchor="middle" font-size="16" font-weight="700" fill="#0b0b0b">海外販社・代理店担当者</text>
-  <text x="525" y="200" text-anchor="middle" font-size="13" fill="#52514e">（20か国以上）</text>
-  <text x="525" y="222" text-anchor="middle" font-size="12" fill="#898781">問い合わせ提出／閲覧</text>
-
-  <!-- users -> cloud -->
-  <path d="M225,250 L225,275 L390,275 L390,300" fill="none" stroke="#52514e" stroke-width="2"/>
-  <path d="M525,250 L525,300" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
-  <path d="M225,275 L225,300" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="300" y="270" font-size="12" fill="#52514e">HTTPS</text>
-
-  <!-- ==================== クラウド環境ゾーン ==================== -->
-  <rect x="60" y="310" width="640" height="360" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
-  <text x="80" y="336" font-size="15" font-weight="700" fill="#0b0b0b">クラウド環境（GCP / AWS 想定）</text>
-
-  <rect x="100" y="360" width="280" height="100" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <text x="240" y="392" text-anchor="middle" font-size="15" font-weight="700" fill="#0b0b0b">Webアプリケーション</text>
-  <text x="240" y="412" text-anchor="middle" font-size="12" fill="#52514e">Next.js（フロント＋API一体）</text>
-  <text x="240" y="430" text-anchor="middle" font-size="12" fill="#898781">［現行: Cloud Run］</text>
-
-  <rect x="100" y="500" width="280" height="100" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <text x="240" y="532" text-anchor="middle" font-size="15" font-weight="700" fill="#0b0b0b">データベース</text>
-  <text x="240" y="552" text-anchor="middle" font-size="12" fill="#52514e">PostgreSQL</text>
-  <text x="240" y="570" text-anchor="middle" font-size="12" fill="#898781">［現行: Cloud SQL］</text>
-
-  <rect x="420" y="500" width="240" height="100" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <text x="540" y="527" text-anchor="middle" font-size="14" font-weight="700" fill="#0b0b0b">定期実行ジョブ</text>
-  <text x="540" y="547" text-anchor="middle" font-size="12" fill="#52514e">お知らせ督促・</text>
-  <text x="540" y="562" text-anchor="middle" font-size="12" fill="#52514e">エスカレーション通知</text>
-  <text x="540" y="582" text-anchor="middle" font-size="11" fill="#898781">［現行: Cloud Scheduler］</text>
-
-  <path d="M240,460 L240,500" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
-  <path d="M420,550 L380,550" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
-
-  <!-- legend -->
-  <text x="80" y="655" font-size="13" font-weight="700" fill="#0b0b0b">ステータス凡例：</text>
-  <circle cx="230" cy="650" r="7" fill="#0ca30c"/>
-  <text x="244" y="655" font-size="12" fill="#0b0b0b">実装済み</text>
-  <circle cx="340" cy="650" r="7" fill="#fab219"/>
-  <text x="354" y="655" font-size="12" fill="#0b0b0b">一部実装／未接続</text>
-  <circle cx="500" cy="650" r="7" fill="#d03b3b"/>
-  <text x="514" y="655" font-size="12" fill="#0b0b0b">想定のみ・未実装</text>
-
-  <!-- ==================== 外部サービス連携ゾーン ==================== -->
-  <rect x="760" y="96" width="780" height="820" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
-  <text x="780" y="122" font-size="15" font-weight="700" fill="#0b0b0b">外部サービス連携</text>
-
-  <!-- box: Google Workspace SSO -->
-  <rect x="800" y="150" width="700" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <rect x="1400" y="164" width="86" height="26" rx="13" fill="#d03b3b"/>
-  <text x="1443" y="182" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">想定のみ</text>
-  <text x="820" y="182" font-size="15" font-weight="700" fill="#0b0b0b">① Google Workspace SSO</text>
-  <text x="820" y="204" font-size="12" fill="#52514e">daisojapan.com ドメイン限定の Google 認証</text>
-  <text x="820" y="224" font-size="12" fill="#52514e">用途: 利用者認証</text>
-  <text x="820" y="248" font-size="12" fill="#898781">現状: 未実装。メール＋パスワードの</text>
-  <text x="820" y="266" font-size="12" fill="#898781">Credentials 認証（DB内bcryptハッシュ）で代替</text>
-  <text x="820" y="286" font-size="12" fill="#898781">将来的にドメイン限定のGoogle OAuthへ切替想定</text>
-
-  <!-- box: SMTP mail -->
-  <rect x="800" y="320" width="700" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <rect x="1360" y="334" width="126" height="26" rx="13" fill="#fab219"/>
-  <text x="1423" y="352" text-anchor="middle" font-size="12" font-weight="700" fill="#0b0b0b">一部実装</text>
-  <text x="820" y="352" font-size="15" font-weight="700" fill="#0b0b0b">② メール配信サービス（SMTP）</text>
-  <text x="820" y="374" font-size="12" fill="#52514e">用途: お知らせの緊急通知・督促メール送信</text>
-  <text x="820" y="398" font-size="12" fill="#898781">現状: nodemailerによるSMTP送信コードは実装済み。</text>
-  <text x="820" y="416" font-size="12" fill="#898781">本番環境のSMTP接続情報（ホスト・認証情報等）は</text>
-  <text x="820" y="434" font-size="12" fill="#898781">未設定のため現状は無効（送信スキップ）</text>
-
-  <!-- box: Google Drive -->
-  <rect x="800" y="490" width="700" height="170" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <rect x="1360" y="504" width="126" height="26" rx="13" fill="#fab219"/>
-  <text x="1423" y="522" text-anchor="middle" font-size="12" font-weight="700" fill="#0b0b0b">一部実装</text>
-  <text x="820" y="522" font-size="15" font-weight="700" fill="#0b0b0b">③ Google Drive／Docs／Sheets／Slides</text>
-  <text x="820" y="544" font-size="12" fill="#52514e">用途: ヘルプデスク登録資料の共有リンクを</text>
-  <text x="820" y="562" font-size="12" fill="#52514e">申請者側で埋め込み表示</text>
-  <text x="820" y="584" font-size="12" fill="#898781">現状: 公開共有リンクURLを &lt;iframe&gt; でそのまま埋め込むのみ。</text>
-  <text x="820" y="602" font-size="12" fill="#898781">Drive APIによる認可連携・一覧取得は未使用。利用者単位の</text>
-  <text x="820" y="620" font-size="12" fill="#898781">アクセス出し分けは現在検討中</text>
-  <text x="820" y="642" font-size="12" font-weight="700" fill="#52514e">※ 外部共有サービス「CmosyPocket」への置き換えも検討中</text>
-
-  <!-- box: Translation API -->
-  <rect x="800" y="680" width="700" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
-  <rect x="1400" y="694" width="86" height="26" rx="13" fill="#d03b3b"/>
-  <text x="1443" y="712" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">想定のみ</text>
-  <text x="820" y="712" font-size="15" font-weight="700" fill="#0b0b0b">④ Google Cloud Translation API</text>
-  <text x="820" y="734" font-size="12" fill="#52514e">用途: 問い合わせ・申請フォーム自由記述欄の多言語翻訳</text>
-  <text x="820" y="758" font-size="12" fill="#898781">現状: 未実装。開発フェーズ3以降で対応予定。</text>
-  <text x="820" y="776" font-size="12" fill="#898781">データモデル上は翻訳結果を保持するフィールドのみ用意済み</text>
-
-  <!-- Webアプリ -> external services (折れ線ルーティングで他ボックスとの交差を回避) -->
-  <path d="M380,372 L705,372 L705,225 L800,225" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-  <path d="M380,392 L720,392 L720,410 L800,410" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-  <path d="M380,412 L735,412 L735,575 L800,575" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-  <path d="M380,432 L750,432 L750,755 L800,755" fill="none" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-
-  <!-- ==================== インフラチームへの確認事項 ==================== -->
-  <rect x="60" y="940" width="1480" height="210" rx="10" fill="#ffffff" stroke="#c3c2b7" stroke-width="2"/>
-  <text x="80" y="968" font-size="15" font-weight="700" fill="#0b0b0b">インフラチームへの確認事項</text>
-  <text x="80" y="994" font-size="13" fill="#0b0b0b">・Google Workspace SSO導入時、ドメイン制限（daisojapan.comのみ許可）をIdP側／アプリ側どちらで担保するか</text>
-  <text x="80" y="1018" font-size="13" fill="#0b0b0b">・SMTP送信先を外部メール配信サービスにするか社内SMTPリレー経由にするか、送信元ドメインのSPF／DKIM設定</text>
-  <text x="80" y="1042" font-size="13" fill="#0b0b0b">・Google Driveの共有リンクをユーザー単位で出し分ける場合、Drive API連携（OAuth委任・サービスアカウント等）への切替要否。CmosyPocket採用案との比較</text>
-  <text x="80" y="1066" font-size="13" fill="#0b0b0b">・Cloud Run（allUsersにinvoker権限を付与し一般公開）＋Cloud SQL（組み込みAuth Proxy経由）構成のまま本番化してよいか</text>
-  <text x="80" y="1090" font-size="13" fill="#0b0b0b">・Translation API導入時の送信データ（自由記述欄の内容）の越境処理・データ保持ポリシー</text>
-  <text x="80" y="1120" font-size="12" fill="#898781">詳細な補足・状態一覧は同ディレクトリの system-architecture.md を参照</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1370" font-family="system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52514e"/></marker></defs>
+<rect x="0" y="0" width="1800" height="1370" fill="#f9f9f7"/>
+<text x="900.0" y="42" text-anchor="middle" font-size="26" font-weight="700" fill="#0b0b0b">ヘルプデスクポータル システム構成図（インフラレビュー用・GCP）</text>
+<text x="900.0" y="68" text-anchor="middle" font-size="14" font-weight="400" fill="#52514e">更新日: 2026-10-30 ／ 外側の枠 → 入口 → 通信の流れ → 守っている場所（青丸の番号）→ 運用（下段）の順に読む</text>
+<text x="40" y="98" text-anchor="start" font-size="12" font-weight="700" fill="#0b0b0b">凡例:</text>
+<circle cx="102" cy="93" r="6" fill="#2e9e5b"/>
+<text x="114" y="98" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">実装済み</text>
+<circle cx="252" cy="93" r="6" fill="#e8a200"/>
+<text x="264" y="98" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">任意・既定OFF</text>
+<circle cx="402" cy="93" r="6" fill="#d9453b"/>
+<text x="414" y="98" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">未導入</text>
+<circle cx="560" cy="93" r="10" fill="#1f5fbf"/>
+<text x="560" y="98" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">n</text>
+<text x="578" y="98" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">守っている場所（下段の一覧に対応）</text>
+<text x="860" y="98" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">実線＝現行の通信　破線＝任意・未導入</text>
+<rect x="30" y="110" width="250" height="330" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+<text x="44" y="134" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">利用者（ブラウザ）</text>
+<rect x="50" y="150" width="210" height="120" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="64" y="178" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">日本大創</text>
+<text x="64" y="202" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">ヘルプデスク担当者</text>
+<text x="64" y="220" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">問い合わせ対応</text>
+<text x="64" y="238" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">お知らせ・資料・FAQの管理</text>
+<rect x="50" y="290" width="210" height="120" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="64" y="318" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">海外販社・代理店担当者</text>
+<text x="64" y="342" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">20か国以上</text>
+<text x="64" y="360" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">問い合わせ提出</text>
+<text x="64" y="378" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">お知らせ・資料の閲覧</text>
+<rect x="320" y="110" width="1000" height="740" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+<text x="334" y="134" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Google Cloud プロジェクト（現行: rvp-ai-proto-camp ／ 本番: クライアントの新規プロジェクト）</text>
+<rect x="340" y="150" width="960" height="685" rx="10" fill="#f4f6fb" stroke="#a9b7d6" stroke-width="2"/>
+<text x="354" y="172" text-anchor="start" font-size="14" font-weight="700" fill="#2c4a85">リージョン asia-northeast1（東京）</text>
+<rect x="360" y="190" width="240" height="100" rx="8" fill="#fcfcfb" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+<text x="374" y="218" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">LB + Cloud Armor / IAP</text>
+<rect x="526" y="178" width="64" height="24" rx="12" fill="#d9453b"/>
+<text x="558.0" y="195" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">未導入</text>
+<text x="374" y="242" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">IP制限・レート制限を置く場所</text>
+<text x="374" y="260" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Phase 5 の積み残し</text>
+<rect x="640" y="300" width="300" height="200" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="654" y="328" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Cloud Run: portal-mock</text>
+<rect x="852" y="288" width="78" height="24" rx="12" fill="#2e9e5b"/>
+<text x="891.0" y="305" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">実装済み</text>
+<text x="654" y="352" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Next.js 15（画面とAPIが一体）</text>
+<text x="654" y="370" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Auth.js v5（JWTセッション）</text>
+<text x="654" y="388" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">公開URL: *.run.app（HTTPS）</text>
+<text x="654" y="406" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">allUsers に run.invoker を付与</text>
+<text x="654" y="424" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">1 vCPU / 1Gi（Terraform設定値）</text>
+<rect x="640" y="190" width="300" height="90" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="654" y="218" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Cloud Scheduler</text>
+<rect x="796" y="178" width="134" height="24" rx="12" fill="#e8a200"/>
+<text x="863.0" y="195" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">任意・既定OFF</text>
+<text x="654" y="242" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">督促・エスカレーション・ログ保持削除</text>
+<text x="654" y="260" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">→ /api/cron/*（現行環境はジョブなし）</text>
+<rect x="620" y="540" width="340" height="275" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+<text x="634" y="562" text-anchor="start" font-size="13" font-weight="700" fill="#0b0b0b">VPC / Private Service Access</text>
+<text x="634" y="580" text-anchor="start" font-size="12" font-weight="700" fill="#d9453b">Terraform実装済み・既定OFF・現行は未適用</text>
+<rect x="634" y="590" width="256" height="28" rx="6" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="1.5" stroke-dasharray="4,4"/>
+<text x="644" y="609" text-anchor="start" font-size="11" font-weight="400" fill="#52514e">サブネット（Direct VPC egress用）</text>
+<rect x="640" y="630" width="300" height="170" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="654" y="658" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Cloud SQL for PostgreSQL 16</text>
+<rect x="852" y="766" width="78" height="24" rx="12" fill="#2e9e5b"/>
+<text x="891.0" y="783" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">実装済み</text>
+<text x="654" y="682" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">db-f1-micro・ZONAL（zone b）</text>
+<text x="654" y="700" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">自動バックアップ・削除保護・TLS必須</text>
+<text x="654" y="718" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">PITR無効・定期エクスポートは既定OFF</text>
+<text x="654" y="736" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">現行: public IP（Auth Proxy 経由）</text>
+<rect x="360" y="540" width="230" height="150" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="374" y="568" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Secret Manager</text>
+<rect x="502" y="528" width="78" height="24" rx="12" fill="#2e9e5b"/>
+<text x="541.0" y="545" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">実装済み</text>
+<text x="374" y="592" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">database-url / auth-secret</text>
+<text x="374" y="610" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">google-oauth-id・secret</text>
+<text x="374" y="628" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">smtp-user・pass / anthropic</text>
+<text x="374" y="646" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">cron-secret（secret単位の権限）</text>
+<rect x="990" y="600" width="290" height="110" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1004" y="628" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Cloud Run Job: migrate</text>
+<rect x="1136" y="588" width="134" height="24" rx="12" fill="#e8a200"/>
+<text x="1203.0" y="605" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">任意・既定OFF</text>
+<text x="1004" y="652" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">prisma migrate deploy</text>
+<text x="1004" y="670" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">デプロイ前に手動実行</text>
+<rect x="1360" y="110" width="410" height="725" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+<text x="1374" y="134" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">外部サービス（インターネット側）</text>
+<rect x="1380" y="150" width="370" height="135" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1394" y="178" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Google OAuth（Workspace）</text>
+<rect x="1662" y="138" width="78" height="24" rx="12" fill="#2e9e5b"/>
+<text x="1701.0" y="155" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">実装済み</text>
+<text x="1394" y="202" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">ヘルプデスク・申請者のログイン</text>
+<text x="1394" y="220" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">許可ドメインのみ（サーバー側検証）</text>
+<text x="1394" y="238" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">現行: revamp.co.jp ／ 本番: クライアントのみ</text>
+<text x="1394" y="256" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">メール+パスワード認証も並存</text>
+<rect x="1380" y="305" width="370" height="115" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1394" y="333" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Anthropic API（Claude）</text>
+<rect x="1606" y="293" width="134" height="24" rx="12" fill="#e8a200"/>
+<text x="1673.0" y="310" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">任意・既定OFF</text>
+<text x="1394" y="357" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">問い合わせ自由記述の多言語翻訳</text>
+<text x="1394" y="375" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">enable_translation で ANTHROPIC_API_KEY を注入</text>
+<text x="1394" y="393" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">旧図の Cloud Translation API は不採用</text>
+<rect x="1380" y="440" width="370" height="115" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1394" y="468" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">SMTP メール配信</text>
+<rect x="1606" y="428" width="134" height="24" rx="12" fill="#e8a200"/>
+<text x="1673.0" y="445" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">任意・既定OFF</text>
+<text x="1394" y="492" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">お知らせの緊急通知・督促メール</text>
+<text x="1394" y="510" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">enable_smtp で接続情報を注入</text>
+<text x="1394" y="528" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">本番の接続先は未確定（未設定の間は送信スキップ）</text>
+<rect x="1380" y="575" width="370" height="115" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1394" y="603" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Google Drive / Docs / Sheets / Slides</text>
+<rect x="1662" y="563" width="78" height="24" rx="12" fill="#e8a200"/>
+<text x="1701.0" y="580" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">一部実装</text>
+<text x="1394" y="627" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">公開共有リンクを iframe で埋め込み表示</text>
+<text x="1394" y="645" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">ブラウザが直接取得（Drive API連携ではない）</text>
+<text x="1394" y="663" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">CmosyPocket への置き換えを検討中</text>
+<path d="M280,220 L300,220 L300,400 L640,400" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="440" y="392" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">HTTPS</text>
+<path d="M280,350 L300,350" fill="none" stroke="#52514e" stroke-width="2"/>
+<path d="M480,290 L480,360 L640,360" fill="none" stroke="#52514e" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow)"/>
+<text x="496" y="330" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">将来はここを経由</text>
+<path d="M790,280 L790,300" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="650" y="294" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">x-cron-secret / OIDC</text>
+<path d="M910,500 L910,630" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="770" y="523" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Auth Proxy（組込み）</text>
+<path d="M590,610 L615,610 L615,470 L640,470" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M990,650 L940,650" fill="none" stroke="#52514e" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow)"/>
+<path d="M940,330 L1060,330 L1060,217 L1380,217" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1180" y="209" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">認証（OAuth）</text>
+<path d="M940,380 L1380,380" fill="none" stroke="#52514e" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow)"/>
+<text x="1100" y="372" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">翻訳API呼び出し</text>
+<path d="M940,440 L1060,440 L1060,497 L1380,497" fill="none" stroke="#52514e" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow)"/>
+<text x="1190" y="489" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">SMTP送信</text>
+<circle cx="400" cy="400" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="400" y="405" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
+<circle cx="925" cy="485" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="925" y="490" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
+<circle cx="912" cy="520" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="912" y="525" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
+<circle cx="940" cy="680" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="940" y="685" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
+<circle cx="603" cy="580" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="603" y="585" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">5</text>
+<circle cx="812" cy="290" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="812" y="295" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">6</text>
+<circle cx="360" cy="190" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="360" y="195" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">7</text>
+<circle cx="895" cy="485" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="895" y="490" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">8</text>
+<rect x="30" y="870" width="1740" height="220" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2" stroke-dasharray="6,5"/>
+<text x="44" y="894" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">運用の仕組み（監視・ログ・バックアップ・デプロイ）</text>
+<rect x="50" y="910" width="330" height="160" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="64" y="938" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Cloud Logging</text>
+<rect x="292" y="898" width="78" height="24" rx="12" fill="#e8a200"/>
+<text x="331.0" y="915" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">一部実装</text>
+<text x="64" y="962" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">構造化ログ（auth監査・api-errors）</text>
+<text x="64" y="980" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">ログバケット保持: 既定 30日</text>
+<text x="64" y="998" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">AuthEvent は DB に365日保持</text>
+<text x="64" y="1016" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">セキュリティ用シンク・Data Access は未設定</text>
+<rect x="400" y="910" width="340" height="160" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="414" y="938" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Cloud Monitoring</text>
+<rect x="652" y="898" width="78" height="24" rx="12" fill="#e8a200"/>
+<text x="691.0" y="915" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">一部実装</text>
+<text x="414" y="962" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">5xx率&gt;5%・p95&gt;3s・SQL CPU/ディスク/停止</text>
+<text x="414" y="980" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">ERROR ログ1件で通知（#229）</text>
+<text x="414" y="998" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">uptime check・通知はメール1件のみ</text>
+<text x="414" y="1016" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">認証・IAM系のアラートは未設定</text>
+<rect x="760" y="910" width="290" height="160" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="774" y="938" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">バックアップ・予算</text>
+<rect x="962" y="898" width="78" height="24" rx="12" fill="#e8a200"/>
+<text x="1001.0" y="915" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">一部実装</text>
+<text x="774" y="962" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Cloud SQL 自動バックアップ（PITRなし）</text>
+<text x="774" y="980" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">定期エクスポート → GCS（既定OFF）</text>
+<text x="774" y="998" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Budget アラート（モジュールのみ）</text>
+<text x="774" y="1016" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">復旧手順: runbook §2</text>
+<rect x="1070" y="910" width="320" height="160" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1084" y="938" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">Terraform</text>
+<rect x="1302" y="898" width="78" height="24" rx="12" fill="#2e9e5b"/>
+<text x="1341.0" y="915" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">実装済み</text>
+<text x="1084" y="962" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">infra/（modules・envs dev/prod）</text>
+<text x="1084" y="980" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">state: GCS バケット（tfstate）</text>
+<text x="1084" y="998" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">apply は担当者のローカルから実施</text>
+<text x="1084" y="1016" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">月次 plan でドリフト確認（runbook §6）</text>
+<rect x="1410" y="910" width="340" height="160" rx="8" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="2"/>
+<text x="1424" y="938" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">デプロイ経路</text>
+<rect x="1662" y="898" width="78" height="24" rx="12" fill="#2e9e5b"/>
+<text x="1701.0" y="915" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">実装済み</text>
+<text x="1424" y="962" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">GitHub（main）→ Cloud Build</text>
+<text x="1424" y="980" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">→ Artifact Registry → Cloud Run</text>
+<text x="1424" y="998" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">CI: verify / integration / audit</text>
+<text x="1424" y="1016" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">Actions は SHA 固定・dependabot</text>
+<path d="M1390,990 L1410,990" fill="none" stroke="#52514e" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="30" y="1110" width="1740" height="215" rx="10" fill="#ffffff" stroke="#898781" stroke-width="2"/>
+<text x="44" y="1134" text-anchor="start" font-size="15" font-weight="700" fill="#0b0b0b">守っている場所（青丸の番号に対応）</text>
+<circle cx="50" cy="1165" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="50" y="1170" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
+<text x="72" y="1170" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">入口: HTTPS。CSP など セキュリティヘッダ。Cloud Run は allUsers 公開のため、保護の主体はアプリ認証（②）</text>
+<circle cx="50" cy="1209" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="50" y="1214" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
+<text x="72" y="1214" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">アプリ認証: Google OAuth（許可ドメインのみ）。5回失敗で15分ロック。bcrypt。リクエストごとに isActive を再照会し即時失効</text>
+<circle cx="50" cy="1253" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="50" y="1258" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
+<text x="72" y="1258" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">DB 接続: Cloud SQL Auth Proxy（組込み）。アプリSAは cloudsql.client のみ。TLS 必須（ENCRYPTED_</text>
+<text x="72" y="1275" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">ONLY）</text>
+<circle cx="50" cy="1297" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="50" y="1302" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
+<text x="72" y="1302" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">DB 保護: 自動バックアップ・削除保護。private IP 化は Terraform 実装済みだが現行は未適用（public IP）</text>
+<circle cx="920" cy="1165" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="920" y="1170" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">5</text>
+<text x="942" y="1170" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">秘密情報: Secret Manager。secret 単位の secretAccessor。env には参照のみ。ログで資格情報を伏字化</text>
+<circle cx="920" cy="1209" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="920" y="1214" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">6</text>
+<text x="942" y="1214" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">内部API: /api/cron/* は x-cron-secret を定数時間で比較。OIDC は任意。401 はリクエストログにのみ残る</text>
+<circle cx="920" cy="1253" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="920" y="1258" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">7</text>
+<text x="942" y="1258" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">【ギャップ】LB・Cloud Armor・IAP が無く、IP制限・レート制限はなし。dev「社内NWのみ」の方針は IaC 未実装</text>
+<circle cx="920" cy="1297" r="13" fill="#1f5fbf" stroke="#ffffff" stroke-width="2"/>
+<text x="920" y="1302" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">8</text>
+<text x="942" y="1302" text-anchor="start" font-size="12" font-weight="400" fill="#52514e">監査: 認証イベントを記録。メールは HMAC ハッシュ化、IP は /24 に丸める。管理操作（権限変更・CSV出力）はINFOログ</text>
+<text x="900.0" y="1350" text-anchor="middle" font-size="12" font-weight="400" fill="#898781">詳細は docs/architecture/system-architecture.md ／ 検知・対応は docs/infra/security-monitoring.md ／ 運用は docs/infra/runbook.md を参照</text>
 </svg>
