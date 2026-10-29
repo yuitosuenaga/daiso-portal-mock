@@ -373,7 +373,7 @@ revision が起動しない、ログに Secret Manager のエラー(`Permission 
 
 - 実行SA(現行は compute SA。クライアント環境は専用SA)に `roles/secretmanager.secretAccessor` が付いているか。IAM の変更は §5.7 のとおり権限が必要。
 - 参照している secret 名と version が存在し、`ENABLED` か(`gcloud secrets versions list <secret名> --project <project>`。**値は読まない**)。
-- 手動登録の secret(`anthropic-api-key-suenaga-daiso-portal`、`<prefix>-auth-google-id` など)に値が入っているか。枠だけで version が無いと、参照している revision は起動に失敗する。トグル(`enable_translation` / `enable_google_login`)は、値を登録してから `true` にする。
+- 手動登録の secret(`anthropic-api-key-suenaga-daiso-portal`、`<prefix>-auth-google-id` など)に値が入っているか。枠だけで version が無いと、参照している revision は起動に失敗する。トグル(`enable_translation` / `enable_google_login` / `enable_smtp`)は、値を登録してから `true` にする。SMTP は `<prefix>-smtp-user` / `<prefix>-smtp-pass` の2つ(ホスト・ポート・送信元は平文変数 `smtp_host` / `smtp_port` / `smtp_from`)。`enable_smtp=false` の間、アプリはメール送信をスキップする。
 - 旧 version を無効化・削除していないか。`latest` が無効な version を指すと失敗する。
 
 ### 3.5 ログの見方

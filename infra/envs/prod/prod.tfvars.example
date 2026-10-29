@@ -20,6 +20,11 @@ allow_public_access = true
 # 手動登録が済んでから true にする
 enable_translation   = false
 enable_google_login  = false
+# enable_smtp=true の場合は smtp_host / smtp_from が必須。先に <prefix>-smtp-user / <prefix>-smtp-pass の値を登録する
+enable_smtp = false
+# smtp_host = "smtp.example.com"
+# smtp_port = 587
+# smtp_from = "noreply@example.com"
 # enable_google_login=true の場合は必須。本番はクライアントのドメインのみ
 allowed_email_domains = []   # 例: ["client.example"]
 

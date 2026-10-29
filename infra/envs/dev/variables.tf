@@ -82,6 +82,30 @@ variable "enable_translation" {
   description = "ANTHROPIC_API_KEY を注入する。先に `<prefix>-anthropic-api-key` の値を登録すること"
 }
 
+variable "enable_smtp" {
+  type        = bool
+  default     = false
+  description = "SMTP_HOST/PORT/FROM（平文）と SMTP_USER/PASS（secret）を注入する。先に `<prefix>-smtp-user` / `<prefix>-smtp-pass` の値を登録すること。false の間、アプリはメール送信をスキップする"
+}
+
+variable "smtp_host" {
+  type        = string
+  default     = ""
+  description = "SMTP サーバーのホスト名（enable_smtp=true の場合は必須）"
+}
+
+variable "smtp_port" {
+  type        = number
+  default     = 587
+  description = "SMTP ポート番号"
+}
+
+variable "smtp_from" {
+  type        = string
+  default     = ""
+  description = "送信元アドレス（SMTP_FROM。enable_smtp=true の場合は必須）。送信元ドメインの SPF/DKIM 設定が前提"
+}
+
 variable "enable_google_login" {
   type        = bool
   default     = false
@@ -169,7 +193,7 @@ variable "use_existing_secrets" {
 variable "secret_name_overrides" {
   type        = map(string)
   default     = {}
-  description = "secret 名の上書き。キーは database_url / auth_secret / cron_secret / anthropic_api_key / auth_google_id / auth_google_secret"
+  description = "secret 名の上書き。キーは database_url / auth_secret / cron_secret / anthropic_api_key / auth_google_id / auth_google_secret / smtp_user / smtp_pass"
 }
 
 variable "existing_service_account_email" {

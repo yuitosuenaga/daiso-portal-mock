@@ -53,6 +53,8 @@ locals {
       anthropic_api_key  = "${var.name_prefix}-anthropic-api-key"
       auth_google_id     = "${var.name_prefix}-auth-google-id"
       auth_google_secret = "${var.name_prefix}-auth-google-secret"
+      smtp_user          = "${var.name_prefix}-smtp-user"
+      smtp_pass          = "${var.name_prefix}-smtp-pass"
     },
     var.secret_name_overrides,
   )
@@ -69,6 +71,8 @@ locals {
       local.secret_names.anthropic_api_key,
       local.secret_names.auth_google_id,
       local.secret_names.auth_google_secret,
+      local.secret_names.smtp_user,
+      local.secret_names.smtp_pass,
     ],
   )
 
@@ -81,6 +85,11 @@ locals {
     var.enable_google_login && var.enable_helpdesk_auto_provision ? {
       GOOGLE_HELPDESK_AUTO_PROVISION         = "true"
       GOOGLE_HELPDESK_AUTO_PROVISION_DOMAINS = join(",", var.helpdesk_auto_provision_domains)
+    } : {},
+    var.enable_smtp ? {
+      SMTP_HOST = var.smtp_host
+      SMTP_PORT = tostring(var.smtp_port)
+      SMTP_FROM = var.smtp_from
     } : {},
   )
 
@@ -95,6 +104,10 @@ locals {
       AUTH_GOOGLE_ID     = local.secret_names.auth_google_id
       AUTH_GOOGLE_SECRET = local.secret_names.auth_google_secret
     } : {},
+    var.enable_smtp ? {
+      SMTP_USER = local.secret_names.smtp_user
+      SMTP_PASS = local.secret_names.smtp_pass
+    } : {},
   )
 }
 
@@ -104,6 +117,10 @@ resource "terraform_data" "require_allowed_domains" {
     precondition {
       condition     = !var.enable_google_login || length(var.allowed_email_domains) > 0
       error_message = "enable_google_login=true の場合は allowed_email_domains に1つ以上のドメインを指定すること（空のままでは全ドメイン許可になり得るため拒否する）。"
+    }
+    precondition {
+      condition     = !var.enable_smtp || (var.smtp_host != "" && var.smtp_from != "")
+      error_message = "enable_smtp=true の場合は smtp_host と smtp_from を指定すること（未設定だとアプリは送信をスキップする）。"
     }
     precondition {
       condition     = !var.enable_helpdesk_auto_provision || var.enable_google_login
