@@ -470,7 +470,7 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 
 - **エンドポイント**: `GET` または `POST /api/cron/log-retention`。督促 Cron と同じく `CRON_SECRET`(`x-cron-secret` ヘッダーまたは `Authorization: Bearer`)で認証する。未設定・不一致は 401(設定状態を開示しない)。1回の実行は最大 120 秒で打ち切り、残りは翌日の実行に回る(1000件ずつバッチ削除。何度実行しても結果は同じ)。
 - **スケジュール**: Terraform の `scheduler_log_retention`(既定は毎日 4:00 JST。変数 `log_retention_schedule`)。
-- **dryRun での確認**: `dryRun` パラメータを付けると削除せず、削除対象の件数だけを返す(`?dryRun=1` を推奨)。安全側の解釈のため、パラメータがある場合は値が何であれ `dryRun=0` か `dryRun=false`(大文字小文字・前後の空白は無視)以外は削除しない(空・`yes`・タイプミスも dryRun 扱い)。パラメータ無しの呼び出し(Scheduler)だけが本削除になる。本削除を手動で行うときは、パラメータを付けずに呼ぶ。初回や期間を変えたときは先に dryRun で件数を確認する。
+- **dryRun での確認**: `dryRun` パラメータを付けると削除せず、削除対象の件数だけを返す(`?dryRun=1` を推奨)。安全側の解釈のため、パラメータがある場合は値が何であれ `dryRun=0` か `dryRun=false`(大文字小文字・前後の空白は無視)以外は削除しない(空・`yes`・タイプミスも dryRun 扱い)。`dryRun` を複数指定した場合は、全ての値が `0`/`false` のときだけ本削除になり、1つでも他の値があれば削除しない。パラメータ無しの呼び出し(Scheduler)だけが本削除になる。本削除を手動で行うときは、パラメータを付けずに呼ぶ。初回や期間を変えたときは先に dryRun で件数を確認する。
 - **手動実行**: 次のように実行する。`CRON_SECRET` は Secret Manager から取得してシェル変数に入れ、画面に出さない(`echo` しない、ファイルに書かない)。実行後は `unset` する。
 
   ```bash

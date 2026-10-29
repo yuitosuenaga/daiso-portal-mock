@@ -17,7 +17,9 @@ function request(headers: Record<string, string> = {}, search = "") {
   });
 }
 
-function result(overrides: Partial<LogRetentionResult> = {}): LogRetentionResult {
+function result(
+  overrides: Partial<LogRetentionResult> = {},
+): LogRetentionResult {
   return {
     tables: {
       authEvent: { deleted: 0, hasMore: false },
@@ -59,7 +61,9 @@ describe("GET /api/cron/log-retention", () => {
   it("不一致・ヘッダ無しは401で、サービスを呼ばない", async () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
 
-    expect((await GET(request({ authorization: "Bearer wrong" }))).status).toBe(401);
+    expect((await GET(request({ authorization: "Bearer wrong" }))).status).toBe(
+      401,
+    );
     expect((await GET(request({ "x-cron-secret": "wrong" }))).status).toBe(401);
     expect((await GET(request())).status).toBe(401);
     expect(runLogRetention).not.toHaveBeenCalled();
@@ -83,24 +87,40 @@ describe("GET /api/cron/log-retention", () => {
     vi.mocked(runLogRetention).mockResolvedValue(result());
 
     await GET(request({ "x-cron-secret": "correct-secret" }));
-    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: false });
+    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+      dryRun: false,
+    });
   });
 
-  it.each(["1", "true", "TRUE", "True", "yes", "on", "", "xyz", "%20", "%20FALSE%20x"])(
-    "?dryRun=%s はdryRunとして渡す（GET・POST）",
-    async (value) => {
-      vi.stubEnv("CRON_SECRET", "correct-secret");
-      vi.mocked(runLogRetention).mockResolvedValue(result());
-      const headers = { "x-cron-secret": "correct-secret" };
-      const search = `?dryRun=${value}`;
+  it.each([
+    "1",
+    "true",
+    "TRUE",
+    "True",
+    "yes",
+    "on",
+    "",
+    "xyz",
+    "%20",
+    "%20FALSE%20x",
+    "0%00",
+    "%EF%BC%90",
+  ])("?dryRun=%s はdryRunとして渡す（GET・POST）", async (value) => {
+    vi.stubEnv("CRON_SECRET", "correct-secret");
+    vi.mocked(runLogRetention).mockResolvedValue(result());
+    const headers = { "x-cron-secret": "correct-secret" };
+    const search = `?dryRun=${value}`;
 
-      await GET(request(headers, search));
-      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: true });
+    await GET(request(headers, search));
+    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+      dryRun: true,
+    });
 
-      await POST(request(headers, search));
-      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: true });
-    },
-  );
+    await POST(request(headers, search));
+    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+      dryRun: true,
+    });
+  });
 
   it.each(["0", "false", "FALSE", "False", "%20false%20"])(
     "?dryRun=%s は本削除（GET・POST）",
@@ -111,12 +131,37 @@ describe("GET /api/cron/log-retention", () => {
       const search = `?dryRun=${value}`;
 
       await GET(request(headers, search));
-      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: false });
+      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+        dryRun: false,
+      });
 
       await POST(request(headers, search));
-      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: false });
+      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+        dryRun: false,
+      });
     },
   );
+
+  it.each([
+    ["?dryRun=0&dryRun=1", true],
+    ["?dryRun=1&dryRun=0", true],
+    ["?dryRun=false&dryRun=", true],
+    ["?dryRun=0&dryRun=false", false],
+  ])("複数指定 %s は dryRun=%s（GET・POST）", async (search, expected) => {
+    vi.stubEnv("CRON_SECRET", "correct-secret");
+    vi.mocked(runLogRetention).mockResolvedValue(result());
+    const headers = { "x-cron-secret": "correct-secret" };
+
+    await GET(request(headers, search));
+    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+      dryRun: expected,
+    });
+
+    await POST(request(headers, search));
+    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), {
+      dryRun: expected,
+    });
+  });
 
   it("いずれかのテーブルにerrorがあれば500・固定文言（詳細は出さない）", async () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
@@ -127,19 +172,23 @@ describe("GET /api/cron/log-retention", () => {
           loginThrottle: { deleted: 1, hasMore: false },
           announcementNotificationLog: { deleted: 1, hasMore: false },
         },
-      })
+      }),
     );
     vi.spyOn(logger, "error").mockImplementation(() => {});
 
     const response = await GET(request({ "x-cron-secret": "correct-secret" }));
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: "Log retention run failed" });
+    expect(await response.json()).toEqual({
+      error: "Log retention run failed",
+    });
   });
 
   it("例外は500・固定文言で、詳細はサーバーログのみ", async () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
-    vi.mocked(runLogRetention).mockRejectedValue(new Error("ECONNREFUSED user@example.com"));
+    vi.mocked(runLogRetention).mockRejectedValue(
+      new Error("ECONNREFUSED user@example.com"),
+    );
     const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     const response = await GET(request({ "x-cron-secret": "correct-secret" }));
@@ -156,7 +205,9 @@ describe("POST /api/cron/log-retention", () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
     vi.mocked(runLogRetention).mockResolvedValue(result());
 
-    const response = await POST(request({ authorization: "Bearer correct-secret" }));
+    const response = await POST(
+      request({ authorization: "Bearer correct-secret" }),
+    );
 
     expect(response.status).toBe(200);
   });
