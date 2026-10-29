@@ -71,7 +71,7 @@ Cloud Logging で観測できる各種ログについて、「何を問題とみ
 | 17 | Cloud SQL postgres.log | `password authentication failed` が 1 件以上 | P1 | DB パスワード漏えい疑い、ローテーション後の旧値 | ローテーション作業中 | 未（ログに出るか要確認） |
 | 18 | Admin Activity（Cloud SQL） | `cloudsql.instances.export` / `users.update` / `users.create` / `instances.update`（authorizedNetworks 等）/ `instances.clone` / `backupRuns.restore` を想定外 principal が実行 | P1（export・ユーザー変更）/ P2（設定変更） | 持ち出し、バックドア | 定期エクスポート SA（principal で除外） | 済(PR)（export と instances update/patch は trusted 除外、clone/restore/users は常に通知） |
 | 19 | Admin Activity | `SetIamPolicy`（project / Cloud Run / Secret）、`CreateServiceAccountKey`、`allUsers` 追加 | P1 | 侵害、権限昇格 | bootstrap 作業（事前共有で吸収） | 済(PR)（SetIamPolicy は全件通知のため allUsers 追加も含む） |
-| 20 | Admin Activity | `UpdateSink` / `DeleteSink` / `DeleteBucket` / audit config 変更（監視の無効化） | P1 | 痕跡の消去 | ほぼ無し | 済(PR)（audit config 変更は SetIamPolicy 経由で #19 の対象） |
+| 20 | Admin Activity | `UpdateSink` / `DeleteSink` / `DeleteBucket` / audit config 変更 / アラートポリシー・通知チャネル・ログベースメトリクスの更新・削除（監視の無効化） | P1 | 痕跡の消去 | ほぼ無し | 済(PR)（audit config 変更は SetIamPolicy 経由で #19 の対象） |
 | 21 | Admin Activity（Cloud Run） | `ReplaceService` / `CreateRevision` / `UpdateService` を担当外 principal・予定外時間に実行 | P2 | 不正デプロイ | 手動デプロイ（現状は個人ローカルから） | 一部済(PR)（Replace/Update/DeleteService を trusted 以外で通知。CreateRevision・予定外時間は未） |
 | 22 | Data Access（要有効化） | Secret Manager `AccessSecretVersion` をアプリ SA・サービスエージェント以外が実行 | P2（時間外・未知 principal は P1） | 秘密値の閲覧・漏えい | deploy-main 手順、`rotate-secrets.sh` | 未 |
 | 23 | Audit | `AddSecretVersion` / `DestroySecretVersion` / `DisableSecretVersion` | P2 | 秘密値のすり替え | ローテーション作業 | 済(PR)（trusted 以外で通知） |

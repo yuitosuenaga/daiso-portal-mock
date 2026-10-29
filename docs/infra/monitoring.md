@@ -37,7 +37,7 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 | 名前 | 条件 | trusted 除外 |
 |---|---|---|
 | IAM policy / service account key change | `SetIamPolicy`（末尾一致）、`CreateServiceAccountKey` / `UploadServiceAccountKey` / `CreateServiceAccount` | しない |
-| logging / alerting config changed | ログのシンク・除外・バケット等の Create/Update/Delete、アラートポリシー・通知チャネルの Delete/Update | しない |
+| logging / alerting config changed | ログのシンク・除外・バケット等の Create/Update/Delete、アラートポリシー・通知チャネルの Delete/Update、ログベースメトリクスの Update/Delete（`MetricsServiceV2`。認証系しきい値アラートの無音化対策） | しない |
 | Cloud SQL export | `cloudsql.instances.export` / `google.cloud.sql.v1beta4.SqlInstancesService.Export` | する |
 | Cloud SQL instance update / patch by non-trusted principal (`cloudsql_update`) | instances の update / patch（`cloudsql.instances.update`、v1beta4 の Update / Patch）。db-start/db-end の `activation-policy` patch や apply で発生するため trusted を除外 | する |
 | Cloud SQL clone / restore / user change (`cloudsql_users_clone_restore`) | clone・restore（`restoreBackup` / `backupRuns.restore`）・users の作成/更新/削除 | しない |
@@ -56,6 +56,7 @@ methodName は GCP ドキュメント上の名称で書いており、実ログ�
 3. 特に確信が持てないもの:
    - Cloud SQL の restore 系（`cloudsql.backupRuns.restore` / `cloudsql.instances.restoreBackup`。両方をフィルタに含めている）
    - Cloud SQL の v1beta4 形式（`google.cloud.sql.v1beta4.*`）が実際に記録されるか
+   - `MetricsServiceV2`（`UpdateLogMetric` / `DeleteLogMetric`）の完全名と Admin Activity への記録
    - AlertPolicyService / NotificationChannelService の操作が Admin Activity に記録されるか、その完全名
    - Cloud Run v2 の methodName 形式（`google.cloud.run.v2.Services.UpdateService` 等）
    - `ConfigServiceV2` の Link 系（`CreateLink` / `UpdateLink` / `DeleteLink`）の実在
@@ -84,7 +85,7 @@ methodName は GCP ドキュメント上の名称で書いており、実ログ�
 - 受容したリスク: trusted にした操作者による authorizedNetworks 等の変更（`instances.update`）は検知されない。
 - IAM・SA 鍵のアラート、監視無効化のアラート、Cloud SQL の clone/restore/users には適用しない。侵害された正規操作者こそが脅威のため、常に通知する。
 - 空のまま（既定）だと、apply 担当者が IAM 変更や Cloud Run のデプロイを行うたびに通知が届く。担当者のメールを入れるまでは「計画的な変更」として無視する運用になる。
-- **terraform apply 時に鳴りうるアラート**: `iam_and_keys`（SetIamPolicy 等）、`disable_monitoring`（本モジュールのポリシー・通知チャネルの更新・削除）、`cloudsql_users_clone_restore`（users の変更）は trusted を除外しないため、正規の apply でも発火しうる。apply 担当者は事前に関係者へ共有する。
+- **terraform apply 時に鳴りうるアラート**: `iam_and_keys`（SetIamPolicy 等）、`disable_monitoring`（本モジュールのポリシー・通知チャネル・ログベースメトリクスの更新・削除）、`cloudsql_users_clone_restore`（users の変更）は trusted を除外しないため、正規の apply でも発火しうる。apply 担当者は事前に関係者へ共有する。
 - メールアドレスにダブルクォート・バックスラッシュ・空白は指定できない（変数の validation で拒否）。
 
 ### 実装していないもの

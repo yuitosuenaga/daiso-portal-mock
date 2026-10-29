@@ -296,7 +296,7 @@ variable "enable_security_alerts" {
 variable "security_trusted_principals" {
   type        = list(string)
   default     = []
-  description = "想定された操作者（apply 担当・定期エクスポート SA 等）の principalEmail。Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export のアラートからのみ除外する。空なら除外しない"
+  description = "想定された操作者（apply 担当・定期エクスポート SA 等）の principalEmail。Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export・Cloud SQL instances の update/patch（cloudsql_update）のアラートからのみ除外する。dev では db-start/db-end の実行者も trusted に入れること（入れないと始業・終業のたびに通知が鳴る）。空なら除外しない"
 }
 
 # --- 本番化トグル（docs/infra/prod-hardening.md）。既定は現行と同一 ---

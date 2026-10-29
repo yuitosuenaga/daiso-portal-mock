@@ -104,12 +104,12 @@ locals {
     }
 
     # A-2: 監視・ログの無効化（痕跡消去）。trusted は除外しない。
-    # 注意: terraform apply で本モジュールのアラートポリシー/通知チャネルを更新・削除したときにも発火しうる
+    # 注意: terraform apply で本モジュールのアラートポリシー/通知チャネル/ログベースメトリクスを更新・削除したときにも発火しうる
     # （apply 担当の正規操作でも通知が来る。計画的な変更なら無視してよい）。
-    # 要確認: ConfigServiceV2 の Create/Update/Delete 系 methodName の実在、AlertPolicyService / NotificationChannelService の完全名。
+    # 要確認: ConfigServiceV2 の Create/Update/Delete 系 methodName の実在、AlertPolicyService / NotificationChannelService / MetricsServiceV2 の完全名。
     disable_monitoring = {
       display_name = "logging / alerting config changed"
-      filter       = "${local.audit_base} AND (protoPayload.methodName=~\"^google.logging.v2.ConfigServiceV2.(Create|Update|Delete)(Sink|Exclusion|Bucket|View|Link)$\" OR protoPayload.methodName=~\"^google.monitoring.v3.(AlertPolicyService|NotificationChannelService).(Delete|Update)\")"
+      filter       = "${local.audit_base} AND (protoPayload.methodName=~\"^google.logging.v2.ConfigServiceV2.(Create|Update|Delete)(Sink|Exclusion|Bucket|View|Link)$\" OR protoPayload.methodName=~\"^google.monitoring.v3.(AlertPolicyService|NotificationChannelService).(Delete|Update)\" OR protoPayload.methodName=~\"^google.logging.v2.MetricsServiceV2.(Update|Delete)LogMetric$\")"
     }
 
     # A-3a: Cloud SQL export（DB ダンプの持ち出し）。定期エクスポート SA は正規に実行するため trusted を除外する。

@@ -34,7 +34,7 @@ allowed_email_domains = []   # 例: ["client.example"]
 # enable_cloudsql_down_alert = true
 # enable_uptime_check        = true
 # セキュリティ監視アラート（docs/infra/monitoring.md）。apply 担当・定期エクスポート SA を trusted に入れると
-# Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export の通知から除外される（IAM 変更・監視無効化は常に通知）
+# Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export・Cloud SQL instances の update/patch（cloudsql_update）の通知から除外される（IAM 変更・監視無効化は常に通知）
 # enable_security_alerts      = true
 # security_trusted_principals = ["apply-user@example.com", "db-export@PROJECT.iam.gserviceaccount.com"]
 
