@@ -28,6 +28,8 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 
 `docs/infra/security-monitoring.md` §5 の上位 1・2 の実装。`enable_security_alerts`（既定 true）で一括 on/off できる（`enable_monitoring=false` ならモジュールごと作られない）。しきい値はすべて**初期値**で、2〜4 週の運用でチューニングする前提。通知先は `alert_emails` と同じチャネル。
 
+認証系しきい値アラートは、ログが無いときにインシデントが閉じるよう `evaluation_missing_data = INACTIVE` と `auth_threshold_auto_close`（既定 1800s）を設定している。
+
 ログ一致型は通知間隔（`security_log_notification_interval` 既定 3600s）と自動クローズ（`security_log_auto_close` 既定 86400s）を持つ。表示名は `<name_prefix> security: ...`。
 
 ### Admin Activity（Cloud Audit Logs、1 件で通知）
@@ -36,17 +38,32 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 |---|---|---|
 | IAM policy / service account key change | `SetIamPolicy`（末尾一致）、`CreateServiceAccountKey` / `UploadServiceAccountKey` / `CreateServiceAccount` | しない |
 | logging / alerting config changed | ログのシンク・除外・バケット等の Create/Update/Delete、アラートポリシー・通知チャネルの Delete/Update | しない |
-| Cloud SQL export | `cloudsql.instances.export` | する |
-| Cloud SQL clone / restore / user / instance change | clone・restore・users の作成/更新/削除・instances の update | しない |
+| Cloud SQL export | `cloudsql.instances.export` / `google.cloud.sql.v1beta4.SqlInstancesService.Export` | する |
+| Cloud SQL instance update / patch by non-trusted principal (`cloudsql_update`) | instances の update / patch（`cloudsql.instances.update`、v1beta4 の Update / Patch）。db-start/db-end の `activation-policy` patch や apply で発生するため trusted を除外 | する |
+| Cloud SQL clone / restore / user change (`cloudsql_users_clone_restore`) | clone・restore（`restoreBackup` / `backupRuns.restore`）・users の作成/更新/削除 | しない |
 | Cloud Run service changed by non-trusted principal | `ReplaceService` / `UpdateService` / `DeleteService`（v1/v2） | する |
 | Secret version / secret changed by non-trusted principal | `AddSecretVersion` / `DestroySecretVersion` / `DisableSecretVersion` / `DeleteSecret` | する |
 | GCS bucket IAM / settings changed by non-trusted principal | `storage.setIamPermissions` / `storage.buckets.update`（エクスポート用バケット名は渡されないため**プロジェクト内の全バケット**が対象） | する |
 
 methodName は GCP ドキュメント上の名称で書いており、実ログでの確認は未了。取りこぼしがないかは、初期運用で Logs Explorer から実際の methodName を確認する。
 
+対象外: Cloud Run の `CreateService`・Jobs（#21 の目的は既存サービスの不正更新であり、新規サービス作成は想定しにくいため）。
+
+#### 初回 apply 後の methodName 確認手順
+
+1. Logs Explorer で `logName="projects/<project_id>/logs/cloudaudit.googleapis.com%2Factivity"` を指定し、`protoPayload.serviceName`（`cloudsql.googleapis.com` / `run.googleapis.com` / `secretmanager.googleapis.com` / `storage.googleapis.com` / `logging.googleapis.com` / `monitoring.googleapis.com` / `iam.googleapis.com` / `cloudresourcemanager.googleapis.com`）ごとに絞って、実際に記録される `protoPayload.methodName` を確認する。
+2. `security.tf` のフィルタの methodName と実在が違っていれば、フィルタを直す。
+3. 特に確信が持てないもの:
+   - Cloud SQL の restore 系（`cloudsql.backupRuns.restore` / `cloudsql.instances.restoreBackup`。両方をフィルタに含めている）
+   - Cloud SQL の v1beta4 形式（`google.cloud.sql.v1beta4.*`）が実際に記録されるか
+   - AlertPolicyService / NotificationChannelService の操作が Admin Activity に記録されるか、その完全名
+   - Cloud Run v2 の methodName 形式（`google.cloud.run.v2.Services.UpdateService` 等）
+   - `ConfigServiceV2` の Link 系（`CreateLink` / `UpdateLink` / `DeleteLink`）の実在
+   - Cloud Run / Secret Manager の `SetIamPolicy` の methodName（`SetIamPolicy$` の末尾一致で拾えているか）
+
 ### 認証系（アプリの構造化ログ）
 
-ログベースメトリクス `auth_events`（COUNTER、ラベル type / reason / portal）を作成する。`identifierHash` はカーディナリティ爆発を避けるためラベルにしていない。**メトリクスは作成後に出力されたログしか数えない**（過去分は遡及されない）。
+ログベースメトリクス `<name_prefix>-auth-events`（DELTA / INT64、ラベル type / reason / portal）を作成する。`identifierHash` はカーディナリティ爆発を避けるためラベルにしていない。**メトリクスは作成後に出力されたログしか数えない**（過去分は遡及されない）。
 
 | 名前 | 条件（既定） | 通知の性質 |
 |---|---|---|
@@ -63,9 +80,11 @@ methodName は GCP ドキュメント上の名称で書いており、実ログ�
 
 想定された操作者（`terraform apply` 担当、定期エクスポート SA 等）の `principalEmail` のリスト。該当する principal の操作を、**Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export のアラートからのみ**除外する（`NOT protoPayload.authenticationInfo.principalEmail=("a" OR "b")` を付与。空なら条件なし）。
 
-- IAM・SA 鍵のアラートと監視無効化のアラートには適用しない。侵害された正規操作者こそが脅威のため、常に通知する。
+- `cloudsql_update`（Cloud SQL instances の update/patch）のアラートからも除外する。**db-start/db-end の実行者（`gcloud sql instances patch --activation-policy=...`）と terraform apply 担当を `security_trusted_principals` に入れること**。入れないと dev で始業・終業のたびに通知が届く。
+- 受容したリスク: trusted にした操作者による authorizedNetworks 等の変更（`instances.update`）は検知されない。
+- IAM・SA 鍵のアラート、監視無効化のアラート、Cloud SQL の clone/restore/users には適用しない。侵害された正規操作者こそが脅威のため、常に通知する。
 - 空のまま（既定）だと、apply 担当者が IAM 変更や Cloud Run のデプロイを行うたびに通知が届く。担当者のメールを入れるまでは「計画的な変更」として無視する運用になる。
-- 監視無効化アラートは、`terraform apply` が本モジュールのアラートポリシー・通知チャネルを更新・削除したときにも発火しうる。
+- **terraform apply 時に鳴りうるアラート**: `iam_and_keys`（SetIamPolicy 等）、`disable_monitoring`（本モジュールのポリシー・通知チャネルの更新・削除）、`cloudsql_users_clone_restore`（users の変更）は trusted を除外しないため、正規の apply でも発火しうる。apply 担当者は事前に関係者へ共有する。
 - メールアドレスにダブルクォート・バックスラッシュ・空白は指定できない（変数の validation で拒否）。
 
 ### 実装していないもの
@@ -75,6 +94,8 @@ methodName は GCP ドキュメント上の名称で書いており、実ログ�
 - Cloud SQL の postgres.log `password authentication failed`: ログが出力されるか未確認のため未実装。
 
 ## 注意点
+
+- 初回 apply では、`google_logging_metric` と、それを参照するしきい値ポリシーを同時に作るため、メトリクスの伝播前に `Cannot find metric(s) that match type` で失敗することがある。その場合は再実行すれば通る（`time_sleep` は入れていない）。
 
 - dev は `db-end` スキルで Cloud SQL を夜間停止するため、「Cloud SQL 停止」アラートが毎晩発報する。dev.tfvars に `enable_cloudsql_down_alert = false` を設定して停止アラートを作らない（既定 true。変更後は plan で該当ポリシーのみ destroy になることを確認）。
 - Cloud Run の `ingress` を制限している場合、uptime check（Google 管理の外部 IP）が到達できず常時失敗になる。その場合は tfvars で `enable_uptime_check = false` にする（既定 true）。

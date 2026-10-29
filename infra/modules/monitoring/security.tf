@@ -1,6 +1,7 @@
 # セキュリティ監視アラート（docs/infra/security-monitoring.md §2・§5 の上位 1・2）。
 # - Admin Activity（Cloud Audit Logs）のログ一致型アラート
 # - 認証系の構造化ログ（jsonPayload.message="auth"）のログベースメトリクスとしきい値アラート、1 件通知のログ一致型
+# 同形のポリシーが多数あるため、main.tf の個別 resource 記述と違い、本ファイルは for_each でまとめて重複を排除している。
 # main.tf の locals（channel_ids / cr_filter）を再利用する。しきい値はすべて初期値で、2〜4 週の運用で調整する前提。
 # enable_security_alerts=false なら本ファイルのリソースはすべて作られない（enable_monitoring=false のときはモジュールごと作られない）。
 
@@ -13,7 +14,7 @@ variable "enable_security_alerts" {
 variable "security_trusted_principals" {
   type        = list(string)
   default     = []
-  description = "想定された操作者（terraform apply 担当、定期エクスポート SA 等）の principalEmail。Cloud Run 変更・Secret 変更・エクスポート用 GCS の IAM 変更・Cloud SQL export のアラートからのみ除外する。IAM/SA 鍵・監視無効化・Cloud SQL のその他操作・認証系には適用しない"
+  description = "想定された操作者（terraform apply 担当、定期エクスポート SA 等）の principalEmail。Cloud Run 変更・Secret 変更・エクスポート用 GCS の IAM 変更・Cloud SQL export・Cloud SQL instances の update/patch のアラートからのみ除外する。IAM/SA 鍵・監視無効化・Cloud SQL の clone/restore/users・認証系には適用しない。db-start/db-end（activation-policy の patch）の実行者や terraform apply 担当を入れる想定。trusted による authorizedNetworks 変更は検知されない（受容したリスク）"
 
   validation {
     # フィルタ文字列に埋め込むため、フィルタを壊しうる文字（ダブルクォート・バックスラッシュ・空白）を禁止する
@@ -64,6 +65,12 @@ variable "security_log_notification_interval" {
   description = "セキュリティ用ログ一致型アラートの通知間隔（同一ポリシーの再通知を抑える最短間隔。秒数に s を付ける）"
 }
 
+variable "auth_threshold_auto_close" {
+  type        = string
+  default     = "1800s"
+  description = "認証系しきい値アラートのインシデントを自動クローズするまでの時間（ログベースメトリクスはログが無いとデータ点が出ず回復判定されないため、短めにする。error_log_auto_close と同程度）"
+}
+
 variable "security_log_auto_close" {
   type        = string
   default     = "86400s"
@@ -77,8 +84,12 @@ locals {
   audit_base = "logName=\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\""
 
   # 想定された操作者の除外句。リストが空なら条件を付けない（空の OR () を作らない）。
-  # 適用先は Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export のみ。
+  # 適用先は Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export・Cloud SQL instances update/patch のみ。
   trusted_exclusion = length(var.security_trusted_principals) == 0 ? "" : " AND NOT protoPayload.authenticationInfo.principalEmail=(${join(" OR ", [for p in var.security_trusted_principals : "\"${p}\""])})"
+
+  # 認証イベントのログベースメトリクス名（無接頭辞だとプロジェクト内で衝突しうるため name_prefix を付ける）。
+  # メトリクス定義としきい値アラートのフィルタで同じ値を参照する。
+  auth_metric_name = "${var.name_prefix}-auth-events"
 
   # methodName は GCP ドキュメント上の名称で記述している。実ログでの確認が取れていないものは「要確認」と注記する。
   # 正規表現中の「.」はエスケープせずに任意 1 文字として扱う（フィルタ内のバックスラッシュ二重エスケープを避けるため。誤一致は実質起きない）。
@@ -108,13 +119,22 @@ locals {
       filter       = "${local.audit_base} AND protoPayload.serviceName=\"cloudsql.googleapis.com\" AND protoPayload.methodName=(\"cloudsql.instances.export\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Export\")${local.trusted_exclusion}"
     }
 
-    # A-3b: Cloud SQL の clone / restore / ユーザー変更 / インスタンス設定変更（authorizedNetworks 等）。trusted は除外しない。
-    # terraform apply によるインスタンス設定の更新（例: メンテナンスウィンドウ変更）でも発火しうる。
-    # 要確認: restore 系の methodName（cloudsql.instances.restoreBackup / cloudsql.backupRuns.restore のどちらが出るか）と、
+    # A-3b: Cloud SQL instances の update/patch（authorizedNetworks 等の設定変更）。
+    # db-start/db-end（gcloud sql instances patch --activation-policy）や terraform apply で正規に発生するため trusted を除外する。
+    # 受容したリスク: trusted にした操作者による authorizedNetworks 変更は検知されない。
+    # 要確認: methodName（cloudsql.instances.update 形式と v1beta4 の Update / Patch）は実ログで確認する。
+    cloudsql_update = {
+      display_name = "Cloud SQL instance update / patch by non-trusted principal"
+      filter       = "${local.audit_base} AND protoPayload.serviceName=\"cloudsql.googleapis.com\" AND protoPayload.methodName=(\"cloudsql.instances.update\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Update\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Patch\")${local.trusted_exclusion}"
+    }
+
+    # A-3c: Cloud SQL の clone / restore / ユーザー変更。trusted は除外しない。
+    # terraform apply による users の変更でも発火しうる。
+    # 要確認: restore 系の methodName（cloudsql.instances.restoreBackup / cloudsql.backupRuns.restore のどちらが出るか。両方含めて取りこぼしを避ける）と、
     # users 系・v1beta4 形式の名称を実ログで確認する。
-    cloudsql_change = {
-      display_name = "Cloud SQL clone / restore / user / instance change"
-      filter       = "${local.audit_base} AND protoPayload.serviceName=\"cloudsql.googleapis.com\" AND protoPayload.methodName=(\"cloudsql.instances.clone\" OR \"cloudsql.instances.restoreBackup\" OR \"cloudsql.backupRuns.restore\" OR \"cloudsql.users.create\" OR \"cloudsql.users.update\" OR \"cloudsql.users.delete\" OR \"cloudsql.instances.update\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Clone\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.RestoreBackup\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Update\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Patch\" OR \"google.cloud.sql.v1beta4.SqlUsersService.Insert\" OR \"google.cloud.sql.v1beta4.SqlUsersService.Update\" OR \"google.cloud.sql.v1beta4.SqlUsersService.Delete\")"
+    cloudsql_users_clone_restore = {
+      display_name = "Cloud SQL clone / restore / user change"
+      filter       = "${local.audit_base} AND protoPayload.serviceName=\"cloudsql.googleapis.com\" AND protoPayload.methodName=(\"cloudsql.instances.clone\" OR \"cloudsql.instances.restoreBackup\" OR \"cloudsql.backupRuns.restore\" OR \"cloudsql.users.create\" OR \"cloudsql.users.update\" OR \"cloudsql.users.delete\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.Clone\" OR \"google.cloud.sql.v1beta4.SqlInstancesService.RestoreBackup\" OR \"google.cloud.sql.v1beta4.SqlUsersService.Insert\" OR \"google.cloud.sql.v1beta4.SqlUsersService.Update\" OR \"google.cloud.sql.v1beta4.SqlUsersService.Delete\")"
     }
 
     # A-4: Cloud Run サービスの変更（不正デプロイ）。trusted（デプロイ担当）以外の実行のみ通知。
@@ -226,7 +246,7 @@ resource "google_monitoring_alert_policy" "security_audit" {
 resource "google_logging_metric" "auth_events" {
   count   = local.sec_enabled ? 1 : 0
   project = var.project_id
-  name    = "auth_events"
+  name    = local.auth_metric_name
   filter  = "${local.cr_filter} AND jsonPayload.message=\"auth\""
 
   metric_descriptor {
@@ -260,6 +280,9 @@ resource "google_logging_metric" "auth_events" {
 
 # --- B-1〜B-3. 認証イベント件数のしきい値アラート ---
 resource "google_monitoring_alert_policy" "auth_threshold" {
+  # フィルタが local 経由の文字列でメトリクス resource を直接参照しなくなったため、作成順序を明示する。
+  depends_on = [google_logging_metric.auth_events]
+
   for_each              = local.sec_enabled ? local.auth_threshold_alerts : {}
   project               = var.project_id
   display_name          = "${var.name_prefix} security: ${each.value.display_name}"
@@ -274,10 +297,13 @@ resource "google_monitoring_alert_policy" "auth_threshold" {
   conditions {
     display_name = "${each.key} count > ${each.value.threshold} in ${each.value.window}"
     condition_threshold {
-      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.auth_events[0].name}\" AND metric.labels.type=\"${each.key}\" AND resource.type=\"cloud_run_revision\""
+      filter          = "metric.type=\"logging.googleapis.com/user/${local.auth_metric_name}\" AND metric.labels.type=\"${each.key}\" AND resource.type=\"cloud_run_revision\""
       comparison      = "COMPARISON_GT"
       threshold_value = each.value.threshold
       duration        = "0s"
+      # DELTA のログベースメトリクスは該当ログが無いとデータ点が出ない。INACTIVE にしないと一度開いたインシデントが回復判定されず、
+      # 次の攻撃で再通知されない。provider 6.50.0 のスキーマに evaluation_missing_data があることを確認済み。
+      evaluation_missing_data = "EVALUATION_MISSING_DATA_INACTIVE"
 
       aggregations {
         alignment_period     = each.value.window
@@ -288,6 +314,10 @@ resource "google_monitoring_alert_policy" "auth_threshold" {
         count = 1
       }
     }
+  }
+
+  alert_strategy {
+    auto_close = var.auth_threshold_auto_close
   }
 }
 
