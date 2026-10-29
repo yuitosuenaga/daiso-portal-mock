@@ -8,14 +8,22 @@ import { errorFields, logger } from "@/lib/server/logger";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// fail-safe: dryRunパラメータがある場合、"0"/"false"（trim・大文字小文字無視）以外は全てdryRunとみなす。
+// パラメータ無し（Schedulerの呼び出し）のみ従来どおり本削除。タイプミスで意図せず削除しないための設計。
+// ※routeファイルは任意のexportができないため、モジュール内に留める。
+function parseDryRun(param: string | null): boolean {
+  if (param === null) return false;
+  const normalized = param.trim().toLowerCase();
+  return !(normalized === "0" || normalized === "false");
+}
+
 async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
   // 未設定・不一致を区別せず401・固定文言で応答する（設定状態を外部へ開示しない）。督促Cronと同じ慣習。
   if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dryRunParam = request.nextUrl.searchParams.get("dryRun");
-  const dryRun = dryRunParam === "1" || dryRunParam === "true";
+  const dryRun = parseDryRun(request.nextUrl.searchParams.get("dryRun"));
 
   try {
     const result = await runLogRetention(new Date(), { dryRun });

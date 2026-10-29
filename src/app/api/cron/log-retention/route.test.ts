@@ -78,16 +78,45 @@ describe("GET /api/cron/log-retention", () => {
     expect(runLogRetention).toHaveBeenCalledTimes(2);
   });
 
-  it("?dryRun=1 でdryRunを渡し、指定なしはfalse", async () => {
+  it("dryRun未指定は本削除（dryRun:false）", async () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
     vi.mocked(runLogRetention).mockResolvedValue(result());
-
-    await GET(request({ "x-cron-secret": "correct-secret" }, "?dryRun=1"));
-    expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: true });
 
     await GET(request({ "x-cron-secret": "correct-secret" }));
     expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: false });
   });
+
+  it.each(["1", "true", "TRUE", "True", "yes", "on", "", "xyz", "%20", "%20FALSE%20x"])(
+    "?dryRun=%s はdryRunとして渡す（GET・POST）",
+    async (value) => {
+      vi.stubEnv("CRON_SECRET", "correct-secret");
+      vi.mocked(runLogRetention).mockResolvedValue(result());
+      const headers = { "x-cron-secret": "correct-secret" };
+      const search = `?dryRun=${value}`;
+
+      await GET(request(headers, search));
+      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: true });
+
+      await POST(request(headers, search));
+      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: true });
+    },
+  );
+
+  it.each(["0", "false", "FALSE", "False", "%20false%20"])(
+    "?dryRun=%s は本削除（GET・POST）",
+    async (value) => {
+      vi.stubEnv("CRON_SECRET", "correct-secret");
+      vi.mocked(runLogRetention).mockResolvedValue(result());
+      const headers = { "x-cron-secret": "correct-secret" };
+      const search = `?dryRun=${value}`;
+
+      await GET(request(headers, search));
+      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: false });
+
+      await POST(request(headers, search));
+      expect(runLogRetention).toHaveBeenLastCalledWith(expect.any(Date), { dryRun: false });
+    },
+  );
 
   it("いずれかのテーブルにerrorがあれば500・固定文言（詳細は出さない）", async () => {
     vi.stubEnv("CRON_SECRET", "correct-secret");
