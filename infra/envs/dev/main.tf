@@ -286,6 +286,17 @@ module "migrate_job" {
   depends_on = [module.secrets, module.iam]
 }
 
+module "scheduler_invoker" {
+  count                 = var.enable_scheduler && var.enable_scheduler_oidc ? 1 : 0
+  source                = "../../modules/scheduler-invoker"
+  project_id            = var.project_id
+  region                = var.region
+  name                  = "${var.name_prefix}-sched"
+  cloudrun_service_name = module.cloudrun.name
+
+  depends_on = [module.services]
+}
+
 module "scheduler" {
   count       = var.enable_scheduler ? 1 : 0
   source      = "../../modules/scheduler"
@@ -295,6 +306,8 @@ module "scheduler" {
   service_url = module.cloudrun.uri
   cron_secret = random_password.cron_secret[0].result
   schedule    = var.scheduler_schedule
+  # OIDC 無効時は null（現行のジョブ定義を変えない）
+  oidc_service_account_email = one(module.scheduler_invoker[*].service_account_email)
   # Cloud Run timeout と揃える（Scheduler HTTP ターゲットの上限 1800s で頭打ち）
   attempt_deadline = "${min(var.cloudrun_timeout_seconds, 1800)}s"
 
@@ -312,6 +325,8 @@ module "scheduler_log_retention" {
   cron_secret = random_password.cron_secret[0].result
   path        = "/api/cron/log-retention"
   schedule    = var.log_retention_schedule
+  # OIDC 無効時は null（現行のジョブ定義を変えない）
+  oidc_service_account_email = one(module.scheduler_invoker[*].service_account_email)
   # Cloud Run timeout と揃える（Scheduler HTTP ターゲットの上限 1800s で頭打ち）
   attempt_deadline = "${min(var.cloudrun_timeout_seconds, 1800)}s"
 

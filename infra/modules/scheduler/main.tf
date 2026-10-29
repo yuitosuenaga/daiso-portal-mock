@@ -30,6 +30,13 @@ variable "path" {
   default = "/api/cron/announcement-escalation"
 }
 
+# OIDC トークンを付与する場合のサービスアカウント（null なら付与しない）。audience は service_url。
+# 付与すると Authorization: Bearer <IDトークン> が加わる。x-cron-secret は併用する。
+variable "oidc_service_account_email" {
+  type    = string
+  default = null
+}
+
 variable "time_zone" {
   type    = string
   default = "Asia/Tokyo"
@@ -70,6 +77,14 @@ resource "google_cloud_scheduler_job" "escalation" {
     uri         = "${var.service_url}${var.path}"
     headers = {
       "x-cron-secret" = var.cron_secret
+    }
+
+    dynamic "oidc_token" {
+      for_each = var.oidc_service_account_email == null ? [] : [var.oidc_service_account_email]
+      content {
+        service_account_email = oidc_token.value
+        audience              = var.service_url
+      }
     }
   }
 }

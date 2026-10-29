@@ -356,6 +356,13 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 - **打ち切りは翌日まで持ち越される**(Scheduler は 1 日 1 回で、打ち切りは 200 で返るため再試行されない)。打ち切り時はログに `Run aborted by deadline`(warn)と、レスポンスに `abortedByDeadline: true` が出る。検知はログベースのアラート(monitoring、infra 側の別 PR の範囲)で行う。
 - 宛先が極端に多い場合や SMTP 接続直後の初回は、先に `?dryRun=1` で対象件数(`notifiedRecipients`)を確認する。
 
+#### Scheduler の OIDC 認証(`enable_scheduler_oidc`)
+
+- 既定は false(現行のジョブ定義は不変)。`true` で専用SA(`<prefix>-sched`)を作り、Cloud Run の `roles/run.invoker` を付与したうえで、Scheduler ジョブに OIDC トークン(audience はサービスURL)を付ける。
+- `x-cron-secret` は併用する。アプリは `CRON_SECRET` を検証するため、OIDC は Cloud Run の IAM 層の認証、`CRON_SECRET` はアプリ層の認証という二重防御になる。
+- Cloud Run を非公開(`allow_public_access=false`)にするときは、先にこのトグルを `true` で適用する。順序を誤ると Scheduler が 403 になる。
+- 適用者に、SA 作成と Cloud Run の IAM 変更の権限が要る。`apply` 前に `plan` で、SA 1 件・invoker 1 件の追加とジョブ 2 件の更新だけであることを確認する。
+
 secret を更新した後に Cloud Run に反映するには、新しい revision を作る(`latest` は revision の起動時にのみ読まれる)。**テンプレートが変わらない更新(同一設定の再適用、ラベルのみの変更など)では、新 revision が作られない可能性がある(未検証)。** 実行後は必ず `gcloud run revisions list` で新 revision ができたこと、`latestReadyRevisionName` が変わったことを確認する。
 
 ```bash
