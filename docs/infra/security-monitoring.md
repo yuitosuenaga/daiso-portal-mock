@@ -56,30 +56,30 @@ Cloud Logging で観測できる各種ログについて、「何を問題とみ
 | 2 | Cloud Run リクエスト | リクエスト数がベースラインの 10 倍、または 1 IP から 5 分で 300 件超 | P2（継続で P1） | DoS、スクレイピング | 社内 NAT 共有 IP、uptime check | 未 |
 | 3 | Cloud Run リクエスト | 401/403 が 10 分で 50 件超 | P2 | トークン総当たり、認可回避の試行 | 期限切れセッションの再読み込み、Cron 401 | 未 |
 | 4 | Cloud Run リクエスト | `/.env`・`/wp-admin`・`/.git` 等へのアクセス、スキャナ UA | P3（集計のみ） | 自動スキャナ | 公開 URL では常時発生。**アラートにしない** | 未 |
-| 5 | アプリ auth | `login_failure` が 10 分で 20 件超（全体） | P2 | ブルートフォース、スプレー | 一斉周知の直後 | 未 |
-| 6 | アプリ auth | `login_locked` が 1 時間で 3 件超、または同一 identifierHash の `login_blocked` が 1 時間で 10 件超 | P2 | 特定アカウントへの攻撃 | 本人の入力ミス | 未 |
+| 5 | アプリ auth | `login_failure` が 10 分で 20 件超（全体） | P2 | ブルートフォース、スプレー | 一斉周知の直後 | 済(PR) |
+| 6 | アプリ auth | `login_locked` が 1 時間で 3 件超、または同一 identifierHash の `login_blocked` が 1 時間で 10 件超 | P2 | 特定アカウントへの攻撃 | 本人の入力ミス | 一部済(PR)（login_locked のみ。同一 identifierHash の login_blocked は全体 30 件/時で代替、アカウント単位は未） |
 | 7 | アプリ auth | 同一 remoteIp から複数 identifierHash への失敗が 10 分で 10 件超 | P2 | パスワードスプレー | NAT | 未（remoteIp と auth イベントの突合に工夫が必要） |
-| 8 | アプリ auth | Google 経由の `account_inactive`（1 件でも） | P2 | 退職者・無効化済みの継続アクセス | 無効化直後の誤操作 | 未 |
+| 8 | アプリ auth | Google 経由の `account_inactive`（1 件でも） | P2 | 退職者・無効化済みの継続アクセス | 無効化直後の誤操作 | 済(PR) |
 | 9 | アプリ auth | `domain_not_allowed` が 1 時間で 5 件超 | P3 | 個人 Gmail の誤用、探索 | 私用アカウント | 未 |
-| 10 | アプリ auth | `account_provisioned`（ヘルプデスク自動作成。有効化した場合） | P2（1 件で通知） | 想定外の権限付与 | 新入社員 | 未（機能は既定 OFF） |
-| 11 | アプリ監査 | `helpdesk staff role changed`（role=admin）、`created`、`exported` | P2（1 件で通知） | 権限昇格、持ち出し | 正規の管理作業（本人確認運用で吸収） | ログのみ、アラート未設定 |
+| 10 | アプリ auth | `account_provisioned`（ヘルプデスク自動作成。有効化した場合） | P2（1 件で通知） | 想定外の権限付与 | 新入社員 | 済(PR)（機能は既定 OFF） |
+| 11 | アプリ監査 | `helpdesk staff role changed`（role=admin）、`created`、`exported` | P2（1 件で通知） | 権限昇格、持ち出し | 正規の管理作業（本人確認運用で吸収） | 済(PR)（role=admin / created / exported を 1 件で通知） |
 | 12 | アプリ監査 | 業務時間外（JST 22–7 時、要調整）の admin 操作・エクスポート | P1 | 乗っ取り | 時差（ヘルプデスクは日本側と推測） | 未 |
 | 13 | アプリ API | `[api-errors] Forbidden` が同一ユーザーで 10 分に 10 件超 | P2 | 他社データへの IDOR 試行 | UI バグ | 未 |
 | 14 | アプリ API | `[api-errors] Invalid request` が 10 分で 30 件超 | P3 | ファジング、インジェクション試行 | フォームのバグ | 未 |
 | 15 | アプリ | `severity>=ERROR` | P2 | 未捕捉例外 | DB 停止中の dev | 済 |
 | 16 | Cloud SQL | CPU、ディスク、停止 | P2 | 重いクエリ、大量 SELECT | 夜間停止（dev） | 済 |
 | 17 | Cloud SQL postgres.log | `password authentication failed` が 1 件以上 | P1 | DB パスワード漏えい疑い、ローテーション後の旧値 | ローテーション作業中 | 未（ログに出るか要確認） |
-| 18 | Admin Activity（Cloud SQL） | `cloudsql.instances.export` / `users.update` / `users.create` / `instances.update`（authorizedNetworks 等）/ `instances.clone` / `backupRuns.restore` を想定外 principal が実行 | P1（export・ユーザー変更）/ P2（設定変更） | 持ち出し、バックドア | 定期エクスポート SA（principal で除外） | 未 |
-| 19 | Admin Activity | `SetIamPolicy`（project / Cloud Run / Secret）、`CreateServiceAccountKey`、`allUsers` 追加 | P1 | 侵害、権限昇格 | bootstrap 作業（事前共有で吸収） | 未 |
-| 20 | Admin Activity | `UpdateSink` / `DeleteSink` / `DeleteBucket` / audit config 変更（監視の無効化） | P1 | 痕跡の消去 | ほぼ無し | 未 |
-| 21 | Admin Activity（Cloud Run） | `ReplaceService` / `CreateRevision` / `UpdateService` を担当外 principal・予定外時間に実行 | P2 | 不正デプロイ | 手動デプロイ（現状は個人ローカルから） | 未 |
+| 18 | Admin Activity（Cloud SQL） | `cloudsql.instances.export` / `users.update` / `users.create` / `instances.update`（authorizedNetworks 等）/ `instances.clone` / `backupRuns.restore` を想定外 principal が実行 | P1（export・ユーザー変更）/ P2（設定変更） | 持ち出し、バックドア | 定期エクスポート SA（principal で除外） | 済(PR)（export と instances update/patch は trusted 除外、clone/restore/users は常に通知） |
+| 19 | Admin Activity | `SetIamPolicy`（project / Cloud Run / Secret）、`CreateServiceAccountKey`、`allUsers` 追加 | P1 | 侵害、権限昇格 | bootstrap 作業（事前共有で吸収） | 済(PR)（SetIamPolicy は全件通知のため allUsers 追加も含む） |
+| 20 | Admin Activity | `UpdateSink` / `DeleteSink` / `DeleteBucket` / audit config 変更 / アラートポリシー・通知チャネル・ログベースメトリクスの更新・削除（監視の無効化） | P1 | 痕跡の消去 | ほぼ無し | 済(PR)（audit config 変更は SetIamPolicy 経由で #19 の対象） |
+| 21 | Admin Activity（Cloud Run） | `ReplaceService` / `CreateRevision` / `UpdateService` を担当外 principal・予定外時間に実行 | P2 | 不正デプロイ | 手動デプロイ（現状は個人ローカルから） | 一部済(PR)（Replace/Update/DeleteService を trusted 以外で通知。CreateRevision・予定外時間は未） |
 | 22 | Data Access（要有効化） | Secret Manager `AccessSecretVersion` をアプリ SA・サービスエージェント以外が実行 | P2（時間外・未知 principal は P1） | 秘密値の閲覧・漏えい | deploy-main 手順、`rotate-secrets.sh` | 未 |
-| 23 | Audit | `AddSecretVersion` / `DestroySecretVersion` / `DisableSecretVersion` | P2 | 秘密値のすり替え | ローテーション作業 | 未 |
+| 23 | Audit | `AddSecretVersion` / `DestroySecretVersion` / `DisableSecretVersion` | P2 | 秘密値のすり替え | ローテーション作業 | 済(PR)（trusted 以外で通知） |
 | 24 | Scheduler | `cloud_scheduler_job` の失敗（severity>=ERROR） | P3（督促停止の業務影響次第で P2） | アプリ障害、OIDC/secret 不一致 | DB 停止中 | 未 |
 | 25 | Cron API | `/api/cron/*` への 401、または UA が `Google-Cloud-Scheduler` 以外からの 2xx | 401: P3（多ければ P2）/ UA 不一致の 2xx: P1 | CRON_SECRET 漏えい、探索 | 手動 dryRun（事前共有で吸収） | 未 |
 | 26 | メール | `[mailer]` / `[announcement-notifications]` の送信量が 1 時間で N 件超（N は宛先数から決定） | P2 | 乗っ取りアカウントからの大量送信 | 正規の全社お知らせ | 未（送信件数ログの有無は要確認） |
 | 27 | 翻訳 API | Anthropic 呼び出しエラー急増、または予算アラート | P3 | 本文大量投入によるコスト攻撃 | — | budget モジュールは既定 off |
-| 28 | GCS（エクスポートバケット） | `storage.objects.get/list` を想定外 principal が実行、IAM 変更、公開設定 | P1 | DB ダンプの持ち出し | — | 未 |
+| 28 | GCS（エクスポートバケット） | `storage.objects.get/list` を想定外 principal が実行、IAM 変更、公開設定 | P1 | DB ダンプの持ち出し | — | 一部済(PR)（バケット IAM 変更のみ。objects.get/list は Data Access 未有効のため未） |
 | 29 | tfstate バケット | 読み取り（state に `random_password`・CRON_SECRET が平文で入る） | P2 | 秘密の漏えい | apply 担当者 | 未 |
 | 30 | GitHub | ブランチ保護変更、新規 Actions secret / environment、WIF 利用元が想定外 | P2 | サプライチェーン | — | 未（GitHub Audit log は GCP 外） |
 
@@ -259,6 +259,8 @@ dev と prod はチャネルを分け、dev の通知を本番運用者に送ら
 ## 5. ギャップと優先順位
 
 ### 先にやるべき上位 5 つ
+
+> 上位 1・2 は実装済み（`infra/modules/monitoring/security.tf`、一覧と使い方は [monitoring.md](./monitoring.md)）。methodName の実ログ確認と、業務時間外条件・Data Access・postgres.log 系は未実装。
 
 | # | 項目 | 解決手段 | 工数 |
 |---|---|---|---|
