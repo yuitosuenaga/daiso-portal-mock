@@ -274,7 +274,7 @@ model AnnouncementTranslation {
 
 /**
  * お知らせの公開・リマインド通知メールの送信結果履歴。宛先1件ごとに1行を作成する
- * （履歴は追記のみで、更新・削除は行わない）。
+ * （履歴は追記のみで更新は行わない。保持期間180日を超えた分は /api/cron/log-retention が定期削除する）。
  */
 model AnnouncementNotificationLog {
   id             String                         @id @default(cuid())
@@ -288,6 +288,7 @@ model AnnouncementNotificationLog {
   sentAt         DateTime                       @default(now())
 
   @@index([announcementId])
+  @@index([sentAt])
 }
 
 model AnnouncementAttachment {
@@ -757,6 +758,7 @@ enum AuthEventType {
 
 /// 認証イベントの監査ログ。メールアドレス・パスワードは平文で保存しない
 /// （識別子はHMACのハッシュ、IPは匿名化した概要のみ）。
+/// 保持期間365日を超えた分は /api/cron/log-retention が定期削除する。
 model AuthEvent {
   id             String        @id @default(cuid())
   type           AuthEventType
