@@ -21,6 +21,7 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 | Cloud SQL CPU | 平均 > 80% が10分継続 | db-f1-micro は共有 vCPU で張り付きやすい。短時間スパイクは無視 |
 | Cloud SQL ディスク | > 85% | ディスク自動拡張が無効/上限ありの場合に枯渇前に対処できる余裕 |
 | Cloud SQL 停止 | `database/up` < 1 または欠落が5分 | 停止時はメトリクスが欠落することがあるため absent 条件も併用 |
+| アプリ ERROR ログ | `severity>=ERROR` が1件でも出たら通知（通知間隔 5 分、30 分で自動クローズ） | 捕捉されなかったリクエストエラー(`[request-error]`、runbook §3.5)や `load failed` は logger.error で出るため、1つの条件で拾える。ログベースは件数閾値を持てないので、通知間隔で連発を抑える |
 | 稼働確認 (uptime) | `/api/auth/providers` が複数地点で失敗 | 認証不要で DB 非依存に近い軽量エンドポイント。Cloud Run の到達性と Next.js 起動を確認 |
 
 ## 注意点
@@ -29,6 +30,7 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 - Cloud Run の `ingress` を制限している場合、uptime check（Google 管理の外部 IP）が到達できず常時失敗になる。その場合は tfvars で `enable_uptime_check = false` にする（既定 true）。
 - Cloud Run が `min_instances = 0` の場合、uptime check は既定5分間隔でアクセスするため実質ウォーム維持になり、スケールトゥゼロのコスト削減効果が薄れる（インスタンス稼働時間が増える）。またコールドスタートがレイテンシ p95 に影響しうる。不要なら `enable_uptime_check = false` か `uptime_check_period` を延ばす。
 - Cloud SQL 停止の absent 条件は、メトリクス欠落が続く間は発報するが、欠落状態のままだとインシデントが自動クローズされうる（復旧通知ではなくクローズ扱い）。停止の継続監視には向かない。
+- ERROR ログアラートは通知間隔(`error_log_notification_interval`)内の同種エラーを1通にまとめる。ERROR が常時出る環境（例: DB 停止中の dev）では通知が間隔ごとに続くため、`enable_error_log_alert = false` にするか間隔を延ばす。通知先がなければインシデントだけが作られる。
 - 本モジュールは `monitoring.googleapis.com` API が有効であることを前提とする（modules/services で有効化済み）。
 
 ## 通知先の決め方
@@ -42,4 +44,4 @@ alert_emails      = ["ops@example.com"]   # 空なら通知チャネルを作ら
 
 - 通知先・当番体制、SLO/稼働率目標（目標が決まれば uptime・5xx 閾値を逆算）
 - 営業時間外の通知可否
-- ログベースのアラート（認証失敗の急増など）の要否。候補条件: `jsonPayload.message="[request-error] Unhandled request error"`(捕捉されなかったリクエストエラー。runbook §3.5)の件数
+- ログベースのアラートの追加条件（認証失敗の急増など。件数閾値が要る場合はログベースメトリクスを作ってしきい値アラートにする）。ERROR ログ検知は雛形として実装済みで、`enable_error_log_alert` で無効化できる

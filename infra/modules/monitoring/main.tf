@@ -83,6 +83,24 @@ variable "cloudsql_down_duration" {
   description = "Cloud SQL が停止（up<1）し続けたら通知するまでの時間"
 }
 
+variable "enable_error_log_alert" {
+  type        = bool
+  default     = true
+  description = "アプリの ERROR 以上のログ（[request-error] / load failed を含む）を検知するログベースアラートを作成する"
+}
+
+variable "error_log_notification_interval" {
+  type        = string
+  default     = "300s"
+  description = "ログベースアラートの通知間隔（同一ポリシーの再通知を抑える最短間隔。秒数に s を付ける）"
+}
+
+variable "error_log_auto_close" {
+  type        = string
+  default     = "1800s"
+  description = "ログベースアラートのインシデントを自動クローズするまでの時間"
+}
+
 locals {
   channel_ids = [for c in google_monitoring_notification_channel.email : c.id]
   cr_filter   = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${var.cloudrun_service_name}\""
@@ -156,6 +174,30 @@ resource "google_monitoring_alert_policy" "cloudrun_latency" {
         count = 1
       }
     }
+  }
+}
+
+# アプリログの severity>=ERROR を検知する。logger.error（[request-error] Unhandled request error / `<component>` load failed など）
+# と Cloud Run 側の ERROR ログが対象。1件ごとの通知を避けるため通知間隔で抑制する（docs/infra/monitoring.md 参照）。
+resource "google_monitoring_alert_policy" "app_error_log" {
+  count                 = var.enable_error_log_alert ? 1 : 0
+  project               = var.project_id
+  display_name          = "${var.name_prefix} app error log"
+  combiner              = "OR"
+  notification_channels = local.channel_ids
+
+  conditions {
+    display_name = "severity>=ERROR log"
+    condition_matched_log {
+      filter = "${local.cr_filter} AND severity>=ERROR"
+    }
+  }
+
+  alert_strategy {
+    notification_rate_limit {
+      period = var.error_log_notification_interval
+    }
+    auto_close = var.error_log_auto_close
   }
 }
 
