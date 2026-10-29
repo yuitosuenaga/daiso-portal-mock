@@ -126,6 +126,12 @@ variable "scheduler_schedule" {
   default = "0 9 * * *"
 }
 
+variable "log_retention_schedule" {
+  type        = string
+  default     = "0 4 * * *"
+  description = "運用ログ保持期間削除 Cron の実行スケジュール（Scheduler の time_zone=Asia/Tokyo 基準。既定は毎日 4:00）"
+}
+
 # --- 既存環境の取り込み（import）用。デフォルトはすべて新規構築向けの挙動 ---
 variable "db_instance_name" {
   type        = string

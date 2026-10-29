@@ -24,6 +24,12 @@ variable "schedule" {
   default = "0 9 * * *"
 }
 
+# 叩くアプリ側 Cron エンドポイントのパス。既定は督促（既存ジョブの定義を変えない）。
+variable "path" {
+  type    = string
+  default = "/api/cron/announcement-escalation"
+}
+
 variable "time_zone" {
   type    = string
   default = "Asia/Tokyo"
@@ -42,8 +48,10 @@ variable "attempt_deadline" {
   }
 }
 
-# アプリの /api/cron/announcement-escalation は x-cron-secret ヘッダーで認証する。
-# 値は Scheduler ジョブ定義と state に残る点に注意（閲覧権限の範囲を限定する）。
+# アプリの Cron エンドポイント（/api/cron/announcement-escalation、/api/cron/log-retention 等）は
+# x-cron-secret ヘッダーで認証する。値は Scheduler ジョブ定義と state に残る点に注意（閲覧権限の範囲を限定する）。
+# リソース名 `escalation` は督促専用だった名残。汎用化後も変えない（変えると既存ジョブが state 上
+# 再作成になるため）。
 resource "google_cloud_scheduler_job" "escalation" {
   project   = var.project_id
   region    = var.region
@@ -59,7 +67,7 @@ resource "google_cloud_scheduler_job" "escalation" {
 
   http_target {
     http_method = "POST"
-    uri         = "${var.service_url}/api/cron/announcement-escalation"
+    uri         = "${var.service_url}${var.path}"
     headers = {
       "x-cron-secret" = var.cron_secret
     }
