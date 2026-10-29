@@ -145,6 +145,12 @@ variable "enable_scheduler" {
   default = true
 }
 
+variable "enable_scheduler_oidc" {
+  type        = bool
+  default     = false
+  description = "Scheduler に OIDC トークンを付与し、専用SAに Cloud Run の invoker を付与する。Cloud Run を非公開（allow_public_access=false）にする場合は true。x-cron-secret は併用する"
+}
+
 variable "scheduler_schedule" {
   type    = string
   default = "0 9 * * *"
