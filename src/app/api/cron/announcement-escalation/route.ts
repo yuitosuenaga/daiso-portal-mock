@@ -1,7 +1,6 @@
-import { createHash, timingSafeEqual } from "crypto";
-
 import { NextRequest, NextResponse } from "next/server";
 
+import { isAuthorizedCronRequest } from "@/lib/server/cron-auth";
 import { errorFields, logger } from "@/lib/server/logger";
 import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalation";
 
@@ -9,54 +8,10 @@ import { runAnnouncementAutoEscalation } from "@/lib/server/announcement-escalat
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/**
- * リクエストヘッダーから、Cronエンドポイント認証用のシークレット候補を優先順に取り出す。
- * Cloud SchedulerのOIDC利用時は`Authorization: Bearer <IDトークン>`が付与されるため、
- * アプリ層のシークレットである`x-cron-secret`を先に照合し、`Authorization: Bearer <secret>`
- * 単独（従来方式）も候補として受け付ける（要件38.10）。
- */
-function extractSecretCandidates(request: NextRequest): string[] {
-  const candidates: string[] = [];
-  const headerSecret = request.headers.get("x-cron-secret");
-  if (headerSecret) {
-    candidates.push(headerSecret);
-  }
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const bearer = authHeader.slice("Bearer ".length);
-    if (bearer) {
-      candidates.push(bearer);
-    }
-  }
-  return candidates;
-}
-
-/**
- * 2つの文字列をタイミング攻撃に耐性のある方法で比較する。単純な`===`比較は文字列長・
- * 一致した先頭文字数に応じて処理時間が変わりうるため、両者を固定長（SHA-256、32byte）に
- * ハッシュ化してから`crypto.timingSafeEqual`で比較する。これにより、入力長の違いによる
- * 早期リターン（それ自体がタイミングのサイドチャネルになりうる）も発生しない。
- */
-function timingSafeEqualStrings(a: string, b: string): boolean {
-  const hashA = createHash("sha256").update(a).digest();
-  const hashB = createHash("sha256").update(b).digest();
-  return timingSafeEqual(hashA, hashB);
-}
-
 async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    // 未設定の環境（ローカル・検証環境等）ではエンドポイント自体を無効化し、
-    // 誤って無認証で叩けないようにする（要件38.10）。設定状態を外部へ開示しないよう、
-    // シークレット不一致と同じ401・固定文言で応答する。
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // 全候補を定数時間比較で評価し、早期リターンによるタイミング差を作らない。
-  const authorized = extractSecretCandidates(request)
-    .map((candidate) => timingSafeEqualStrings(candidate, cronSecret))
-    .some(Boolean);
-  if (!authorized) {
+  // CRON_SECRET未設定の環境ではエンドポイント自体を無効化する（要件38.10）。設定状態を外部へ
+  // 開示しないよう、シークレット不一致と同じ401・固定文言で応答する。
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

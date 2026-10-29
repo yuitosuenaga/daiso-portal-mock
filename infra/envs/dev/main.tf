@@ -284,6 +284,23 @@ module "scheduler" {
   depends_on = [module.services]
 }
 
+# 運用ログの保持期間超過分の定期削除（/api/cron/log-retention）
+module "scheduler_log_retention" {
+  count       = var.enable_scheduler ? 1 : 0
+  source      = "../../modules/scheduler"
+  project_id  = var.project_id
+  region      = var.region
+  name        = "${var.name_prefix}-log-retention"
+  service_url = module.cloudrun.uri
+  cron_secret = random_password.cron_secret[0].result
+  path        = "/api/cron/log-retention"
+  schedule    = var.log_retention_schedule
+  # Cloud Run timeout と揃える（Scheduler HTTP ターゲットの上限 1800s で頭打ち）
+  attempt_deadline = "${min(var.cloudrun_timeout_seconds, 1800)}s"
+
+  depends_on = [module.services]
+}
+
 # 監視・アラート（末尾に集約。enable_monitoring=false なら何も作らない）
 module "monitoring" {
   count                  = var.enable_monitoring ? 1 : 0
