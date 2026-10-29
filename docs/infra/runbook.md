@@ -327,7 +327,7 @@ gcloud sql instances describe portal-mock-backend-db --project rvp-ai-proto-camp
 - **メール+パスワードで入れない**: ユーザーが DB に登録されているか、アカウントが無効化されていないか、パスワードが正しいか。まず DB 接続エラー(§3.3)がないかをログで確認する。次の2点も確認する(PR #158 の認証ハードニング導入後)。
   - **ロックアウト**: パスワードを5回失敗すると15分間ログインできなくなる。正しいパスワードでも、待ち時間が過ぎるまで入れない。利用者には15分待つよう案内する。(同じメールへ並列に試行しても、照合は5回まで。試行の前に枠を原子的に予約する。)
   - **マイグレーション未適用**: `20261026000000_add_auth_throttle_and_audit` が本番DBに未適用のままデプロイすると、Credentials ログインが全員不能になる(Google ログインは動く)。ログにテーブル/カラム不存在のエラーが出ていれば、§1.3 の手順でマイグレーションを適用する。
-  - **AuthEvent による監査ログ確認**: 認証の成否・ロックアウトは `AuthEvent` テーブルに記録される。ログイン試行の履歴は、DB へ読み取りで接続して `AuthEvent` を確認する(列名や値の種類は `prisma/schema.prisma` を参照。確認結果を共有する前に、メールアドレスや IP など個人情報が含まれていないか確認する)。なお、AuthEvent の保持期間・削除の運用は未整備(付録参照)。
+  - **AuthEvent による監査ログ確認**: 認証の成否・ロックアウトは `AuthEvent` テーブルに記録される。ログイン試行の履歴は、DB へ読み取りで接続して `AuthEvent` を確認する(列名や値の種類は `prisma/schema.prisma` を参照。確認結果を共有する前に、メールアドレスや IP など個人情報が含まれていないか確認する)。AuthEvent は 365日を超えた分が定期削除される(§3.7)。
 - **Google ログインで入れない**(Google ログイン導入後): 画面に表示されるエラーは「未登録 / 無効化済み / ドメイン不許可 / その他」の4種類に区別されている。
   - 未登録: DB にそのメールのユーザーが無い(既定では自動作成しない。ヘルプデスク担当者のみ、環境変数で自動作成を有効にできる。末尾の「ヘルプデスク担当者の Google 自動作成」参照)。ユーザーを登録する。
   - 無効化済み: アカウントが無効化されている。
@@ -455,6 +455,35 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 1. 直近の変更(デプロイ、Terraform の apply、機密値のローテーション、Cloud SQL の設定変更)を時系列で確認する。
 2. 直近の変更がアプリのデプロイなら §1.7 のロールバック。
 3. データの破損が疑われる場合は、**書き込みを止めた上で**、まずオンデマンドバックアップを取り、その後に §2.3 の復元を検討する。
+
+### 3.7 運用ログの保持期間と定期削除
+
+アプリが DB に追記し続ける 3 つのテーブルは、保持期間を過ぎた行を `/api/cron/log-retention` が削除する。実装は `src/lib/log-retention-policy.ts`(期間の定義)と `src/lib/server/log-retention.ts`(削除処理)。
+
+| テーブル | 保持期間 | 削除条件 | 根拠 |
+|---|---|---|---|
+| `AuthEvent`(認証の監査ログ) | 365日 | `createdAt` が 365日より前 | 不正ログインや権限変更の事後調査に必要な期間。識別子は HMAC のハッシュ、IP は匿名化した概要のみで、個人を直接特定する値は持たない |
+| `LoginThrottle`(ログイン試行制限の台帳) | 1日 | `updatedAt` が 1日より前、かつロック中でない(`lockedUntil` が空または過去) | ロック・失敗窓は最長15分で、1日を過ぎた行に意味はない。ロック中の行は消さない |
+| `AnnouncementNotificationLog`(通知メールの送信履歴) | 180日 | `sentAt` が 180日より前 | 送信トラブルの照会に足りる期間。督促の重複送信防止は当日分しか参照しないため、下限は2日(コード側で下限未満なら実行を拒否する) |
+
+運用の要点は次のとおり。
+
+- **エンドポイント**: `GET` または `POST /api/cron/log-retention`。督促 Cron と同じく `CRON_SECRET`(`x-cron-secret` ヘッダーまたは `Authorization: Bearer`)で認証する。未設定・不一致は 401(設定状態を開示しない)。1回の実行は最大 120 秒で打ち切り、残りは翌日の実行に回る(1000件ずつバッチ削除。何度実行しても結果は同じ)。
+- **スケジュール**: Terraform の `scheduler_log_retention`(既定は毎日 4:00 JST。変数 `log_retention_schedule`)。
+- **dryRun での確認**: `?dryRun=1` を付けると削除せず、削除対象の件数だけを返す。初回や期間を変えたときは先に dryRun で件数を確認する。
+- **手動実行**: 次のように実行する。`CRON_SECRET` は Secret Manager から取得してシェル変数に入れ、画面に出さない(`echo` しない、ファイルに書かない)。実行後は `unset` する。
+
+  ```bash
+  curl -sS -X POST -H "x-cron-secret: ${CRON_SECRET}" "<サービスURL>/api/cron/log-retention?dryRun=1"
+  ```
+
+  レスポンスはテーブルごとの `deleted`(削除件数。dryRun では対象件数)と `hasMore`(締切で打ち切られ、まだ対象が残る)。いずれかのテーブルが失敗すると 500 を返し、詳細は Cloud Logging の `[log-retention]` を見る(ログに出るのは件数とエラー種別のみ)。
+- **期間の変更**: 定数を変える PR で行う。下限未満にはできない(下限を下げる変更は理由をレビューで確認する)。
+- **個人情報の観点**: `AnnouncementNotificationLog` は宛先メールアドレスを**平文**で持つ。保持期間は個人情報の保管期限に直結するため、クライアントの規程で確定する(§1 の期間は暫定値)。`AuthEvent` は仮名化済みだが、突合すれば個人に結び付く可能性がある。
+- **削除した行は戻らない**: 復元手段は §2 のバックアップ・PITR のみ。期間を短くする変更を本番へ出す前に、dryRun で件数を確認し、必要ならオンデマンドバックアップを取る。
+- **ロールバック**: アプリの revision を戻す(§1.7)と削除処理も旧版に戻る(旧版には本エンドポイントが無く、Scheduler は 404 になる)。止めるだけなら `gcloud scheduler jobs pause <ジョブ名> --location <リージョン>`。`AnnouncementNotificationLog_sentAt_idx` は残しても無害。外す場合のみ `DROP INDEX "AnnouncementNotificationLog_sentAt_idx";`。
+- **現行環境**: `enable_cron_secret=false`(CRON_SECRET を注入していない)かつ `enable_scheduler=false` のため、エンドポイントは常に 401 で、自動削除は動かない。Scheduler はクライアント環境(新規構築)から有効になる。現行環境で削除したい場合は、CRON_SECRET の注入が前提になる。
+- **マイグレーション**: `20261029000003_add_notification_log_sent_at_index`(`sentAt` の index 追加のみ。後方互換)。適用中は対象テーブルへの書込が短時間待たされるため、お知らせ通知の送信中・督促(9:00)・公開時間帯を避ける。
 
 ---
 
@@ -660,7 +689,7 @@ gcloud run services describe portal-mock --region asia-northeast1 --project rvp-
 | RPO / RTO の実測値 | §2.4 |
 | state の旧世代からの復元 | §5.3 |
 | Google ログインのエラー分類のうち「無効化済み」「ドメイン不許可」「その他」の画面での確認(「未登録」は 2026-10-27 に確認済み)と、申請者側ログインでの OAuth 往復 | §3.2 |
-| AuthEvent の保持期間・削除ポリシー(PR #158 で未整備) | §3.2 |
+| 運用ログの定期削除(§3.7)の本番での実行。期間はクライアント規程で確定(AuthEvent の保持期間・削除ポリシーは対応済み。Scheduler はクライアント環境から) | §3.7 |
 | `secrets versions disable` → `enable` による旧 version の復旧 | §4.3 |
 | 「DB を停止してもバックアップは削除されない」の根拠(公式ドキュメント等での裏取り) | §2.5 |
 | `gcloud sql instances clone --point-in-time` / `gcloud sql backups restore --backup-instance` のコマンド単位の動作(オプション・前提条件) | §2.3 |
