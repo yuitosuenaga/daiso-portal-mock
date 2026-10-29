@@ -287,6 +287,18 @@ variable "alert_emails" {
   description = "アラート通知先メール。空なら通知チャネルを作らない"
 }
 
+variable "enable_security_alerts" {
+  type        = bool
+  default     = true
+  description = "セキュリティ監視アラート（Admin Activity・認証系ログ）を作成する（enable_monitoring=true のときのみ有効。docs/infra/monitoring.md）"
+}
+
+variable "security_trusted_principals" {
+  type        = list(string)
+  default     = []
+  description = "想定された操作者（apply 担当・定期エクスポート SA 等）の principalEmail。Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export のアラートからのみ除外する。空なら除外しない"
+}
+
 # --- 本番化トグル（docs/infra/prod-hardening.md）。既定は現行と同一 ---
 variable "db_backup_retained_count" {
   type        = number

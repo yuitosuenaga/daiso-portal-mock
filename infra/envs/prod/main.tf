@@ -354,6 +354,9 @@ module "monitoring" {
   enable_uptime_check        = var.enable_uptime_check
   enable_cloudsql_down_alert = var.enable_cloudsql_down_alert
 
+  enable_security_alerts      = var.enable_security_alerts
+  security_trusted_principals = var.security_trusted_principals
+
   depends_on = [module.services]
 }
 

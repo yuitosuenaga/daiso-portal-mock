@@ -28,6 +28,10 @@ allowed_email_domains = []   # 例: ["our-company.example", "client.example"]
 # alert_emails      = ["ops@example.com"]
 # dev は db-end で夜間に DB 停止するため、停止アラートは false 推奨
 # enable_cloudsql_down_alert = false
+# セキュリティ監視アラート（docs/infra/monitoring.md）。apply 担当・定期エクスポート SA を trusted に入れると
+# Cloud Run 変更・Secret 変更・GCS IAM 変更・Cloud SQL export の通知から除外される（IAM 変更・監視無効化は常に通知）
+# enable_security_alerts      = true
+# security_trusted_principals = ["apply-user@example.com", "db-export@PROJECT.iam.gserviceaccount.com"]
 # enable_uptime_check        = true  # min_instances=0 だと5分間隔でウォーム維持になる。不要なら false
 
 # 本番化トグル（docs/infra/prod-hardening.md）。dev は既定（無効）のまま。検証したい時だけ有効化
