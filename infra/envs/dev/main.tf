@@ -227,6 +227,10 @@ module "secrets" {
 
   manual_secret_ids = toset(local.manual_secret_ids)
 
+  # secretAccessor は専用SA にのみ、secret 単位で付与する（既存SA利用・manage_iam=false の場合は管理者が付与）
+  grant_accessor  = var.manage_iam && var.existing_service_account_email == null
+  accessor_member = "serviceAccount:${module.iam.app_service_account_email}"
+
   depends_on = [module.services]
 }
 

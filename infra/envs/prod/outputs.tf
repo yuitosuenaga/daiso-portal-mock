@@ -16,6 +16,11 @@ output "required_project_roles" {
   description = "manage_iam=false の場合に、アプリSAへクライアント管理者が付与するロール"
 }
 
+output "secrets_requiring_accessor" {
+  value       = values(module.secrets.secret_ids)
+  description = "manage_iam=false または既存SA利用の場合に、アプリSAへ roles/secretmanager.secretAccessor を secret 単位で付与する対象"
+}
+
 output "manual_secrets_to_populate" {
   value       = local.manual_secret_ids
   description = "値を手動登録する secret（gcloud secrets versions add <id> --data-file=-）"
