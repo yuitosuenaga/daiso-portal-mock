@@ -201,6 +201,9 @@ module "cloudsql" {
   backup_retained_count                = var.db_backup_retained_count
   transaction_log_retention_days       = var.db_transaction_log_retention_days
   backup_start_time                    = var.db_backup_start_time
+  maintenance_window_day               = var.db_maintenance_window_day
+  maintenance_window_hour              = var.db_maintenance_window_hour
+  maintenance_update_track             = var.db_maintenance_update_track
   private_ip_enabled                   = var.db_private_ip_enabled
   public_ip_enabled                    = var.db_public_ip_enabled
   private_network_id                   = var.enable_private_network ? module.network[0].network_id : null

@@ -30,6 +30,39 @@ variable "tier" {
 # 現行インスタンスは ENTERPRISE（docs/infra/current-state.md）。shared-core(db-f1-micro/db-g1-small)と
 # db-custom-* は ENTERPRISE のみ。ENTERPRISE_PLUS は db-perf-optimized-* 系の tier が必要で、本モジュールの
 # HA 用 precondition（db-custom-* 限定）とは併用できない。
+variable "maintenance_window_day" {
+  type        = number
+  default     = null
+  description = "メンテナンスウィンドウの曜日（1=月〜7=日）。null=指定しない（API 既定）"
+
+  validation {
+    condition     = var.maintenance_window_day == null || (var.maintenance_window_day >= 1 && var.maintenance_window_day <= 7)
+    error_message = "maintenance_window_day は 1（月）〜7（日）、または null。"
+  }
+}
+
+variable "maintenance_window_hour" {
+  type        = number
+  default     = 18
+  description = "メンテナンス開始時刻（UTC の時、0〜23）。既定 18 は JST 03:00。maintenance_window_day を指定した場合のみ有効"
+
+  validation {
+    condition     = var.maintenance_window_hour >= 0 && var.maintenance_window_hour <= 23
+    error_message = "maintenance_window_hour は 0〜23（UTC）。"
+  }
+}
+
+variable "maintenance_update_track" {
+  type        = string
+  default     = "stable"
+  description = "更新トラック。canary は早く、stable は遅く更新が届く。本番は stable を推奨"
+
+  validation {
+    condition     = contains(["canary", "stable"], var.maintenance_update_track)
+    error_message = "maintenance_update_track は canary または stable。"
+  }
+}
+
 variable "edition" {
   type    = string
   default = "ENTERPRISE"
@@ -231,6 +264,16 @@ resource "google_sql_database_instance" "this" {
           retained_backups = var.backup_retained_count
           retention_unit   = "COUNT"
         }
+      }
+    }
+
+    # メンテナンスウィンドウ（再起動を伴う更新の実行時間帯）。day が null なら指定しない（API 既定）。
+    dynamic "maintenance_window" {
+      for_each = var.maintenance_window_day == null ? [] : [1]
+      content {
+        day          = var.maintenance_window_day
+        hour         = var.maintenance_window_hour
+        update_track = var.maintenance_update_track
       }
     }
 

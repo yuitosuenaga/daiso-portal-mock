@@ -306,6 +306,24 @@ variable "db_backup_start_time" {
   description = "自動バックアップ開始時刻(UTC HH:MM)。null=API既定"
 }
 
+variable "db_maintenance_window_day" {
+  type        = number
+  default     = null
+  description = "Cloud SQL メンテナンスウィンドウの曜日（1=月〜7=日）。null=指定しない（現行維持）"
+}
+
+variable "db_maintenance_window_hour" {
+  type        = number
+  default     = 18
+  description = "メンテナンス開始時刻（UTC の時）。既定 18 は JST 03:00。曜日を指定した場合のみ有効"
+}
+
+variable "db_maintenance_update_track" {
+  type        = string
+  default     = "stable"
+  description = "更新トラック（canary / stable）。曜日を指定した場合のみ有効"
+}
+
 variable "enable_private_network" {
   type        = bool
   default     = false
