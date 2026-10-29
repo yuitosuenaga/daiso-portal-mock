@@ -115,6 +115,8 @@ gcloud run jobs execute portal-mock-migrate --project $PROJECT --region $REGION 
 
 メール正規化(`20261029000001_normalize_email_lowercase`)のように、適用前に本番データの確認が必要なマイグレーションは `docs/infra/email-normalization.md` を参照する(段階1のデプロイが先)。
 
+indexを追加するマイグレーション(例: `20261029000002_add_missing_fk_indexes`)は、作成中そのテーブルへの書込を止める(読み取りは可能)。`CREATE INDEX CONCURRENTLY` は Prisma がマイグレーションをトランザクション内で実行するため使えない。大きいテーブル(目安10万行超)では、Prisma の外で `CONCURRENTLY` を流し、`prisma migrate resolve --applied <マイグレーション名>` で適用済みにする手順を検討する。
+
 ### 1.4 Cloud Run へのデプロイ
 
 `deploy-main` スキルを使う場合(現行環境):

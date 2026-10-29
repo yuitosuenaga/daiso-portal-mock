@@ -69,6 +69,8 @@ model ApplicantUser {
   /// 通知メール・お知らせ表示に用いる言語設定。未設定（既定値）は"en"として扱う。
   preferredLocale          String                    @default("en")
   announcementReadReceipts AnnouncementReadReceipt[]
+
+  @@index([companyId])
 }
 
 /// HelpdeskStaffの登録経路。既存行は既定でmanual（seedのメールのみマイグレーションでseed）。
@@ -125,6 +127,7 @@ model Inquiry {
   lastReadAt             DateTime?
 
   @@index([companyId])
+  @@index([claimedByStaffId])
 }
 
 /**
@@ -170,6 +173,9 @@ model InquiryAttachment {
   inquiry        Inquiry?             @relation(fields: [inquiryId], references: [id])
   historyEntryId String?
   historyEntry   InquiryHistoryEntry? @relation(fields: [historyEntryId], references: [id])
+
+  @@index([inquiryId])
+  @@index([historyEntryId])
 }
 
 enum AnnouncementCategory {
@@ -241,6 +247,8 @@ model Announcement {
   translations          AnnouncementTranslation[]
   notificationLogs      AnnouncementNotificationLog[]
   readReceipts          AnnouncementReadReceipt[]
+
+  @@index([createdById])
 }
 
 /**
@@ -327,6 +335,7 @@ model AnnouncementRecipientStatus {
 
   @@unique([announcementId, recipientId])
   @@index([announcementId])
+  @@index([recipientId])
 }
 
 /**
@@ -404,6 +413,9 @@ model Document {
   subCategory           DocumentCategory?          @relation("DocumentSubCategory", fields: [subCategoryId], references: [id], onDelete: Restrict)
   linkedByAnnouncements AnnouncementDocumentLink[]
   translations          DocumentTranslation[]
+
+  @@index([categoryId])
+  @@index([subCategoryId])
 }
 
 /**
@@ -512,6 +524,9 @@ model Link {
   description   String?
   createdAt     DateTime          @default(now())
   translations  LinkTranslation[]
+
+  @@index([categoryId])
+  @@index([subCategoryId])
 }
 
 /**

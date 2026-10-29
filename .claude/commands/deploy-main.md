@@ -45,4 +45,5 @@ allowed-tools: Bash
 - `HelpdeskStaff.isActive`列追加マイグレーション（20261029000000）を適用せずに新コードをデプロイすると、全スタッフのログインが失敗する。`migrate deploy`を必ず先に行うこと
 - 新規マイグレーションを含むデプロイでは、本番DBへの`migrate deploy`が完了し`migrate status`で差分なしを確認してから`gcloud run deploy`を実行する（先にデプロイすると、新テーブルを参照する画面が本番でエラーになる）
 - 本番DBへの直接アクセスが必要な場面（手順3・7）では、実行前に必ずユーザーへマニュアルモードへの切替を依頼する。自動モードのまま強行しない
+- `20261029000002_add_missing_fk_indexes` はindex追加のみ（後方互換）。適用中は数秒、対象テーブルへの書込が待たされる。適用前に `docs/infra/runbook.md` §2.2 のオンデマンドバックアップ（`--description "before-fk-indexes"`）を取り、適用後に `migrate status` で `Database schema is up to date!` を確認する
 </instructions>
