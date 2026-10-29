@@ -26,6 +26,20 @@ variable "tier" {
   default = "db-f1-micro"
 }
 
+# Cloud SQL の edition。provider / API 側の既定値の変更で意図せず変わらないよう明示する。
+# 現行インスタンスは ENTERPRISE（docs/infra/current-state.md）。shared-core(db-f1-micro/db-g1-small)と
+# db-custom-* は ENTERPRISE のみ。ENTERPRISE_PLUS は db-perf-optimized-* 系の tier が必要で、本モジュールの
+# HA 用 precondition（db-custom-* 限定）とは併用できない。
+variable "edition" {
+  type    = string
+  default = "ENTERPRISE"
+
+  validation {
+    condition     = contains(["ENTERPRISE", "ENTERPRISE_PLUS"], var.edition)
+    error_message = "edition は ENTERPRISE か ENTERPRISE_PLUS を指定する。"
+  }
+}
+
 variable "disk_size_gb" {
   type    = number
   default = 10
@@ -199,6 +213,7 @@ resource "google_sql_database_instance" "this" {
 
   settings {
     tier                        = var.tier
+    edition                     = var.edition
     availability_type           = var.high_availability ? "REGIONAL" : "ZONAL"
     disk_size                   = var.disk_size_gb
     disk_autoresize             = true
