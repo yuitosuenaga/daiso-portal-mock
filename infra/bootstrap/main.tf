@@ -32,6 +32,16 @@ variable "state_bucket_name" {
   description = "グローバル一意なバケット名（例: <project_id>-tfstate）"
 }
 
+# state バケットを読み書きするメンバー（例: ["group:infra-admins@example.com"]）。
+# state には DB 接続文字列・生成した secret などの機密値が平文で入る。ここに挙げたメンバーだけが
+# 読み書きできるようにし、プロジェクトの Editor / Owner など広いロール経由のアクセスは別途見直すこと。
+# 既定の空リストでは何も付与しない（現行のアクセス状態を変えない）。
+variable "state_access_members" {
+  type        = list(string)
+  default     = []
+  description = "state バケットに roles/storage.objectAdmin を付与するメンバー（user:/group:/serviceAccount: 形式）"
+}
+
 resource "google_project_service" "bootstrap" {
   for_each = toset([
     "serviceusage.googleapis.com",
@@ -49,6 +59,11 @@ resource "google_storage_bucket" "tfstate" {
   public_access_prevention    = "enforced"
   force_destroy               = false
 
+  # state の消失は復旧が難しいため、誤った destroy を止める。
+  lifecycle {
+    prevent_destroy = true
+  }
+
   versioning {
     enabled = true
   }
@@ -63,6 +78,13 @@ resource "google_storage_bucket" "tfstate" {
   }
 
   depends_on = [google_project_service.bootstrap]
+}
+
+resource "google_storage_bucket_iam_member" "state_access" {
+  for_each = toset(var.state_access_members)
+  bucket   = google_storage_bucket.tfstate.name
+  role     = "roles/storage.objectAdmin"
+  member   = each.key
 }
 
 output "state_bucket" {

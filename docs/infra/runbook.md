@@ -594,6 +594,7 @@ terraform -chdir=$E apply -input=false <作業用ディレクトリ>/<env>.tfpla
 ### 5.3 state
 
 - 場所: GCS バケット(現行は `rvp-ai-proto-camp-portal-iac-tfstate`、prefix `dev`)。バケットは `bootstrap/` で作成し、バージョニング有効・公開禁止。旧世代は新しい世代が30件を超えると削除される。
+- アクセス制御: state には DB 接続文字列や生成した secret が平文で入る。`bootstrap/` の変数 `state_access_members`(既定は空で、現行のアクセス状態を変えない)に挙げたメンバーへ `roles/storage.objectAdmin` を付与できる。ただし、プロジェクトの Editor / Owner は `storage.objects.*` を持つため、これだけでは閲覧者は絞れない。クライアント環境では、広いロールの付与範囲を確認し、state を読めるメンバーを運用担当者に限ること。バケットには `prevent_destroy` を付けてあり、誤った destroy は止まる。
 - bootstrap の state だけは、ローカル(git 管理外)にある。このファイルを失わないよう、担当者は保管する(機密値は含まれない)。
 - ロック: GCS backend の標準のロックが働く。`apply` が異常終了して残った場合は、実行中の人がいないことを確認してから `terraform force-unlock <ID>` を使う。
 - 巻き戻し: state の誤操作は、バケットの旧世代から復元できる(`gcloud storage ls --all-versions`)。復元の手順は**未検証**。
