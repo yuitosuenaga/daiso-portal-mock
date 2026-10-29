@@ -23,9 +23,10 @@ variable "existing_service_account_email" {
 
 locals {
   use_existing = var.existing_service_account_email != null
+  # プロジェクト全体に付与するロール。Secret Manager の secretAccessor はプロジェクト全体に付与せず、
+  # アプリが参照する secret 単位で付与する（modules/secrets の accessor_member）。
   required_roles = [
     "roles/cloudsql.client",
-    "roles/secretmanager.secretAccessor",
   ]
 }
 

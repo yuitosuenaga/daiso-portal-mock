@@ -19,6 +19,19 @@ variable "manual_secret_ids" {
   default = []
 }
 
+# 各 secret の secretAccessor を付与するメンバー（例: "serviceAccount:app@..."）。
+# プロジェクト全体ではなく secret 単位で付与し、他の secret へのアクセスを許さない。
+# grant_accessor=false（既存SA利用・manage_iam=false）の場合は付与せず、管理者が別途付与する。
+variable "grant_accessor" {
+  type    = bool
+  default = false
+}
+
+variable "accessor_member" {
+  type    = string
+  default = null
+}
+
 resource "google_secret_manager_secret" "generated" {
   for_each  = var.generated_secret_ids
   project   = var.project_id
@@ -41,6 +54,22 @@ resource "google_secret_manager_secret" "manual" {
   replication {
     auto {}
   }
+}
+
+resource "google_secret_manager_secret_iam_member" "generated_accessor" {
+  for_each  = var.grant_accessor ? var.generated_secret_ids : toset([])
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.generated[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = var.accessor_member
+}
+
+resource "google_secret_manager_secret_iam_member" "manual_accessor" {
+  for_each  = var.grant_accessor ? var.manual_secret_ids : toset([])
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.manual[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = var.accessor_member
 }
 
 output "secret_ids" {
